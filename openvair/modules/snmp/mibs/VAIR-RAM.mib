@@ -1,0 +1,51 @@
+VAIR-RAM DEFINITIONS ::= BEGIN
+
+AERODISK OBJECT IDENTIFIER ::= { iso(1) org(3) dod(6) internet(1) private(4) enterprises(1) 54641 }
+
+ram   OBJECT IDENTIFIER ::= {AERODISK 53}
+
+
+-- RAM
+RamTotal OBJECT-TYPE
+        SYNTAX Counter64
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "Total ram size"
+        ::= {ram 0}
+
+RamUsed OBJECT-TYPE
+        SYNTAX Counter64
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "Ram used size"
+        ::= {ram 1}
+
+
+RamFree OBJECT-TYPE
+        SYNTAX Counter64
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "Ram free size"
+        ::= {ram 2}
+
+
+RamAvailable OBJECT-TYPE
+        SYNTAX Counter64
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "Ram available size"
+        ::= {ram 3}
+
+RamUsedPercent OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "Ram used in percent"
+        ::= {ram 4}
+
+END

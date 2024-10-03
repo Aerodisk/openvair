@@ -1,0 +1,7 @@
+VAIR-NET DEFINITIONS ::= BEGIN
+
+AERODISK OBJECT IDENTIFIER ::= { iso(1) org(3) dod(6) internet(1) private(4) enterprises(1) 54641 }
+
+network   OBJECT IDENTIFIER ::= {AERODISK 51}
+
+END

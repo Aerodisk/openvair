@@ -1,0 +1,197 @@
+# Python version
+target-version = "py38"
+
+# Not linting and formatting files from .gitignore
+respect-gitignore = true
+
+line-length = 80
+indent-width = 4
+
+# Formatting configuration
+[format]
+quote-style = "single"
+
+# Indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Not formattin in one line list of variables
+skip-magic-trailing-comma = false
+
+# Enable docstring formatting
+docstring-code-format = true
+docstring-code-line-length = 88
+
+
+# Linter configuration
+[lint]
+# Adding lineter rules
+select = [
+    "F",     # pyflakes
+    "E",     # pycodestyle errors 
+    "W",     # pycodestyle warnings
+    "C90",   # mccabe
+    "I",     # isort
+    "N",     # pep8-naming
+    "D",     # pydocstyle
+    "ANN",   # flake8-annotations (ANN)
+    "ASYNC", # flake8-async 
+    "S",     # flake8-bandit
+    "BLE",   # flake8-blind-except
+    "FBT",   # flake8-boolean-trap
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "COM",   # flake8-commas
+    "C4",    # flake8-comprehensions 
+    "EM",    # flake8-errmsg
+    "ISC",   # flake8-implicit-str-concat
+    "ICN",   # flake8-import-conventions
+    "LOG",   # flake8-logging
+    "T20",   # flake8-print
+    "Q",     # flake8-quotes
+    "RSE",   # flake8-raise
+    "RET",   # flake8-return
+    "SLF",   # flake8-self
+    "SLOT",  # flake8-slots
+    "SIM",   # flake8-simplify
+    "TID",   # flake8-tidy-imports
+    "TCH",   # flake8-type-checking
+    "INT",   # flake8-gettext
+    "ARG",   # flake8-unused-arguments
+    "PTH",   # flake8-use-pathlib
+    "PL",    # Pylint
+    "TRY",   # tryceratops
+    "FLY",   # flynt
+    "RUF",   # Ruff-specific rules
+]
+
+
+# Exclude linter rules
+ignore = [
+    # When using Ruff as a formatting tool, it is recommended to avoid the following 
+    # linter rules
+    # When using Ruff as a formatting tool, it is recommended to avoid the following 
+    # linter rules
+    "W191",   # tab-indentation
+    "E111",   # indentation-with-invalid-multiple
+    "E114",   # indentation-with-invalid-multiple-comment
+    "E117",   # over-indented
+    "D206",   # indent-with-spaces
+    "D300",   # triple-single-quotes
+    "Q000",   # bad-quotes-inline-string
+    "Q001",   # bad-quotes-multiline-string
+    "Q002",   # bad-quotes-docstring
+    "Q003",   # avoidable-escaped-quote
+    "COM812", # missing-trailing-comma
+    "COM819", # prohibited-trailing-comma
+    "ISC001", # single-line-implicit-string-concatenation
+    "ISC002", # multi-line-implicit-string-concatenation
+
+    # Excluding useless rules for type annotations
+    "ANN002", # missing-type-args
+    "ANN003", # missing-type-kwargs
+    "ANN101", # missing-type-self
+    "ANN102", # missing-type-cls
+    "ANN204", # missing-type-args
+
+    # Exclude pydocstyle rules for google conventions
+    "D415", # ends-in-punctuation
+
+    # Exclude not used practice rules
+    "B904",   # raise-without-from-inside-except
+    "TRY400", # error-instead-of-exception
+    # Exclude not used practice rules
+    "B904",   # raise-without-from-inside-except
+    "TRY400", # error-instead-of-exception
+
+    # DISABLED WHILE UNUSE THIS CHECKING FOR PROJECT
+    "UP",  # pyupgrade DISABLE WHILE WE DON'T USE pyupgrade
+    "YTT", # flake8-2020 (YTT) DISABEL WHILE WE DON'T USE python version >= 3.10
+    "DTZ", # flake8-datetimez DISABEL WHILE WE DON'T NEED WORKING WITH TIME ZONE
+    "T10", # flake8-debugger
+    "DJ",  # flake8-django WE DON'T USE DJANGO
+    "PT",  # flake8-pytest-style WHILE WE DO NOT USE PYTEST
+    "PD",  # pandas-vet WE DON'T USE PANDAS
+    "NPY", # NumPy-specific rules WE DON'T USE NumPy
+    "FA",  # flake8-future-annotations. It will be usefull for migratiom to new python versions
+
+    "FA",  # flake8-future-annotations. It will be usefull for migratiom to new python versions
+
+
+    # DISABLE WHILE NOT DISCUSS ABOUT ENABLING THIS RULE OR NOT HAVE UNDERSTANDING THIS RULE
+    "CPY",  # flake8-copyright 
+    "EXE",  # flake8-executable
+    "G",    # flake8-logging-format
+    "INP",  # flake8-no-pep420 
+    "PIE",  # flake8-pie
+    "PYI",  # flake8-pyi
+    "TD",   # flake8-todos 
+    "FIX",  # flake8-fixme
+    "ERA",  # eradicate 
+    "PGH",  # pygrep-hooks
+    "AIR",  # Airflow
+    "PERF", # Perflint
+    "FURB", # refurb warning: Selection `FURB` has no effect because preview is not enabled.
+    "FURB", # refurb warning: Selection `FURB` has no effect because preview is not enabled.
+]
+
+# Ignore rules on special files
+[lint.extend-per-file-ignores]
+# Ignore docstring rules on __init__.py files
+"__init__.py" = ["D104"]
+"config.py" = ["D100"]
+
+# Ignore import rules for main.py
+"main.py" = ["E402"]
+
+# Code style configuration
+[lint.pycodestyle]
+# detect extra-long lines that the formatter can't automatically split by setting 
+# pycodestyle.line-length to a value larger than line-length
+max-line-length = 80 # E501 reports lines that exceed the length of 80.
+# max line length for doc strings
+max-doc-length = 88
+
+
+[lint.pydocstyle]
+# Setting google docstrings formatting
+convention = "google"
+
+# Is allow implicit string concatenation altogether
+[lint.flake8-implicit-str-concat]
+allow-multiline = false
+
+# Do not lint calling this functions in args of another function.
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.File"]
+
+# isort configuration
+[lint.isort]
+# Force import from statements with multiple members and at least one alias 
+# (e.g., import A as B) to wrap such that every line contains exactly one member. 
+# Force import from statements with multiple members and at least one alias 
+# (e.g., import A as B) to wrap such that every line contains exactly one member. 
+# For example, this formatting would be retained, rather than condensing to a single line:
+# from .utils import (
+#     test_directory as test_directory,
+#     test_id as test_id
+# )
+force-wrap-aliases = false
+combine-as-imports = true
+
+# Sort imports by their string length
+length-sort = true
+
+[lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+max-complexity = 5
+
+[lint.pylint]
+max-nested-blocks = 5
+
+[lint.per-file-ignores]
+"openvair/modules/network/tests/domain/bridges/utils/test_ovs_lib.py" = ["ALL"]
+"openvair/alembic/**.py" = ["ALL"]
+"openvair/modules/__init__.py" = ["ALL"]

@@ -1,0 +1,13 @@
+<devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+
+    {% for disk in domain.disks %}
+        {% include 'disk.xml' %}
+    {% endfor %}
+
+    {% for interface in domain.virtual_interfaces %}
+        {% include 'interface.xml' %}
+    {% endfor %}
+
+    {% include 'graphics.xml' %}
+</devices>

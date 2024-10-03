@@ -1,0 +1,58 @@
+[database]
+user = 'aero'
+password = 'aero'
+host = '0.0.0.0'
+port = 5432
+db_name = 'openvair'
+
+[rabbitmq]
+user = 'guest'
+password = 'guest'
+host = 'localhost'
+port = 5672
+
+[storage]
+data_path = '/opt/aero/openvair/data'
+
+[jwt]
+algorithm = 'HS256'
+token_type = "bearer"
+access_token_expiration_minutes = 30
+refresh_token_expiration_days = 30
+
+[messaging]
+type = 'rpc'
+transport = 'rabbitmq'
+
+[web_app]
+host = 'localhost'
+port = 8000
+
+[prometheus]
+host = 'localhost'
+port = 9090
+
+[default_user]
+login = ''
+password = ''
+
+[os_data]
+os_type = ''
+
+[network]
+config_manager = 'ovs'
+
+[snmp]
+agent_type = 'agentx'
+
+[sentry]
+dsn = ''
+
+
+[notifications]
+    [notifications.email]
+    smtp_server = 'smtp.yandex.ru'
+    smtp_port = 465
+    smtp_username = 'your_email@example.com'
+    smtp_password = 'your_password'
+

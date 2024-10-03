@@ -1,0 +1,33 @@
+version = 1
+disable_existing_loggers = false
+
+[root]
+    level = 'DEBUG'
+    handlers = ['console', 'file']
+
+[handlers]
+
+    [handlers.console]
+        class = "logging.StreamHandler"
+        level = "INFO"
+        formatter = "simple"
+
+    [handlers.file]
+        class = "logging.handlers.RotatingFileHandler"
+        level = "ERROR"
+        formatter = "detailed"
+        filename = "/opt/aero/openvair/error.log"
+        mode = "a"
+        encoding = "utf-8"
+        maxBytes = 5242880  # 5 MB
+        backupCount = 1
+
+[formatters]
+
+    [formatters.simple]
+        format = "[%(asctime)s] [%(name)s] [%(levelname)s] > %(message)s"
+        datefmt = "%Y-%m-%d %H:%M:%S"
+
+    [formatters.detailed]
+        format = "[%(asctime)s] [%(name)s] [%(levelname)s] [%(filename)s:%(lineno)d] > %(message)s"
+        datefmt = "%Y-%m-%d %H:%M:%S"

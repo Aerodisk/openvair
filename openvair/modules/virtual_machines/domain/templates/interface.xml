@@ -1,0 +1,16 @@
+{% if interface.mode == 'virtual_network' or interface.interface == 'virbr0' %}
+<interface type='network'>
+{% elif interface.mode == 'bridge'%}
+<interface type='bridge'>
+{% endif %}
+    {% if interface.mode == 'virtual_network' %}
+    <source network='{{ interface.interface }}' portgroup='{{ interface.portgroup }}'/>
+    {% elif interface.mode == 'bridge' and interface.interface != 'virbr0' %}
+    <source bridge='{{ interface.interface }}'/>
+    <virtualport type='openvswitch'/>
+    {% else %}
+    <source network={% if interface.interface == 'virbr0' %}'default'{% else %}'{{ interface.mode }}_network_{{ interface.interface }}'{% endif %}/>
+    {% endif %}
+    <mac address='{{ interface.mac }}'/>
+    <model type='{{ interface.model }}'/>
+</interface>

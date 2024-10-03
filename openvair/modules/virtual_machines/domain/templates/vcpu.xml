@@ -1,0 +1,7 @@
+<!-- <vcpu placement='static'>{{ domain.cpu.sockets * domain.cpu.cores * domain.cpu.threads }}</vcpu>
+<vcpu placement='static'>{{ domain.cpu.sockets * domain.cpu.cores * domain.cpu.threads }}</vcpu> -->
+{% if domain.cpu.type == 'dynamic' %}
+<vcpu placement='static'>{{  domain.cpu.vcpu  }}</vcpu>
+{% elif domain.cpu.type == 'static' %}
+<vcpu placement='static'>{{ domain.cpu.sockets * domain.cpu.cores * domain.cpu.threads }}</vcpu>
+{% endif %}

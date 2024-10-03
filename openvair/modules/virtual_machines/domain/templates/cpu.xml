@@ -1,0 +1,5 @@
+<cpu mode='host-passthrough' check='none' migratable='on'>
+{% if domain.cpu.type == 'static' %}
+    <topology cores='{{ domain.cpu.cores }}' sockets='{{ domain.cpu.sockets }}' threads='{{ domain.cpu.threads }}'/>
+{% endif %}
+</cpu>

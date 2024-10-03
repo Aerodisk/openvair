@@ -1,0 +1,16 @@
+<network>
+    <name>{{ network_name }}</name>
+    <uuid>{{ uuid }}</uuid>
+    <forward mode='{{ forward_mode }}'/>
+    <bridge name='{{ bridge_name }}'/>
+    <virtualport type='{{ virtual_port_type }}'/>
+    {% for port_group in port_groups %}
+        <portgroup name='{{ port_group.port_group_name }}'>
+            <vlan trunk='{{ port_group.is_trunk }}'>
+                {% for tag in port_group.tags %}
+                    <tag id='{{ tag }}'/>
+                {% endfor %}
+            </vlan>
+        </portgroup>
+    {% endfor %}
+</network>

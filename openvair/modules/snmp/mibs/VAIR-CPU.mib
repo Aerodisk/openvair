@@ -1,0 +1,24 @@
+VAIR-CPU DEFINITIONS ::= BEGIN
+
+AERODISK OBJECT IDENTIFIER ::= { iso(1) org(3) dod(6) internet(1) private(4) enterprises(1) 54641 }
+
+cpu   OBJECT IDENTIFIER ::= {AERODISK 50}
+
+-- CPU
+CoresCount OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "CPU cores count"
+        ::= {cpu 0}
+
+CpuUsagePercent OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+                 "CPU usage in percent"
+        ::= {cpu 1}
+
+END

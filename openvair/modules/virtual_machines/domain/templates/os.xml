@@ -1,0 +1,5 @@
+<os>
+    <type arch='x86_64'>hvm</type>
+    <boot dev='{{ domain.os.boot_device }}'/>
+    <bootmenu enable='{% if domain.os.boot_device %}yes{% else %}no{% endif %}'/>
+</os>

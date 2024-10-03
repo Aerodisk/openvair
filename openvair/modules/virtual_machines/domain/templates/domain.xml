@@ -1,0 +1,24 @@
+<domain type='kvm'>
+    <uuid>{{ domain.id }}</uuid>
+    <name>{{ domain.name }}</name>
+    <memory unit='b'>{{ domain.ram.size }}</memory>
+    {% include 'vcpu.xml' %}
+    <resource>
+        <partition>/machine</partition>
+    </resource>
+    {% include 'os.xml' %}
+    <features>
+        <acpi/>
+        <apic/>
+    </features>
+    {% include 'cpu.xml' %}
+    <on_poweroff>destroy</on_poweroff>
+    <on_reboot>restart</on_reboot>
+    <on_crash>restart</on_crash>
+    <pm>
+      <suspend-to-mem enabled='no'/>
+      <suspend-to-disk enabled='no'/>
+    </pm>
+
+    {% include 'devices.xml' %}
+</domain>

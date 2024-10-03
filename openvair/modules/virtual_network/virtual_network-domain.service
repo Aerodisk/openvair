@@ -1,0 +1,18 @@
+[Unit]
+Description=Virtual network domain. Domain logic
+Requires=docker.service
+After=network.target docker.service 
+
+[Service]
+Environment="PATH=/opt/aero/openvair/venv/bin/:/usr/sbin/:/usr/bin/"
+Environment="PYTHONPATH=:/opt/aero/openvair/"
+Environment=PYTHONUNBUFFERED=1
+
+
+WorkingDirectory=/opt/aero/openvair/openvair/modules/virtual_network/domain/
+ExecStart=/opt/aero/openvair/venv/bin/python3 -u /opt/aero/openvair/openvair/modules/virtual_network/domain/manager.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

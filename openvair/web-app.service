@@ -1,0 +1,16 @@
+[Unit]
+Description=Web application daemon which runs fastapi
+Requires=docker.service
+After=network.target docker.service
+
+[Service]
+Environment="PATH=/opt/aero/openvair/venv/bin/:/usr/sbin/:/usr/bin/"
+Environment="PYTHONPATH=:/opt/aero/openvair/"
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/opt/aero/openvair/venv/bin/python3 -u /opt/aero/openvair/openvair/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
