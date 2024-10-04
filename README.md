@@ -1,5 +1,7 @@
 # Open vAir
 
+![](.assets/dashboard.gif)
+
 ## Translations
 
 - [Русский](README.ru.md)
