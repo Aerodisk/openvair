@@ -1,6 +1,13 @@
 # Open vAir
 
 ![](.assets/dashboard.gif)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
 
 ## Переводы
 
@@ -20,11 +27,6 @@
 
 ---
 
-<p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=aerodisk&show_icons=true&locale=en&layout=compact" alt="aerodisk" /></p>
-
-<p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=aerodisk&show_icons=true&locale=en" alt="aerodisk" /></p>
-
----
 
 ## Установка
 
@@ -186,3 +188,19 @@ sudo systemctl status storage-domain.service
 
 ### Документация проекта
 * Для работы с документацией проекта используйте репозиторий [Open vAIR docs](https://github.com/Aerodisk/openvair-docs).
+
+---
+
+### Статистика (включая проекты документации и frontend)
+<p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=aerodisk&show_icons=true&locale=en&layout=compact" alt="aerodisk" /></p> <p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=aerodisk&show_icons=true&locale=en" alt="aerodisk" /></p>
+
+---
+
+### Вклад
+Инструкции по внесению вклада в проект:
+
+1. Форкните репозиторий
+2. Создайте новую ветку (git checkout -b feature/ваша-фича)
+3. Внесите изменения и закоммитьте (git commit -m 'Добавил новую фичу')
+4. Запушьте изменения (git push origin feature/ваша-фича)
+5. Создайте Pull Request
