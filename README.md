@@ -1,5 +1,29 @@
 # Open vAir
 
+## Translations
+
+- [Русский](README.ru.md)
+
+## Contents
+
+1. [Preparation for Project Installation](#preparation-for-project-installation)
+2. [Project Configuration](#project-configuration)
+3. [Application Tunneling](#application-tunneling)
+4. [Starting the Installation](#starting-the-installation)
+5. [Uninstallation](#uninstallation)
+6. [Documentation](#documentation)
+7. [Daemons](#daemons)
+8. [Links](#documentation-links)
+9. [Contribution](#contribution)
+
+
+## Project Description
+
+**Open vAir** is a lightweight solution based on the **vAir** project,
+designed for use as a development environment and virtualization system. The
+program operates in interactive mode, providing a flexible and convenient
+tool for managing virtual infrastructure.
+
 ![](.assets/dashboard.gif)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
@@ -8,17 +32,6 @@
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
 ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-
-## Translations
-
-- [Русский](README.ru.md)
-
-## Project Description
-
-**Open vAir** is a lightweight solution based on the **vAir** project,
-designed for use as a development environment and virtualization system. The
-program operates in interactive mode, providing a flexible and convenient
-tool for managing virtual infrastructure.
 
 ---
 
@@ -98,7 +111,7 @@ password = ''
 Note: The login and password fields must be filled in by the user. Otherwise,
 the installation will be aborted.
 
-###### Application Tunneling
+### Application Tunneling
 If the application needs to be run on a separate host as a server, configure
 tunneling to the virtual network. Determine the local IP address of the host
 by executing the command:
