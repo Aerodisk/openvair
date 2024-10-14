@@ -1,0 +1,25 @@
+name: Sync All Branches to GitLab
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Sync to GitLab
+        run: |
+          git remote add gitlab ${{ secrets.GITLAB_URL }}
+          git push --mirror gitlab
+        env:
+          GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
+          GITLAB_PAT: ${{ secrets.GITLAB_PAT }}
