@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 jobs:
   sync:
@@ -18,8 +19,7 @@ jobs:
       - name: Sync to GitLab
         run: |
           git remote add gitlab ${{ secrets.GITLAB_URL }}
-          git push gitlab main
-          git push gitlab --tags
+          git push --mirror gitlab
         env:
           GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
           GITLAB_PAT: ${{ secrets.GITLAB_PAT }}
