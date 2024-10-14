@@ -125,7 +125,7 @@ class NfsStorage(RemoteFSStorage):
             message = f'Nfs ip {self.ip} is not available'
             LOG.error(message)
             raise NfsIpIsNotAvailableError(message)
-        available_paths = re.findall(r'\n(.*?)\s', output)
+        available_paths = re.findall(r'/([^ ]+)\s+\*', output)
         if self.path not in available_paths:
             message = f"Nfs doesn't have current path {self.path}."
             LOG.error(message)
