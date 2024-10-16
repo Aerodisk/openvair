@@ -177,7 +177,7 @@ sudo journalctl -fu web-app.service
 Service-layer daemons perform remote function calls of the service layer.
 Each module has its own service-layer daemon. To check the status and view
 logs, use similar commands, changing the service name to
-`<module>-service-layer.service`.
+`<module_name>-service-layer.service`.
 
 For example:
 ```bash
@@ -185,10 +185,10 @@ sudo systemctl status storage-service-layer.service
 ```
 
 ##### *domain* Daemon
-ДDomain daemons perform remote function calls of the domain layer. Each
+Domain daemons perform remote function calls of the domain layer. Each
 module has its own domain daemon. To check the status and view logs, use
 similar commands, changing the service name to
-*<имя_предметной_области>-domain.service*.
+`<module_name>-domain.service`.
 ```bash
 sudo systemctl status storage-domain.service
 ```
