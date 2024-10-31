@@ -1,0 +1,43 @@
+name: Test Docker Build and Install
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t openvair-test .
+
+      - name: Run Docker container
+        run: |
+          docker run --name openvair-container -d openvair-test tail -f /dev/null
+
+      - name: Update system and prepare environment
+        run: |
+          docker exec -u 0 openvair-container bash -c "apt update && apt upgrade -y"
+          docker exec -u 0 openvair-container bash -c "useradd -s /bin/bash -d /opt/aero -m aero"
+
+      - name: Modify config file
+        run: |
+          docker exec openvair-container bash -c "sed -i \"/\\[default_user\\]/,/^$/s/^login = .*/login = 'test_user'/; s/^password = .*/password = 'test_password'/\" /opt/aero/openvair/project_config.toml"
+
+      - name: Run installation script
+        run: |
+          docker exec openvair-container bash -c "/opt/aero/openvair/install.sh"
+
+      - name: Clean up
+        run: |
+          docker stop openvair-container
+          docker rm openvair-container
+
