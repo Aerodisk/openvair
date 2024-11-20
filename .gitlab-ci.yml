@@ -1,0 +1,121 @@
+variables:
+  GIT_DEPTH: "0"
+  DOCKER_DRIVER: overlay2
+  GIT_STRATEGY: clone
+  DEBIAN_FRONTEND: noninteractive
+  OPENVAIR_LOGIN: ${OPENVAIR_LOGIN}
+  OPENVAIR_PASSWORD: ${OPENVAIR_PASSWORD}
+  HOST_IP: "0.0.0.0"
+
+# before_script:
+#   - 'echo "{ \"registry-mirrors\": [\"https://mirror.gcr.io\"] }" > /etc/docker/daemon.json'
+#   - sudo service docker restart
+
+stages:
+  - branch_check
+  - install
+  - test-dev-merge
+
+image: ubuntu:20.04
+
+install_openvair:
+  before_script:
+    - apt-get update
+    - apt-get install -y curl iproute2 netcat-openbsd
+  stage: install
+  script:
+    # Create user and set permissions
+    - useradd -s /bin/bash -d /opt/aero -m aero
+    - chmod +x /opt/aero
+    - 'echo "aero ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/aero'
+
+    # # Get IP address and store it in a variable
+    # - HOST_IP=$(ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n1)
+    # - 'echo "Detected IP address: ${HOST_IP}"'
+
+    # For container environment, we can use localhost or 0.0.0.0
+    - 'echo "Using localhost for container environment"'
+    - HOST_IP=$HOST_IP
+    
+    # Switch to aero user and clone repository
+    - su - aero -c "git clone https://github.com/Aerodisk/openvair.git"
+    
+    # Configure project
+    - |
+      su - aero -c "cat > ~/openvair/project_config.toml << EOF
+      [default_user]
+      login = '$OPENVAIR_LOGIN'
+      password = '$OPENVAIR_PASSWORD'
+      
+      [web_app]
+      host = '${HOST_IP}'
+      port = 8000
+      EOF"
+    
+    # Run installation script
+    - su - aero -c "./openvair/install.sh"
+
+    # Check web-app & port status after installation
+    - ps aux | grep web-app
+    - |
+      timeout 30 bash -c 'until nc -z localhost 8000; do echo "Waiting for web-app to start..."; sleep 1; done'
+
+    # Test service accessibility
+    - echo "Testing web-app accessibility..."
+    - curl -f --connect-timeout 10 "http://${HOST_IP}:8000/" || (echo "Failed to connect to web-app"; exit 1)
+
+  artifacts:
+    paths:
+      - /opt/aero/openvair/
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - when: never
+
+branch_protection:
+  stage: branch_check
+  script:
+    - |
+      if [[ "$CI_COMMIT_REF_NAME" == "main" ]]; then
+        echo "Direct push to main branch is not allowed!"
+        echo "Please create merge request from dev branch"
+        exit 1
+      elif [[ "$CI_COMMIT_REF_NAME" == "dev" ]]; then
+        echo "Direct push to dev branch is not allowed!"
+        echo "Please create merge request from pre_dev branch"
+        exit 1
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: always
+
+validate_dev_merge:
+  stage: test-dev-merge
+  script:
+    - |
+      if [[ "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != "pre_dev" ]]; then
+        echo "Merging to dev is only allowed from pre_dev branch!"
+        exit 1
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+      when: always
+  needs:
+    - job: install_openvair
+      optional: true
+
+validate_main_merge:
+  stage: test-dev-merge
+  script:
+    - |
+      if [[ "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != "dev" ]]; then
+        echo "Merging to main is only allowed from dev branch!"
+        exit 1
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+  needs:
+    - job: install_openvair
+      optional: true
