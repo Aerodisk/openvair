@@ -7,31 +7,23 @@ variables:
   OPENVAIR_PASSWORD: ${OPENVAIR_PASSWORD}
   HOST_IP: "0.0.0.0"
 
-# before_script:
-#   - 'echo "{ \"registry-mirrors\": [\"https://mirror.gcr.io\"] }" > /etc/docker/daemon.json'
-#   - sudo service docker restart
-
 stages:
   - branch_check
   - install
   - test-dev-merge
 
-image: ubuntu:20.04
+image: alpine:3.18
 
 install_openvair:
+  image: ubuntu:20.04
   before_script:
     - apt-get update
     - apt-get install -y curl iproute2 netcat-openbsd
   stage: install
   script:
-    # Create user and set permissions
     - useradd -s /bin/bash -d /opt/aero -m aero
     - chmod +x /opt/aero
     - 'echo "aero ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/aero'
-
-    # # Get IP address and store it in a variable
-    # - HOST_IP=$(ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n1)
-    # - 'echo "Detected IP address: ${HOST_IP}"'
 
     # For container environment, we can use localhost or 0.0.0.0
     - 'echo "Using localhost for container environment"'
@@ -74,6 +66,8 @@ install_openvair:
     - when: never
 
 branch_protection:
+  before_script:
+    - apk add --no-cache bash
   stage: branch_check
   script:
     - |
@@ -91,6 +85,8 @@ branch_protection:
       when: always
 
 validate_dev_merge:
+  before_script:
+    - apk add --no-cache bash
   stage: test-dev-merge
   script:
     - |
@@ -106,6 +102,8 @@ validate_dev_merge:
       optional: true
 
 validate_main_merge:
+  before_script:
+    - apk add --no-cache bash
   stage: test-dev-merge
   script:
     - |
