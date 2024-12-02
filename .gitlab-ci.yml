@@ -3,8 +3,8 @@ variables:
   DOCKER_DRIVER: overlay2
   GIT_STRATEGY: clone
   DEBIAN_FRONTEND: noninteractive
-  OPENVAIR_LOGIN: ${OPENVAIR_LOGIN}
-  OPENVAIR_PASSWORD: ${OPENVAIR_PASSWORD}
+  # OPENVAIR_LOGIN: ${OPENVAIR_LOGIN}
+  # OPENVAIR_PASSWORD: ${OPENVAIR_PASSWORD}
   HOST_IP: "0.0.0.0"
 
 stages:
@@ -38,8 +38,8 @@ install_openvair:
     - cp -r "$CI_PROJECT_DIR" /home/aero/openvair
     - chown -R aero:aero /home/aero/openvair
 
-    # Configure project
-    - su - aero -c "cat > /home/aero/openvair/project_config.toml << EOF
+    - |
+      su - aero -c "cat > /home/aero/openvair/project_config.toml << EOL
       [default_user]
       login = '${OPENVAIR_LOGIN}'
       password = '${OPENVAIR_PASSWORD}'
@@ -47,9 +47,8 @@ install_openvair:
       [web_app]
       host = '${HOST_IP}'
       port = 8000
-      EOF"
-    
-    # Run installation script
+      EOL"
+
     - su - aero -c "cd /home/aero/openvair && ./install.sh"
 
     # Check web-app & port status after installation
