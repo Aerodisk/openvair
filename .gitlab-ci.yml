@@ -21,7 +21,7 @@ install_openvair:
     OPENVAIR_PASSWORD: "${OPENVAIR_PASSWORD}"
   before_script:
     - apt-get update
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 netcat-openbsd lsb-release sudo tmux gawk screen
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 netcat-openbsd lsb-release sudo tmux gawk screen expect
   stage: install
   script:
     - useradd -s /bin/bash -d /opt/aero -m aero
@@ -59,12 +59,12 @@ install_openvair:
     - cp /home/aero/openvair/project_config.toml /opt/aero/openvair/
     - chown aero:aero /opt/aero/openvair/project_config.toml
 
-    # Run the installation using script to create a pseudo-terminal
+    # Run the installation using unbuffer to create a pseudo-terminal
     - |
-      script -q -c "su - aero -c 'cd /home/aero/openvair && \
-                    export OPENVAIR_LOGIN=\"${OPENVAIR_LOGIN}\" && \
-                    export OPENVAIR_PASSWORD=\"${OPENVAIR_PASSWORD}\" && \
-                    bash -l ./install.sh'" /dev/null
+      unbuffer su - aero -c 'cd /home/aero/openvair && \
+                    export OPENVAIR_LOGIN="${OPENVAIR_LOGIN}" && \
+                    export OPENVAIR_PASSWORD="${OPENVAIR_PASSWORD}" && \
+                    bash -l ./install.sh'
 
     # Check service status
     - ps aux | grep web-app
