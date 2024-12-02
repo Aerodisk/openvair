@@ -3,8 +3,8 @@ variables:
   DOCKER_DRIVER: overlay2
   GIT_STRATEGY: clone
   DEBIAN_FRONTEND: noninteractive
-  # OPENVAIR_LOGIN: ${OPENVAIR_LOGIN}
-  # OPENVAIR_PASSWORD: ${OPENVAIR_PASSWORD}
+  OPENVAIR_LOGIN: ${OPENVAIR_LOGIN}
+  OPENVAIR_PASSWORD: ${OPENVAIR_PASSWORD}
   HOST_IP: "0.0.0.0"
 
 stages:
@@ -16,6 +16,9 @@ image: alpine:3.18
 
 install_openvair:
   image: ubuntu:20.04
+  variables:
+    OPENVAIR_LOGIN: "${OPENVAIR_LOGIN}"
+    OPENVAIR_PASSWORD: "${OPENVAIR_PASSWORD}"
   before_script:
     - apt-get update
     - DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 netcat-openbsd lsb-release sudo tmux gawk screen
@@ -36,6 +39,10 @@ install_openvair:
     - 'echo "Using localhost for container environment"'
     - HOST_IP=${HOST_IP:-127.0.0.1}
 
+    # Debug: Print environment variables (mask sensitive data)
+    - 'echo "OPENVAIR_LOGIN is set to ${OPENVAIR_LOGIN:0:2}..."'
+    - 'echo "OPENVAIR_PASSWORD is set (${#OPENVAIR_PASSWORD} chars)"'
+
     # Copy files
     - cp -r "$CI_PROJECT_DIR"/. /home/aero/openvair/
     - cp -r "$CI_PROJECT_DIR"/. /opt/aero/openvair/
@@ -48,52 +55,53 @@ install_openvair:
 
     # Create project config
     - |
-      su - aero -c "cat > /home/aero/openvair/project_config.toml << EOL
+      cat > /home/aero/openvair/project_config.toml << EOL
       [default_user]
-      login = '${OPENVAIR_LOGIN}'
-      password = '${OPENVAIR_PASSWORD}'
+      login = "${OPENVAIR_LOGIN}"
+      password = "${OPENVAIR_PASSWORD}"
       
       [web_app]
-      host = '${HOST_IP}'
+      host = "${HOST_IP}"
       port = 8000
-      EOL"
+      EOL
+    - chown aero:aero /home/aero/openvair/project_config.toml
     - cp /home/aero/openvair/project_config.toml /opt/aero/openvair/
+    - chown aero:aero /opt/aero/openvair/project_config.toml
 
     # Create log directory
     - mkdir -p /opt/aero/openvair
     - touch /opt/aero/openvair/install.log
     - chown -R aero:aero /opt/aero/openvair/install.log
 
-    # Try to run with screen instead of tmux
-    - export TERM=xterm
-    - 'su - aero -c "TERM=xterm screen -dm bash -c \"cd /home/aero/openvair && ./install.sh\""'
-    - sleep 5  # Give some time for the installation to start
+    # Run installation with environment variables explicitly passed
+    - |
+      su - aero -c "export OPENVAIR_LOGIN='${OPENVAIR_LOGIN}' && \
+                    export OPENVAIR_PASSWORD='${OPENVAIR_PASSWORD}' && \
+                    export TERM=xterm && \
+                    cd /home/aero/openvair && \
+                    ./install.sh"
 
-    # Monitor the installation progress
-    - 'tail -f /opt/aero/openvair/install.log & tail_pid=$!'
-    
-    # Wait for service to start (with timeout)
+    # Check service status
+    - ps aux | grep web-app
     - |
       max_attempts=30
       attempt=1
       while [ $attempt -le $max_attempts ]; do
         if curl -s http://localhost:8000/ > /dev/null; then
           echo "Service is up!"
-          kill $tail_pid
           exit 0
         fi
         echo "Attempt $attempt/$max_attempts: Service not ready yet..."
         sleep 1
         attempt=$((attempt + 1))
       done
-      kill $tail_pid
       echo "Service failed to start after $max_attempts attempts"
       exit 1
 
   artifacts:
     paths:
-      - /opt/aero/openvair/
-      - /opt/aero/openvair/install.log
+      - install.log
+      - project_config.toml
     when: always
     expire_in: 1 week
   rules:
