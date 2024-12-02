@@ -30,24 +30,15 @@ install_openvair:
     - 'echo "aero ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/aero'
     - chmod 0440 /etc/sudoers.d/aero
     
-    # Create necessary directories
+    # Create necessary directories and set up files as before
     - mkdir -p /opt/aero/openvair
     - mkdir -p /home/aero/openvair
     - chown -R aero:aero /home/aero
     - chown -R aero:aero /opt/aero
 
-    - 'echo "Using localhost for container environment"'
-    - HOST_IP=${HOST_IP:-127.0.0.1}
-
-    # Debug: Print environment variables (mask sensitive data)
-    - 'echo "OPENVAIR_LOGIN is set to ${OPENVAIR_LOGIN:0:2}..."'
-    - 'echo "OPENVAIR_PASSWORD is set (${#OPENVAIR_PASSWORD} chars)"'
-
-    # Copy files
     - cp -r "$CI_PROJECT_DIR"/. /home/aero/openvair/
     - cp -r "$CI_PROJECT_DIR"/. /opt/aero/openvair/
     
-    # Set permissions
     - chown -R aero:aero /home/aero/openvair
     - chown -R aero:aero /opt/aero/openvair
     - chmod +x /home/aero/openvair/install.sh
@@ -61,25 +52,39 @@ install_openvair:
       password = "${OPENVAIR_PASSWORD}"
       
       [web_app]
-      host = "${HOST_IP}"
+      host = "127.0.0.1"
       port = 8000
       EOL
     - chown aero:aero /home/aero/openvair/project_config.toml
     - cp /home/aero/openvair/project_config.toml /opt/aero/openvair/
     - chown aero:aero /opt/aero/openvair/project_config.toml
 
-    # Create log directory
-    - mkdir -p /opt/aero/openvair
-    - touch /opt/aero/openvair/install.log
-    - chown -R aero:aero /opt/aero/openvair/install.log
-
-    # Run installation with environment variables explicitly passed
+    # Create wrapper script to bypass tmux
     - |
-      su - aero -c "export OPENVAIR_LOGIN='${OPENVAIR_LOGIN}' && \
+      cat > /home/aero/openvair/wrapper.sh << 'EOL'
+      #!/bin/bash
+      if [[ "$1" == "new-session" ]]; then
+        shift  # Remove 'new-session' argument
+        # Execute the remaining command directly
+        eval "$@"
+      else
+        # For any other tmux command, just pretend it succeeded
+        exit 0
+      fi
+      EOL
+    - chmod +x /home/aero/openvair/wrapper.sh
+    - chown aero:aero /home/aero/openvair/wrapper.sh
+
+    # Create alias for tmux in aero's environment
+    - |
+      su - aero -c "echo 'alias tmux=\"/home/aero/openvair/wrapper.sh\"' >> ~/.bashrc"
+    
+    # Run the installation
+    - |
+      su - aero -c "cd /home/aero/openvair && \
+                    export OPENVAIR_LOGIN='${OPENVAIR_LOGIN}' && \
                     export OPENVAIR_PASSWORD='${OPENVAIR_PASSWORD}' && \
-                    export TERM=xterm && \
-                    cd /home/aero/openvair && \
-                    ./install.sh"
+                    bash -l ./install.sh"
 
     # Check service status
     - ps aux | grep web-app
