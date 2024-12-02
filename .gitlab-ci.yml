@@ -23,11 +23,13 @@ install_openvair:
   script:
     - useradd -s /bin/bash -d /opt/aero -m aero
     - chmod +x /opt/aero
+    - mkdir -p /etc/sudoers.d
     - 'echo "aero ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/aero'
+    - chmod 0440 /etc/sudoers.d/aero
     
     # For container environment, we can use localhost or 0.0.0.0
     - 'echo "Using localhost for container environment"'
-    - HOST_IP=$HOST_IP
+    - HOST_IP=${HOST_IP:-127.0.0.1}  # Default to localhost if HOST_IP is undefined
 
     # Copy the automatically checked-out repository to /home/aero
     - cp -r "$CI_PROJECT_DIR" /home/aero/openvair
@@ -36,8 +38,8 @@ install_openvair:
     # Configure project
     - su - aero -c "cat > /home/aero/openvair/project_config.toml << EOF
       [default_user]
-      login = '$OPENVAIR_LOGIN'
-      password = '$OPENVAIR_PASSWORD'
+      login = '${OPENVAIR_LOGIN}'
+      password = '${OPENVAIR_PASSWORD}'
       
       [web_app]
       host = '${HOST_IP}'
