@@ -18,7 +18,7 @@ install_openvair:
   image: ubuntu:20.04
   before_script:
     - apt-get update
-    - apt-get install -y curl iproute2 netcat-openbsd
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 netcat-openbsd lsb-release sudo tmux gawk
   stage: install
   script:
     - useradd -s /bin/bash -d /opt/aero -m aero
@@ -27,19 +27,26 @@ install_openvair:
     - 'echo "aero ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/aero'
     - chmod 0440 /etc/sudoers.d/aero
     
+    # Create necessary directories
+    - mkdir -p /opt/aero/openvair
     - mkdir -p /home/aero/openvair
     - chown -R aero:aero /home/aero
+    - chown -R aero:aero /opt/aero
 
     - 'echo "Using localhost for container environment"'
     - HOST_IP=${HOST_IP:-127.0.0.1}
 
+    # Copy files to both locations
     - cp -r "$CI_PROJECT_DIR"/. /home/aero/openvair/
-
-    - ls -la /home/aero/openvair
-
+    - cp -r "$CI_PROJECT_DIR"/. /opt/aero/openvair/
+    
+    # Set permissions
     - chown -R aero:aero /home/aero/openvair
-    - chmod +x /home/aero/openvair/install.sh  # Make sure install.sh is executable
+    - chown -R aero:aero /opt/aero/openvair
+    - chmod +x /home/aero/openvair/install.sh
+    - chmod +x /opt/aero/openvair/install.sh
 
+    # Create project config in both locations
     - |
       su - aero -c "cat > /home/aero/openvair/project_config.toml << EOL
       [default_user]
@@ -50,11 +57,20 @@ install_openvair:
       host = '${HOST_IP}'
       port = 8000
       EOL"
+    - cp /home/aero/openvair/project_config.toml /opt/aero/openvair/
 
-    # Debug: Print current directory and its contents
-    - pwd
+    # Debug: Print directory contents
+    - echo "Contents of /home/aero/openvair:"
     - ls -la /home/aero/openvair
-    
+    - echo "Contents of /opt/aero/openvair:"
+    - ls -la /opt/aero/openvair
+
+    # Create log directory
+    - mkdir -p /opt/aero/openvair
+    - touch /opt/aero/openvair/install.log
+    - chown -R aero:aero /opt/aero/openvair/install.log
+
+    # Run installation
     - su - aero -c "cd /home/aero/openvair && ./install.sh"
 
     # Check web-app & port status after installation
@@ -65,7 +81,6 @@ install_openvair:
     # Test service accessibility
     - echo "Testing web-app accessibility..."
     - curl -f --connect-timeout 10 "http://${HOST_IP}:8000/" || (echo "Failed to connect to web-app"; exit 1)
-
   artifacts:
     paths:
       - /opt/aero/openvair/
