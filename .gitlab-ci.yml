@@ -29,7 +29,7 @@ install_openvair:
     - mkdir -p /etc/sudoers.d
     - 'echo "aero ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/aero'
     - chmod 0440 /etc/sudoers.d/aero
-    
+
     # Create necessary directories and set up files as before
     - mkdir -p /opt/aero/openvair
     - mkdir -p /home/aero/openvair
@@ -38,7 +38,7 @@ install_openvair:
 
     - cp -r "$CI_PROJECT_DIR"/. /home/aero/openvair/
     - cp -r "$CI_PROJECT_DIR"/. /opt/aero/openvair/
-    
+
     - chown -R aero:aero /home/aero/openvair
     - chown -R aero:aero /opt/aero/openvair
     - chmod +x /home/aero/openvair/install.sh
@@ -50,7 +50,7 @@ install_openvair:
       [default_user]
       login = "${OPENVAIR_LOGIN}"
       password = "${OPENVAIR_PASSWORD}"
-      
+
       [web_app]
       host = "127.0.0.1"
       port = 8000
@@ -59,32 +59,12 @@ install_openvair:
     - cp /home/aero/openvair/project_config.toml /opt/aero/openvair/
     - chown aero:aero /opt/aero/openvair/project_config.toml
 
-    # Create wrapper script to bypass tmux
+    # Run the installation using script to create a pseudo-terminal
     - |
-      cat > /home/aero/openvair/wrapper.sh << 'EOL'
-      #!/bin/bash
-      if [[ "$1" == "new-session" ]]; then
-        shift  # Remove 'new-session' argument
-        # Execute the remaining command directly
-        eval "$@"
-      else
-        # For any other tmux command, just pretend it succeeded
-        exit 0
-      fi
-      EOL
-    - chmod +x /home/aero/openvair/wrapper.sh
-    - chown aero:aero /home/aero/openvair/wrapper.sh
-
-    # Create alias for tmux in aero's environment
-    - |
-      su - aero -c "echo 'alias tmux=\"/home/aero/openvair/wrapper.sh\"' >> ~/.bashrc"
-    
-    # Run the installation
-    - |
-      su - aero -c "cd /home/aero/openvair && \
-                    export OPENVAIR_LOGIN='${OPENVAIR_LOGIN}' && \
-                    export OPENVAIR_PASSWORD='${OPENVAIR_PASSWORD}' && \
-                    bash -l ./install.sh"
+      script -q -c "su - aero -c 'cd /home/aero/openvair && \
+                    export OPENVAIR_LOGIN=\"${OPENVAIR_LOGIN}\" && \
+                    export OPENVAIR_PASSWORD=\"${OPENVAIR_PASSWORD}\" && \
+                    bash -l ./install.sh'" /dev/null
 
     # Check service status
     - ps aux | grep web-app
