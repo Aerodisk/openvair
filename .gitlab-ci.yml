@@ -18,7 +18,7 @@ install_openvair:
   image: ubuntu:20.04
   before_script:
     - apt-get update
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 netcat-openbsd lsb-release sudo tmux gawk
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 netcat-openbsd lsb-release sudo tmux gawk bsdutils
   stage: install
   script:
     - useradd -s /bin/bash -d /opt/aero -m aero
@@ -69,6 +69,9 @@ install_openvair:
     - mkdir -p /opt/aero/openvair
     - touch /opt/aero/openvair/install.log
     - chown -R aero:aero /opt/aero/openvair/install.log
+
+    # Run installation with script command to emulate a TTY (otherwise tmux won't run)
+    - script -q -e -c "su - aero -c 'cd /home/aero/openvair && ./install.sh'" /dev/null
 
     # Run installation
     - su - aero -c "cd /home/aero/openvair && ./install.sh"
