@@ -8,7 +8,9 @@ Classes:
         exist on the storage.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class ImageDoesNotExistOnStorage(BaseCustomException):
@@ -22,10 +24,11 @@ class ImageDoesNotExistOnStorage(BaseCustomException):
         BaseCustomException (type): Parent exception class.
     """
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageDoesNotExistOnStorage exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super().__init__(args)
+        super().__init__(message, *args)

@@ -29,11 +29,11 @@ Endpoints:
         Access the VNC session of a virtual machine by ID.
 """
 
-from typing import Dict, Optional
+from typing import Dict, cast
 
-from fastapi import Query, Depends, APIRouter, status
+from fastapi import Path, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
@@ -71,7 +71,7 @@ async def get_vms(
     LOG.info('API handling request to get all virtual machines.')
     vms = await run_in_threadpool(crud.get_all_vms)
     LOG.info('API request was successfully processed.')
-    return vms
+    return cast(Page, paginate(vms))
 
 
 @router.get(
@@ -81,13 +81,13 @@ async def get_vms(
     dependencies=[Depends(get_current_user)],
 )
 async def get_vm(
-    vm_id: Optional[str] = Query(None, description='VM ID'),
+    vm_id: str = Path(description='VM ID'),
     crud: VMCrud = Depends(VMCrud),
 ) -> schemas.VirtualMachineInfo:
     """Retrieve a virtual machine by ID.
 
     Args:
-        vm_id (Optional[str]): The ID of the virtual machine to retrieve.
+        vm_id (str): The ID of the virtual machine to retrieve.
         crud (VMCrud): The CRUD dependency for virtual machine operations.
 
     Returns:
@@ -96,7 +96,7 @@ async def get_vm(
     LOG.info(f'API handling request to get virtual machine with ID: {vm_id}.')
     vm = await run_in_threadpool(crud.get_vm, vm_id)
     LOG.info('API request was successfully processed.')
-    return vm
+    return schemas.VirtualMachineInfo(**vm)
 
 
 @router.post(
@@ -123,7 +123,7 @@ async def create_vm(
     LOG.info('API handling request to create a new virtual machine.')
     vm = await run_in_threadpool(crud.create_vm, data.dict(), user_info)
     LOG.info('API request was successfully processed.')
-    return vm
+    return schemas.VirtualMachineInfo(**vm)
 
 
 @router.delete(
@@ -150,7 +150,7 @@ async def delete_vm(
     )
     vm = await run_in_threadpool(crud.delete_vm, vm_id, user_info)
     LOG.info('API request was successfully processed.')
-    return vm
+    return JSONResponse(vm)
 
 
 @router.post(
@@ -176,7 +176,7 @@ async def start_vm(
     LOG.info(f'API handling request to start virtual machine with ID: {vm_id}.')
     vm = await run_in_threadpool(crud.start_vm, vm_id, user_info)
     LOG.info('API request was successfully processed.')
-    return vm
+    return schemas.VirtualMachineInfo(**vm)
 
 
 @router.post(
@@ -204,7 +204,7 @@ async def shut_off_vm(
     )
     vm = await run_in_threadpool(crud.shut_off_vm, vm_id, user_info)
     LOG.info('API request was successfully processed.')
-    return vm
+    return schemas.VirtualMachineInfo(**vm)
 
 
 @router.post(
@@ -232,7 +232,7 @@ async def edit_vm(
     LOG.info(f'API handling request to edit virtual machine with ID: {vm_id}.')
     vm = await run_in_threadpool(crud.edit_vm, vm_id, data.dict(), user_info)
     LOG.info('API request was successfully processed.')
-    return vm
+    return schemas.VirtualMachineInfo(**vm)
 
 
 @router.get(
@@ -255,4 +255,5 @@ async def vnc_vm(
     Returns:
         schemas.Vnc: The VNC session details.
     """
-    return await run_in_threadpool(crud.vnc, vm_id, user_info)
+    result = await run_in_threadpool(crud.vnc, vm_id, user_info)
+    return schemas.Vnc(**result)

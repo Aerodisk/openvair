@@ -15,18 +15,19 @@ Dependencies:
 """
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.virtual_network.config import (
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
 from openvair.modules.virtual_network.domain import model
+from openvair.libs.messaging.messaging_agents import MessagingServer
 
 LOG = get_logger('domain-manager')
 
 
 if __name__ == '__main__':
     LOG.info('Starting RPCServer for consuming')
-    Protocol(server=True)(
+    server = MessagingServer(
         queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME,
         manager=model.VirtualNetworkFactory(),
     )
+    server.start()

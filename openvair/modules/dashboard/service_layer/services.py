@@ -30,7 +30,7 @@ class DashboardServiceLayerManager(BackgroundTasks):
     necessary data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the DashboardServiceLayerManager.
 
         This constructor sets up the necessary components for the

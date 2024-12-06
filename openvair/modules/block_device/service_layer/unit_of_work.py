@@ -26,7 +26,7 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from openvair.modules.block_device.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.block_device.adapters import repository
@@ -47,13 +47,14 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         interfaces (repository.AbstractRepository): The repository interface for
             interacting with the underlying data storage.
     """
+
     interfaces: repository.AbstractRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
         """Enter the unit of work context, initializing the repository."""
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the unit of work context, performing a rollback if necessary."""
         self.rollback()
 
@@ -90,15 +91,15 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 Defaults to `DEFAULT_SESSION_FACTORY`.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
-    def __enter__(self):
+    def __enter__(self) -> AbstractUnitOfWork:
         """Enter the unit of work context, initializing the repository."""
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.interfaces = repository.SqlAlchemyRepository(self.session)
         return super().__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the unit of work context, performing a rollback if necessary."""
         super().__exit__(*args)
         self.session.close()

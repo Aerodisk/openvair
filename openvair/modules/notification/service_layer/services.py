@@ -21,7 +21,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
 from openvair.modules.notification import config
-from openvair.libs.messaging.protocol import Protocol
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
@@ -30,6 +29,7 @@ from openvair.modules.notification.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.notification.domain.base import BaseNotification
 from openvair.modules.notification.service_layer import unit_of_work
 from openvair.modules.notification.adapters.serializer import DataSerializer
@@ -64,17 +64,19 @@ class NotificationServiceLayerManager(BackgroundTasks):
             service layer queue.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the NotificationServiceLayerManager.
 
         This constructor sets up the unit of work and RPC protocols for
         interacting with the domain layer and service layer queues.
         """
-        super(NotificationServiceLayerManager, self).__init__()
+        super().__init__()
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
-        self.domain_rpc = Protocol(client=True)(SERVICE_LAYER_DOMAIN_QUEUE_NAME)
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
+        )
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def send_notification(self, data: Dict) -> Dict:
@@ -84,7 +86,7 @@ class NotificationServiceLayerManager(BackgroundTasks):
             data (Dict): Data for the current notification.
 
         Returns:
-           Dict: A dictionary with notification information and the result
+            Dict: A dictionary with notification information and the result
                 status.
         """
         LOG.info(
@@ -131,6 +133,7 @@ class NotificationServiceLayerManager(BackgroundTasks):
                 'was not successfully processed'
             )
             self._write_to_db(notification, NotificationStatus.error)
+            raise
 
     def _write_to_db(
         self, notification: Notification, status: NotificationStatus
@@ -151,3 +154,15 @@ class NotificationServiceLayerManager(BackgroundTasks):
         LOG.info(
             'Handling call on write notification was successfully processed.'
         )
+
+
+if __name__ == '__main__':
+    s = NotificationServiceLayerManager()
+    s.send_notification(
+        {
+            'msg_type': 'email',
+            'recipients': ['user@example.com'],
+            'subject': 'string',
+            'message': 'string',
+        }
+    )

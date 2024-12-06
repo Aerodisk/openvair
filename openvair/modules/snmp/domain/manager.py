@@ -19,26 +19,72 @@ Usage:
 
 from openvair.libs.log import get_logger
 from openvair.libs.client.config import get_snmp_agent
+from openvair.modules.snmp.domain.base import BaseSNMP
 from openvair.modules.snmp.domain.model import SNMPFactory
-from openvair.modules.snmp.domain.exceptions import SNMPAgenTypeError
+from openvair.modules.snmp.domain.exceptions import (
+    SNMPAgentStopError,
+    SNMPAgentTypeError,
+    SNMPAgentStartError,
+    SNMPConnectionError,
+    SNMPModuleRegistrationError,
+)
 
 LOG = get_logger('domain-manager')
 SNMP_AGENT = get_snmp_agent()
 
 
-def main() -> None:
-    """Start the SNMP agent."""
+def _stop_agent(agent: BaseSNMP) -> None:
     try:
+        LOG.info('Stopping SNMP agent')
+        agent.stop()
+        LOG.info('SNMP agent stopped successfully')
+    except SNMPAgentStopError as e:
+        LOG.error(f'Failed to stop SNMP agent gracefully: {e}')
+        raise
+
+
+def main() -> None:
+    """Start the SNMP agent.
+
+    The function handles the lifecycle of the SNMP agent:
+    1. Creates an agent instance using the factory
+    2. Starts the agent and registers all modules
+    3. Handles graceful shutdown on errors or interrupts
+
+    Raises:
+        SNMPAgentTypeError: When specified agent type is not supported
+        SNMPConnectionError: When agent fails to establish connection
+        SNMPModuleRegistrationError: When module registration fails
+        SNMPAgentStartError: When agent fails to start
+        SNMPAgentStopError: When agent fails to stop gracefully
+    """
+    try:
+        LOG.info('Initializing SNMP agent factory')
         snmp_factory = SNMPFactory()
-        agent = snmp_factory.get_snmp_agent(SNMP_AGENT)
+        LOG.info(f'Creating SNMP agent of type: {SNMP_AGENT}')
+        agent: BaseSNMP = snmp_factory.get_snmp_agent(SNMP_AGENT)
+    except SNMPAgentTypeError as err:
+        LOG.error(f'SNMP type error: {err}')
+        raise
+
+    try:
+        LOG.info('Starting SNMP agent')
         agent.start()
-    except SNMPAgenTypeError as e:
-        LOG.error(f'SNMP type error: {e}')
-    except Exception as e:  # noqa: BLE001
-        LOG.error(f'Unhandled exception: {e}')
-        agent.stop()
+
+        LOG.info('SNMP agent started successfully')
+    except (
+        SNMPConnectionError,
+        SNMPModuleRegistrationError,
+        SNMPAgentStartError,
+    ) as err:
+        LOG.error(f'SNMP agent error: {err}')
+        _stop_agent(agent)
     except KeyboardInterrupt:
-        agent.stop()
+        LOG.info('Received keyboard interrupt, initiating graceful shutdown')
+        _stop_agent(agent)
+    except Exception as err:  # noqa: BLE001
+        LOG.error(f'Unexpected error occurred: {err}')
+        _stop_agent(agent)
 
 
 if __name__ == '__main__':

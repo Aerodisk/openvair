@@ -8,9 +8,7 @@ from openvair.libs.client.base_client import BaseClient
 # make polymorphic use for all clients
 class ImageClient(BaseClient):  # noqa: D101
     def __init__(self, access_token: str):  # noqa: D107
-        super().__init__(
-            service='images', access_token=access_token
-        )
+        super().__init__(service='images', access_token=access_token)
 
     def attach_image(self, image_id: str, attach_info: dict):  # noqa: D102, ANN201
         image_attach_url = f'{self.url}/{image_id}/attach/'

@@ -13,6 +13,7 @@ Classes:
     RPCQueueNames: Main class containing nested classes for different modules.
         Each nested class has its own docstring describing its specific purpose.
 """
+
 from dataclasses import dataclass
 
 

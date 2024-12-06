@@ -8,7 +8,7 @@ Classes:
     LocalFSVolume: Class for managing local filesystem volumes.
 """
 
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
@@ -24,7 +24,7 @@ class BaseLocalFSVolume(BaseVolume):
     local filesystems.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a BaseLocalFSVolume instance."""
         super(BaseLocalFSVolume, self).__init__(*args, **kwargs)
 
@@ -44,7 +44,7 @@ class BaseLocalFSVolume(BaseVolume):
         """
         raise NotImplementedError
 
-    def extend(self, new_size: int) -> Dict:
+    def extend(self, new_size: str) -> Dict:
         """Extend an existing volume to the given size.
 
         Args:
@@ -71,7 +71,7 @@ class LocalFSVolume(BaseLocalFSVolume):
     filesystem volumes.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a LocalFSVolume instance."""
         super(LocalFSVolume, self).__init__(*args, **kwargs)
         self._execute_as_root = False
@@ -141,7 +141,7 @@ class LocalFSVolume(BaseLocalFSVolume):
         """Get information about an existing volume.
 
         Returns:
-           Dict: A dictionary containing information about the volume.
+            Dict: A dictionary containing information about the volume.
         """
         LOG.info(f'Getting info for volume with id={self.id}, path={self.path}')
         self._check_volume_exists()

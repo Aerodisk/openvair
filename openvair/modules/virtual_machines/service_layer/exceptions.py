@@ -23,100 +23,70 @@ Classes:
         is exceeded.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class UnexpectedDataArguments(BaseCustomException):
     """Raised when unexpected arguments are passed to a function."""
 
-    def __init__(self, *args):
-        """Initialize UnexpectedDataArguments with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize UnexpectedDataArguments with optional arguments."""
+        super().__init__(message, *args)
 
 
 class CreateVMDataException(BaseCustomException):
     """Raised when error with the data for creating a virtual machine."""
 
-    def __init__(self, *args):
-        """Initialize CreateVMDataException with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize CreateVMDataException with optional arguments."""
+        super().__init__(message, *args)
 
 
 class VMStatusException(BaseCustomException):
     """Raised when there is an error with the status of a virtual machine."""
 
-    def __init__(self, *args):
-        """Initialize VMStatusException with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VMStatusException with optional arguments."""
+        super().__init__(message, *args)
 
 
 class VMPowerStateException(BaseCustomException):
     """Raised when error with the power state of a virtual machine."""
 
-    def __init__(self, *args):
-        """Initialize VMPowerStateException with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VMPowerStateException with optional arguments."""
+        super().__init__(message, *args)
 
 
 class ValidateArgumentsError(BaseCustomException):
     """Raised when argument validation fails."""
 
-    def __init__(self, *args):
-        """Initialize ValidateArgumentsError with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize ValidateArgumentsError with optional arguments."""
+        super().__init__(message, *args)
 
 
 class VolumeStatusIsError(BaseCustomException):
     """Raised when there is an issue with the status of a volume."""
 
-    def __init__(self, *args):
-        """Initialize VolumeStatusIsError with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VolumeStatusIsError with optional arguments."""
+        super().__init__(message, *args)
 
 
 class ComesEmptyVolumeInfo(BaseCustomException):
     """Raised when the volume information is empty or invalid."""
 
-    def __init__(self, *args):
-        """Initialize ComesEmptyVolumeInfo with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize ComesEmptyVolumeInfo with optional arguments."""
+        super().__init__(message, *args)
 
 
 class MaxTriesError(BaseCustomException):
     """Raised when the maximum number of tries for an operation is exceeded."""
 
-    def __init__(self, *args):
-        """Initialize MaxTriesError with optional arguments.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize MaxTriesError with optional arguments."""
+        super().__init__(message, *args)

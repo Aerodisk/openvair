@@ -7,7 +7,7 @@ Classes:
     - VirshAdapter: Adapter class for managing virtual networks.
 """
 
-from typing import Optional
+from typing import List, Optional, cast
 
 from libvirt import libvirtError
 
@@ -17,16 +17,22 @@ from openvair.modules.tools.libvirt_utils import LibvirtConnection
 LOG = get_logger(__name__)
 
 
-class VirshAdapter:
+class VirshNetworkAdapter:
     """Adapter class for interacting with virtual networks using virsh utility.
 
     Attributes:
         connection (LibvirtConnection): The libvirt connection object.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the VirshAdapter."""
         self.connection = LibvirtConnection()
+
+    def get_virt_network_names(self) -> List[str]:
+        """Retrieves list of names virtual networks."""
+        LOG.info('Getting virtual_networks from virsh...')
+        with self.connection as connection:
+            return list(connection.listNetworks())
 
     def define_network(
         self,
@@ -110,7 +116,7 @@ class VirshAdapter:
             network = connection.networkLookupByName(vn_name)
 
         LOG.info('Getting virtual network XML from virsh complete')
-        return network.XMLDesc()
+        return cast(str, network.XMLDesc())
 
     def get_network_xml_by_uuid(self, network_uuid: str) -> str:
         """Retrieves the XML configuration of a virtual network by UUID.
@@ -127,9 +133,9 @@ class VirshAdapter:
             network = connection.networkLookupByUUIDString(network_uuid)
 
         LOG.info('Getting virtual network XML from virsh complete')
-        return network.XMLDesc()
+        return cast(str, network.XMLDesc())
 
-    def is_network_exist_by_name(self, network_name: str) -> Optional[bool]:
+    def is_network_exist_by_name(self, network_name: str) -> bool:
         """Checks if a virtual network exists by name.
 
         Args:
@@ -236,7 +242,7 @@ class VirshAdapter:
         LOG.info('Retrieving UUID string of virtual network in virsh...')
         with self.connection as connection:
             network = connection.networkLookupByName(network_name)
-            uuid_str = network.UUIDString()
+            uuid_str: str = network.UUIDString()
 
             LOG.info('UUID string retrieved')
             return uuid_str
@@ -253,7 +259,7 @@ class VirshAdapter:
         LOG.info('Retrieving network name of virtual network in virsh...')
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(vn_id)
-            network_name = network.name()
+            network_name: str = network.name()
 
             LOG.info('Network name retrieved')
             return network_name
@@ -273,7 +279,7 @@ class VirshAdapter:
 
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(network_id)
-            bridge_name = network.bridgeName()
+            bridge_name: str = network.bridgeName()
 
             LOG.info('Bridge name retrieved')
             return bridge_name
@@ -293,7 +299,12 @@ class VirshAdapter:
 
         with self.connection as connection:
             network = connection.networkLookupByName(network_name)
-            bridge_name = network.bridgeName()
+            bridge_name: str = network.bridgeName()
 
             LOG.info('Bridge name retrieved')
             return bridge_name
+
+
+if __name__ == '__main__':
+    v = VirshNetworkAdapter()
+    s = v.get_virt_network_names()

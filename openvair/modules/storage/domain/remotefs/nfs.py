@@ -11,7 +11,7 @@ Classes:
 
 import os
 import re
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import ExecuteTimeoutExpiredError, execute
@@ -34,22 +34,22 @@ class NfsStorage(RemoteFSStorage):
     the storage, checking availability, and retrieving capacity information.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initializes the NFS storage.
 
         This constructor initializes the NFS storage with the specified
         IP address, path, and mount version.
 
         Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments, including:
+            args: Variable length argument list.
+            kwargs: Arbitrary keyword arguments, including:
                 - ip (str): The IP address of the NFS server.
                 - path (str): The file path on the NFS server.
                 - mount_version (int): The NFS mount version (default is 4).
         """
         super(NfsStorage, self).__init__(*args, **kwargs)
         self._execute_as_root = True
-        self.ip = kwargs.get('ip', '')
+        self.ip = str(kwargs.get('ip', ''))
         self.path = kwargs.get('path', '')
         self.mount_version = kwargs.get('mount_version', 4)
         self.base = ''

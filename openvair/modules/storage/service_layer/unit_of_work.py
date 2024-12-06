@@ -14,7 +14,9 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self
 
 from openvair.modules.storage.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.storage.adapters import repository
@@ -50,7 +52,7 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the Unit of Work context, rolling back any uncommitted changes.
 
         Args:
@@ -90,25 +92,25 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 SQLAlchemy sessions. Defaults to DEFAULT_SESSION_FACTORY.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the Unit of Work context, starting a new SQLAlchemy session.
 
         Returns:
             SqlAlchemyUnitOfWork: The current instance of the Unit of Work.
         """
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.storages = repository.SqlAlchemyRepository(self.session)
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the Unit of Work context, rolling back and closing the session.
 
         Args:
             *args: Variable length argument list for any exception information.
         """
-        super(SqlAlchemyUnitOfWork, self).__exit__(*args)
+        super().__exit__(*args)
         self.session.close()
 
     def commit(self) -> None:

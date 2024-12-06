@@ -8,6 +8,7 @@ Classes:
 """
 
 import abc
+from typing import NoReturn
 
 
 class BaseSNMP(metaclass=abc.ABCMeta):
@@ -25,4 +26,14 @@ class BaseSNMP(metaclass=abc.ABCMeta):
         This method should be implemented to configure the SNMP agent
         according to the specific requirements of the subclass.
         """
+        ...
+
+    @abc.abstractmethod
+    def start(self) -> NoReturn:
+        """Start the SNMP agent."""
+        ...
+
+    @abc.abstractmethod
+    def stop(self) -> None:
+        """Stop the SNMP agent."""
         ...

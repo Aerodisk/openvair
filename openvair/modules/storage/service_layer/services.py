@@ -22,7 +22,7 @@ an event store for logging significant events related to storage operations.
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict, List, cast
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import (
@@ -38,25 +38,21 @@ from openvair.modules.storage.config import (
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
 from openvair.modules.storage.domain import base
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.storage.adapters import orm
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
 )
-from openvair.rpc_clients.image_rpc_client import ImageServiceLayerRPCClient
 from openvair.modules.storage.service_layer import exceptions, unit_of_work
-from openvair.rpc_clients.volume_rpc_client import VolumeServiceLayerRPCClient
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.storage.adapters.serializer import DataSerializer
 from openvair.modules.event_store.entrypoints.crud import EventCrud
-
-if TYPE_CHECKING:
-    from openvair.interfaces.image_service_interface import (
-        ImageServiceLayerProtocolInterface,
-    )
-    from openvair.interfaces.volume_service_interface import (
-        VolumeServiceLayerProtocolInterface,
-    )
+from openvair.libs.messaging.clients.rpc_clients.image_rpc_client import (
+    ImageServiceLayerRPCClient,
+)
+from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
+    VolumeServiceLayerRPCClient,
+)
 
 LOG = get_logger(__name__)
 
@@ -118,7 +114,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         event_store (EventCrud): Event store for logging storage-related events.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the StorageServiceLayerManager.
 
         This constructor sets up the necessary components for the
@@ -135,16 +131,14 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         super().__init__()
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
-        self.domain_rpc = Protocol(client=True)(SERVICE_LAYER_DOMAIN_QUEUE_NAME)
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.volume_service_client: VolumeServiceLayerProtocolInterface = (
-            VolumeServiceLayerRPCClient()
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
-        self.image_service_client: ImageServiceLayerProtocolInterface = (
-            ImageServiceLayerRPCClient()
-        )
+        self.volume_service_client = VolumeServiceLayerRPCClient()
+        self.image_service_client = ImageServiceLayerRPCClient()
         self.event_store = EventCrud('storages')
 
     def get_storage(self, data: Dict) -> Dict:
@@ -466,23 +460,6 @@ class StorageServiceLayerManager(BackgroundTasks):
                 )
                 raise exceptions.CannotCreateStorageOnSystemPartition(message)
 
-    def _check_system_attributes(self, creating_path: str) -> None:
-        """Check if the given path is a system partition.
-
-        Args:
-            creating_path (str): The path to check.
-
-        Raises:
-            CannotCreateStorageOnSystemPartition: If the path is a system
-                partition.
-        """
-        if is_system_partition(creating_path):
-            message = (
-                f'This is system partition: {creating_path}.'
-                'Please specify a non-system partition'
-            )
-            raise exceptions.CannotCreateStorageOnSystemPartition(message)
-
     @staticmethod
     def _check_storage_status(
         storage_status: str, available_statuses: List
@@ -571,7 +548,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         )
 
         self.event_store.add_event(
-            None,
+            '',  # do not use uuid here
             user_data.get('id'),
             self.create_local_partition.__name__,
             (
@@ -600,7 +577,7 @@ class StorageServiceLayerManager(BackgroundTasks):
 
         """
         LOG.info('Starting collecting local disk partitions info.')
-        parted_info = self.domain_rpc.call(
+        parted_info: Dict = self.domain_rpc.call(
             base.BasePartition.get_partitions_info.__name__,
             data_for_manager={
                 'local_disk_path': data.get('disk_path'),
@@ -651,7 +628,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         )
 
         self.event_store.add_event(
-            None,
+            data.get('partition_number', ''),
             user_data.get('id'),
             self.delete_local_partition.__name__,
             f'Partition {part_num} was deleted from disk {disk_path}',
@@ -724,7 +701,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Starting create_storage service layer method.')
         user_info = data.pop('user_data', {})
         user_id = user_info.get('id', '')
-        name = data.get('name')
+        name = data.get('name', '')
         creating_path = data.get('specs', {}).get('path', '')
         data.update({'user_id': user_id})
 
@@ -742,7 +719,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             self._check_spec_exists_for_storage(
                 data.get('specs', {}), data.get('storage_type', '')
             )
-            db_storage = DataSerializer.to_db(data)
+            db_storage = cast(orm.Storage, DataSerializer.to_db(data))
             db_storage.status = StorageStatus.new.name
             for key, value in data.get('specs', {}).items():
                 spec = {
@@ -750,7 +727,10 @@ class StorageServiceLayerManager(BackgroundTasks):
                     'value': str(value) if value else None,
                     'storage_id': db_storage.id,
                 }
-                db_spec = DataSerializer.to_db(spec, orm.StorageExtraSpecs)
+                db_spec = cast(
+                    orm.StorageExtraSpecs,
+                    DataSerializer.to_db(spec, orm.StorageExtraSpecs),
+                )
                 db_storage.extra_specs.append(db_spec)
             self.uow.storages.add(db_storage)
             self.uow.commit()
@@ -764,7 +744,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             self._create_storage.__name__, data_for_method=domain_storage
         )
         self.event_store.add_event(
-            web_storage.get('id'),
+            web_storage.get('id', ''),
             user_id,
             self.create_storage.__name__,
             'Storage successfully inserted into db.',
@@ -806,7 +786,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer is handling response on _create_storage.')
         with self.uow:
-            db_storage = self.uow.storages.get(storage_info.get('id'))
+            db_storage = self.uow.storages.get(storage_info.get('id', ''))
             self._check_storage_status(
                 db_storage.status, [StorageStatus.new.name]
             )
@@ -841,8 +821,8 @@ class StorageServiceLayerManager(BackgroundTasks):
                     'Extra specs was added for storage: %s.' % db_storage.id
                 )
                 self.event_store.add_event(
-                    db_storage.id,
-                    db_storage.user_id,
+                    str(db_storage.id),
+                    str(db_storage.user_id),
                     self.create_storage.__name__,
                     'Storage successfully created in the system.',
                 )
@@ -855,8 +835,8 @@ class StorageServiceLayerManager(BackgroundTasks):
                 db_storage.information = message
                 LOG.error(message)
                 self.event_store.add_event(
-                    db_storage.id,
-                    db_storage.user_id,
+                    str(db_storage.id),
+                    str(db_storage.user_id),
                     self.create_storage.__name__,
                     message,
                 )
@@ -883,7 +863,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on delete storage.')
         user_info = data.pop('user_data', {})
-        storage_id = data.get('storage_id')
+        storage_id = data.get('storage_id', '')
 
         with self.uow:
             db_storage = self.uow.storages.get(storage_id)
@@ -892,8 +872,8 @@ class StorageServiceLayerManager(BackgroundTasks):
             except exceptions.StorageHasVolumesOrImages as err:
                 LOG.error(str(err))
                 self.event_store.add_event(
-                    db_storage.id,
-                    db_storage.user_id,
+                    str(db_storage.id),
+                    str(db_storage.user_id),
                     self.delete_storage.__name__,
                     str(err),
                 )
@@ -928,7 +908,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on _delete storage.')
         domain_storage.pop('user_info', {})
-        storage_id = domain_storage.get('id')
+        storage_id = domain_storage.get('id', '')
         with self.uow:
             db_storage = self.uow.storages.get(storage_id)
             LOG.debug('Got storage: %s from db.' % domain_storage)
@@ -946,8 +926,8 @@ class StorageServiceLayerManager(BackgroundTasks):
                 self.uow.storages.delete(storage_id)
                 LOG.info('Storage: %s deleted from db.' % storage_id)
                 self.event_store.add_event(
-                    db_storage.id,
-                    db_storage.user_id,
+                    str(db_storage.id),
+                    str(db_storage.user_id),
                     self.delete_storage.__name__,
                     'Storage successfully deleted from the system and db.',
                 )
@@ -956,8 +936,8 @@ class StorageServiceLayerManager(BackgroundTasks):
                 db_storage.information = str(err)
                 LOG.error(str(err))
                 self.event_store.add_event(
-                    db_storage.id,
-                    db_storage.user_id,
+                    str(db_storage.id),
+                    str(db_storage.user_id),
                     self._delete_storage.__name__,
                     str(err),
                 )
@@ -1070,7 +1050,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             StorageStatus.error.name,
         ]
         self._check_storage_status(
-            domain_storage.get('status'), monitoring_statuses
+            domain_storage.get('status', ''), monitoring_statuses
         )
 
     def _get_updated_storage_info(self, domain_storage: Dict) -> Dict:
@@ -1156,7 +1136,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             Dict: A dictionary representing the local disk information, or an
                 empty dictionary if not found.
         """
-        local_disks = self.get_local_disks({})
+        local_disks: List[Dict] = self.get_local_disks({})
         for disk in local_disks:
             if disk.get('fs_uuid') == fs_uuid:
                 return disk
@@ -1173,7 +1153,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             for db_storage in self.uow.storages.get_all():
                 domain_storage = DataSerializer.to_domain(db_storage)
                 if db_storage.storage_type == 'localfs':
-                    fs_uuid = domain_storage.get('fs_uuid')
+                    fs_uuid = domain_storage.get('fs_uuid', '')
                     disk = self._get_local_disk_by_fs_uuid(fs_uuid)
                     if disk.get('path', ''):
                         domain_storage.update({'path': disk.get('path', '')})

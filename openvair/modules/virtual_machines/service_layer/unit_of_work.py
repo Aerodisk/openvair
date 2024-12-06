@@ -16,7 +16,9 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self
 
 from openvair.modules.virtual_machines.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.virtual_machines.adapters import repository
@@ -50,7 +52,7 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the runtime context related to this object."""
         self.rollback()
 
@@ -85,9 +87,9 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
             session_factory (sessionmaker): The SQLAlchemy session factory.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the runtime context related to this object.
 
         This method opens a new SQLAlchemy session and sets up the virtual
@@ -96,17 +98,17 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         Returns:
             SqlAlchemyUnitOfWork: The unit of work instance.
         """
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.virtual_machines = repository.SqlAlchemyRepository(self.session)
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the runtime context related to this object.
 
         This method rolls back the transaction if necessary and closes the
         SQLAlchemy session.
         """
-        super(SqlAlchemyUnitOfWork, self).__exit__(*args)
+        super().__exit__(*args)
         self.session.close()
 
     def commit(self) -> None:

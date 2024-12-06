@@ -14,77 +14,94 @@ Functions:
 """
 
 import uuid
+from typing import List
 
-from sqlalchemy import Table, Column, String, Integer, MetaData, ForeignKey
-from sqlalchemy.orm import registry, relationship
-from sqlalchemy.dialects import postgresql
-
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
-
-interfaces = Table(
-    'interfaces',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('name', String(30)),
-    Column('mac', String(20)),
-    Column('ip', String(40)),
-    Column('netmask', Integer),
-    Column('gateway', String(40)),
-    Column('inf_type', String(20)),
-    Column('mtu', Integer),
-    Column('speed', Integer),
-    Column('power_state', String(20), nullable=False),
-    Column('status', String(20), nullable=False, default='available'),
-)
-
-interface_extra_specs = Table(
-    'interface_extra_specs',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('key', String(60)),
-    Column('value', String(155)),
-    Column(
-        'interface_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('interfaces.id'),
-    ),
-)
+from sqlalchemy import UUID, String, Integer, ForeignKey
+from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column
 
 
-class Interface:
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
+
+    pass
+
+
+class Interface(Base):
     """Represents a network interface."""
 
-    pass
+    __tablename__ = 'interfaces'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    mac: Mapped[str] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    ip: Mapped[str] = mapped_column(
+        String(40),
+        nullable=True,
+    )
+    netmask: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    gateway: Mapped[str] = mapped_column(
+        String(40),
+        nullable=True,
+    )
+    inf_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    mtu: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    speed: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    power_state: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default='available'
+    )
+
+    extra_specs: Mapped[List['InterfaceExtraSpec']] = relationship(
+        'InterfaceExtraSpec',
+        back_populates='interface',
+        uselist=True,
+        cascade='all, delete-orphan',
+    )
 
 
-class InterfaceExtraSpec:
+class InterfaceExtraSpec(Base):
     """Represents extra specifications for a network interface."""
 
-    pass
+    __tablename__ = 'interface_extra_specs'
 
-
-def start_mappers() -> None:
-    """Initialize ORM mappings for network-related tables.
-
-    This function sets up the SQLAlchemy mappings for the Interface and
-    InterfaceExtraSpec tables and defines the relationships between them.
-    """
-    mapper_registry.map_imperatively(
-        Interface,
-        interfaces,
-        properties={
-            'extra_specs': relationship(
-                InterfaceExtraSpec,
-                backref='interface',
-                uselist=True,
-                cascade='all, delete-orphan',
-            ),
-        },
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(
+        String(60),
+        nullable=True,
     )
-    mapper_registry.map_imperatively(InterfaceExtraSpec, interface_extra_specs)
+    value: Mapped[str] = mapped_column(
+        String(155),
+        nullable=True,
+    )
+    interface_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('interfaces.id'),
+        nullable=True,
+    )
+
+    interface: Mapped[Interface] = relationship(
+        'Interface',
+        back_populates='extra_specs',
+    )

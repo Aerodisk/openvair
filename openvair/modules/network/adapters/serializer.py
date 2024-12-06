@@ -1,72 +1,20 @@
-# openvair/modules/network/adapters/serializer.py
+"""This module provides classes for serializing and deserializing Interfaces
 
-"""Serializers for network entities.
-
-This module defines abstract and concrete serializers for converting network
-interface data between domain models, database models, and web representations.
+It includes a concrete implementation `DataSerializer` which provides methods
+to convert Interface objects to domain, database, and web-friendly
+dictionaries.
 
 Classes:
-    AbstractDataSerializer: Base class for serializing and deserializing network
-        interface data.
-    DataSerializer: Concrete implementation that converts network interface data
-        between formats.
+    DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import abc
-from typing import Dict, Type
+from typing import Dict, Type, Union, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
-from openvair.modules.network.adapters.orm import Interface
-
-
-class AbstractDataSerializer(metaclass=abc.ABCMeta):
-    """Base class for serializing and deserializing network interface data.
-
-    This class defines the interface for converting network interface objects
-    between domain models, database models, and web representations.
-    """
-
-    @classmethod
-    @abc.abstractmethod
-    def to_domain(cls, interface: Interface) -> Dict:
-        """Convert an Interface ORM object to a domain model dictionary.
-
-        Args:
-            interface (Interface): The Interface ORM object to convert.
-
-        Returns:
-            Dict: A dictionary representing the domain model.
-        """
-        ...
-
-    @classmethod
-    @abc.abstractmethod
-    def to_db(cls, data: Dict, orm_class: Type = Interface) -> Interface:
-        """Convert a dictionary to an ORM object.
-
-        Args:
-            data (Dict): A dictionary with the data to be converted.
-            orm_class (Type): The ORM class to instantiate with the provided
-                data. Defaults to Interface.
-
-        Returns:
-            Interface: An ORM object created from the dictionary data.
-        """
-        ...
-
-    @classmethod
-    @abc.abstractmethod
-    def to_web(cls, interface: Interface) -> Dict:
-        """Convert an Interface ORM object to a dictionary for web output.
-
-        Args:
-            interface (Interface): The Interface ORM object to convert.
-
-        Returns:
-            Dict: A dictionary formatted for web output.
-        """
-        ...
+from openvair.abstracts.serializer import AbstractDataSerializer
+from openvair.modules.network.adapters.orm import Interface, InterfaceExtraSpec
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -77,19 +25,22 @@ class DataSerializer(AbstractDataSerializer):
     """
 
     @classmethod
-    def to_domain(cls, interface: Interface) -> Dict:
+    def to_domain(
+        cls,
+        orm_object: Interface,
+    ) -> Dict:
         """Convert an Interface ORM object to a domain model dictionary.
 
         This method takes an Interface ORM object, converts it to a dictionary,
         removes ORM-specific metadata, and processes extra specifications.
 
         Args:
-            interface (Interface): The Interface ORM object to convert.
+            orm_object (Interface): The Interface ORM object to convert.
 
         Returns:
             Dict: A dictionary representing the domain model.
         """
-        interface_dict = interface.__dict__.copy()
+        interface_dict = orm_object.__dict__.copy()
         interface_dict['id'] = str(interface_dict['id'])
         interface_dict.pop('_sa_instance_state')
         domain_extra_specs = []
@@ -104,7 +55,14 @@ class DataSerializer(AbstractDataSerializer):
         return interface_dict
 
     @classmethod
-    def to_db(cls, data: Dict, orm_class: Type = Interface) -> Interface:
+    def to_db(
+        cls,
+        data: Dict,
+        orm_class: Union[Type[Interface], Type[InterfaceExtraSpec]] = Interface,
+    ) -> Union[
+        Interface,
+        InterfaceExtraSpec,
+    ]:
         """Convert a dictionary to an ORM object.
 
         This method takes a dictionary of data and returns an instance of the
@@ -119,26 +77,29 @@ class DataSerializer(AbstractDataSerializer):
             Interface: An ORM object created from the dictionary data.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)
         return orm_class(**orm_dict)
 
     @classmethod
-    def to_web(cls, interface: Interface) -> Dict:
+    def to_web(
+        cls,
+        orm_object: Interface,
+    ) -> Dict:
         """Convert an Interface ORM object to a dictionary for web output.
 
         This method takes an Interface ORM object, processes its extra
         specifications, and returns a dictionary formatted for web output.
 
         Args:
-            interface (Interface): The Interface ORM object to convert.
+            orm_object (Interface): The Interface ORM object to convert.
 
         Returns:
             Dict: A dictionary formatted for web output.
         """
-        interface_dict = interface.__dict__.copy()
+        interface_dict = orm_object.__dict__.copy()
         interface_dict['id'] = str(interface_dict['id'])
         interface_dict.pop('_sa_instance_state')
         web_extra_specs = []

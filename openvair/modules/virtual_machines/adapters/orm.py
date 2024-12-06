@@ -30,11 +30,12 @@ Functions:
 """
 
 import uuid
+from typing import List
 
 from sqlalchemy import (
+    JSON,
+    UUID,
     Text,
-    Table,
-    Column,
     String,
     Boolean,
     Integer,
@@ -42,236 +43,325 @@ from sqlalchemy import (
     BigInteger,
     ForeignKey,
 )
-from sqlalchemy.orm import registry, relationship
+from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column
 from sqlalchemy.dialects import postgresql
 
 # Metadata instance used for SQLAlchemy table definitions
 metadata = MetaData()
 
+
 # Registry for managing class-to-table mappings
-mapper_registry = registry(metadata=metadata)
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
 
-# Table definitions
-virtual_machines = Table(
-    'virtual_machines',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('power_state', String(30)),
-    Column('status', String(30)),
-    Column('name', String(60)),
-    Column('description', String(255)),
-    Column('information', Text),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-)
-
-cpu_info = Table(
-    'cpu_info',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('cores', Integer, nullable=True),
-    Column('threads', Integer, nullable=True),
-    Column('sockets', Integer, nullable=True),
-    Column('type', String(30)),
-    Column('model', String(30)),
-    Column(
-        'vm_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('virtual_machines.id'),
-    ),
-    Column('vcpu', Integer, nullable=True),
-)
-
-os = Table(
-    'os',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('os_type', String(80)),
-    Column('os_variant', String(255)),
-    Column('boot_device', String(10)),
-    Column('graphic_driver', String(30)),
-    Column('bios', String(30)),
-    Column(
-        'vm_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('virtual_machines.id'),
-    ),
-)
-
-disk = Table(
-    'disk',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('name', String(255)),
-    Column('emulation', String(30)),
-    Column('format', String(20)),
-    Column('qos', postgresql.JSON()),
-    Column('boot_order', Integer),
-    Column('path', String(255)),
-    Column('size', BigInteger),
-    Column('provisioning', String(30)),
-    Column('type', Integer),
-    Column('order', Integer),
-    Column(
-        'vm_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('virtual_machines.id'),
-    ),
-    Column('disk_id', postgresql.UUID(as_uuid=True)),
-    Column('read_only', Boolean(), default=False),
-)
-
-virtual_interface = Table(
-    'virtual_interface',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('interface', String(60)),
-    Column('mac', String(20)),
-    Column('mode', String(30)),
-    Column('portgroup', String(30)),
-    Column('model', String(30)),
-    Column('order', Integer),
-    Column(
-        'vm_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('virtual_machines.id'),
-    ),
-)
-
-protocol_graphic_interface = Table(
-    'protocol_graphic_interface',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('login', String(90)),
-    Column('password', String(255)),
-    Column('connect_type', String(30)),
-    Column('url', String(255)),
-    Column(
-        'vm_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('virtual_machines.id'),
-    ),
-)
-
-ram = Table(
-    'ram',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('size', BigInteger),
-    Column(
-        'vm_id',
-        postgresql.UUID(as_uuid=True),
-        ForeignKey('virtual_machines.id'),
-    ),
-)
+    pass
 
 
 # ORM class definitions
-class VirtualMachines:
+class VirtualMachines(Base):
     """ORM class mapped to the `virtual_machines` table."""
 
-    pass
+    __tablename__ = 'virtual_machines'
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    power_state: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    name: Mapped[str] = mapped_column(
+        String(60),
+        nullable=True,
+    )
+    description: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    information: Mapped[str] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+
+    cpu: Mapped['CpuInfo'] = relationship(
+        'CpuInfo',
+        back_populates='virtual_machine',
+        uselist=False,
+        cascade='all, delete-orphan',
+    )
+
+    os: Mapped['Os'] = relationship(
+        'Os',
+        back_populates='virtual_machine',
+        uselist=False,
+        cascade='all, delete-orphan',
+    )
+
+    disks: Mapped[List['Disk']] = relationship(
+        'Disk',
+        back_populates='virtual_machine',
+        order_by='Disk.order',
+        uselist=True,
+        cascade='all, delete-orphan',
+    )
+
+    virtual_interfaces: Mapped[List['VirtualInterface']] = relationship(
+        'VirtualInterface',
+        back_populates='virtual_machine',
+        order_by='VirtualInterface.order',
+        uselist=True,
+        cascade='all, delete-orphan',
+    )
+
+    graphic_interface: Mapped['ProtocolGraphicInterface'] = relationship(
+        'ProtocolGraphicInterface',
+        back_populates='virtual_machine',
+        uselist=False,
+        cascade='all, delete-orphan',
+    )
+
+    ram: Mapped['RAM'] = relationship(
+        'RAM',
+        back_populates='virtual_machine',
+        uselist=False,
+        cascade='all, delete-orphan',
+    )
 
 
-class CpuInfo:
+class CpuInfo(Base):
     """ORM class mapped to the `cpu_info` table."""
 
-    pass
+    __tablename__ = 'cpu_info'
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+    )
+    cores: Mapped[int] = mapped_column(Integer, nullable=True)
+    threads: Mapped[int] = mapped_column(Integer, nullable=True)
+    sockets: Mapped[int] = mapped_column(Integer, nullable=True)
+    type: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    model: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=True,
+    )
+    vcpu: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='cpu',
+    )
 
 
-class Os:
+class Os(Base):
     """ORM class mapped to the `os` table."""
 
-    pass
+    __tablename__ = 'os'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    os_type: Mapped[str] = mapped_column(
+        String(80),
+        nullable=True,
+    )
+    os_variant: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    boot_device: Mapped[str] = mapped_column(
+        String(10),
+        nullable=True,
+    )
+    graphic_driver: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    bios: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=True,
+    )
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='os',
+    )
 
 
-class Disk:
+class Disk(Base):
     """ORM class mapped to the `disk` table."""
 
-    pass
+    __tablename__ = 'disk'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    emulation: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    format: Mapped[str] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    qos: Mapped[JSON] = mapped_column(
+        postgresql.JSON(),
+        nullable=True,
+    )
+    boot_order: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    path: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+    provisioning: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    type: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    order: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=True,
+    )
+    disk_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+    read_only: Mapped[bool] = mapped_column(
+        Boolean(),
+        default=False,
+        nullable=True,
+    )
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='disks',
+    )
 
 
-class VirtualInterface:
+class VirtualInterface(Base):
     """ORM class mapped to the `virtual_interface` table."""
 
-    pass
+    __tablename__ = 'virtual_interface'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    interface: Mapped[str] = mapped_column(
+        String(60),
+        nullable=True,
+    )
+    mac: Mapped[str] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    mode: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    portgroup: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    model: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    order: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=True,
+    )
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='virtual_interfaces',
+    )
 
 
-class ProtocolGraphicInterface:
+class ProtocolGraphicInterface(Base):
     """ORM class mapped to the `protocol_graphic_interface` table."""
 
-    pass
+    __tablename__ = 'protocol_graphic_interface'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    login: Mapped[str] = mapped_column(
+        String(90),
+        nullable=True,
+    )
+    password: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    connect_type: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    url: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=True,
+    )
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='graphic_interface',
+    )
 
 
-class RAM:
+class RAM(Base):
     """ORM class mapped to the `ram` table."""
 
-    pass
-
-
-# Function to configure mappings
-def start_mappers() -> None:
-    """Configures the ORM mappings for all defined classes.
-
-    This function maps the ORM classes to their corresponding tables and
-    sets up relationships between entities.
-
-    Raises:
-        SQLAlchemyError: If the mapper configuration fails.
-    """
-    mapper_registry.map_imperatively(
-        VirtualMachines,
-        virtual_machines,
-        properties={
-            'cpu': relationship(
-                CpuInfo,
-                backref='virtual_machine',
-                uselist=False,
-                cascade='all, delete-orphan',
-            ),
-            'os': relationship(
-                Os,
-                backref='virtual_machine',
-                uselist=False,
-                cascade='all, delete-orphan',
-            ),
-            'disks': relationship(
-                Disk,
-                backref='virtual_machine',
-                order_by=disk.c.order,
-                uselist=True,
-                cascade='all, delete-orphan',
-            ),
-            'virtual_interfaces': relationship(
-                VirtualInterface,
-                backref='virtual_machine',
-                order_by=virtual_interface.c.order,
-                uselist=True,
-                cascade='all, delete-orphan',
-            ),
-            'graphic_interface': relationship(
-                ProtocolGraphicInterface,
-                backref='virtual_machine',
-                uselist=False,
-                cascade='all, delete-orphan',
-            ),
-            'ram': relationship(
-                RAM,
-                backref='virtual_machine',
-                uselist=False,
-                cascade='all, delete-orphan',
-            ),
-        },
+    __tablename__ = 'ram'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=True,
     )
-    mapper_registry.map_imperatively(CpuInfo, cpu_info)
-    mapper_registry.map_imperatively(Os, os)
-    mapper_registry.map_imperatively(Disk, disk)
-    mapper_registry.map_imperatively(VirtualInterface, virtual_interface)
-    mapper_registry.map_imperatively(
-        ProtocolGraphicInterface, protocol_graphic_interface
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=True,
     )
-    mapper_registry.map_imperatively(RAM, ram)
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='ram',
+    )

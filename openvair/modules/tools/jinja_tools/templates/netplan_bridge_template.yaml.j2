@@ -1,0 +1,41 @@
+network:
+  version: 2
+  renderer: networkd
+  bridges:
+    {{ name }}:
+      openvswitch: {}
+      dhcp4: {{ 'yes' if dhcp4 else 'no' }}
+      {% if addresses %}
+      addresses:
+        {% for address in addresses %}
+        - {{ address }}
+        {% endfor %}
+      {% endif %}
+      {% if gateway4 %}
+      gateway4: {{ gateway4 }}
+      {% endif %}
+      {% if nameservers %}
+      nameservers:
+      {% for ns in nameservers %}
+        {% if nameservers.addresses %}
+        addresses:
+        {% for address in nameservers.addresses%}
+          - {{ address }}
+        {% endfor %}
+        {% endif %}
+      {% endfor %}
+
+      {% endif %}
+      {% if routes %}
+      routes:
+      {% for route in routes %}
+        - to: {{ route.to }}
+          via: {{ route.via }}
+      {% endfor %}
+      {% endif %}
+      {% if interfaces %}
+      interfaces:
+        {% for interface in interfaces %}
+        - {{ interface }}
+        {% endfor %}
+      {% endif %}

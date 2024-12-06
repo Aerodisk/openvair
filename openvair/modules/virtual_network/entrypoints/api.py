@@ -80,7 +80,7 @@ async def get_virtual_networks(
     virtual_networks = await run_in_threadpool(crud.get_all_virtual_networks)
 
     LOG.info('Api request was successfully processed.')
-    return virtual_networks
+    return schemas.ListOfVirtualNetworksResponse(**virtual_networks)
 
 
 @router.get(
@@ -118,7 +118,7 @@ async def get_virtual_network_by_id(
     )
 
     LOG.info('Api request was successfully processed.')
-    return virtual_network
+    return schemas.VirtualNetworkResponse(**virtual_network)
 
 
 @router.get(
@@ -156,7 +156,7 @@ async def get_virtual_network_by_name(
     )
 
     LOG.info('Api request was successfully processed.')
-    return virtual_network
+    return schemas.VirtualNetworkResponse(**virtual_network)
 
 
 @router.post(
@@ -169,7 +169,7 @@ async def create_virtual_network(
     data: schemas.VirtualNetwork,
     user_info: Dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
-) -> schemas.VirtualNetwork:
+) -> schemas.VirtualNetworkResponse:
     """Creates a new virtual network.
 
     Args:
@@ -194,7 +194,7 @@ async def create_virtual_network(
     )
 
     LOG.info('Api request was successfully processed.')
-    return virtual_network
+    return schemas.VirtualNetworkResponse(**virtual_network)
 
 
 @router.delete(
@@ -352,7 +352,7 @@ async def add_port_group(
     )
 
     LOG.info('Api request was successfully processed.')
-    return result
+    return schemas.VirtualNetworkResponse(**result)
 
 
 @router.delete(
@@ -436,4 +436,4 @@ async def add_tag_to_trunk_port_group(
     )
 
     LOG.info('Api request was successfully processed.')
-    return result
+    return schemas.PortGroup(**result)

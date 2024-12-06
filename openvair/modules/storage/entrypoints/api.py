@@ -17,6 +17,7 @@ Entrypoints:
     POST /storages/create/ - Create a new storage.
     DELETE /storages/{storage_id}/delete/ - Delete a storage by its ID.
 """
+
 from typing import Dict, Optional
 
 from fastapi import Path, Depends, APIRouter, status
@@ -47,7 +48,7 @@ router = APIRouter(
 )
 async def get_storages(
     crud: StorageCrud = Depends(StorageCrud),
-) -> schemas.Storage:
+) -> Page:
     """It gets a list of storages from the database
 
     Args:
@@ -83,9 +84,7 @@ async def get_local_disks(
     """
     LOG.info('Api start getting list of local disks')
     data = {'free_local_disks': free_local_disks}
-    local_disks = await run_in_threadpool(
-        crud.get_local_disks, data
-    )
+    local_disks = await run_in_threadpool(crud.get_local_disks, data)
     LOG.info('Api request was successfully processed.')
     return local_disks
 
@@ -119,7 +118,7 @@ async def create_local_partition(
         crud.create_local_partition, data.dict(), user_data
     )
     LOG.info('Api request was successfully processed.')
-    return result
+    return schemas.LocalDisk(**result)
 
 
 @router.get(
@@ -144,11 +143,15 @@ async def get_local_disk_partitions_info(
         Dict: Information about local disk partitions.
     """
     LOG.info('Api start getting list of partitions')
-    return await run_in_threadpool(
-        crud.get_local_disk_partitions_info,
-        {
-            'disk_path': disk_path,
-        },
+    return JSONResponse(
+        (
+            await run_in_threadpool(
+                crud.get_local_disk_partitions_info,
+                {
+                    'disk_path': disk_path,
+                },
+            )
+        )
     )
 
 
@@ -178,7 +181,7 @@ async def delete_local_partition(
         crud.delete_local_partition, data.dict(), user_data
     )
     LOG.info('Api request was successfully processed.')
-    return result
+    return JSONResponse(result)
 
 
 @router.get(
@@ -203,7 +206,7 @@ async def get_storage(
     LOG.info('Api handle response on getting storage.')
     storage = await run_in_threadpool(crud.get_storage, storage_id)
     LOG.info('Api request was successfully processed.')
-    return storage
+    return schemas.Storage(**storage)
 
 
 @router.post(
@@ -233,7 +236,7 @@ async def create_storage(
         crud.create_storage, data.dict(), user_data
     )
     LOG.info('Api request was successfully processed.')
-    return storage
+    return schemas.Storage(**storage)
 
 
 @router.delete(
@@ -261,4 +264,4 @@ async def delete_storage(
         crud.delete_storage, storage_id, user_data
     )
     LOG.info('Api request was successfully processed.')
-    return storage
+    return schemas.Storage(**storage)

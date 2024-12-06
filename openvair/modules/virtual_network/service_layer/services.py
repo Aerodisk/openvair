@@ -13,18 +13,19 @@ Enums:
         network.
 """
 
-from typing import TYPE_CHECKING, Dict, Literal, Optional
+from typing import Dict, List, Literal, Optional, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from openvair.libs.log import get_logger
-from openvair.modules.base_manager import BackgroundTasks
-from openvair.libs.messaging.protocol import Protocol
+from openvair.modules.tools.utils import xml_to_jsonable
+from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.virtual_network.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
 from openvair.modules.virtual_network.domain import base
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_network.entrypoints import schemas
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.virtual_network.adapters.orm import (
@@ -33,6 +34,9 @@ from openvair.modules.virtual_network.adapters.orm import (
 )
 from openvair.modules.virtual_network.service_layer import unit_of_work
 from openvair.modules.virtual_network.adapters.serializer import DataSerializer
+from openvair.modules.virtual_network.adapters.virsh_adapter import (
+    VirshNetworkAdapter,
+)
 from openvair.modules.virtual_network.service_layer.exceptions import (
     PortGroupException,
     VirtualNetworkAlreadyExist,
@@ -42,9 +46,6 @@ from openvair.modules.virtual_network.service_layer.exceptions import (
 from openvair.modules.virtual_network.domain.bridge_network.bridge_net import (
     BridgePortGroup,
 )
-
-if TYPE_CHECKING:
-    from openvair.libs.messaging.rpc import RabbitRPCClient
 
 LOG = get_logger(__name__)
 
@@ -65,17 +66,18 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             to virtual networks.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the VirtualNetworkServiceLayerManager."""
         super().__init__()
-        self.domain_rpc: RabbitRPCClient = Protocol(client=True)(
-            SERVICE_LAYER_DOMAIN_QUEUE_NAME
+        self.domain_client = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME,
         )
-        self.service_layer_rpc: RabbitRPCClient = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
         self.event_store = EventCrud('virtual_networks')
+        self.virsh_net_adapter = VirshNetworkAdapter()
 
     def get_all_virtual_networks(self) -> Dict:
         """Retrieve all virtual networks from the database.
@@ -154,10 +156,10 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         )
 
         db_port_groups = [
-            DataSerializer.to_db(port_group, PortGroup)
+            cast(PortGroup, DataSerializer.to_db(port_group, PortGroup))
             for port_group in data.pop('port_groups')
         ]
-        db_network = DataSerializer.to_db(data)
+        db_network = cast(VirtualNetwork, DataSerializer.to_db(data))
         db_network.port_groups = db_port_groups
 
         domain_network = DataSerializer.to_domain(db_network)
@@ -172,7 +174,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         self.event_store.add_event(**event_message)
 
         domain_network.update({'id': str(db_network.id)})
-        virsh_data = self.domain_rpc.call(
+        virsh_data = self.domain_client.call(
             base.BaseVirtualNetwork.create.__name__,
             data_for_manager=domain_network,
         )
@@ -199,7 +201,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info('Deleting virtual network...')
 
         user_info = data.pop('user_info')
-        vn_id = data.get('virtual_network_id')
+        vn_id = data.get('virtual_network_id', '')
         event_message = self.__prepare_event_message(
             user_id=user_info.get('id'),
             object_id=vn_id,
@@ -213,7 +215,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info(
             'Sending request to domain layer to delete the virtual network...'
         )
-        self.domain_rpc.cast(
+        self.domain_client.cast(
             base.BaseVirtualNetwork.delete.__name__,
             data_for_manager=domain_network,
         )
@@ -297,7 +299,9 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             event=self.add_port_group.__name__,
         )
 
-        db_port_group = DataSerializer.to_db(port_group_info, PortGroup)
+        db_port_group = cast(
+            PortGroup, DataSerializer.to_db(port_group_info, PortGroup)
+        )
         domain_port_group = DataSerializer.to_domain(
             db_port_group, BridgePortGroup
         )
@@ -322,7 +326,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             LOG.info(message)
             self.event_store.add_event(**event_message)
 
-            virsh_data = self.domain_rpc.call(
+            virsh_data = self.domain_client.call(
                 base.BaseVirtualNetwork.add_port_group.__name__,
                 data_for_manager=domain_network,
                 data_for_method=domain_port_group,
@@ -378,7 +382,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                 raise PortGroupException(message)
 
             domain_network = DataSerializer.to_domain(db_network)
-            virsh_data = self.domain_rpc.call(
+            virsh_data = self.domain_client.call(
                 base.BaseVirtualNetwork.del_port_group_by_name.__name__,
                 data_for_manager=domain_network,
                 data_for_method={'port_group_name': pg_name},
@@ -424,7 +428,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             db_network = self.uow.virtual_networks.get(vn_id)
             domain_network = DataSerializer.to_domain(db_network)
 
-            domain_data = self.domain_rpc.call(
+            domain_data = self.domain_client.call(
                 base.BaseVirtualNetwork.add_tag_to_port_group.__name__,
                 data_for_manager=domain_network,
                 data_for_method={'pg_name': pg_name, 'tag_id': tag_id},
@@ -436,7 +440,9 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                 if port_group.port_group_name == pg_name:
                     db_network.port_groups.remove(port_group)
 
-            db_port_group = DataSerializer.to_db(domain_port_group, PortGroup)
+            db_port_group = cast(
+                PortGroup, DataSerializer.to_db(domain_port_group, PortGroup)
+            )
             db_network.port_groups.append(db_port_group)
 
             self._add_virsh_data_for_db_network(db_network, virsh_data)
@@ -450,6 +456,80 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info('Success adding tag to port group')
         return web_port_group
 
+    @periodic_task(interval=30)
+    def monitoring(self) -> None:
+        """Check virtual netwok in system and append to db for manipulating
+
+        This method get list of virsh virtual networks, compare their with
+        db list of virsh network and if network not exit in db, append this
+        into db
+        """
+        LOG.info('Start monitoring')
+        with self.uow:
+            db_networks = self.uow.virtual_networks.get_all()
+            db_net_names = [db_net.network_name for db_net in db_networks]
+            virsh_net_names = self.virsh_net_adapter.get_virt_network_names()
+            for virsh_name in virsh_net_names:
+                if virsh_name not in db_net_names:
+                    LOG.info(f'{virsh_name} not found in db')
+                    network_data = self._collect_virsh_virt_net_data(virsh_name)
+                    db_network = cast(
+                        VirtualNetwork, DataSerializer.to_db(network_data)
+                    )
+                    self.uow.virtual_networks.add(db_network)
+            self.uow.commit()
+        LOG.info('End monitoring')
+
+    def _collect_virsh_virt_net_data(self, net_name: str) -> Dict:
+        """Collectin virtual network info from virhs
+
+        For collecting port group info this method use xml_to_jsonable from
+        tools.utils
+        """
+        LOG.info(f'Collecting virsh info for virtual network: {net_name}')
+        uuid = self.virsh_net_adapter.get_network_uuid(net_name)
+        xml = self.virsh_net_adapter.get_network_xml_by_uuid(uuid)
+        bridge = self.virsh_net_adapter.get_network_bridge_by_id(uuid)
+        state = self.virsh_net_adapter.get_network_state(uuid)
+        autostart = self.virsh_net_adapter.get_network_autostart(uuid)
+        persistent = self.virsh_net_adapter.get_network_persistent(uuid)
+
+        virhs_network_data = cast(Dict, xml_to_jsonable(xml))
+        pg_info = virhs_network_data['network'].get('portgroup', [])
+        if isinstance(pg_info, Dict):
+            pg_info = [virhs_network_data['network']['portgroup']]
+        port_groups = self._prepare_port_groups(pg_info)
+
+        return {
+            'id': uuid,
+            'network_name': net_name,
+            'forward_mode': 'bridge',
+            'bridge': bridge,
+            'virtual_port_type': 'openvswitch',
+            'state': state,
+            'autostart': autostart,
+            'persistent': persistent,
+            'port_groups': port_groups,
+            'virsh_xml': xml,
+        }
+
+    def _prepare_port_groups(self, pg_info: List[Dict]) -> List:
+        """Prepare port group info for domain model"""
+        port_groups = []
+        for pg in pg_info:
+            portgroup_vlan = pg['vlan']
+            tags: List = portgroup_vlan['tag']
+            if isinstance(tags, Dict):
+                tags = [tags]
+            port_groups.append(
+                {
+                    'port_group_name': pg['name'],
+                    'is_trunk': portgroup_vlan.get('trunk', 'no'),
+                    'tags': [tag['id'] for tag in tags],
+                }
+            )
+        return port_groups
+
     # PROTECTED METHODS
     def _check_exist(self, domain_network: Dict) -> None:
         """Check if a network already exists in the database and in virsh.
@@ -462,11 +542,11 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             VirtualNetworkAlreadyExist: If the network already exists in either
                 the database or in virsh.
         """
-        vn_name = domain_network.get('network_name')
+        vn_name = domain_network.get('network_name', '')
         LOG.info(f'Checking if network {vn_name} exists...')
 
         is_exist_in_db = self._check_existing_in_db(vn_name)
-        is_exist_in_virsh = self.domain_rpc.call(
+        is_exist_in_virsh = self.domain_client.call(
             base.BaseVirtualNetwork.is_exist_in_virsh.__name__,
             data_for_manager=domain_network,
         )
@@ -558,13 +638,13 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             domain_network = DataSerializer.to_domain(db_network)
 
             if action == 'on':
-                db_network.state = self.domain_rpc.call(
+                db_network.state = self.domain_client.call(
                     base.BaseVirtualNetwork.enable.__name__,
                     data_for_manager=domain_network,
                 )
 
             elif action == 'off':
-                db_network.state = self.domain_rpc.call(
+                db_network.state = self.domain_client.call(
                     base.BaseVirtualNetwork.disable.__name__,
                     data_for_manager=domain_network,
                 )

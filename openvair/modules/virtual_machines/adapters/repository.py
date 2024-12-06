@@ -20,16 +20,15 @@ Exceptions:
 import abc
 from typing import TYPE_CHECKING, List
 
+from sqlalchemy import update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.virtual_machines.adapters.orm import (
     Disk,
     VirtualMachines,
     VirtualInterface,
-)
-from openvair.modules.virtual_machines.adapters.exceptions import (
-    DBCannotBeConnectedError,
 )
 
 if TYPE_CHECKING:
@@ -366,7 +365,7 @@ class SqlAlchemyRepository(AbstractRepository):
         Args:
             disks (List): A list of disk entities to update.
         """
-        self.session.bulk_update_mappings(Disk, disks)
+        self.session.execute(update(Disk), disks)
 
     def _bulk_update_virtual_interfaces(self, virt_interfaces: List) -> None:
         """Bulk update virtual interface entities in the repository.
@@ -375,7 +374,7 @@ class SqlAlchemyRepository(AbstractRepository):
             virt_interfaces (List): A list of virtual interface entities to
                 update.
         """
-        self.session.bulk_update_mappings(VirtualInterface, virt_interfaces)
+        self.session.execute(update(VirtualInterface), virt_interfaces)
 
     def _delete_disk(self, disk: Disk) -> None:
         """Delete a disk entity from the repository.

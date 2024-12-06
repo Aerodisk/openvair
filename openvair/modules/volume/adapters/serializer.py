@@ -1,68 +1,20 @@
-"""Serialization utilities for volume data.
+"""This module provides classes for serializing and deserializing Volumes
 
-This module provides utilities to serialize and deserialize volume data
-between different representations such as domain models, database objects,
-and web responses.
+It includes a concrete implementation `DataSerializer` which provides methods
+to convert Volume objects to domain, database, and web-friendly
+dictionaries.
 
 Classes:
-    AbstractDataSerializer: Abstract base class for data serialization.
-    DataSerializer: Concrete implementation of the data serializer.
+    DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import abc
-from typing import Dict, Type
+from typing import Dict, Type, Union, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
-from openvair.modules.volume.adapters.orm import Volume
-
-
-class AbstractDataSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for data serialization.
-
-    This class defines the interface for converting volume data between
-    different representations.
-    """
-
-    @classmethod
-    @abc.abstractmethod
-    def to_domain(cls, volume: Volume) -> Dict:
-        """Convert a Volume object to a domain model representation.
-
-        Args:
-            volume (Volume): The Volume object to convert.
-
-        Returns:
-            Dict: The domain model representation of the volume.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    @abc.abstractmethod
-    def to_db(cls, domain_data: Dict, orm_class: Type = Volume) -> object:
-        """Convert a domain model representation to a database object.
-
-        Args:
-            domain_data (Dict): The domain model data to convert.
-            orm_class (Type): The ORM class to map the data to.
-
-        Returns:
-            object: The ORM object populated with the domain data.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    @abc.abstractmethod
-    def to_web(cls, volume: Volume) -> Dict:
-        """Convert a Volume object to a web response representation.
-
-        Args:
-            volume (Volume): The Volume object to convert.
-
-        Returns:
-            Dict: The web response representation of the volume.
-        """
-        raise NotImplementedError
+from openvair.abstracts.serializer import AbstractDataSerializer
+from openvair.modules.volume.adapters.orm import Volume, VolumeAttachVM
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -73,16 +25,19 @@ class DataSerializer(AbstractDataSerializer):
     """
 
     @classmethod
-    def to_domain(cls, volume: Volume) -> Dict:
+    def to_domain(
+        cls,
+        orm_object: Volume,
+    ) -> Dict:
         """Convert a Volume object to a domain model representation.
 
         Args:
-            volume (Volume): The Volume object to convert.
+            orm_object (Volume): The Volume object to convert.
 
         Returns:
             Dict: The domain model representation of the volume.
         """
-        volume_dict = volume.__dict__.copy()
+        volume_dict = orm_object.__dict__.copy()
         volume_dict.pop('_sa_instance_state')
         volume_dict.pop('attachments')
         volume_dict.update(
@@ -95,36 +50,49 @@ class DataSerializer(AbstractDataSerializer):
         return volume_dict
 
     @classmethod
-    def to_db(cls, domain_data: Dict, orm_class: Type = Volume) -> object:
+    def to_db(
+        cls,
+        data: Dict,
+        orm_class: Union[
+            Type[Volume],
+            Type[VolumeAttachVM],
+        ] = Volume,
+    ) -> Union[
+        Volume,
+        VolumeAttachVM,
+    ]:
         """Convert a domain model representation to a database object.
 
         Args:
-            domain_data (Dict): The domain model data to convert.
+            data (Dict): The domain model data to convert.
             orm_class (Type): The ORM class to map the data to.
 
         Returns:
             object: The ORM object populated with the domain data.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
-            if not domain_data.get(column_name):
+            if not data.get(column_name):
                 continue
-            orm_dict[column_name] = domain_data.get(column_name)
+            orm_dict[column_name] = data.get(column_name)
         return orm_class(**orm_dict)
 
     @classmethod
-    def to_web(cls, volume: Volume) -> Dict:
+    def to_web(
+        cls,
+        orm_object: Volume,
+    ) -> Dict:
         """Convert a Volume object to a web response representation.
 
         Args:
-            volume (Volume): The Volume object to convert.
+            orm_object (Volume): The Volume object to convert.
 
         Returns:
             Dict: The web response representation of the volume.
         """
-        volume_dict = volume.__dict__.copy()
+        volume_dict = orm_object.__dict__.copy()
         volume_dict.pop('_sa_instance_state')
         attachments = []
         for attachment in volume_dict.pop('attachments', []):

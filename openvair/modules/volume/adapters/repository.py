@@ -12,13 +12,14 @@ Classes:
 
 import abc
 from uuid import UUID
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict, List, Optional
 
+from sqlalchemy import update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.volume.adapters.orm import Volume
-from openvair.modules.volume.adapters.exceptions import DBCannotBeConnectedError
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -93,7 +94,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         self,
         volume_name: str,
         storage_id: str,
-    ) -> Volume:
+    ) -> Optional[Volume]:
         """Retrieve a volume by its name and storage ID.
 
         Args:
@@ -113,7 +114,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         self._delete(volume_id)
 
-    def bulk_update(self, data: List[Volume]) -> None:
+    def bulk_update(self, data: List[Dict]) -> None:
         """Perform a bulk update on a list of volumes.
 
         Args:
@@ -181,7 +182,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         self,
         volume_name: str,
         storage_id: str,
-    ) -> Volume:
+    ) -> Optional[Volume]:
         """Retrieve a volume by its name and storage ID.
 
         Args:
@@ -209,7 +210,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _bulk_update(self, data: List[Volume]) -> None:
+    def _bulk_update(self, data: List[Dict]) -> None:
         """Perform a bulk update on a list of volumes.
 
         Args:
@@ -238,7 +239,7 @@ class SqlAlchemyRepository(AbstractRepository):
             session (Session): The SQLAlchemy session used for database
                 operations.
         """
-        super(SqlAlchemyRepository, self).__init__()
+        super().__init__()
         self.session: Session = session
         self._check_connection()
 
@@ -310,7 +311,7 @@ class SqlAlchemyRepository(AbstractRepository):
         self,
         volume_name: str,
         storage_id: str,
-    ) -> Volume:
+    ) -> Optional[Volume]:
         """Retrieve a volume by its name and storage ID.
 
         Args:
@@ -332,12 +333,12 @@ class SqlAlchemyRepository(AbstractRepository):
         Args:
             volume_id (UUID): The ID of the volume to delete.
         """
-        return self.session.query(Volume).filter_by(id=volume_id).delete()
+        self.session.query(Volume).filter_by(id=volume_id).delete()
 
-    def _bulk_update(self, data: List[Volume]) -> None:
+    def _bulk_update(self, data: List[Dict]) -> None:
         """Perform a bulk update on a list of volumes.
 
         Args:
             data (List[Volume]): A list of volumes with updated data.
         """
-        self.session.bulk_update_mappings(Volume, data)
+        self.session.execute(update(Volume), data)

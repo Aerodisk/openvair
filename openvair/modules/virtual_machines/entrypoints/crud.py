@@ -9,13 +9,11 @@ Classes:
         virtual machines by interacting with the service layer.
 """
 
-from typing import Dict
-
-from fastapi_pagination import Page, paginate
+from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import validate_objects
-from openvair.libs.messaging.protocol import Protocol
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
 )
@@ -36,10 +34,10 @@ class VMCrud:
             the service layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize VMCrud with an RPC client."""
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_vm(self, vm_id: str) -> Dict:
@@ -52,14 +50,14 @@ class VMCrud:
             Dict: The virtual machine data.
         """
         LOG.info('Call service layer to get VM by ID: %s.', vm_id)
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.get_vm.__name__,
             data_for_method={'vm_id': vm_id},
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def get_all_vms(self) -> Page:
+    def get_all_vms(self) -> List:
         """Retrieve all virtual machines.
 
         Returns:
@@ -71,8 +69,8 @@ class VMCrud:
             data_for_method={},
         )
         LOG.debug('Response from service layer: %s.', result)
-        vms = validate_objects(result, schemas.VirtualMachineInfo)
-        return paginate(vms)
+        vms: List = validate_objects(result, schemas.VirtualMachineInfo)
+        return vms
 
     def create_vm(self, data: Dict, user_info: Dict) -> Dict:
         """Create a new virtual machine.
@@ -86,7 +84,7 @@ class VMCrud:
         """
         LOG.info('Call service layer to create VM with data: %s.', data)
         data.update({'user_info': user_info})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.create_vm.__name__,
             data_for_method=data,
         )
@@ -104,7 +102,7 @@ class VMCrud:
             Dict: The result of the deletion operation.
         """
         LOG.info('Call service layer to delete VM by ID: %s.', vm_id)
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.delete_vm.__name__,
             data_for_method={'vm_id': vm_id, 'user_info': user_info},
         )
@@ -122,7 +120,7 @@ class VMCrud:
             Dict: The result of the start operation.
         """
         LOG.info('Call service layer to start VM by ID: %s.', vm_id)
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.start_vm.__name__,
             data_for_method={'vm_id': vm_id, 'user_info': user_info},
         )
@@ -140,7 +138,7 @@ class VMCrud:
             Dict: The result of the shut-off operation.
         """
         LOG.info('Call service layer to shut off VM by ID: %s.', vm_id)
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.shut_off_vm.__name__,
             data_for_method={'vm_id': vm_id, 'user_info': user_info},
         )
@@ -160,7 +158,7 @@ class VMCrud:
         """
         LOG.info('Call service layer to edit VM by ID: %s.', vm_id)
         data.update({'vm_id': vm_id, 'user_info': user_info})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.edit_vm.__name__,
             data_for_method=data,
         )
@@ -177,7 +175,8 @@ class VMCrud:
         Returns:
             Dict: The VNC session details.
         """
-        return self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.vnc.__name__,
             data_for_method={'vm_id': vm_id, 'user_info': user_info},
         )
+        return result

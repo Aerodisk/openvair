@@ -194,13 +194,6 @@ remove_nodejs_folders(){
 }
 remove_nodejs_folders
 
-restart_service "cups-browsed.service"
-restart_service "cups.service"
-restart_service "NetworkManager.service"
-restart_service "packagekit.service"
-restart_service "systemd-resolved.service"
-restart_service "user@1000.service"
-
 # ========= Unmount directories =========
 umount_project_paths(){
   sudo umount -l /opt/aero/openvair/data/mnt/*
@@ -219,3 +212,10 @@ remove_project_folder(){
   fi
 }
 remove_project_folder
+
+restart_service "cups-browsed.service"
+restart_service "cups.service"
+restart_service "NetworkManager.service"
+restart_service "packagekit.service"
+restart_service "systemd-resolved.service"
+restart_service "user@1000.service"

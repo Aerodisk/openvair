@@ -11,7 +11,7 @@ Classes:
         Prometheus.
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -33,7 +33,7 @@ class NotAuthorizedError(Exception):
         message (str): A message describing the error.
     """
 
-    def __init__(self, message: str, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the NotAuthorizedError with a message.
 
         Args:
@@ -102,7 +102,7 @@ class BaseClient:
         response = self.session.post(
             auth_url, data={'username': login, 'password': password}
         )
-        token = response.json().get('access_token', '')
+        token: str = response.json().get('access_token', '')
         if not token:
             msg = 'Incorrect login or password.'
             raise NotAuthorizedError(msg)

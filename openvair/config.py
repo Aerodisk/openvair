@@ -23,6 +23,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from openvair.rpc_queues import RPCQueueNames
+from openvair.abstracts.exceptions import ConfigParameterNotSpecifiedError
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
@@ -41,12 +42,16 @@ def get_postgres_uri() -> str:
     Returns:
         str: PostgreSQL URI for connecting to the database.
     """
-    database: Dict = data.get('database', {})
-    port: int = database.get('port', 5432)
-    host: str = database.get('host', '0.0.0.0')  # noqa: S104
-    password: str = database.get('password', 'aero')
-    user: str = database.get('user', 'aero')
-    db_name: str = database.get('db_name', 'openvair')
+    try:
+        database: Dict = data.get('database', {})
+        port: int = database['port']
+        host: str = database['host']
+        password: str = database['password']
+        user: str = database['user']
+        db_name: str = database['db_name']
+    except KeyError as err:
+        msg = f'{err} - for database section'
+        raise ConfigParameterNotSpecifiedError(msg)
     return f'postgresql://{user}:{password}@{host}:{port}/{db_name}'
 
 

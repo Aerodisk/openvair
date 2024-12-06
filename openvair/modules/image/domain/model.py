@@ -13,7 +13,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar
+from typing import Dict, ClassVar, cast
 
 from openvair.modules.image.domain.base import BaseImage
 from openvair.modules.image.domain.remotefs import nfs
@@ -78,4 +78,4 @@ class ImageFactory(AbstractImageFactory):
                 have a corresponding image class.
         """
         image_class = self._image_classes[db_image['storage_type']]
-        return image_class(**db_image)
+        return cast(BaseImage, image_class(**db_image))

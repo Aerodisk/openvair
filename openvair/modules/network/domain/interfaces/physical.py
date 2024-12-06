@@ -8,14 +8,16 @@ Classes:
         interfaces.
 """
 
+from typing import Any
+
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
-from openvair.modules.network.domain.base import Interface
+from openvair.modules.network.domain.base import BaseInterface
 
 LOG = get_logger(__name__)
 
 
-class PhysicalInterface(Interface):
+class PhysicalInterface(BaseInterface):
     """Implementation for managing physical network interfaces.
 
     This class provides methods to enable and disable physical network
@@ -26,7 +28,7 @@ class PhysicalInterface(Interface):
         slot_port (str): The slot port identifier for the interface.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the PhysicalInterface instance.
 
         This constructor initializes the physical interface with optional

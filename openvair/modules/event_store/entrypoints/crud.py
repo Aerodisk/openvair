@@ -10,9 +10,9 @@ Classes:
     EventCrud: Class for managing CRUD operations on events.
 """
 
+import uuid
+from typing import List
 from collections import namedtuple
-
-from fastapi_pagination import Page, paginate
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import validate_objects
@@ -39,7 +39,7 @@ class EventCrud:
         self.module_name = module_name
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
 
-    def get_all_events(self, is_paginate: bool=True) -> Page[schemas.Event]:  # noqa: FBT001, FBT002
+    def get_all_events(self) -> List:
         """Retrieve all events from the database.
 
         This method retrieves all events from the database, serializes them
@@ -54,12 +54,10 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_all()
             ]
-            events = validate_objects(web_events, schemas.Event)
-        if is_paginate:
-            return paginate(events)
-        return events
+            validate_objects(web_events, schemas.Event)
+            return web_events
 
-    def get_all_events_by_module(self) -> Page[schemas.Event]:
+    def get_all_events_by_module(self) -> List:
         """Retrieve all events by module from the database.
 
         This method retrieves all events for a specific module from the
@@ -74,10 +72,9 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_all_by_module(self.module_name)
             ]
-            events = validate_objects(web_events, schemas.Event)
-        return paginate(events)
+            return validate_objects(web_events, schemas.Event)
 
-    def get_last_events(self, limit: int = 25) -> Page[schemas.Event]:
+    def get_last_events(self, limit: int = 25) -> List:
         """Retrieve the last N events from the database.
 
         This method retrieves the last N events from the database, serializes
@@ -95,8 +92,7 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_last_events(limit)
             ]
-            events = validate_objects(web_events, schemas.Event)
-        return paginate(events)
+            return validate_objects(web_events, schemas.Event)
 
     def add_event(
         self,
@@ -126,7 +122,7 @@ class EventCrud:
             event_info = CreateEventInfo(
                 module=self.module_name,
                 object_id=object_id,
-                user_id=user_id,
+                user_id=uuid.UUID(user_id),
                 event=event,
                 information=information,
             )

@@ -17,7 +17,7 @@ Functions:
 """
 
 import pathlib
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 import sentry_sdk
 
@@ -78,8 +78,8 @@ def get_snmp_agent() -> str:
     Returns:
         str: The type of SNMP agent.
     """
-    snmp = config.data.get('snmp', {})
-    return snmp.get('agent_type')
+    snmp: Dict[str, str] = config.data.get('snmp', {})
+    return snmp.get('agent_type', '')
 
 
 def get_os_type() -> str:
@@ -91,7 +91,7 @@ def get_os_type() -> str:
     Returns:
         str: The name of the operating system.
     """
-    os_data = config.data.get('OS_data', {})
+    os_data: Dict[str, str] = config.data.get('OS_data', {})
     return os_data.get('os_type', 'ubuntu')
 
 
@@ -117,7 +117,7 @@ def _check_docs_routes() -> bool:
     )
 
 
-def get_routes():  # noqa: ANN201 # because this function need to be refactored
+def get_routes() -> Any:  # noqa: ANN401
     """Retrieve the routes for the documentation, if available.
 
     This function checks if the documentation routes exist and returns them.
@@ -130,7 +130,7 @@ def get_routes():  # noqa: ANN201 # because this function need to be refactored
 
     try:
         if _check_docs_routes():
-            from docs.entrypoints.api import docs_routes
+            from docs.entrypoints.api import docs_routes  # noqa: I001 # type: ignore
 
             routes = docs_routes()
     except ImportError:

@@ -323,6 +323,6 @@ if __name__ == '__main__':
         backlog=65535,
         limit_concurrency=1000,
         limit_max_requests=10000,
-        ssl_keyfile="/opt/aero/openvair/key.pem",
-        ssl_certfile="/opt/aero/openvair/cert.pem",
+        ssl_keyfile='/opt/aero/openvair/key.pem',
+        ssl_certfile='/opt/aero/openvair/cert.pem',
     )

@@ -22,7 +22,7 @@ Functions:
 import time
 import types
 import signal
-from typing import Callable, NoReturn, Optional
+from typing import Any, Callable, NoReturn, Optional
 from threading import Event, Thread
 
 
@@ -68,9 +68,9 @@ class Task(Thread):
         interval: float,
         execute: Callable,
         manager: Callable,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        **kwargs: Any,  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    ) -> None:
         """Initialize the Task instance.
 
         Args:
@@ -135,7 +135,7 @@ class BackgroundTasks(metaclass=MetaBackgroundTasks):
         _background_tasks (List[Task]): List of registered background tasks.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the BackgroundTasks instance."""
         super(BackgroundTasks, self).__init__()
 

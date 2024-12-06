@@ -30,8 +30,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import OperationalError
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.user.adapters.orm import User
-from openvair.modules.user.adapters.exceptions import DBCannotBeConnectedError
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -51,6 +51,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         get_by_name: Retrieves a user by username from the repository.
         delete: Deletes a user by ID from the repository.
     """
+
     def _check_connection(self) -> None:
         """Check the database connection.
 
@@ -160,7 +161,7 @@ class SqlAlchemyRepository(AbstractRepository):
         _delete: Deletes a user by ID from the database.
     """
 
-    def __init__(self, session: "Session"):
+    def __init__(self, session: 'Session'):
         """Initialize the SqlAlchemyRepository with a session.
 
         Args:

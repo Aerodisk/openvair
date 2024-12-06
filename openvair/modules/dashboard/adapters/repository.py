@@ -19,10 +19,9 @@ Classes:
         that uses the Prometheus client to retrieve node resource data.
 """
 
-
 import abc
 import time
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 from openvair.libs.client.prometheus_client import PrometheusClient
@@ -64,7 +63,8 @@ class PrometheusRepository(AbstractRepository):
         prometheus_client (PrometheusClient): An instance of the
             PrometheusClient class, used to interact with the Prometheus server.
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         """Initialize the PrometheusRepository object."""
         super().__init__()
         self.prometheus_client = PrometheusClient()
@@ -83,7 +83,7 @@ class PrometheusRepository(AbstractRepository):
         cores_prometheus = self.prometheus_client.get_node_info(
             'cpu-counts-cores'
         )
-        cores += cores_prometheus
+        cores += int(cores_prometheus)
         cpu = {
             'count': cores,
             'percentage': round(
@@ -110,7 +110,7 @@ class PrometheusRepository(AbstractRepository):
         if not size:
             size = 0
 
-        storage = {
+        storage: Dict[str, Any] = {
             'size': size,
             'used': self.prometheus_client.get_node_info('size-used'),
             'free': self.prometheus_client.get_node_info('size-free'),
@@ -176,8 +176,8 @@ class PrometheusRepository(AbstractRepository):
         """
         LOG.info('Getting iops dsta from node.')
         iops_read = {
-            'input': self.prometheus_client.get_node_info('io-read-ps'),
-            'output': self.prometheus_client.get_node_info('io-write-ps'),
+            'input': int(self.prometheus_client.get_node_info('io-read-ps')),
+            'output': int(self.prometheus_client.get_node_info('io-write-ps')),
             'date': round(time.time() * 1000),
         }
         LOG.info('Finished getting iops data from node.')

@@ -8,26 +8,28 @@ Classes:
         interfaces.
 """
 
+from typing import Any
+
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
-from openvair.modules.network.domain.base import Interface
+from openvair.modules.network.domain.base import BaseInterface
 
 LOG = get_logger(__name__)
 
 
-class VirtualInterface(Interface):
+class VirtualInterface(BaseInterface):
     """Implementation for managing virtual network interfaces.
 
     This class provides methods to enable and disable virtual network
     interfaces.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the VirtualInterface instance.
 
         This constructor initializes the virtual interface.
         """
-        super(VirtualInterface, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
     def enable(self) -> None:
         """Enable the virtual network interface.

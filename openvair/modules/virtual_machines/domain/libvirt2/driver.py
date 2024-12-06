@@ -9,7 +9,7 @@ Classes:
         Libvirt API.
 """
 
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
@@ -30,7 +30,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         vm_xml (str): The XML definition of the virtual machine.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a new instance of the LibvirtDriver class.
 
         Args:

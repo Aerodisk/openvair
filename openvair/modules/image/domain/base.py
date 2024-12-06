@@ -15,7 +15,7 @@ Classes:
 """
 
 import abc
-from typing import Dict
+from typing import Any, Dict
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -32,7 +32,7 @@ class BaseImage(metaclass=abc.ABCMeta):
     systems.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initializes a `BaseImage` instance with common attributes.
 
         Args:
@@ -40,11 +40,11 @@ class BaseImage(metaclass=abc.ABCMeta):
         """
         LOG.info('Initialized BaseImage.')
         self.id = str(kwargs.get('id', ''))
-        self.size = kwargs.get('size', '0')
-        self.name = kwargs.get('name', '')
-        self.description = kwargs.get('description', '')
-        self.storage_type = kwargs.get('storage_type', '')
-        self.path = kwargs.get('path', '')
+        self.size = str(kwargs.get('size', '0'))
+        self.name = str(kwargs.get('name', ''))
+        self.description = str(kwargs.get('description', ''))
+        self.storage_type = str(kwargs.get('storage_type', ''))
+        self.path = str(kwargs.get('path', ''))
 
     @abc.abstractmethod
     def upload(self) -> Dict:
@@ -101,10 +101,10 @@ class BaseRemoteFSImage(BaseImage):
     operations specific to images stored on remote file systems.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initializes a `BaseRemoteFSImage` instance."""
         LOG.info('Initialized RemoteFSImage')
-        super(BaseRemoteFSImage, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def upload(self) -> Dict:
         """Uploads the image.
@@ -158,9 +158,9 @@ class BaseLocalFSImage(BaseImage):
     operations specific to images stored on local file systems.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):  # noqa: ANN401
         """Initializes a `BaseLocalFSImage` instance."""
-        super(BaseLocalFSImage, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def upload(self) -> Dict:
         """Uploads the image.

@@ -71,8 +71,8 @@ class Os(BaseModel):
 class GraphicInterfaceBase(BaseModel):
     """Base schema for graphic interface information."""
 
-    login: Optional[str]
-    password: Optional[str]
+    login: Optional[str] = None
+    password: Optional[str] = None
     connect_type: Literal['vnc', 'spice'] = 'vnc'
 
 
@@ -88,26 +88,26 @@ class VirtualInterface(BaseModel):
         'user',
         'virtual_network',
     ] = 'bridge'  # default???????
-    portgroup: Optional[str]
+    portgroup: Optional[str] = None
     interface: str
     mac: str = '6C:4A:74:B4:FD:59'  # default start 6C:4A:74:
     model: Literal['virtio'] = 'virtio'
-    order: Optional[int]
+    order: Optional[int] = None
 
 
 class QOS(BaseModel):
     """Schema for Quality of Service settings for disks."""
 
-    iops_read: str = 500
-    iops_write: str = 500
-    mb_read: str = 150
-    mb_write: str = 150
+    iops_read: int = 500
+    iops_write: int = 500
+    mb_read: int = 150
+    mb_write: int = 150
 
 
 class Disk(BaseModel):
     """Schema for disk information."""
 
-    name: Optional[str]
+    name: Optional[str] = None
     emulation: Literal['virtio', 'ide', 'scsi'] = 'virtio'
     format: Literal['qcow2', 'raw'] = 'qcow2'
     qos: QOS
@@ -147,7 +147,7 @@ class CreateVirtualMachine(BaseModel):
     """Schema for creating a virtual machine."""
 
     name: str  # VM name
-    description: Optional[str]
+    description: Optional[str] = None
     os: Os
     cpu: Cpu
     ram: RAM
@@ -160,17 +160,17 @@ class DiskInfo(BaseModel):
     """Schema for detailed disk information."""
 
     id: int
-    name: Optional[str]
-    emulation: Optional[str]  # virtio
-    format: Optional[str]  # qcow2 or raw
-    qos: Optional[QOS]
-    boot_order: Optional[int]
-    order: Optional[int]
-    path: Optional[str]
-    size: Optional[int]
-    provisioning: Optional[str]
-    disk_id: Optional[str]
-    type: Optional[int]
+    name: Optional[str] = None
+    emulation: Optional[str] = None  # virtio
+    format: Optional[str] = None  # qcow2 or raw
+    qos: Optional[QOS] = None
+    boot_order: Optional[int] = None
+    order: Optional[int] = None
+    path: Optional[str] = None
+    size: Optional[int] = None
+    provisioning: Optional[str] = None
+    disk_id: Optional[str] = None
+    type: Optional[int] = None
     read_only: bool = False
 
 
@@ -183,7 +183,7 @@ class VirtualInterfaceInfo(VirtualInterface):
 class GraphicInterfaceInfo(GraphicInterfaceBase):
     """Schema for detailed graphic interface information."""
 
-    url: Optional[str]
+    url: Optional[str] = None
 
 
 class VirtualMachineInfo(BaseModel):
@@ -193,8 +193,8 @@ class VirtualMachineInfo(BaseModel):
     name: str
     power_state: str
     status: str
-    description: Optional[str]
-    information: Optional[str]
+    description: Optional[str] = None
+    information: Optional[str] = None
     cpu: Cpu
     ram: RAM
     os: Os

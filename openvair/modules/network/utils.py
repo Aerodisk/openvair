@@ -1,55 +1,87 @@
-# noqa: D100
+"""Module for managing and retrieving system network interfaces information.
+
+This module provides classes and exceptions for handling network interface
+data. It includes functionality to retrieve detailed information about
+network interfaces, including physical and virtual properties, using system
+utilities.
+
+Classes:
+    GettingSystemInfoError: Base exception for errors in system information
+        retrieval.
+    MissingRequiredComponentError: Exception raised when a required system
+        component is missing.
+    InterfacesFromSystem: Custom collection for storing and managing network
+        interfaces data.
+"""
+
 import re
 import json
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from openvair.modules.tools.utils import execute
+from openvair.abstracts.base_exception import BaseCustomException
 
 
-class GettingSystemInfoError(Exception):  # noqa: D101
-    def __init__(self, *args):  # noqa: D107
-        super().__init__(args)
+class GettingSystemInfoError(BaseCustomException):
+    """Raised for errors encountered during system information retrieval."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize GettingSystemInfoError"""
+        super().__init__(message, *args)
 
 
-class MissingRequiredComponentError(GettingSystemInfoError):  # noqa: D101
-    def __init__(self, *args):  # noqa: D107
-        super().__init__(args)
+class MissingRequiredComponentError(GettingSystemInfoError):
+    """Raised when a required system component, such as 'ip', is missing."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize MissingRequiredComponentError"""
+        super().__init__(message, *args)
 
 
 class InterfacesFromSystem(list):
     """Custom collection of network interfaces data from system core."""
 
-    def __init__(self):  # noqa: D107
+    def __init__(self) -> None:
+        """Initialize the collection of network interfaces
+
+        Retrieving all interface data from the system.
+        """
         super().__init__(
             inf_data for inf_data in self._get_all_interfaces_data()
         )
 
     def _get_all_interfaces_data(self) -> List[Dict]:  # noqa: C901
-        """Main function to make the list of interfaces data.
+        """Retrieve data for all network interfaces on the system.
+
+        This method collects information about each network interface,
+        distinguishing between physical and virtual interfaces, and gathering
+        details such as IP, MAC address, duplex, and speed.
 
         Returns:
-            List[Dict]: List of dictionaries containing data of all
-                interfaces.
+            List[Dict]: List of dictionaries containing data of all interfaces.
 
+        Raises:
+            MissingRequiredComponentError: If the 'ip' command is not available
+                on the system.
+            GettingSystemInfoError: If an error occurs during interface data
+            retrieval.
         """
         all_interfaces_data = []
 
-        sys_output_infs = execute('ip', '-json', 'a')
+        stdout, stderr = execute('ip', '-json', 'a')
 
-        if sys_output_infs[1] == '/bin/sh: ip: command not found\n':
+        if stderr == '/bin/sh: ip: command not found\n':
             message = (
                 "Error in getting interfaces from system, cause util 'ip' not "
-                "found."
+                'found.'
             )
             raise MissingRequiredComponentError(message)
 
-        if sys_output_infs[1] != '':
-            message = (
-                f'Error in getting interfaces from system: {sys_output_infs[1]}'
-            )
+        if stderr != '':
+            message = f'Error in getting interfaces from system: {stderr}'
             raise GettingSystemInfoError(message)
 
-        sys_output_infs = json.loads(sys_output_infs[0])
+        sys_output_infs: List[Dict] = json.loads(stdout)
 
         for sys_inf in sys_output_infs:
             inf_data = {}
@@ -132,8 +164,9 @@ class InterfacesFromSystem(list):
             f'/sys/class/net/{interface_name}/device/uevent',
         )
         if result[0]:
-            slot_port = re.search(r'=(.+)', result[0]).group(1)
-            return slot_port if slot_port else None
+            slot_port_match = re.search(r'=(.+)', result[0])
+            if slot_port_match:
+                return slot_port_match.group(1)
 
         return None
 
@@ -149,7 +182,6 @@ class InterfacesFromSystem(list):
             'ls', '-l', '/sys/class/net/', '|', 'grep', '-v', 'virtual'
         )[0]
         return re.findall(r'/net/(.+)(?:\s|$)', result)
-
 
     def get_all(self) -> List:  # noqa: D102
         return self

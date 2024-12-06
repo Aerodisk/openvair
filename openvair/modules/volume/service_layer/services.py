@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import Dict, List, Optional, cast
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
@@ -39,26 +39,22 @@ from openvair.modules.volume.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
-from openvair.libs.messaging.protocol import Protocol
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
 )
-from openvair.rpc_clients.vm_rpc_client import VMServiceLayerRPCClient
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.adapters.orm import Volume, VolumeAttachVM
 from openvair.modules.volume.service_layer import exceptions, unit_of_work
-from openvair.rpc_clients.storage_rpc_client import StorageServiceLayerRPCClient
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.volume.adapters.serializer import DataSerializer
 from openvair.modules.event_store.entrypoints.crud import EventCrud
-
-if TYPE_CHECKING:
-    from openvair.interfaces.vm_service_interface import (
-        VMServiceLayerProtocolInterface,
-    )
-    from openvair.interfaces.storage_service_interface import (
-        StorageServiceLayerProtocolInterface,
-    )
+from openvair.libs.messaging.clients.rpc_clients.vm_rpc_client import (
+    VMServiceLayerRPCClient,
+)
+from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
+    StorageServiceLayerRPCClient,
+)
 
 LOG = get_logger(__name__)
 
@@ -140,7 +136,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         event_store (EventCrud): Event store for logging volume-related events.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the VolumeServiceLayerManager.
 
         This constructor sets up the necessary components for the
@@ -158,16 +154,14 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         super(VolumeServiceLayerManager, self).__init__()
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
-        self.domain_rpc = Protocol(client=True)(SERVICE_LAYER_DOMAIN_QUEUE_NAME)
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.storage_service_client: StorageServiceLayerProtocolInterface = (
-            StorageServiceLayerRPCClient()
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
-        self.vm_service_client: VMServiceLayerProtocolInterface = (
-            VMServiceLayerRPCClient()
-        )
+        self.storage_service_client = StorageServiceLayerRPCClient()
+        self.vm_service_client = VMServiceLayerRPCClient()
         self.event_store = EventCrud('volumes')
 
     def get_volume(self, data: Dict) -> Dict:
@@ -445,7 +439,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         volume = self._prepare_volume_data(volume_info)
         with self.uow:
             self._check_volume_exists_on_storage(volume.name, volume.storage_id)
-            db_volume = DataSerializer.to_db(volume._asdict())
+            db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
             db_volume.status = VolumeStatus.new.name
             LOG.info('Start inserting volume into db with status new.')
             self.uow.volumes.add(db_volume)
@@ -461,7 +455,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             self._create_volume.__name__, data_for_method=serialized_volume
         )
         self.event_store.add_event(
-            serialized_volume.get('id'),
+            str(serialized_volume.get('id')),
             user_info.get('id'),
             self.create_volume.__name__,
             'Volume successfully inserted into db.',
@@ -486,7 +480,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer start handling response on _create_volume.')
         volume_info.pop('user_info', {})
         volume_id = volume_info.get('id', '')
-        storage_id = volume_info.get('storage_id')
+        storage_id = volume_info.get('storage_id', '')
         if not volume_id:
             message = 'Volume id was not received.'
             LOG.error(message)
@@ -522,8 +516,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                     % VolumeStatus.available.name
                 )
                 self.event_store.add_event(
-                    db_volume.id,
-                    db_volume.user_id,
+                    str(db_volume.id),
+                    str(db_volume.user_id),
                     self.create_volume.__name__,
                     'Volume successfully created in the system.',
                 )
@@ -535,8 +529,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
                 self.event_store.add_event(
-                    db_volume.id,
-                    db_volume.user_id,
+                    str(db_volume.id),
+                    str(db_volume.user_id),
                     self.create_volume.__name__,
                     message,
                 )
@@ -552,8 +546,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
                 self.event_store.add_event(
-                    db_volume.id,
-                    db_volume.user_id,
+                    str(db_volume.id),
+                    str(db_volume.user_id),
                     self.create_volume.__name__,
                     message,
                 )
@@ -643,7 +637,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
                 self.event_store.add_event(
                     volume_id,
-                    db_volume.user_id,
+                    str(db_volume.user_id),
                     self.extend_volume.__name__,
                     message,
                 )
@@ -664,7 +658,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         self.event_store.add_event(
             volume_id,
-            db_volume.user_id,
+            str(db_volume.user_id),
             self.extend_volume.__name__,
             'Volume successfully marked as extending.',
         )
@@ -699,17 +693,17 @@ class VolumeServiceLayerManager(BackgroundTasks):
             VmPowerStateIsNotShutOffException: If a VM attached to the volume is
                 not in the 'shut_off' state.
         """
-        volume = data.get('volume')
-        new_size = int(data.get('new_size'))
+        volume = data.get('volume', {})
+        new_size = int(data.get('new_size', ''))
         data.pop('user_info', {})
 
         with self.uow:
             db_volume = self.uow.volumes.get(volume.get('id'))
             try:
-                storage = self._get_storage_info(db_volume.storage_id)
+                storage = self._get_storage_info(str(db_volume.storage_id))
                 self._check_storage_on_availability(storage)
                 for attachment in db_volume.attachments:
-                    self._check_vm_power_state(attachment.vm_id)
+                    self._check_vm_power_state(str(attachment.vm_id))
                 self._check_available_space_on_storage(
                     db_volume.size - new_size, storage
                 )
@@ -729,7 +723,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.information = message
                 self.event_store.add_event(
                     volume.get('id'),
-                    db_volume.user_id,
+                    str(db_volume.user_id),
                     self._extend_volume.__name__,
                     message,
                 )
@@ -746,7 +740,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.information = message
                 self.event_store.add_event(
                     volume.get('id'),
-                    db_volume.user_id,
+                    str(db_volume.user_id),
                     self._extend_volume.__name__,
                     message,
                 )
@@ -759,7 +753,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.information = message
                 self.event_store.add_event(
                     volume.get('id'),
-                    db_volume.user_id,
+                    str(db_volume.user_id),
                     self._extend_volume.__name__,
                     message,
                 )
@@ -769,7 +763,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         self.event_store.add_event(
             volume.get('id'),
-            db_volume.user_id,
+            str(db_volume.user_id),
             self._extend_volume.__name__,
             'Volume successfully extended.',
         )
@@ -797,7 +791,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on delete volume.')
         user_info = data.pop('user_info', {})
-        volume_id = data.get('volume_id')
+        volume_id = data.get('volume_id', '')
         with self.uow:
             db_volume = self.uow.volumes.get(volume_id)
             available_statuses = [
@@ -817,7 +811,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 )
                 self.event_store.add_event(
                     volume_id,
-                    db_volume.user_id,
+                    str(db_volume.user_id),
                     self.delete_volume.__name__,
                     'Volume successfully marked as deleting.',
                 )
@@ -832,7 +826,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.information = message
                 self.event_store.add_event(
                     volume_id,
-                    db_volume.user_id,
+                    str(db_volume.user_id),
                     self.delete_volume.__name__,
                     message,
                 )
@@ -859,7 +853,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         volume_info.pop('user_info')
         with self.uow:
-            db_volume = self.uow.volumes.get(volume_info.get('id'))
+            db_volume = self.uow.volumes.get(volume_info.get('id', ''))
             try:
                 if db_volume.storage_type:
                     self.domain_rpc.call(
@@ -867,8 +861,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                     )
                 self.uow.session.delete(db_volume)
                 self.event_store.add_event(
-                    volume_info.get('id'),
-                    db_volume.user_id,
+                    str(volume_info.get('id')),
+                    str(db_volume.user_id),
                     self._delete_volume.__name__,
                     'Volume successfully deleted from the system.',
                 )
@@ -884,8 +878,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
                 self.event_store.add_event(
-                    volume_info.get('id'),
-                    db_volume.user_id,
+                    str(volume_info.get('id')),
+                    str(db_volume.user_id),
                     self._delete_volume.__name__,
                     message,
                 )
@@ -914,13 +908,13 @@ class VolumeServiceLayerManager(BackgroundTasks):
         new_read_only = data.get('read_only', False)
         new_volume_description = data.get('description', '')
         with self.uow:
-            db_volume = self.uow.volumes.get(data.get('volume_id'))
+            db_volume = self.uow.volumes.get(data.get('volume_id', ''))
             self._check_volume_status(
                 db_volume.status, [VolumeStatus.available.name]
             )
             if new_volume_name and new_volume_name != db_volume.name:
                 self._check_volume_exists_on_storage(
-                    new_volume_name, db_volume.storage_id
+                    new_volume_name, str(db_volume.storage_id)
                 )
             db_volume.name = new_volume_name
             db_volume.read_only = new_read_only
@@ -949,14 +943,17 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Starting attach volume to vm.')
         with self.uow:
-            db_volume = self.uow.volumes.get(data.get('volume_id'))
+            db_volume = self.uow.volumes.get(data.get('volume_id', ''))
             available_statuses = [VolumeStatus.available.name]
             try:
                 self._check_volume_status(db_volume.status, available_statuses)
-                attachment = DataSerializer.to_db(data, VolumeAttachVM)
+                attachment = cast(
+                    VolumeAttachVM,
+                    DataSerializer.to_db(data, VolumeAttachVM),
+                )
                 db_volume.attachments.append(attachment)
                 serialized_volume = DataSerializer.to_domain(db_volume)
-                result = self.domain_rpc.call(
+                result: Dict = self.domain_rpc.call(
                     BaseVolume.attach_volume_info.__name__,
                     data_for_manager=serialized_volume,
                 )
@@ -1034,7 +1031,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             List[StorageInfo]: A list of `StorageInfo` objects containing
                 details about each storage.
         """
-        prepared_storages = []
+        prepared_storages: List = []
         try:
             storages = self.storage_service_client.get_all_storages()
         except (RpcCallException, RpcCallTimeoutException) as err:
@@ -1117,9 +1114,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         }
 
     def _process_volumes(
-        self,
-        domain_volumes: List[Dict],
-        storages: Dict[str, StorageInfo]
+        self, domain_volumes: List[Dict], storages: Dict[str, StorageInfo]
     ) -> List[Dict]:
         """Process each volume and prepare updated information.
 
@@ -1148,7 +1143,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 exceptions.StorageUnavailableException,
                 exceptions.VolumeStatusException,
                 RpcCallException,
-                RpcCallTimeoutException
+                RpcCallTimeoutException,
             ) as error:
                 LOG.error(
                     f"Error processing volume {domain_volume.get('id')}: "
@@ -1173,7 +1168,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             Optional[Dict]: Updated volume information if available,
                 otherwise None.
         """
-        volume_storage = storages.get(domain_volume.get('storage_id'))
+        volume_storage = storages.get(domain_volume.get('storage_id', ''))
         if not volume_storage:
             raise exceptions.VolumeHasNotStorage(
                 domain_volume.get('id', 'None')
@@ -1181,13 +1176,12 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         self._check_storage_on_availability(volume_storage)
         self._check_volume_status(
-            domain_volume.get('status', ''),
-            self._get_monitoring_statuses()
+            domain_volume.get('status', ''), self._get_monitoring_statuses()
         )
 
         result = self.domain_rpc.call(
             BaseVolume.attach_volume_info.__name__,
-            data_for_manager=domain_volume
+            data_for_manager=domain_volume,
         )
 
         return {

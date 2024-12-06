@@ -12,7 +12,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar
+from typing import Dict, ClassVar, cast
 
 from openvair.modules.virtual_machines.config import VM_DRIVER
 from openvair.modules.virtual_machines.domain.base import BaseVMDriver
@@ -83,4 +83,4 @@ class VMDriverFactory(AbstractVMDriverFactory):
             KeyError: If the corresponding virtual machine type is not found.
         """
         vm_driver_class = self._vm_driver_classes[VM_DRIVER]
-        return vm_driver_class(**db_virtual_machine)
+        return cast(BaseVMDriver, vm_driver_class(**db_virtual_machine))

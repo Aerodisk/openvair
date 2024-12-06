@@ -12,8 +12,8 @@ Classes:
 from typing import Dict
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.notification.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.notification.service_layer import services
 
 LOG = get_logger(__name__)
@@ -22,14 +22,14 @@ LOG = get_logger(__name__)
 class NotificationCrud:
     """CRUD class for managing notifications."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the NotificationCrud instance.
 
         This constructor sets up the RPC client for communication with the
         service layer.
         """
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def send_notification(self, data: Dict) -> Dict:
@@ -45,7 +45,7 @@ class NotificationCrud:
             Dict: The response from the service layer.
         """
         LOG.info('Call service layer on create notification.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.NotificationServiceLayerManager.send_notification.__name__,
             data_for_method=data,
             priority=8,
