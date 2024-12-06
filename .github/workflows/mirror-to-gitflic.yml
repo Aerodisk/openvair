@@ -1,0 +1,23 @@
+name: Mirror to GitFlic
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Force push to GitFlic
+        run: |
+          git remote add gitflic https://gitflic.ru/project/aerodisk_open_vair/openvair.git
+          git push --force gitflic
+    env:
+      GIT_HTTPS_USER: "${{ secrets.GIT_USERNAME }}"
+      GIT_HTTPS_PASSWORD: "${{ secrets.GIT_FLIC_PASSWORD }}"
