@@ -14,13 +14,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Add GitFlic remote
-        run: git remote add gitflic https://gitflic.ru/project/aerodisk_open_vair/openvair.git
-
       - name: Force push to GitFlic
         run: |
-          git config --global user.name "${{ secrets.GIT_USERNAME }}"
-          git config --global user.password "${{ secrets.GIT_FLIC_PASSWORD }}"
+          git remote set-url gitflic https://$GIT_HTTPS_USER:$GIT_HTTPS_PASSWORD@gitflic.ru/project/aerodisk_open_vair/openvair.git
           git push --force gitflic
         env:
           GIT_HTTPS_USER: "${{ secrets.GIT_USERNAME }}"
