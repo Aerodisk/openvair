@@ -14,13 +14,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GITFLIC_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan gitflic.ru >> ~/.ssh/known_hosts
+
       - name: Add gitflic remote
         run: |
-          git remote add gitflic https://$GIT_HTTPS_USER:$GIT_HTTPS_PASSWORD@gitflic.ru/project/aerodisk_open_vair/openvair.git
+          git remote add gitflic git@gitflic.ru:project/aerodisk_open_vair/openvair.git
 
       - name: Force push to GitFlic
         run: |
-          git push --force gitflic
-        env:
-          GIT_HTTPS_USER: "aerodisk_open_vair"
-          GIT_HTTPS_PASSWORD: "${{ secrets.GIT_FLIC_PASSWORD }}"
+          git push --force gitflic --all
+          git push --force gitflic --tags
