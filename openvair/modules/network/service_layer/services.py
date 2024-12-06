@@ -421,8 +421,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
             exceptions.InterfaceDeletingError: If an error occurs during the
                 RPC call to the domain layer.
         """
-        user_info = data.get('user_data', {})
-        user_id = user_info.get('user_id', '')
+        user_info = data.get('user_info', {})
+        user_id = user_info.get('id', '')
         iface_id = data.get('id')
 
         with self.uow:
