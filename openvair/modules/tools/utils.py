@@ -319,10 +319,23 @@ def execute2(
                 LOG.error(message)
                 raise ExecuteError(message)
         except subprocess.TimeoutExpired:
-            proc.kill()
-            _, stderr = proc.communicate()
-            message = f"Command '{cmd_str}' timed out."
-            LOG.error(message)
+            LOG.warning(
+                f"Command '{cmd_str}' timed out. Attempting "
+                'graceful termination.'
+            )
+            proc.terminate()  # soft terminate
+            try:
+                proc.wait(timeout=5)  # 5 seconds for graceful termination
+            except subprocess.TimeoutExpired:
+                LOG.error(
+                    f"Command '{cmd_str}' did not terminate. Killing it now."
+                )
+                proc.kill()  # kill process after 5 seconds if not terminated
+
+            _, stderr = (
+                proc.communicate()
+            )  # Получить stderr после завершения процесса
+            message = f"Command '{cmd_str}' timed out and was killed."
             raise ExecuteTimeoutExpiredError(message)
 
     except OSError as err:
