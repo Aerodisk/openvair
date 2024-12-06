@@ -1,4 +1,4 @@
-# Open vAir
+# Open vAIR
 
 ## 🌍 Translations
 
@@ -6,7 +6,7 @@
 
 ## 📖 Project Description
 
-**Open vAir** is a lightweight solution based on the **vAir** project,
+**Open vAIR** is a lightweight solution based on the **vAIR** project,
 designed for use as a development environment and virtualization system. The
 program operates in interactive mode, providing a flexible and convenient
 tool for managing virtual infrastructure.
@@ -29,7 +29,7 @@ tool for managing virtual infrastructure.
 
 ## 📦 Installation
 
-To install **Open vAir** on a clean Linux system, follow these steps. It is
+To install **Open vAIR** on a clean Linux system, follow these steps. It is
 recommended to use **Ubuntu 20.04**, which is the most tested version.
 **Ubuntu 22.04** is also supported.
 
@@ -93,7 +93,7 @@ recommended to use **Ubuntu 20.04**, which is the most tested version.
 
 ### ⚙️ Project Configuration
 
-Before installing **Open vAir**, you need to set the login and password in
+Before installing **Open vAIR**, you need to set the login and password in
 the `/opt/aero/openvair/project_config.toml` file. This data is required for
 system authorization and access to all application functions.
 
@@ -135,7 +135,7 @@ Upon completion of the installation, you will receive a message with the
 current application address, login, and password for working with the system.
 
 ### 🗑️ Uninstallation
-To remove Open vAir, run the uninstallation script:
+To remove Open vAIR, run the uninstallation script:
 ```bash
 ./openvair/uninstall.sh
 ```
@@ -197,7 +197,7 @@ sudo systemctl status storage-domain.service
 * Code convention: [code-convention](CODE_CONVENTION.md).
 
 ### 🔗 Frontend of the project
-* To work with the user interface (Frontend), use the repository [Open vAir UI](https://github.com/Aerodisk/Open-vAIR-UI).
+* To work with the user interface (Frontend), use the repository [Open vAIR UI](https://github.com/Aerodisk/Open-vAIR-UI).
 
 ### 🔗 Documentation of the project
 * To work with the documentation, use the repository [Open vAIR docs](https://github.com/Aerodisk/Open-vAIR-docs).
