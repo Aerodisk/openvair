@@ -5,10 +5,10 @@ How To Contribute
 
 
 2. Найдите свою задачу в
-[issues](http://git.aerodisk.local/vair/openvair/-/issues).
+[issues](https://github.com/Aerodisk/openvair/issues).
 Если ее нет, то обсудите это с разработчиками и после
 общения создайте задачу в
-[issues](http://git.aerodisk.local/vair/openvair/-/issues).
+[issues](https://github.com/Aerodisk/openvair/issues).
 
 >Мы придерживаемся методологии *gitlab flow*, поэтому следующие шаги
 >будут основаны на этой методологии.

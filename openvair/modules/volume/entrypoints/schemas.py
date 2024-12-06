@@ -16,7 +16,7 @@ Classes:
 
 from typing import List, Literal, Optional
 
-from pydantic import Field, BaseModel, validator
+from pydantic import Field, BaseModel, field_validator
 
 from openvair.modules.tools import validators
 
@@ -32,7 +32,7 @@ class Attachment(BaseModel):
 
     id: int
     vm_id: str
-    target: Optional[str]
+    target: Optional[str] = None
 
 
 class Volume(BaseModel):
@@ -56,14 +56,14 @@ class Volume(BaseModel):
 
     id: str
     name: str
-    description: Optional[str]
-    storage_id: Optional[str]
-    user_id: Optional[str]
+    description: Optional[str] = None
+    storage_id: Optional[str] = None
+    user_id: Optional[str] = None
     format: str
     size: int
-    used: Optional[int]
-    status: Optional[str]
-    information: Optional[str]
+    used: Optional[int] = None
+    status: Optional[str] = None
+    information: Optional[str] = None
     attachments: List[Optional[Attachment]]
     read_only: Optional[bool] = False
 
@@ -87,11 +87,9 @@ class CreateVolume(BaseModel):
     size: int = Field(0, ge=1)
     read_only: Optional[bool] = False
 
-    _normalize_id = validator('storage_id', allow_reuse=True)(
-        validators.uuid_validate
-    )
+    _normalize_id = field_validator('storage_id')(validators.uuid_validate)
 
-    @validator('name')
+    @field_validator('name')
     @classmethod
     def name_validator(cls, value: str) -> str:
         """Validate the name field."""
@@ -103,7 +101,7 @@ class CreateVolume(BaseModel):
         validators.special_characters_validate(value)
         return value
 
-    @validator('description')
+    @field_validator('description')
     @classmethod
     def description_validator(cls, value: str) -> str:
         """Validate the description field."""
@@ -137,7 +135,7 @@ class EditVolume(BaseModel):
     description: str
     read_only: Optional[bool] = False
 
-    @validator('name')
+    @field_validator('name')
     @classmethod
     def name_validator(cls, value: str) -> str:
         """Validate the name field."""
@@ -149,7 +147,7 @@ class EditVolume(BaseModel):
         validators.special_characters_validate(value)
         return value
 
-    @validator('description')
+    @field_validator('description')
     @classmethod
     def description_validator(cls, value: str) -> str:
         """Validate the description field."""
@@ -169,13 +167,11 @@ class AttachVolume(BaseModel):
     """
 
     vm_id: str
-    target: Optional[str]
+    target: Optional[str] = None
 
-    _normalize_id = validator('vm_id', allow_reuse=True)(
-        validators.uuid_validate
-    )
+    _normalize_id = field_validator('vm_id')(validators.uuid_validate)
 
-    @validator('target')
+    @field_validator('target')
     @classmethod
     def path_validator(cls, value: str) -> str:
         """Validate the target path field."""
@@ -195,9 +191,7 @@ class DetachVolume(BaseModel):
 
     vm_id: str
 
-    _normalize_id = validator('vm_id', allow_reuse=True)(
-        validators.uuid_validate
-    )
+    _normalize_id = field_validator('vm_id')(validators.uuid_validate)
 
 
 class AttachVolumeInfo(BaseModel):
@@ -209,6 +203,6 @@ class AttachVolumeInfo(BaseModel):
         provisioning (str): The provisioning method of the volume.
     """
 
-    path: Optional[str]
+    path: Optional[str] = None
     size: int
     provisioning: str

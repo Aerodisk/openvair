@@ -14,11 +14,11 @@ Classes:
     InterfaceCrud: Provides CRUD operations on block device interfaces.
 """
 
-from typing import Dict
+from typing import Dict, List, cast
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.block_device.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.block_device.service_layer import services
 
 LOG = get_logger(__name__)
@@ -36,17 +36,17 @@ class InterfaceCrud:
             the block device service layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an InterfaceCrud object.
 
         The constructor sets up the connection to the service layer queue
         using the `Protocol` class.
         """
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_sessions(self) -> Dict:
+    def get_sessions(self) -> List:
         """Get all iSCSI sessions.
 
         Returns:
@@ -58,7 +58,7 @@ class InterfaceCrud:
             data_for_method={},
         )
         LOG.info('Complete getting all ISCSI sessions')
-        return result
+        return cast(List, result)
 
     def get_host_iqn(self) -> Dict:
         """Get the current host IQN.
@@ -67,7 +67,7 @@ class InterfaceCrud:
             Dict: The result of the get_host_iqn operation.
         """
         LOG.info('Start getting current host IQN')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.get_host_iqn.__name__
         )
         LOG.info('Complete getting current host IQN')
@@ -86,7 +86,7 @@ class InterfaceCrud:
         """
         LOG.info(f'Login to the ISCSI block device: {data}')
         data.update({'user_data': user_data})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.login.__name__,
             data_for_method=data,
         )
@@ -106,14 +106,14 @@ class InterfaceCrud:
         """
         LOG.info('Logging out with ISCSI block device')
         data.update({'user_data': user_data})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.logout.__name__,
             data_for_method=data,
         )
         LOG.info('Successfully logged out from the ISCSI block device')
         return result
 
-    def lip_scan(self) -> Dict:
+    def lip_scan(self) -> str:
         """Perform a LIP scan on Fibre Channel host adapters.
 
         LIP - Loop Initialization Procedure
@@ -121,9 +121,9 @@ class InterfaceCrud:
             Dict: The result of the LIP scan operation.
         """
         LOG.info('Crud request to scan for FC host adapters')
-        result = self.service_layer_rpc.call(
+        result: str = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.lip_scan.__name__,
             data_for_method={},
         )
         LOG.info('Successfully scanned')
-        return result
+        return str(result)

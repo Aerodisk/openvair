@@ -73,4 +73,4 @@ async def send_notification(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=result
         )
 
-    return result
+    return schemas.Notification(**result)

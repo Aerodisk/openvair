@@ -1,11 +1,20 @@
 # noqa: D100
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 from pathlib import Path as Path_lib
 
 import aiofiles
-from fastapi import File, Path, Query, Depends, APIRouter, UploadFile, status
+from fastapi import (
+    File,
+    Path,
+    Query,
+    Depends,
+    APIRouter,
+    UploadFile,
+    HTTPException,
+    status,
+)
 from fastapi.responses import JSONResponse
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
@@ -32,7 +41,7 @@ router = APIRouter(
 )
 async def get_images(
     storage_id: Optional[str] = Query(
-        default='',
+        default=None,
         description='Storage id (UUID4)',
         regex=UUID_REGEX,
     ),
@@ -51,7 +60,7 @@ async def get_images(
     LOG.info('Api start getting list of images')
     images = await run_in_threadpool(crud.get_all_images, storage_id)
     LOG.info('Api request was successfully processed.')
-    return images
+    return cast(Page, paginate(images))
 
 
 @router.get(
@@ -62,7 +71,7 @@ async def get_images(
 )
 async def get_image(
     image_id: str = Path(
-        default='', description='Image id (UUID4)', regex=UUID_REGEX
+        description='Image id (UUID4)', regex=UUID_REGEX
     ),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
@@ -83,7 +92,7 @@ async def get_image(
     LOG.info('Api handle response on get image.')
     image = await run_in_threadpool(crud.get_image, image_id)
     LOG.info('Api request was successfully processed.')
-    return image
+    return schemas.Image(**image)
 
 
 @router.post(
@@ -129,11 +138,11 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
     filename_length = 40
     try:
         if len(name) > filename_length:
-            message = 'Length of filename must be lower then 40.'
+            message = 'Длина имени файла должна быть меньше 40 символов.'
             LOG.error(message)
-            return JSONResponse(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content=str(exceptions.FilenameLengthError(message)),
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message,
             )
 
         async with aiofiles.open(tmp_path, 'wb') as f:
@@ -141,7 +150,7 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
                 await f.write(chunk)
         await image.close()
 
-        image = await run_in_threadpool(
+        upload_info = await run_in_threadpool(
             crud.upload_image,
             name,
             storage_id,
@@ -150,11 +159,11 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
         )
         LOG.info('Api request was successfully processed.')
     except exceptions.NotSupportedExtensionError as err:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=str(err)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
         )
     else:
-        return image
+        return schemas.Image(**upload_info)
 
 
 @router.delete(
@@ -180,7 +189,7 @@ async def delete_image(
     result = await run_in_threadpool(crud.delete_image, image_id, user_info)
     message = f'Image {image_id} successfully deleted.'
     LOG.info(message)
-    return result
+    return JSONResponse(result)
 
 
 @router.post(
@@ -214,7 +223,7 @@ async def attach_image(
         crud.attach_image, image_id, data.dict(), user_info
     )
     LOG.info('Api request was successfully processed.')
-    return attached_image
+    return schemas.AttachImageInfo(**attached_image)
 
 
 @router.delete(
@@ -248,4 +257,4 @@ async def detach_image(
         crud.detach_image, image_id, detach_info.dict(), user_info
     )
     LOG.info('Api request was successfully processed.')
-    return detached_image
+    return schemas.Image(**detached_image)

@@ -14,7 +14,9 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self
 
 from openvair.modules.image.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.image.adapters import repository
@@ -43,7 +45,7 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the runtime context and rollback if necessary.
 
         Args:
@@ -77,9 +79,9 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 use.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the runtime context related to this object.
 
         This method initializes the SQLAlchemy session and repository, and
@@ -88,11 +90,11 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         Returns:
             SqlAlchemyUnitOfWork: The instance of the Unit of Work.
         """
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.images = repository.SqlAlchemyRepository(self.session)
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the runtime context and close the session.
 
         This method ensures that the session is closed after the transaction
@@ -102,7 +104,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         Args:
             *args: Variable length argument list for context exit handling.
         """
-        super(SqlAlchemyUnitOfWork, self).__exit__(*args)
+        super().__exit__(*args)
         self.session.close()
 
     def commit(self) -> None:

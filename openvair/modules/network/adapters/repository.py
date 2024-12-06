@@ -75,7 +75,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_by_name(interface_name)
 
-    def get_all(self) -> List:
+    def get_all(self) -> List[Interface]:
         """Retrieve all network interfaces from the repository.
 
         Returns:
@@ -283,7 +283,7 @@ class SqlAlchemyRepository(AbstractRepository):
             interface_id (UUID): The unique identifier of the interface to
                 delete.
         """
-        return self.session.query(Interface).filter_by(id=interface_id).delete()
+        self.session.query(Interface).filter_by(id=interface_id).delete()
 
     def _delete_extra_specs(self, interface_id: UUID) -> None:
         """Delete all extra specifications for a given interface.
@@ -292,8 +292,6 @@ class SqlAlchemyRepository(AbstractRepository):
             interface_id (UUID): The ID of the interface whose extra
                 specifications are to be deleted.
         """
-        return (
-            self.session.query(InterfaceExtraSpec)
-            .filter_by(interface_id=interface_id)
-            .delete()
-        )
+        self.session.query(InterfaceExtraSpec).filter_by(
+            interface_id=interface_id
+        ).delete()

@@ -9,7 +9,9 @@ Classes:
         on the storage.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class VolumeDoesNotExistOnStorage(BaseCustomException):
@@ -23,10 +25,6 @@ class VolumeDoesNotExistOnStorage(BaseCustomException):
         message (str): A message describing the error.
     """
 
-    def __init__(self, *args):
-        """Initialize the VolumeDoesNotExistOnStorage.
-
-        Args:
-            *args: Variable length argument list containing the error message.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the VolumeDoesNotExistOnStorage."""
+        super().__init__(message, *args)

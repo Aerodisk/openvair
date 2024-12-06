@@ -19,15 +19,19 @@ Endpoints:
         machine.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 from fastapi import Path, Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import (
+    regex_matcher,
+    get_current_user,
+    validate_objects,
+)
 from openvair.modules.volume.entrypoints import schemas
 from openvair.modules.volume.entrypoints.crud import VolumeCrud
 
@@ -49,7 +53,7 @@ router = APIRouter(
 )
 async def get_volumes(
     storage_id: Optional[str] = Query(
-        default='', description='Storage id (UUID4)', regex=UUID_REGEX
+        default=None, description='Storage id (UUID4)', regex=UUID_REGEX
     ),
     *,
     free_volumes: bool = Query(
@@ -57,7 +61,7 @@ async def get_volumes(
         description='Flag on getting volumes without attachments.',
     ),
     crud: VolumeCrud = Depends(VolumeCrud),
-) -> JSONResponse:
+) -> Page:
     """Retrieve all volumes from the database.
 
     Args:
@@ -70,11 +74,13 @@ async def get_volumes(
         JSONResponse: A paginated list of volumes.
     """
     LOG.info('Api handle response on getting volumes.')
-    volumes = await run_in_threadpool(
+    result = await run_in_threadpool(
         crud.get_all_volumes, storage_id, free_volumes=free_volumes
     )
+    volumes = validate_objects(result, schemas.Volume)
+
     LOG.info('Api request was successfully processed.')
-    return volumes
+    return cast(Page, paginate(volumes))
 
 
 @router.get(
@@ -101,7 +107,7 @@ async def get_volume(
     LOG.info('Api handle response on getting volume.')
     volume = await run_in_threadpool(crud.get_volume, volume_id)
     LOG.info('Api request was successfully processed.')
-    return volume
+    return JSONResponse(volume)
 
 
 @router.post(
@@ -128,7 +134,7 @@ async def create_volume(
     LOG.info('Api handle response on create volume with data: %s' % data)
     volume = await run_in_threadpool(crud.create_volume, data.dict(), user_info)
     LOG.info('Api request was successfully processed.')
-    return volume
+    return JSONResponse(volume)
 
 
 @router.delete(
@@ -157,7 +163,7 @@ async def delete_volume(
     LOG.info('Api handle response on delete volume: %s' % volume_id)
     result = await run_in_threadpool(crud.delete_volume, volume_id, user_info)
     LOG.info('Api request was successfully processed.')
-    return result
+    return JSONResponse(result)
 
 
 @router.post(
@@ -189,7 +195,7 @@ async def extend_volume(
         crud.extend_volume, volume_id, data.dict(), user_info
     )
     LOG.info('Api request was successfully processed.')
-    return volume
+    return JSONResponse(volume)
 
 
 @router.put(
@@ -224,7 +230,7 @@ async def edit_volume(
         crud.edit_volume, volume_id, data.dict(), user_info
     )
     LOG.info('Api request was successfully processed.')
-    return volume
+    return JSONResponse(volume)
 
 
 @router.post(
@@ -259,7 +265,7 @@ async def attach_volume(
         crud.attach_volume, volume_id, data.dict(), user_info
     )
     LOG.info('Api request was successfully processed.')
-    return attached_volume
+    return JSONResponse(attached_volume)
 
 
 @router.delete(
@@ -293,4 +299,4 @@ async def detach_volume(
         crud.detach_volume, volume_id, detach_info.dict(), user_info
     )
     LOG.info('Api request was successfully processed.')
-    return detached_volume
+    return JSONResponse(detached_volume)

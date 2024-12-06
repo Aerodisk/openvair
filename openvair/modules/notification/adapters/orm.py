@@ -5,43 +5,55 @@ It also provides a function to start the ORM mappers.
 """
 
 import uuid
+import datetime
+from typing import List
 
-from sqlalchemy import ARRAY, TIMESTAMP, Table, Column, String, MetaData, func
-from sqlalchemy.orm import registry
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import UUID, ARRAY, TIMESTAMP, String, MetaData, func
+from sqlalchemy.orm import Mapped, DeclarativeBase, registry, mapped_column
 
 # Metadata and mapper registry for SQLAlchemy
 metadata = MetaData()
 mapper_registry = registry(metadata=metadata)
 
-# Table definition for notifications
-notifications = Table(
-    'notifications',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('create_datetime', TIMESTAMP, default=func.now()),
-    Column('msg_type', String(30)),
-    Column('subject', String(30)),
-    Column('recipients', ARRAY(String)),
-    Column('message', String(255)),
-    Column('status', String(255)),
-)
 
-
-class Notification:
-    """Domain model for a notification."""
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
 
     pass
 
 
-def start_mappers() -> None:
-    """Start the ORM mappers.
+class Notification(Base):
+    """Domain model for a notification."""
 
-    This function initializes the ORM mappers for the Notification class.
-    """
-    mapper_registry.map_imperatively(Notification, notifications)
+    __tablename__ = 'notifications'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    create_datetime: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP,
+        default=func.now(),
+        nullable=True,
+    )
+    msg_type: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    subject: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    recipients: Mapped[List] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+    )
+    message: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )

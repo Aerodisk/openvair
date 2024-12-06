@@ -29,7 +29,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
-from openvair.libs.messaging.protocol import Protocol
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
@@ -38,6 +37,7 @@ from openvair.modules.block_device.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.block_device.domain.base import (
     BaseISCSI,
     BaseFibreChannel,
@@ -47,7 +47,7 @@ from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.block_device.adapters.serializer import DataSerializer
 
 if TYPE_CHECKING:
-    from openvair.libs.messaging.rpc import RabbitRPCClient
+    from openvair.modules.block_device.adapters.orm import ISCSIInterface
 
 LOG = get_logger(__name__)
 
@@ -91,7 +91,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
             events.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the BlockDevicesServiceLayerManager.
 
         This method sets up the necessary components for the
@@ -99,11 +99,11 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         the unit of work, and the event store.
         """
         super().__init__()
-        self.domain_rpc: RabbitRPCClient = Protocol(client=True)(
-            SERVICE_LAYER_DOMAIN_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
         self.event_store: EventCrud = EventCrud('block_devices')
@@ -162,18 +162,18 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Start to login to the ISCSI block device.')
 
-        user_data = data.get('user_data')
-        try:
-            # adding the ISCSI interface in database as new
-            LOG.info('service layer start handling response on logging ISCSI.')
-            create_iface_info = CreateInterfaceInfo(
-                inf_type=data.get('inf_type'),
-                ip=data.get('ip'),
-                port=data.get('port'),
-                status=ISCSIInterfaceStatus.new.name,
-            )
-            with self.uow:
-                db_interface = DataSerializer.to_db(create_iface_info._asdict())
+        user_data: Dict = data.get('user_data', {})
+        create_iface_info = CreateInterfaceInfo(
+            inf_type=data.get('inf_type'),
+            ip=data.get('ip'),
+            port=data.get('port'),
+            status=ISCSIInterfaceStatus.new.name,
+        )
+        db_interface: ISCSIInterface = DataSerializer.to_db(
+            create_iface_info._asdict()
+        )
+        with self.uow:
+            try:
                 self.uow.interfaces.add(db_interface)
                 self.uow.commit()
                 message = (
@@ -182,48 +182,53 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
                 )
                 LOG.info(message)
                 self.event_store.add_event(
-                    db_interface.id,
-                    user_data.get('id'),
+                    str(db_interface.id),
+                    user_data.get('id', ''),
                     self.login.__name__,
                     message,
                 )
-
-            web_interface = DataSerializer.to_web(db_interface)
-            LOG.debug(f'Serialized db interface for web: {web_interface}')
-            # run domain logic
-            result = self.domain_rpc.call(
-                BaseISCSI.login.__name__,
-                data_for_manager=web_interface,
-            )
-            message = 'Successfully logged into the ISCSI block device.'
-            LOG.info(message)
-            # update interface state as available
-            with self.uow:
+                # adding the ISCSI interface in database as new
+                LOG.info(
+                    'service layer start handling response on logging ISCSI.'
+                )
+                web_interface = DataSerializer.to_web(db_interface)
+                LOG.debug(f'Serialized db interface for web: {web_interface}')
+                # run domain logic
+                result = self.domain_rpc.call(
+                    BaseISCSI.login.__name__,
+                    data_for_manager=web_interface,
+                )
                 LOG.info('Updating interface DB state on available')
                 db_interface = self.uow.interfaces.get(str(db_interface.id))
                 db_interface.port = result.get('port', '')
                 db_interface.status = ISCSIInterfaceStatus.available.name
                 self.uow.commit()
+                # update interface state as available
+            except SQLAlchemyError as err:
+                message = (
+                    f'An error occurred while writing to the database {err}'
+                )
+                LOG.error(message)
+                raise exceptions.ISCSILoginException(message)
+            except (RpcCallException, RpcCallTimeoutException) as err:
+                message = (
+                    'An error occurred while logging in to the ISCSI block '
+                    f'device: {err}.'
+                )
+                LOG.error(message)
+                self._rollback(str(db_interface.id))
+                raise exceptions.ISCSILoginException(message)
+            else:
+                message = 'Successfully logged into the ISCSI block device.'
+                LOG.info(message)
+                self.event_store.add_event(
+                    str(db_interface.id),
+                    user_data.get('id', ''),
+                    self.login.__name__,
+                    message,
+                )
 
-            return DataSerializer.to_web(db_interface)
-        except SQLAlchemyError as err:
-            message = f'An error occurred while writing to the database {err}'
-            LOG.error(message)
-        except (RpcCallException, RpcCallTimeoutException) as err:
-            message = (
-                'An error occurred while logging in to the ISCSI block device:'
-                f' {err}.'
-            )
-            LOG.error(message)
-            self._rollback(str(db_interface.id))
-            raise exceptions.ISCSILoginException(message)
-        finally:
-            self.event_store.add_event(
-                db_interface.id,
-                user_data.get('id'),
-                self.login.__name__,
-                message,
-            )
+                return DataSerializer.to_web(db_interface)
 
     def logout(self, data: Dict) -> Dict:
         """Logs out from the specified ISCSI block device.
@@ -240,60 +245,54 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Start to logging out from the ISCSI block device.')
 
-        user_data = data.get('user_data')
-        try:
-            # Updating interface db status on deleting
-            with self.uow:
-                db_interface = self.uow.interfaces.get_by_ip(data.get('ip'))
-                db_interface.status = ISCSIInterfaceStatus.deleting.name
-                self.uow.commit()
-
-                # run domain logic
-                result = self.domain_rpc.call(
+        user_data = data.get('user_data', {})
+        with self.uow:
+            db_interface = self.uow.interfaces.get_by_ip(data['ip'])
+            db_interface.status = ISCSIInterfaceStatus.deleting.name
+            self.uow.commit()
+            try:
+                result: Dict = self.domain_rpc.call(
                     BaseISCSI.logout.__name__,
                     data_for_manager=data,
                 )
-
                 message = 'Successfully logged out from the ISCSI block device.'
                 LOG.info(message)
                 self.event_store.add_event(
-                    db_interface.id,
-                    user_data.get('id'),
+                    str(db_interface.id),
+                    user_data.get('id', ''),
                     self.logout.__name__,
                     message,
                 )
-
-        except (RpcCallException, RpcCallTimeoutException) as err:
-            message = (
-                'An error occurred while logging out from the ISCSI block'
-                f' device: {err}'
-            )
-            LOG.error(message)
-            self.event_store.add_event(
-                db_interface.id,
-                user_data.get('id'),
-                self.logout.__name__,
-                message,
-            )
-            raise exceptions.ISCSILogoutException(message)
-        else:
-            return result
-
-        finally:
-            # deleting interface from database
-            with self.uow:
-                self.uow.interfaces.delete(str(db_interface.id))
-                self.uow.commit()
-                message = 'ISCSI interface deleted from db'
-                LOG.info(message)
+            except (RpcCallException, RpcCallTimeoutException) as err:
+                message = (
+                    'An error occurred while logging out from the ISCSI block'
+                    f' device: {err}'
+                )
+                LOG.error(message)
                 self.event_store.add_event(
-                    db_interface.id,
-                    user_data.get('id'),
+                    str(db_interface.id),
+                    user_data.get('id', ''),
                     self.logout.__name__,
                     message,
                 )
+                raise exceptions.ISCSILogoutException(message)
+            else:
+                return result
+            finally:
+                # deleting interface from database
+                with self.uow:
+                    self.uow.interfaces.delete(str(db_interface.id))
+                    self.uow.commit()
+                    message = 'ISCSI interface deleted from db'
+                    LOG.info(message)
+                    self.event_store.add_event(
+                        str(db_interface.id),
+                        user_data.get('id', ''),
+                        self.logout.__name__,
+                        message,
+                    )
 
-    def lip_scan(self) -> Dict:
+    def lip_scan(self) -> str:
         """Perform a Fibre Channel LIP (Loop Initialization Procedure) scan.
 
         This method is responsible for initiating a Fibre Channel LIP scan on
@@ -315,9 +314,9 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
             )
         except (RpcCallException, RpcCallTimeoutException) as error:
             LOG.error(error)
-            raise exceptions.FibreChannelLipScanException(error)
+            raise exceptions.FibreChannelLipScanException(str(error))
         else:
-            return result
+            return str(result)
 
     def _rollback(self, interface_id: str) -> None:
         """Rollbacks the operation by deleting the interface record from the db.

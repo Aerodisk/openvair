@@ -13,7 +13,7 @@ Functions:
 """
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
+from openvair.libs.messaging.messaging_agents import MessagingServer
 from openvair.modules.virtual_machines.config import (
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
@@ -24,7 +24,8 @@ LOG = get_logger('domain-manager')
 
 if __name__ == '__main__':
     LOG.info('Starting RPCServer for consuming')
-    Protocol(server=True)(
+    server = MessagingServer(
         queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME,
         manager=model.VMDriverFactory(),
     )
+    server.start()

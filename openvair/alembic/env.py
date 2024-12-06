@@ -2,18 +2,18 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-from openvair.modules.event_store.adapters import orm as orm_event_store
-from openvair.modules.image.adapters import orm as orm_image
-from openvair.modules.network.adapters import orm as orm_network
-from openvair.modules.storage.adapters import orm as orm_storage
-from openvair.modules.user.adapters import orm as orm_user
-from openvair.modules.virtual_machines.adapters import (
-    orm as orm_virtual_machines,
+from openvair.modules.event_store.adapters.orm import Base as EventBase
+from openvair.modules.image.adapters.orm import Base as ImageBase
+from openvair.modules.network.adapters.orm import Base as NetworkBase
+from openvair.modules.storage.adapters.orm import Base as StorageBase
+from openvair.modules.user.adapters.orm import Base as UserBase
+from openvair.modules.virtual_machines.adapters.orm import Base as VMBase
+from openvair.modules.volume.adapters.orm import Base as VolumeBase
+from openvair.modules.notification.adapters.orm import Base as NotificationBase
+from openvair.modules.virtual_network.adapters.orm import (
+    Base as VirtualNetworkBase,
 )
-from openvair.modules.volume.adapters import orm as orm_volume
-from openvair.modules.notification.adapters import orm as orm_notification
-from openvair.modules.virtual_network.adapters import orm as orm_virtual_network
-from openvair.modules.block_device.adapters import orm as orm_block_device
+from openvair.modules.block_device.adapters.orm import Base as BlockDeviceBase
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -32,16 +32,16 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 # target_metadata = orm_storage.mapper_registry.metadata
 target_metadata = [
-    orm_network.mapper_registry.metadata,
-    orm_storage.mapper_registry.metadata,
-    orm_user.mapper_registry.metadata,
-    orm_volume.mapper_registry.metadata,
-    orm_virtual_machines.mapper_registry.metadata,
-    orm_image.mapper_registry.metadata,
-    orm_event_store.mapper_registry.metadata,
-    orm_notification.mapper_registry.metadata,
-    orm_virtual_network.mapper_registry.metadata,
-    orm_block_device.mapper_registry.metadata,
+    NetworkBase.metadata,
+    StorageBase.metadata,
+    UserBase.metadata,
+    VolumeBase.metadata,
+    VMBase.metadata,
+    ImageBase.metadata,
+    EventBase.metadata,
+    NotificationBase.metadata,
+    VirtualNetworkBase.metadata,
+    BlockDeviceBase.metadata,
 ]
 
 # other values from the config, defined by the needs of env.py,

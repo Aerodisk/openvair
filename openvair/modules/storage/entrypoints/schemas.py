@@ -22,7 +22,7 @@ import ipaddress
 from uuid import UUID
 from typing import List, Union, Literal, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from openvair.modules.tools import validators
 
@@ -40,7 +40,7 @@ class NfsStorageExtraSpecsCreate(BaseModel):
     path: str
     mount_version: Optional[str] = '4'
 
-    @validator('mount_version')
+    @field_validator('mount_version')
     @classmethod
     def mount_version_must_be_3_or_4(cls, value: str) -> str:
         """Validate that the mount version is either 3 or 4."""
@@ -49,14 +49,14 @@ class NfsStorageExtraSpecsCreate(BaseModel):
             raise ValueError(msg)
         return value
 
-    @validator('ip')
+    @field_validator('ip')
     @classmethod
     def ip_validator(cls, value: str) -> str:
         """Validate that the provided IP address is valid."""
         ipaddress.ip_address(value)
         return value
 
-    @validator('path')
+    @field_validator('path')
     @classmethod
     def path_validator(cls, value: str) -> str:
         """Validate that the path is non-empty and has no special characters."""
@@ -74,7 +74,7 @@ class NfsStorageExtraSpecsInfo(NfsStorageExtraSpecsCreate):
         mount_point (Optional[str]): The mount point of the NFS share.
     """
 
-    mount_point: Optional[str]
+    mount_point: Optional[str] = None
 
 
 class LocalFSStorageExtraSpecsCreate(BaseModel):
@@ -88,7 +88,7 @@ class LocalFSStorageExtraSpecsCreate(BaseModel):
     path: str
     fs_type: Literal['xfs', 'ext4']
 
-    @validator('path')
+    @field_validator('path')
     @classmethod
     def path_validator(cls, value: str) -> str:
         """Validate that the path is non-empty and has no special characters."""
@@ -106,7 +106,7 @@ class LocalFSStorageExtraSpecsInfo(LocalFSStorageExtraSpecsCreate):
         mount_point (Optional[str]): The mount point of the local storage.
     """
 
-    mount_point: Optional[str]
+    mount_point: Optional[str] = None
 
 
 class Storage(BaseModel):
@@ -129,13 +129,13 @@ class Storage(BaseModel):
 
     id: UUID
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     storage_type: str
     status: str
     size: int
     available: int
-    user_id: Optional[str]
-    information: Optional[str]
+    user_id: Optional[str] = None
+    information: Optional[str] = None
     storage_extra_specs: Union[
         NfsStorageExtraSpecsInfo, LocalFSStorageExtraSpecsInfo
     ]
@@ -158,17 +158,9 @@ class CreateStorage(BaseModel):
     description: str
     storage_type: Literal['nfs', 'localfs']
     specs: Union[NfsStorageExtraSpecsCreate, LocalFSStorageExtraSpecsCreate]
+    model_config = ConfigDict(extra='forbid')
 
-    class Config:
-        """Configuration options for the Pydantic model.
-
-        This configuration forbids the inclusion of extra fields not defined in
-        the schema, ensuring that only the specified attributes can be included
-        in the request data.
-        """
-        extra = 'forbid'
-
-    @validator('name')
+    @field_validator('name')
     @classmethod
     def name_validator(cls, value: str) -> str:
         """Validate that the name length and its has no special characters."""
@@ -180,7 +172,7 @@ class CreateStorage(BaseModel):
         validators.special_characters_validate(value)
         return value
 
-    @validator('description')
+    @field_validator('description')
     @classmethod
     def description_validator(cls, value: str) -> str:
         """Validate that the description length is appropriate."""
@@ -207,11 +199,11 @@ class LocalDisk(BaseModel):
 
     path: str
     size: int
-    mountpoint: Optional[str]
-    fs_uuid: Optional[str]
-    type: Optional[str]
-    fstype: Optional[str]
-    parent: Optional[str]
+    mountpoint: Optional[str] = None
+    fs_uuid: Optional[str] = None
+    type: Optional[str] = None
+    fstype: Optional[str] = None
+    parent: Optional[str] = None
 
 
 class ListOfLocalDisks(BaseModel):

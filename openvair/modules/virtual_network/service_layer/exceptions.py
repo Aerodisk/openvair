@@ -14,51 +14,38 @@ Classes:
         a virtual network.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class DataBaseVirtualNetworkException(BaseCustomException):
     """Raised when a database error occurs in virtual network operations."""
-    def __init__(self, *args):
-        """Initialize the exception with optional arguments.
 
-        Args:
-            *args: Variable length argument list for the exception.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the exception with optional arguments."""
+        super().__init__(message, *args)
 
 
 class VirtualNetworkAlreadyExist(BaseCustomException):
     """Raised when a virtual network already exists and cannot be created."""
 
-    def __init__(self, *args):
-        """Initialize the exception with optional arguments.
-
-        Args:
-            *args: Variable length argument list for the exception.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the exception with optional arguments."""
+        super().__init__(message, *args)
 
 
 class VirtualNetworkDoesNotExist(BaseCustomException):
     """Raised when a requested virtual network does not exist."""
 
-    def __init__(self, *args):
-        """Initialize the exception with optional arguments.
-
-        Args:
-            *args: Variable length argument list for the exception.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the exception with optional arguments."""
+        super().__init__(message, *args)
 
 
 class PortGroupException(BaseCustomException):
     """Raised when an error occurs related to port groups in virtual network."""
 
-    def __init__(self, *args):
-        """Initialize the exception with optional arguments.
-
-        Args:
-            *args: Variable length argument list for the exception.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the exception with optional arguments."""
+        super().__init__(message, *args)

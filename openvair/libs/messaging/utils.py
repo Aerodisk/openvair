@@ -12,6 +12,8 @@ Functions:
 import json
 from typing import Dict
 
+from openvair.libs.messaging.exceptions import RpcDeserializeMessageException
+
 
 def serialize(data: Dict) -> str:
     """Convert a dictionary to a JSON string.
@@ -40,4 +42,9 @@ def deserialize(message: bytes) -> Dict:
     Returns:
         Dict: The deserialized dictionary.
     """
-    return json.loads(message.decode('utf-8'))
+    try:
+        deserialized_message: Dict = json.loads(message.decode('utf-8'))
+    except (json.JSONDecodeError, TypeError) as err:
+        raise RpcDeserializeMessageException(str(err))
+    else:
+        return deserialized_message

@@ -12,14 +12,14 @@ Attributes:
 
 import io
 import csv
+from typing import List, cast
 
 from fastapi import Depends, APIRouter, status
 from fastapi.responses import StreamingResponse
-from fastapi_pagination import Page
+from fastapi_pagination import Page, Params, paginate
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import regex_matcher, get_current_user
-from openvair.modules.event_store.adapters import orm as event_orm
 from openvair.modules.event_store.entrypoints import schemas
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 
@@ -56,8 +56,8 @@ async def get_events(
     Raises:
         HTTPException: If any database error occurs or events are not found.
     """
-    event_orm.start_mappers()
-    return crud.get_all_events()
+    result: List = crud.get_all_events()
+    return cast(Page, paginate(result))
 
 
 @router.get(
@@ -81,14 +81,14 @@ async def download_events(
     Returns:
         StreamingResponse: A streaming response with the CSV file content.
     """
-    event_orm.start_mappers()
-    events_page = crud.get_all_events(is_paginate=False)
-
+    result: List = crud.get_all_events()
+    events_page: Page = paginate(
+        result, params=Params(page=1, size=len(result))
+    )
 
     # Создаем CSV файл в памяти
     output = io.StringIO()
     writer = csv.writer(output)
-
 
     # Записываем заголовки
     writer.writerow(
@@ -104,16 +104,16 @@ async def download_events(
     )
 
     # Записываем данные
-    for event in events_page:
+    for event in events_page.items:
         writer.writerow(
             [
-                event.id,
-                event.module,
-                event.object_id,
-                event.user_id,
-                event.event,
-                event.timestamp,
-                event.information,
+                event['id'],
+                event['module'],
+                event['object_id'],
+                event['user_id'],
+                event['event'],
+                event['timestamp'],
+                event['information'],
             ]
         )
 

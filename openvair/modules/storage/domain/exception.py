@@ -9,7 +9,9 @@ Classes:
         incorrect.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class WrongPartitionRangeError(BaseCustomException):
@@ -19,13 +21,10 @@ class WrongPartitionRangeError(BaseCustomException):
     to an invalid or unsupported partition range.
     """
 
-    def __init__(self, *args):
-        """Initialize the WrongPartitionRangeError with the provided arguments.
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the WrongPartitionRangeError"""
+        super().__init__(message, *args)
 
-        Args:
-            args: Variable length argument list to pass error details.
-        """
-        super().__init__(*args)
 
 class UnsupportedPartitionTableTypeError(BaseCustomException):
     """Exception raised when an unsupported partition table type is encountered.
@@ -34,10 +33,22 @@ class UnsupportedPartitionTableTypeError(BaseCustomException):
     to an unrecognized or unsupported partition table type.
     """
 
-    def __init__(self, *args):
-        """Initialize the UnsupportedPartitionTableTypeError.
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the UnsupportedPartitionTableTypeError."""
+        super().__init__(message, *args)
 
-        Args:
-            args: Variable length argument list to pass error details.
-        """
-        super().__init__(*args)
+
+class PartitionTableInfoNotFound(BaseCustomException):
+    """Exception raised when an partition table not foun in parted output."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the UnsupportedPartitionTableTypeError."""
+        super().__init__(message, *args)
+
+
+class NotFoundDataInPartitonInfoException(BaseCustomException):
+    """Exception raised when not found partition data in partition table info"""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the UnsupportedPartitionTableTypeError."""
+        super().__init__(message, *args)

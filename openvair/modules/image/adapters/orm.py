@@ -11,73 +11,63 @@ Tables:
 Classes:
     Image: Represents an image in the system.
     ImageAttachVM: Represents the association between an image and a VM.
-
-Functions:
-    start_mappers: Configures the mappings between the `Image` and
-        `ImageAttachVM` classes and their corresponding database tables.
 """
 
 import uuid
+from typing import List, Optional
 
 from sqlalchemy import (
+    UUID,
     Text,
-    Table,
-    Column,
     String,
     Integer,
-    MetaData,
     BigInteger,
     ForeignKey,
 )
-from sqlalchemy.orm import registry, relationship
+from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column
 from sqlalchemy.dialects import postgresql
 
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
 
-images = Table(
-    'images',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('name', String(40)),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-    Column('size', BigInteger),
-    Column('path', String(255), default=''),
-    Column('status', String(20)),
-    Column('information', Text),
-    Column('description', String(255)),
-    Column('storage_id', postgresql.UUID(as_uuid=True)),
-    Column('storage_type', String(30), default=''),
-)
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
+
+    pass
 
 
-image_attach_vm = Table(
-    'image_attach_vm',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('image_id', postgresql.UUID(as_uuid=True), ForeignKey('images.id')),
-    Column('vm_id', postgresql.UUID(as_uuid=True)),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-    Column('target', String(50)),
-)
-
-
-class Image:
+class Image(Base):
     """Represents an image in the system.
 
     This class corresponds to a record in the `images` table, containing
     metadata and associated information about an image.
     """
 
-    pass
+    __tablename__ = 'images'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[Optional[str]] = mapped_column(String(40))
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        postgresql.UUID(as_uuid=True)
+    )
+    size: Mapped[Optional[int]] = mapped_column(BigInteger)
+    path: Mapped[Optional[str]] = mapped_column(String(255), default='')
+    status: Mapped[Optional[str]] = mapped_column(String(20))
+    information: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+    storage_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        postgresql.UUID(as_uuid=True)
+    )
+    storage_type: Mapped[Optional[str]] = mapped_column(String(30), default='')
+
+    attachments: Mapped[List['ImageAttachVM']] = relationship(
+        'ImageAttachVM', back_populates='image', uselist=True
+    )
 
 
-class ImageAttachVM:
+class ImageAttachVM(Base):
     """Represents the association between an image and a VM.
 
     This class corresponds to a record in the `image_attach_vm` table,
@@ -85,27 +75,14 @@ class ImageAttachVM:
     (VM), including details such as the target device.
     """
 
-    pass
+    __tablename__ = 'image_attach_vm'
 
-
-def start_mappers() -> None:
-    """Configures the mappings between the classes and their respective tables.
-
-    This function sets up the SQLAlchemy mappings between the `Image` and
-    `ImageAttachVM` classes and their corresponding database tables (`images`
-    and `image_attach_vm`, respectively). It also defines the relationships
-    between these entities.
-
-    Returns:
-        None
-    """
-    mapper_registry.map_imperatively(
-        Image,
-        images,
-        properties={
-            'attachments': relationship(
-                ImageAttachVM, backref='image', uselist=True
-            ),
-        },
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    image_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey('images.id'), nullable=True
     )
-    mapper_registry.map_imperatively(ImageAttachVM, image_attach_vm)
+    vm_id: Mapped[uuid.UUID] = mapped_column(UUID(), nullable=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(), nullable=True)
+    target: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    image: Mapped[Image] = relationship('Image', back_populates='attachments')

@@ -15,8 +15,8 @@ Classes:
 from typing import Dict
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.dashboard.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.dashboard.service_layer import services
 
 LOG = get_logger(__name__)
@@ -33,14 +33,14 @@ class DashboardCrud:
             the Dashboard Service Layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize a DashboardCrud object.
 
         The constructor sets up the connection to the service layer queue
         using the `Protocol` class.
         """
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_data(self) -> Dict:
@@ -50,7 +50,7 @@ class DashboardCrud:
             Dict: The result of the get_data operation.
         """
         LOG.info('Call service layer on getting node data.')
-        data = self.service_layer_rpc.call(
+        data: Dict = self.service_layer_rpc.call(
             services.DashboardServiceLayerManager.get_data.__name__, {}
         )
         LOG.info('Response from service layer: %s.' % data)

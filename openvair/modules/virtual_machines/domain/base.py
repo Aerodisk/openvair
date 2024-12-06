@@ -20,8 +20,15 @@ from xml.etree import ElementTree
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from openvair.libs.log import get_logger
 from openvair.modules.tools.libvirt_utils import LibvirtConnection
 from openvair.modules.virtual_machines.config import TEMPLATES_PATH
+from openvair.modules.virtual_machines.domain.exceptions import (
+    GraphicPortNotFoundInXmlException,
+    GraphicTypeNotFoundInXmlException,
+)
+
+LOG = get_logger(__name__)
 
 
 class BaseVMDriver:
@@ -77,7 +84,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             configuration.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the BaseLibvirtDriver.
 
         Sets up the Jinja2 environment for template rendering and
@@ -89,7 +96,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         )
         self.domain_template = self.env.get_template('domain.xml')
         self.connection = LibvirtConnection()
-        self.vm_info = {}
+        self.vm_info: Dict = {}
 
     def render_domain(self, vm_info: Dict) -> str:
         """Render the domain XML from the virtual machine information.
@@ -102,18 +109,6 @@ class BaseLibvirtDriver(BaseVMDriver):
             str: The rendered domain XML as a string.
         """
         return self.domain_template.render(domain=vm_info)
-
-    def render_network(self, network_info: Dict) -> str:
-        """Render the network XML from the network information.
-
-        Args:
-            network_info (Dict): Dictionary containing the network
-                configuration.
-
-        Returns:
-            str: The rendered network XML as a string.
-        """
-        return self.network_template.render(network=network_info)
 
     def start(self) -> Dict:
         """Start the virtual machine.
@@ -172,7 +167,11 @@ class BaseLibvirtDriver(BaseVMDriver):
             if grafics_device:
                 return grafics_device.get('port')
         except ElementTree.ParseError:
-            return None
+            err = GraphicPortNotFoundInXmlException(domain_xml)
+            LOG.error(err)
+            raise err
+        else:
+            return grafics_device.get('port') if grafics_device else None
 
     @staticmethod
     def _get_graphic_type_from_xml(domain_xml: str) -> Optional[str]:
@@ -188,10 +187,12 @@ class BaseLibvirtDriver(BaseVMDriver):
         try:
             root = ElementTree.fromstring(domain_xml)  # noqa: S314 because for fix it need oiter library
             grafics_device = root.find('./devices/graphics')
-            if grafics_device:
-                return grafics_device.get('type')
         except ElementTree.ParseError:
-            return ''
+            err = GraphicTypeNotFoundInXmlException(domain_xml)
+            LOG.error(err)
+            raise err
+        else:
+            return grafics_device.get('type') if grafics_device else None
 
     def _get_graphic_url(self, domain_xml: str) -> Optional[str]:
         """Generate the graphic URL from the domain XML.
@@ -206,4 +207,5 @@ class BaseLibvirtDriver(BaseVMDriver):
         graphic_type = self._get_graphic_type_from_xml(domain_xml)
         return (
             f"http://{ip}/{graphic_type}/?token="
-            f"{self.vm_info.get('name', '')}")
+            f"{self.vm_info.get('name', '')}"
+        )

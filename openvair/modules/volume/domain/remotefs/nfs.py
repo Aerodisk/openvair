@@ -7,7 +7,7 @@ Classes:
     NfsVolume: Class for managing NFS volumes.
 """
 
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
@@ -24,7 +24,7 @@ class NfsVolume(RemoteFSVolume):
     retrieving information about NFS volumes.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize an instance of the NfsVolume class.
 
         Args:
@@ -78,7 +78,10 @@ class NfsVolume(RemoteFSVolume):
         """
         volume_path = f'{self.path}/volume-{self.id}'
         _, err = execute(
-            'rm', '-f', volume_path, run_as_root=self._execute_as_root
+            'rm',
+            '-f',
+            volume_path,
+            run_as_root=self._execute_as_root,
         )
         if err:
             message = f'Delete volume raised exception: {err!s}'

@@ -8,16 +8,12 @@ Classes:
     VolumeCrud: Class providing CRUD operations for volumes.
 """
 
-from typing import Dict, Optional
-
-from fastapi_pagination import Page, paginate
+from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import validate_objects
 from openvair.modules.volume.config import API_SERVICE_LAYER_QUEUE_NAME
-from openvair.libs.messaging.protocol import Protocol
-from openvair.modules.volume.entrypoints import schemas
 from openvair.modules.volume.service_layer import services
+from openvair.libs.messaging.messaging_agents import MessagingClient
 
 LOG = get_logger(__name__)
 
@@ -31,10 +27,10 @@ class VolumeCrud:
     asynchronously.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the VolumeCrud class and set up the RPC client."""
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_volume(self, volume_id: str) -> Dict:
@@ -47,7 +43,7 @@ class VolumeCrud:
             Dict: The retrieved volume's data as a dictionary.
         """
         LOG.info('Call service layer on getting volume.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.get_volume.__name__,
             data_for_method={'volume_id': volume_id},
             priority=8,
@@ -60,7 +56,7 @@ class VolumeCrud:
         storage_id: Optional[str],
         *,
         free_volumes: bool = False,
-    ) -> Page:
+    ) -> List:
         """Retrieve all volumes.
 
         Optionally filtering by storage or attachment status.
@@ -75,7 +71,7 @@ class VolumeCrud:
             Page: A paginated list of volumes.
         """
         LOG.info('Call service layer on getting all volumes.')
-        result = self.service_layer_rpc.call(
+        result: List = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.get_all_volumes.__name__,
             data_for_method={
                 'storage_id': storage_id,
@@ -84,8 +80,7 @@ class VolumeCrud:
             priority=8,
         )
         LOG.debug('Response from service layer: %s.' % result)
-        volumes = validate_objects(result, schemas.Volume)
-        return paginate(volumes)
+        return result
 
     def create_volume(self, data: Dict, user_info: Dict) -> Dict:
         """Create a new volume.
@@ -99,7 +94,7 @@ class VolumeCrud:
         """
         LOG.info('Call service layer on create volume.')
         data.update({'user_info': user_info})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.create_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -118,7 +113,7 @@ class VolumeCrud:
             Dict: The deleted volume's data as a dictionary.
         """
         LOG.info('Call service layer on delete volume.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.delete_volume.__name__,
             data_for_method={'volume_id': volume_id, 'user_info': user_info},
             priority=8,
@@ -144,7 +139,7 @@ class VolumeCrud:
         """
         data.update({'volume_id': volume_id, 'user_info': user_info})
         LOG.info('Call service layer on extend volume.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.extend_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -170,7 +165,7 @@ class VolumeCrud:
             }
         )
         LOG.info('Call service layer on edit volume.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.edit_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -196,7 +191,7 @@ class VolumeCrud:
         """
         data.update({'volume_id': volume_id, 'user_info': user_info})
         LOG.info('Call service layer on attach volume.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.attach_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -222,7 +217,7 @@ class VolumeCrud:
         """
         LOG.info('Call service layer on detach volume.')
         detach_info.update({'volume_id': volume_id, 'user_info': user_info})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.detach_volume.__name__,
             data_for_method=detach_info,
             priority=8,

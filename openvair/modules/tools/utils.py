@@ -40,13 +40,23 @@ import os
 import json
 import shlex
 import subprocess
-from typing import TYPE_CHECKING, Dict, List, Tuple, Optional, Generator
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Tuple,
+    Union,
+    Optional,
+    Generator,
+)
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from contextlib import contextmanager
 
 import jwt
 import yaml
+import xmltodict
 from fastapi import Depends, HTTPException, security
 from pydantic import BaseModel
 from sqlalchemy.exc import OperationalError
@@ -164,12 +174,12 @@ class ExecuteError(Exception):
         super(ExecuteError, self).__init__(message)
 
 
-def execute(*cmd, **kwargs) -> Tuple[str, str]:  # noqa: C901 need refact this method
+def execute(*cmd: str, **kwargs: Any) -> Tuple[str, str]:  # noqa: C901 ANN401 need refact this method TODO need to parameterize the arguments correctly, in accordance with static typing
     """Runs a shell command and returns the output.
 
     Args:
         *cmd: Command and arguments to run.
-        **kwargs: Additional options for command execution, such as shell,
+        kwargs: Additional options for command execution, such as shell,
             run_as_root, root_helper, and timeout.
 
     Returns:
@@ -187,7 +197,6 @@ def execute(*cmd, **kwargs) -> Tuple[str, str]:  # noqa: C901 need refact this m
     run_as_root = kwargs.pop('run_as_root', False)
     root_helper = kwargs.pop('root_helper', 'sudo')
     timeout = kwargs.pop('timeout', None)
-
     if kwargs:
         raise UnknownArgumentError('Got unknown keyword args: %r' % kwargs)
 
@@ -196,10 +205,10 @@ def execute(*cmd, **kwargs) -> Tuple[str, str]:  # noqa: C901 need refact this m
             msg = 'Command requested root, but did not specify a root helper.'
             raise NoRootWrapSpecifiedError(msg)
         if shell:
-            cmd = [' '.join((root_helper, cmd[0]))] + list(cmd[1:])  # noqa: RUF005 need refact this method
+            cmd = [' '.join((root_helper, cmd[0]))] + list(cmd[1:])  # type: ignore # noqa: RUF005 need refact this method
         else:
-            cmd = [shlex.split(root_helper) + list(cmd)]
-    cmd = ' '.join(map(str, cmd))
+            cmd = [shlex.split(root_helper) + list(cmd)]  # type: ignore
+    cmd = ' '.join(map(str, cmd))  # type: ignore
     try:
         LOG.info('Running cmd (subprocess): %s' % cmd)
         _pipe = subprocess.PIPE
@@ -213,13 +222,13 @@ def execute(*cmd, **kwargs) -> Tuple[str, str]:  # noqa: C901 need refact this m
         )
         try:
             result = proc.communicate(timeout=timeout)
-            proc.stdin.close()
+            proc.stdin.close()  # type: ignore
             LOG.info('CMD "%s" returned: %s', cmd, proc.returncode)
             if result is not None:
                 (stdout, stderr) = result
-                stdout = os.fsdecode(stdout)
-                stderr = os.fsdecode(stderr)
-                return stdout, stderr
+                stdout = os.fsdecode(stdout)  # type: ignore
+                stderr = os.fsdecode(stderr)  # type: ignore
+                return stdout, stderr  # type: ignore
         except subprocess.TimeoutExpired as _:
             LOG.info('CMD "%s" reached timeout', cmd)
             raise ExecuteTimeoutExpiredError
@@ -335,7 +344,7 @@ def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
         HTTPException: If the token is invalid or expired.
     """
     try:
-        payload = jwt.decode(
+        payload: Dict = jwt.decode(
             token,
             JWT_SECRET,
             algorithms=[
@@ -387,7 +396,8 @@ def get_block_devices_info() -> List[Dict[str, str]]:
     res, _ = execute(
         'lsblk', '-bp', '-io', 'NAME,SIZE,TYPE,MOUNTPOINT,UUID,FSTYPE', '--json'
     )
-    return json.loads(res)['blockdevices']
+    result: List[Dict[str, str]] = json.loads(res)['blockdevices']
+    return result
 
 
 def get_system_disks(*, is_need_children: bool = False) -> List[Dict]:
@@ -403,7 +413,7 @@ def get_system_disks(*, is_need_children: bool = False) -> List[Dict]:
         List[Dict]: A list containing dictonaties with information about local
             disks.
     """
-    block_devices = get_block_devices_info()
+    block_devices: List[Dict[str, Any]] = get_block_devices_info()
 
     disks = []
     for block_device in block_devices:
@@ -481,15 +491,17 @@ def is_system_partition(disk_path: str, part_num: str) -> bool:
     """
     block_devices = get_system_disks(is_need_children=True)
 
-    disk = next(
+    disk: Dict = next(
         filter(lambda device: device.get('path') == disk_path, block_devices)
     )
 
     partition_path = f'{disk_path}{part_num}'
-    partition = next(filter(
+    partition: Dict = next(
+        filter(
             lambda part: part.get('name') == partition_path,
-            disk.get('children'),
-        ))
+            disk['children'],
+        )
+    )
 
     return partition.get('mountpoint') in SYSTEM_MOUNTPOINTS
 
@@ -564,7 +576,7 @@ def validate_objects(  # noqa: C901, PLR0912 because need to check the need for 
             if skip_corrupted_object:
                 LOG.warning(message)
                 data_for_pydantic = {}
-                for key, field in pydantic_schema.__fields__.items():
+                for key, field in pydantic_schema.__fields__.items():  # type: ignore
                     if key == 'id':
                         data_for_pydantic.update({key: _object.get('id')})
                         continue
@@ -573,6 +585,7 @@ def validate_objects(  # noqa: C901, PLR0912 because need to check the need for 
                         continue
 
                     if isinstance(field.type_, type):
+                        value: Any
                         if issubclass(field.type_, str):
                             value = ''
                         elif issubclass(field.type_, int):
@@ -589,7 +602,7 @@ def validate_objects(  # noqa: C901, PLR0912 because need to check the need for 
                 result.append(pydantic_schema(**data_for_pydantic))
             else:
                 LOG.error(message)
-                raise err(message)
+                raise
     return result
 
 
@@ -648,7 +661,8 @@ def read_yaml_file(file_path: str) -> Dict:
         Dict: The data read from the YAML file.
     """
     with Path(file_path).open('r') as file:
-        return yaml.safe_load(file)
+        result: Dict = yaml.safe_load(file)
+        return result
 
 
 @contextmanager
@@ -676,3 +690,26 @@ def synchronized_session(session: 'Session') -> Generator:
         session.commit()
     except OperationalError:
         session.rollback()
+
+
+def xml_to_jsonable(xml_string: str) -> Union[Dict, List]:
+    """Getting xml file and conver it to List or Dict"""
+
+    def remove_prefix(d: Union[Dict, List]) -> Union[Dict, List]:
+        """Remove '@' prefix for keys for parsed data"""
+        if isinstance(d, Dict):
+            new_dict = {}
+            for k, v in d.items():
+                # Убираем префикс, если он есть
+                new_key = k.lstrip('@') if k.startswith('@') else k
+                new_dict[new_key] = remove_prefix(v)
+            return new_dict
+
+        if isinstance(d, List):
+            return [remove_prefix(i) for i in d]
+
+        return d
+
+    # Парсим XML и убираем префиксы
+    parsed_dict = xmltodict.parse(xml_string)
+    return remove_prefix(parsed_dict)

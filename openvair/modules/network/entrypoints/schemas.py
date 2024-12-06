@@ -25,8 +25,8 @@ class InterfaceExtraSpecs(BaseModel):
         duplex (Optional[str]): The duplex mode of the interface.
     """
 
-    slot_port: Optional[str]
-    duplex: Optional[str]
+    slot_port: Optional[str] = None
+    duplex: Optional[str] = None
 
 
 class Interface(BaseModel):
@@ -37,7 +37,7 @@ class Interface(BaseModel):
         name (str): The name of the interface.
         mac (str): The MAC address of the interface.
         ip (Optional[str]): The IP address of the interface.
-        netmask (Optional[str]): The netmask of the interface.
+        netmask (Optional[int]): The netmask of the interface.
         inf_type (str): The type of the interface (e.g., physical, virtual).
         power_state (str): The power state of the interface (e.g., on, off).
         status (Optional[str]): The status of the interface.
@@ -50,14 +50,14 @@ class Interface(BaseModel):
     id: str
     name: str
     mac: str
-    ip: Optional[str]
-    netmask: Optional[str]
+    ip: Optional[str] = None
+    netmask: Optional[int] = None
     inf_type: str
     power_state: str
-    status: Optional[str]
-    mtu: Optional[int]
-    speed: Optional[int]
-    interface_extra_specs: Optional[InterfaceExtraSpecs]
+    status: Optional[str] = None
+    mtu: Optional[int] = None
+    speed: Optional[int] = None
+    interface_extra_specs: Optional[InterfaceExtraSpecs] = None
 
 
 class BridgeDelete(BaseModel):
@@ -82,11 +82,11 @@ class BridgeCreate(BaseModel):
         status (Optional[str]): The status of the bridge.
     """
 
-    ip: Optional[str]
+    ip: Optional[str] = None
     name: str
     type: str
     interfaces: List[Interface]
-    status: Optional[str]
+    status: Optional[str] = None
 
 
 class BridgeCreateResponse(BaseModel):
@@ -99,7 +99,7 @@ class BridgeCreateResponse(BaseModel):
         gateway (str): The gateway IP address of the bridge.
         power_state (str): The power state of the bridge.
         mac (str): The MAC address of the bridge.
-        netmask (Optional[str]): The netmask of the bridge.
+        netmask (Optional[int]): The netmask of the bridge.
         inf_type (str): The type of the bridge.
         status (str): The status of the bridge.
         interface_extra_specs (InterfaceExtraSpecs): Additional specifications
@@ -112,7 +112,7 @@ class BridgeCreateResponse(BaseModel):
     gateway: str
     power_state: str
     mac: str
-    netmask: Optional[str]
+    netmask: Optional[int] = None
     inf_type: str
     status: str
     interface_extra_specs: InterfaceExtraSpecs

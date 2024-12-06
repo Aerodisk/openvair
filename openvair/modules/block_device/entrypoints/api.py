@@ -73,7 +73,7 @@ async def get_sessions(
     LOG.info('Api request start getting sessions.')
     result = await run_in_threadpool(crud.get_sessions)
     LOG.info('Api request for getting sessions was successfully processed.')
-    return result
+    return [schemas.Session(**session) for session in result]
 
 
 @router.get(
@@ -106,7 +106,7 @@ async def get_host_iqn(
     LOG.info('Api request start getting host iqn.')
     result = await run_in_threadpool(crud.get_host_iqn)
     LOG.info('Api request for getting host iqn was successfully processed.')
-    return result
+    return schemas.IQN(**result)
 
 
 @router.post(
@@ -149,7 +149,7 @@ async def login(
         'Api request for login to interface of block device was successfully'
         'processed.'
     )
-    return result
+    return schemas.InterfaceLogin(**result)
 
 
 @router.post(
@@ -184,7 +184,7 @@ async def logout(
         'Api request for logout from interface of block device was successfully'
         'processed.'
     )
-    return result
+    return schemas.InterfaceDeleted(**result)
 
 
 @router.get(
@@ -219,4 +219,4 @@ async def lip_scan(
     LOG.info(
         'Api request for lip_scan for block device was successfully processed.'
     )
-    return result
+    return str(result)

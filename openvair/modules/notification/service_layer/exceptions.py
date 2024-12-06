@@ -9,28 +9,22 @@ Classes:
         not recognized.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class NotificationNotFoundError(BaseCustomException):
     """Exception raised when a notification is not found."""
 
-    def __init__(self, *args):
-        """Initialize the NotificationNotFoundError.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the NotificationNotFoundError."""
+        super().__init__(message, *args)
 
 
 class NotificationServiceNotKnown(BaseCustomException):
     """Exception raised when the notification service is not recognized."""
 
-    def __init__(self, *args):
-        """Initialize the NotificationServiceNotKnown.
-
-        Args:
-            *args: Variable length argument list.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the NotificationServiceNotKnown."""
+        super().__init__(message, *args)

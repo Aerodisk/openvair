@@ -9,7 +9,7 @@ Classes:
     - BridgeNetwork: Manages the lifecycle of a bridge virtual network.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from libvirt import libvirtError
 
@@ -30,7 +30,7 @@ LOG = get_logger(__name__)
 class BridgePortGroup(BasePortGroup):
     """Represents a port group in a bridge network."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BridgePortGroup instance."""
         super().__init__(*args, **kwargs)
 
@@ -47,7 +47,7 @@ class BridgePortGroup(BasePortGroup):
 class BridgeNetwork(BaseVirtualNetwork):
     """Represents a bridge virtual network and manages its port groups."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BridgeNetwork instance."""
         super().__init__(*args, **kwargs)
         self.port_groups: List[BasePortGroup] = [
@@ -68,12 +68,10 @@ class BridgeNetwork(BaseVirtualNetwork):
         self._check_state()
         self.port_groups.append(BridgePortGroup(**port_group))
         self._define_network()
-        self.virsh_xml = self._get_virsh_data()
-
         LOG.info('Port groups successfully added')
-        return self.virsh_xml
+        return self._get_virsh_data()
 
-    def del_port_group_by_name(self, data: Dict) -> Dict[str, Any]:
+    def del_port_group_by_name(self, data: Dict) -> Dict[str, str]:
         """Deletes a port group from the bridge network by name.
 
         Args:
@@ -92,7 +90,7 @@ class BridgeNetwork(BaseVirtualNetwork):
                 self.port_groups.remove(pg)
 
         self._define_network()
-        virsh_data = self._get_virsh_data()
+        virsh_data: Dict[str, str] = self._get_virsh_data()
 
         LOG.info('Port group successfully deleted')
         return virsh_data
@@ -184,7 +182,7 @@ class BridgeNetwork(BaseVirtualNetwork):
             'port_group': port_group.as_dict(),
         }
 
-    def is_exist_in_virsh(self) -> Dict:
+    def is_exist_in_virsh(self) -> bool:
         """Checks if the network exists in virsh.
 
         Returns:
@@ -250,4 +248,4 @@ class BridgeNetwork(BaseVirtualNetwork):
             )
             LOG.error(msg)
             raise PortGroupException(msg)
-        return port_groups.pop()
+        return cast(BridgePortGroup, port_groups.pop())

@@ -33,7 +33,7 @@ class Event(BaseModel):
     user_id: str
     event: str
     timestamp: int
-    information: Optional[str]
+    information: Optional[str] = None
 
 
 class CSVResponse(BaseModel):

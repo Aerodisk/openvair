@@ -18,10 +18,8 @@ business logic and coordination of block device-related operations.
 """
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.block_device.config import API_SERVICE_LAYER_QUEUE_NAME
-from openvair.modules.event_store.adapters import orm as event_orm
-from openvair.modules.block_device.adapters import orm
+from openvair.libs.messaging.messaging_agents import MessagingServer
 from openvair.modules.block_device.service_layer import services
 
 LOG = get_logger('service-layer-manager')
@@ -29,12 +27,11 @@ LOG = get_logger('service-layer-manager')
 
 if __name__ == '__main__':
     """Main entry point for the Block Device Service Layer Manager."""
-    orm.start_mappers()
-    event_orm.start_mappers()
     LOG.info('Starting RPCServer for consuming')
     service = services.BlockDevicesServiceLayerManager
     service.start(block=False)
-    Protocol(server=True)(
+    server = MessagingServer(
         queue_name=API_SERVICE_LAYER_QUEUE_NAME,
         manager=service,
     )
+    server.start()

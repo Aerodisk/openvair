@@ -27,39 +27,41 @@ Classes:
         has associated storage.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class StorageExistsError(BaseCustomException):
     """Exception raised when storage with the name or specifications exists."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize StorageExistsError"""
-        super(StorageExistsError, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class StorageStatusError(BaseCustomException):
     """Exception raised when an invalid storage status is encountered."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize StorageStatusError"""
-        super(StorageStatusError, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class StorageAttributeError(BaseCustomException):
     """Exception raised when storage attributes are missing or incorrect."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize StorageAttributeError"""
-        super(StorageAttributeError, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class StorageNotFoundError(BaseCustomException):
     """Exception raised when the requested storage is not found."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize StorageNotFoundError"""
-        super(StorageNotFoundError, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class StorageHasVolumesOrImages(BaseCustomException):
@@ -68,54 +70,54 @@ class StorageHasVolumesOrImages(BaseCustomException):
     Because it has associated volumes or images.
     """
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize StorageHasVolumesOrImages"""
-        super(StorageHasVolumesOrImages, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class DeviceDoesNotExist(BaseCustomException):
     """Exception raised when a specified device does not exist."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize DeviceDoesNotExist"""
-        super(DeviceDoesNotExist, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class GetEmptyDomainStorageInfo(BaseCustomException):
     """Exception raised when storage information is unexpectedly empty."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize GetEmptyDomainStorageInfo"""
-        super(GetEmptyDomainStorageInfo, self).__init__(*args)
+        super().__init__(message, *args)
 
 
 class CannotDeleteSystemPartition(BaseCustomException):
     """Exception raised when attempting to delete a system partition."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize CannotDeleteSystemPartition"""
-        super().__init__(*args)
+        super().__init__(message, *args)
 
 
 class CannotCreateStorageOnRootOfSystemDisk(BaseCustomException):
     """Exception raised when cannot create storage on root of a system disk."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize CannotCreateStorageOnRootOfSystemDisk"""
-        super().__init__(*args)
+        super().__init__(message, *args)
 
 
 class CannotCreateStorageOnSystemPartition(BaseCustomException):
     """Exception raised when trying to create storage on a system partition."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize CannotCreateStorageOnSystemPartition"""
-        super().__init__(*args)
+        super().__init__(message, *args)
 
 
 class PartitionHasStorage(BaseCustomException):
     """Exception raised when trying to delete a partition that has storage."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize PartitionHasStorage"""
-        super().__init__(*args)
+        super().__init__(message, *args)

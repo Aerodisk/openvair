@@ -13,11 +13,12 @@ from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.libs.client.config import get_os_type
-from openvair.modules.tools.utils import validate_objects
-from openvair.modules.network.config import API_SERVICE_LAYER_QUEUE_NAME
-from openvair.libs.messaging.protocol import Protocol
-from openvair.modules.network.entrypoints import schemas
+from openvair.modules.network.config import (
+    NETWORK_CONFIG_MANAGER,
+    API_SERVICE_LAYER_QUEUE_NAME,
+)
 from openvair.modules.network.service_layer import services
+from openvair.libs.messaging.messaging_agents import MessagingClient
 
 LOG = get_logger(__name__)
 
@@ -34,21 +35,21 @@ class InterfaceCrud:
             service layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the InterfaceCrud instance.
 
         This constructor sets up the RPC protocol for communicating with the
         service layer.
         """
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_all_interfaces(
         self,
         *,
         is_need_filter: bool = False,
-    ) -> List[schemas.Interface]:
+    ) -> List:
         """Retrieve all network interfaces.
 
         This method calls the service layer to retrieve all network interfaces,
@@ -64,12 +65,12 @@ class InterfaceCrud:
         """
         LOG.info('Call service layer on getting all interfaces.')
         data = {'is_need_filter': is_need_filter}
-        result = self.service_layer_rpc.call(
+        result: List = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_all_interfaces.__name__,
             data_for_method=data,
         )
         LOG.debug('Response from service layer: %s.' % result)
-        return validate_objects(result, schemas.Interface)
+        return result
 
     def get_interface(self, iface_id: str) -> Dict:
         """Retrieve a specific network interface.
@@ -84,7 +85,7 @@ class InterfaceCrud:
             Dict: A dictionary containing data about the specified interface.
         """
         LOG.info('Call service layer on getting interface.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_interface.__name__,
             data_for_method={'iface_id': iface_id},
             priority=8,
@@ -92,7 +93,7 @@ class InterfaceCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_bridges_list(self) -> List[str]:
+    def get_bridges_list(self) -> List[Dict]:
         """Retrieve the list of network bridges.
 
         This method calls the service layer to retrieve a list of all network
@@ -102,9 +103,13 @@ class InterfaceCrud:
             List[str]: A list of network bridges.
         """
         LOG.info('Getting the list of network bridges')
-        result = self.service_layer_rpc.call(
+        os_type_interface = get_os_type()
+        result: List = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_bridges_list.__name__,
-            data_for_method={},
+            data_for_method={
+                'inf_type': os_type_interface,
+                'network_config_manager': NETWORK_CONFIG_MANAGER,
+            },
         )
         LOG.info('Response from service layer : %s.' % result)
         return result
@@ -129,9 +134,10 @@ class InterfaceCrud:
             {
                 'user_info': user_info,
                 'inf_type': os_type_interface,
+                'network_config_manager': NETWORK_CONFIG_MANAGER,
             }
         )
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.create_bridge.__name__,
             data_for_method=data,
             priority=8,
@@ -163,6 +169,7 @@ class InterfaceCrud:
                 {
                     'user_info': user_info,
                     'inf_type': os_type_interface,
+                    'network_config_manager': NETWORK_CONFIG_MANAGER,
                 }
             )
             rpc_result = self.service_layer_rpc.call(
@@ -189,7 +196,7 @@ class InterfaceCrud:
         """
         LOG.info(f'Call service layer for turn on virtual network: {name}...')
 
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.turn_on.__name__,
             data_for_method={'name': name},
             priority=8,
@@ -214,7 +221,7 @@ class InterfaceCrud:
         """
         LOG.info(f'Call service layer for turn off virtual network: {name}...')
 
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.turn_off.__name__,
             data_for_method={'name': name},
             priority=8,

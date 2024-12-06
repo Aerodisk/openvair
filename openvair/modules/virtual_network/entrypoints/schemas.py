@@ -15,12 +15,17 @@ Classes:
     ErrorResponseModel: Represents an error response.
 """
 
-from typing import Dict, List
+from typing import List, Type, Union, Literal
 
-from pydantic import Field, BaseModel, root_validator
+from pydantic import (
+    Field,
+    BaseModel,
+    ConfigDict,
+    field_validator,
+    model_validator,
+)
 from pydantic.types import UUID4
-from typing_extensions import Self, Literal
-from pydantic.class_validators import validator
+from typing_extensions import Self
 
 
 class PortGroup(BaseModel):
@@ -34,21 +39,13 @@ class PortGroup(BaseModel):
 
     port_group_name: str = 'trunk_port_group'
     is_trunk: Literal['yes', 'no']
-    tags: List[str] = Field(..., example=['10', '20', '30', '40'])
+    tags: List[Union[int, str]] = Field(
+        ..., examples=[['10', '20', '30', '40']]
+    )
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        """Pydantic configuration class.
-
-        This inner class is used to configure the behavior of the Pydantic
-        model. The `orm_mode` attribute enables compatibility with ORMs
-        by allowing the model to be populated by ORM objects.
-        """
-
-        orm_mode = True
-
-    @root_validator
-    @classmethod
-    def check_tags_and_is_trunk(cls, values: Dict) -> Dict:
+    @model_validator(mode='after')
+    def check_tags_and_is_trunk(self) -> Self:
         """Validates that if `tags` has more than one tag, and `is_trunk` state.
 
         Args:
@@ -61,22 +58,22 @@ class PortGroup(BaseModel):
             ValueError: If `tags` has more than one element and `is_trunk` is
                 not 'yes'.
         """
-        tags = values.get('tags')
-        is_trunk = values.get('is_trunk')
+        # tags = values.get('tags')
+        # is_trunk = values.get('is_trunk')
 
         # It will be return input dict withoth needed value and then pydantic
         # raise standart pydantic validation error for fields
-        if not tags or not is_trunk:
-            return values
+        if not self.tags or not self.is_trunk:
+            return self
 
-        if len(tags) > 1 and is_trunk != 'yes':
+        if len(self.tags) > 1 and self.is_trunk != 'yes':
             message = (
-                "If tags contains more than one tag, "
-                "must be turn on trunk mode."
+                'If tags contains more than one tag, '
+                'must be turn on trunk mode.'
             )
             raise ValueError(message)
 
-        return values
+        return self
 
 
 class VirtualNetwork(BaseModel):
@@ -99,7 +96,8 @@ class VirtualNetwork(BaseModel):
     port_groups: List[PortGroup]
 
     @classmethod
-    @validator('port_groups')
+    @field_validator('port_groups')
+    @classmethod
     def port_groups_validator(cls, value: List) -> List:
         """Validates that the `port_groups` attribute is not empty or None.
 
@@ -118,7 +116,8 @@ class VirtualNetwork(BaseModel):
         return value
 
     @classmethod
-    @validator('bridge')
+    @field_validator('bridge')
+    @classmethod
     def bridge_validator(cls, value: str) -> str:
         """Validates that the `bridge` attribute is not 'virbr0'.
 
@@ -155,23 +154,14 @@ class VirtualNetworkResponse(VirtualNetwork):
     autostart: str
     persistent: str
     virsh_xml: str
-
-    class Config:
-        """Pydantic configuration class.
-
-        This inner class is used to configure the behavior of the Pydantic
-        model. The `orm_mode` attribute enables compatibility with ORMs
-        by allowing the model to be populated by ORM objects.
-        """
-
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_orm(cls, orm_obj: object) -> Self:
+    def from_orm(cls, obj: Type[VirtualNetwork]) -> Self:
         """Creates a VirtualNetworkResponse object from an ORM object.
 
         Args:
-            orm_obj: The ORM object representing the virtual network.
+            obj: The ORM object representing the virtual network.
 
         Returns:
             VirtualNetworkResponse: An instance of VirtualNetworkResponse.
@@ -179,9 +169,9 @@ class VirtualNetworkResponse(VirtualNetwork):
         # Adds a class method to convert port_groups to a list of dictionaries
         return cls(
             **{
-                **orm_obj.__dict__,
+                **obj.__dict__,
                 'port_groups': [
-                    PortGroup.from_orm(pg) for pg in orm_obj.port_groups
+                    PortGroup.from_orm(pg) for pg in obj.port_groups
                 ],
             }
         )

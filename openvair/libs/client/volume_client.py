@@ -8,9 +8,7 @@ from openvair.libs.client.base_client import BaseClient
 # make polymorphic use for all clients
 class VolumeClient(BaseClient):  # noqa: D101
     def __init__(self, access_token: str):  # noqa: D107
-        super().__init__(
-            service='volumes', access_token=access_token
-        )
+        super().__init__(service='volumes', access_token=access_token)
 
     def get_volume(self, volume_id):  # noqa: D102, ANN201, ANN001
         volume_get_url = f'{self.url}/{volume_id}/'

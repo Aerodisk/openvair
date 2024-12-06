@@ -11,6 +11,9 @@ Classes:
 from __future__ import annotations
 
 import abc
+from typing import Any, Optional
+
+from typing_extensions import Self
 
 from openvair.modules.dashboard.adapters import repository
 
@@ -24,14 +27,14 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
 
     prometheus: repository.PrometheusRepository
 
-    def __enter__(self) -> AbstractUnitOfWork:
+    def __enter__(self) -> Self:
         """Enter the runtime context for the unit of work."""
         return self
 
     @abc.abstractmethod
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> Optional[bool]:  # noqa: ANN401 # TODO need to specify logic for method and arguments
         """Exit the runtime context for the unit of work."""
-        pass
+        ...
 
 
 class PrometheusUnitOfWork(AbstractUnitOfWork):
@@ -41,7 +44,7 @@ class PrometheusUnitOfWork(AbstractUnitOfWork):
     interactions, ensuring proper initialization and cleanup of resources.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the PrometheusUnitOfWork.
 
         This constructor sets up the necessary components for the
@@ -50,7 +53,7 @@ class PrometheusUnitOfWork(AbstractUnitOfWork):
         """
         super().__init__()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the runtime context for the unit of work.
 
         This method initializes the Prometheus repository and returns the
@@ -59,10 +62,10 @@ class PrometheusUnitOfWork(AbstractUnitOfWork):
         self.prometheus = repository.PrometheusRepository()
         return super().__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> Optional[bool]:  # noqa: ANN401 # TODO need to specify logic for method and arguments
         """Exit the runtime context for the unit of work.
 
         This method ensures proper cleanup of resources when exiting the
         context.
         """
-        super().__exit__(*args)
+        pass

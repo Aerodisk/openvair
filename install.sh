@@ -108,6 +108,10 @@ verify_user_data() {
     # Check user credentials
     log $CYAN "User data verification"
 
+    # Set minimum length constants
+    local MIN_LOGIN_LENGTH=4
+    local MIN_PASSWORD_LENGTH=4
+
     # Retrieve user credentials from project_config.toml
     SECTION_LINE=$(grep -n default_user "$PROJECT_CONFIG_FILE" | cut -d ':' -f 1)
     LOGIN_LINE=$(($SECTION_LINE + $(grep -A 2 default_user "$PROJECT_CONFIG_FILE" | grep -n login | cut -d ':' -f 1) - 1))
@@ -120,15 +124,22 @@ verify_user_data() {
     if [[ ${#LOGIN} -ge 5 && ${#LOGIN} -le 30 ]]; then
         log $GREEN "User login is valid"
     else
-        stop_script "User login is not valid or not specified. Installation script stoped"
-        
+        if [[ ${#LOGIN} -lt $MIN_LOGIN_LENGTH ]]; then
+            stop_script "User login is too short. Minimum length is $MIN_LOGIN_LENGTH characters. Current length: ${#LOGIN}"
+        else
+            stop_script "User login is not valid or not specified. Installation script stopped"
+        fi
     fi
 
     # Validate user password
     if [[ ${#PASSWORD} -ge 5 ]]; then
         log $GREEN "User password is valid"
     else
-        stop_script "User password is not valid or not specified. Installation script stoped"
+        if [[ ${#PASSWORD} -lt $MIN_PASSWORD_LENGTH ]]; then
+            stop_script "User password is too short. Minimum length is $MIN_PASSWORD_LENGTH characters. Current length: ${#PASSWORD}"
+        else
+            stop_script "User password is not valid or not specified. Installation script stoped"
+        fi
     fi
 }
 

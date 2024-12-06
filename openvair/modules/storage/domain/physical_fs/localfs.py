@@ -10,7 +10,7 @@ Classes:
     LocalPartition: A class for managing partitions on local disks.
 """
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
@@ -37,15 +37,15 @@ class LocalDiskStorage(LocalFSStorage):
             be executed as root.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a new instance of LocalDiskStorage.
 
         This constructor initializes the LocalDiskStorage instance with
         the provided path, file system type, and any additional arguments.
 
         Args:
-            *args: Variable length argument list, passed to the parent class.
-            **kwargs: Arbitrary keyword arguments, including:
+            args: Variable length argument list, passed to the parent class.
+            kwargs: Arbitrary keyword arguments, including:
                 path (str): The path to the local file system.
                 fs_type (str): The file system type (e.g., xfs, ext4).
                 fs_uuid (str): The UUID of the file system.
@@ -53,7 +53,7 @@ class LocalDiskStorage(LocalFSStorage):
         LOG.info('LocalFS storage initializing')
         super(LocalDiskStorage, self).__init__(*args, **kwargs)
         self._execute_as_root = True
-        self.path = kwargs.get('path', '')
+        self.path = str(kwargs.get('path', ''))
         self.fs_uuid = kwargs.get('fs_uuid', '')
         self.mount_point = str(self.mount_point_path())
         self.do_setup()
@@ -168,7 +168,7 @@ class LocalPartition(BasePartition):
             on the storage.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a new instance of LocalPartition."""
         super().__init__(*args, **kwargs)
         self.partitions: Dict = self._get_partitions_info()

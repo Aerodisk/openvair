@@ -15,7 +15,7 @@ Variables:
 from openvair import config
 from openvair.config import RPC_QUEUES, get_default_session_factory
 
-USER_SERVICE_LAYER_QUEUE_NAME: str  = RPC_QUEUES.User.SERVICE_LAYER
+USER_SERVICE_LAYER_QUEUE_NAME: str = RPC_QUEUES.User.SERVICE_LAYER
 
 # JWT configuration settings
 JWT_SECRET = config.data['jwt'].get('secret')

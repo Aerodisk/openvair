@@ -24,9 +24,10 @@ class Interface(BaseModel):
         ip (str): The IP address of the block device interface.
         port (Optional[str]): The port number of the block device interface.
     """
+
     inf_type: str
     ip: str
-    port: Optional[str]
+    port: Optional[str] = None
 
 
 class InterfaceLogin(Interface):
@@ -36,6 +37,7 @@ class InterfaceLogin(Interface):
         id (str): The ID of the block device interface.
         status (str): The login status of the block device interface.
     """
+
     id: str
     status: str
 
@@ -47,6 +49,7 @@ class InterfaceDeleted(BaseModel):
         inf_type (str): The type of the block device interface.
         ip (str): The IP address of the block device interface.
     """
+
     inf_type: str
     ip: str
 
@@ -57,6 +60,7 @@ class IQN(BaseModel):
     Attributes:
         iqn (str): The IQN.
     """
+
     iqn: str
 
 
@@ -71,8 +75,9 @@ class Session(BaseModel):
         port (str): REMOTE_SERVER_PORT. The port number of the block device
             target.
     """
+
     ip: str
     status: str
     id: str
     inf_type: str
-    port: Optional[str]
+    port: Optional[str] = None

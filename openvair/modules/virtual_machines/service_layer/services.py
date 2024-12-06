@@ -34,20 +34,18 @@ import json
 import time
 import string
 from uuid import UUID, uuid4
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict, List, Optional, cast
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import get_virsh_list, synchronized_session
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.virtual_machines import config
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcServerInitializedException,
 )
-from openvair.rpc_clients.image_rpc_client import ImageServiceLayerRPCClient
-from openvair.rpc_clients.volume_rpc_client import VolumeServiceLayerRPCClient
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.adapters import orm
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.virtual_machines.domain.base import BaseVMDriver
@@ -56,14 +54,12 @@ from openvair.modules.virtual_machines.service_layer import (
     unit_of_work,
 )
 from openvair.modules.virtual_machines.adapters.serializer import DataSerializer
-
-if TYPE_CHECKING:
-    from openvair.interfaces.image_service_interface import (
-        ImageServiceLayerProtocolInterface,
-    )
-    from openvair.interfaces.volume_service_interface import (
-        VolumeServiceLayerProtocolInterface,
-    )
+from openvair.libs.messaging.clients.rpc_clients.image_rpc_client import (
+    ImageServiceLayerRPCClient,
+)
+from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
+    VolumeServiceLayerRPCClient,
+)
 
 LOG = get_logger(__name__)
 
@@ -166,7 +162,7 @@ class VMServiceLayerManager(BackgroundTasks):
         event_store (EventCrud): The event store for logging VM events.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the VMServiceLayerManager.
 
         This constructor sets up the necessary components for managing
@@ -175,18 +171,14 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         super(VMServiceLayerManager, self).__init__()
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
-        self.domain_rpc = Protocol(client=True)(
-            config.SERVICE_LAYER_DOMAIN_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=config.SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.service_layer_rpc = Protocol(client=True)(
-            config.API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=config.API_SERVICE_LAYER_QUEUE_NAME
         )
-        self.volume_service_client: VolumeServiceLayerProtocolInterface = (
-            VolumeServiceLayerRPCClient()
-        )
-        self.image_service_client: ImageServiceLayerProtocolInterface = (
-            ImageServiceLayerRPCClient()
-        )
+        self.volume_service_client = VolumeServiceLayerRPCClient()
+        self.image_service_client = ImageServiceLayerRPCClient()
         self.event_store = EventCrud('virtual_machines')
 
     def get_vm(self, data: Dict) -> Dict:
@@ -301,24 +293,48 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Inserting vm information into database.')
         with self.uow:
-            db_vm = DataSerializer.to_db(
-                create_vm_info._asdict(), orm.VirtualMachines
+            db_vm = cast(
+                orm.VirtualMachines,
+                DataSerializer.to_db(
+                    create_vm_info._asdict(), orm.VirtualMachines
+                ),
             )
 
-            db_vm.cpu = DataSerializer.to_db(create_vm_info.cpu, orm.CpuInfo)
+            db_vm.cpu = cast(
+                orm.CpuInfo,
+                DataSerializer.to_db(
+                    create_vm_info.cpu,
+                    orm.CpuInfo,
+                ),
+            )
 
-            db_vm.ram = DataSerializer.to_db(create_vm_info.ram, orm.RAM)
+            db_vm.ram = cast(
+                orm.RAM,
+                DataSerializer.to_db(create_vm_info.ram, orm.RAM),
+            )
 
-            db_vm.os = DataSerializer.to_db(create_vm_info.os, orm.Os)
+            db_vm.os = cast(
+                orm.Os,
+                DataSerializer.to_db(create_vm_info.os, orm.Os),
+            )
 
-            db_vm.graphic_interface = DataSerializer.to_db(
-                create_vm_info.graphic_interface, orm.ProtocolGraphicInterface
+            db_vm.graphic_interface = cast(
+                orm.ProtocolGraphicInterface,
+                DataSerializer.to_db(
+                    create_vm_info.graphic_interface,
+                    orm.ProtocolGraphicInterface,
+                ),
             )
             LOG.info(f'Inserted graphic interface: {db_vm.graphic_interface}')
 
             for virt_interface in create_vm_info.virtual_interfaces:
                 db_vm.virtual_interfaces.append(
-                    DataSerializer.to_db(virt_interface, orm.VirtualInterface)
+                    cast(
+                        orm.VirtualInterface,
+                        DataSerializer.to_db(
+                            virt_interface, orm.VirtualInterface
+                        ),
+                    )
                 )
 
             self.uow.virtual_machines.add(db_vm)
@@ -336,12 +352,12 @@ class VMServiceLayerManager(BackgroundTasks):
             Dict: The serialized virtual machine data.
         """
         LOG.info('Handling call on create vm.')
-        user_info = data.get('user_info', {})
+        user_info: Dict = data.get('user_info', {})
         create_vm_info = self._prepare_create_vm_info(data)
         web_vm = self._insert_vm_into_db(create_vm_info)
         self.event_store.add_event(
-            web_vm.get('id'),
-            user_info.get('id'),
+            str(web_vm.get('id', '')),
+            str(user_info.get('id,', '')),
             self.create_vm.__name__,
             f"VM {web_vm.get('name')} was successfully inserted into DB.",
         )
@@ -591,7 +607,10 @@ class VMServiceLayerManager(BackgroundTasks):
                 try:
                     attached_disk = self._attach_disk_to_vm(vm_id, disk)
                     db_vm.disks.append(
-                        DataSerializer.to_db(attached_disk, orm.Disk)
+                        cast(
+                            orm.Disk,
+                            DataSerializer.to_db(attached_disk, orm.Disk),
+                        )
                     )
                 except exceptions.UnexpectedDataArguments as err:
                     message = (
@@ -634,7 +653,7 @@ class VMServiceLayerManager(BackgroundTasks):
             self.uow.commit()
 
         self.event_store.add_event(
-            db_vm.id,
+            str(db_vm.id),
             user_info.get('id'),
             self._create_vm.__name__,
             f'VM {db_vm.name} was successfully created.',
@@ -760,7 +779,7 @@ class VMServiceLayerManager(BackgroundTasks):
             self.uow.commit()
         LOG.info('Disks were successfully detached and deleted from db.')
 
-    def delete_vm(self, data: Dict) -> Dict:
+    def delete_vm(self, data: Dict) -> Optional[Dict]:
         """Delete a virtual machine by ID.
 
         Args:
@@ -791,7 +810,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
                 db_vm.status = VmStatus.deleting.name
                 self.event_store.add_event(
-                    db_vm.id,
+                    str(db_vm.id),
                     user_info.get('id'),
                     self.delete_vm.__name__,
                     f'Set deleting status for VM {db_vm.name}.',
@@ -814,11 +833,11 @@ class VMServiceLayerManager(BackgroundTasks):
                 LOG.error(message)
                 db_vm.status = VmStatus.error.name
                 db_vm.information = message
+                raise
             else:
                 return serialized_vm
             finally:
                 self.uow.commit()
-
 
     def _delete_vm(self, data: Dict) -> None:
         """Delete a virtual machine from the database.
@@ -842,7 +861,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     )
                 self.uow.virtual_machines.delete(db_vm)
                 self.event_store.add_event(
-                    db_vm.id,
+                    str(db_vm.id),
                     user_info.get('id'),
                     self._delete_vm.__name__,
                     f'VM {db_vm.name} was succesfully deleted.',
@@ -877,7 +896,7 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm.status = VmStatus.starting.name
             self.uow.commit()
             self.event_store.add_event(
-                db_vm.id,
+                str(db_vm.id),
                 user_info.get('id'),
                 self.start_vm.__name__,
                 f'Set starting status for VM {db_vm.name}.',
@@ -903,13 +922,13 @@ class VMServiceLayerManager(BackgroundTasks):
         alphabet = list(string.ascii_lowercase)
         user_info = data.pop('user_info', {})
 
-        for i, disk in enumerate(data.get('disks')):
+        for i, disk in enumerate(data.get('disks', [])):
             if disk.get('type') == DiskType.volume.value:
                 disk.update({'target': f'sd{alphabet[i]}'})
             else:
                 disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'ide'})
         with self.uow:
-            db_vm = self.uow.virtual_machines.get(data.get('id'))
+            db_vm = self.uow.virtual_machines.get(data.get('id', ''))
             try:
                 start_info = self.domain_rpc.call(
                     BaseVMDriver.start.__name__, data_for_manager=data
@@ -925,7 +944,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.information = ''
                 self.uow.commit()
                 self.event_store.add_event(
-                    db_vm.id,
+                    str(db_vm.id),
                     user_info.get('id'),
                     self._start_vm.__name__,
                     f'VM {db_vm.name} was successfully started.',
@@ -966,7 +985,7 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm.status = VmStatus.shut_offing.name
             self.uow.commit()
             self.event_store.add_event(
-                db_vm.id,
+                str(db_vm.id),
                 user_info.get('id'),
                 self.shut_off_vm.__name__,
                 f'Set shut_off status for VM {db_vm.name}.',
@@ -991,7 +1010,7 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Handling response on _shut_off_vm.')
         user_info = data.pop('user_info', {})
         with self.uow:
-            db_vm = self.uow.virtual_machines.get(data.get('id'))
+            db_vm = self.uow.virtual_machines.get(data.get('id', ''))
             try:
                 self.domain_rpc.call(
                     BaseVMDriver.turn_off.__name__, data_for_manager=data
@@ -1000,7 +1019,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.power_state = VmPowerState.shut_off.name
                 db_vm.graphic_interface.url = ''
                 self.event_store.add_event(
-                    db_vm.id,
+                    str(db_vm.id),
                     user_info.get('id'),
                     self._shut_off_vm.__name__,
                     f'VM {db_vm.name} was successfully shut off.',
@@ -1161,7 +1180,12 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm = self.uow.virtual_machines.get(vm_id)
             for virt_interface in virt_interfaces:
                 db_vm.virtual_interfaces.append(
-                    DataSerializer.to_db(virt_interface, orm.VirtualInterface)
+                    cast(
+                        orm.VirtualInterface,
+                        DataSerializer.to_db(
+                            virt_interface, orm.VirtualInterface
+                        ),
+                    )
                 )
             self.uow.commit()
         LOG.info(
@@ -1254,7 +1278,9 @@ class VMServiceLayerManager(BackgroundTasks):
         """Process editing and detaching virtual interfaces for the VM."""
         with self.uow:
             if vm_edit_info.edit_virtual_interfaces:
-                self._edit_virtual_interfaces(vm_edit_info.edit_virtual_interfaces)
+                self._edit_virtual_interfaces(
+                    vm_edit_info.edit_virtual_interfaces
+                )
 
             if vm_edit_info.detach_virtual_interfaces:
                 self._detach_virtual_interfaces_from_vm(
@@ -1266,7 +1292,9 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
 
     def _process_vm_volumes(
-        self, vm_edit_info: EditVmInfo, db_vm: orm.VirtualMachines,
+        self,
+        vm_edit_info: EditVmInfo,
+        db_vm: orm.VirtualMachines,
     ) -> None:
         """Process attaching volumes and creating new disks for the VM."""
         if vm_edit_info.auto_create_volumes:
@@ -1281,9 +1309,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 vm_edit_info.attach_volumes + vm_edit_info.attach_images,
             )
 
-
-
-    def vnc(self, data: Dict) -> None:
+    def vnc(self, data: Dict) -> Dict:
         """Access the VNC session of a virtual machine.
 
         Args:
@@ -1302,12 +1328,15 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm = self.uow.virtual_machines.get(vm_id)
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             try:
-                return self.domain_rpc.call(
+                result: Dict = self.domain_rpc.call(
                     BaseVMDriver.vnc.__name__, data_for_manager=serialized_vm
                 )
             except (RpcCallException, RpcServerInitializedException) as err:
                 message = f'Handle error: {err!s} while accessing VNC.'
                 LOG.error(message)
+                raise
+            else:
+                return result
 
     @periodic_task(interval=10)
     def monitoring(self) -> None:

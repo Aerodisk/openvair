@@ -9,9 +9,10 @@ Classes:
 """
 
 import json
-from typing import Dict, Type, Union
+from typing import Dict, Type, Union, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.virtual_machines.adapters import orm
@@ -47,7 +48,15 @@ class DataSerializer(AbstractDataSerializer):
     def to_db(
         cls,
         data: Dict,
-        orm_class: Type,
+        orm_class: Union[
+            Type[orm.VirtualMachines],
+            Type[orm.CpuInfo],
+            Type[orm.Os],
+            Type[orm.Disk],
+            Type[orm.VirtualInterface],
+            Type[orm.ProtocolGraphicInterface],
+            Type[orm.RAM],
+        ] = orm.VirtualMachines,
     ) -> Union[
         orm.VirtualMachines,
         orm.CpuInfo,
@@ -70,7 +79,7 @@ class DataSerializer(AbstractDataSerializer):
                 data.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             if not data.get(column_name):
@@ -141,24 +150,24 @@ class DataSerializer(AbstractDataSerializer):
             Dict: A dictionary representing the detailed web model with related
                 entities.
         """
-        vm_dict = virtual_machine.__dict__.copy()
+        vm_dict: Dict = virtual_machine.__dict__.copy()
         vm_dict.pop('_sa_instance_state')
         vm_dict.update(
             {
                 'id': str(vm_dict['id']),
-                'cpu': cls.to_web(vm_dict.get('cpu')),
-                'os': cls.to_web(vm_dict.get('os')),
+                'cpu': cls.to_web(vm_dict.get('cpu', {})),
+                'os': cls.to_web(vm_dict.get('os', {})),
                 'graphic_interface': cls.to_web(
-                    vm_dict.get('graphic_interface')
+                    vm_dict.get('graphic_interface', {})
                 ),
                 'virtual_interfaces': [
                     cls.to_web(interface)
-                    for interface in vm_dict.get('virtual_interfaces')
+                    for interface in vm_dict.get('virtual_interfaces', [])
                 ],
-                'ram': cls.to_web(vm_dict.get('ram')),
-                'disks': [cls.to_web(disk) for disk in vm_dict.get('disks')]
-                if vm_dict.get('disks')
-                else [],
+                'ram': cls.to_web(vm_dict.get('ram', {})),
+                'disks': [
+                    cls.to_web(disk) for disk in vm_dict.get('disks', [])
+                ],
                 'user_id': str(vm_dict.get('user_id', '')),
             }
         )

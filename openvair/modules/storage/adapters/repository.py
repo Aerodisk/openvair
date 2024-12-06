@@ -11,11 +11,11 @@ Classes:
 """
 
 import abc
-from uuid import UUID
-from typing import TYPE_CHECKING, List, Union, NoReturn
+from typing import TYPE_CHECKING, Any, List, Union, Optional, cast
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.storage.adapters.orm import Storage, StorageExtraSpecs
@@ -32,7 +32,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
     and deleting storage records, as well as filtering storage extra specs.
     """
 
-    def _check_connection(self) -> NoReturn:
+    def _check_connection(self) -> None:
         """Check the database connection.
 
         Raises:
@@ -48,7 +48,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         self._add(storage)
 
-    def get(self, storage_id: UUID) -> Storage:
+    def get(self, storage_id: str) -> Storage:
         """Retrieve a storage record by its ID.
 
         Args:
@@ -67,7 +67,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_all()
 
-    def get_storage_by_name(self, storage_name: str) -> Storage:
+    def get_storage_by_name(self, storage_name: str) -> Optional[Storage]:
         """Retrieve a storage record by its name.
 
         Args:
@@ -78,11 +78,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_storage_by_name(storage_name)
 
-    def delete(self, storage_id: UUID) -> None:
+    def delete(self, storage_id: str) -> None:
         """Delete a storage record by its ID.
 
         Args:
-            storage_id (UUID): The ID of the storage to delete.
+            storage_id (str): The ID of the storage to delete.
         """
         return self._delete(storage_id)
 
@@ -107,7 +107,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get(self, storage_id: UUID) -> Storage:
+    def _get(self, storage_id: str) -> Storage:
         """Retrieve a storage record by its ID.
 
         Args:
@@ -134,7 +134,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_storage_by_name(self, storage_name: str) -> Storage:
+    def _get_storage_by_name(self, storage_name: str) -> Optional[Storage]:
         """Retrieve a storage record by its name.
 
         Args:
@@ -149,12 +149,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _delete(self, specs: StorageExtraSpecs) -> None:
+    def _delete(self, storage_id: str) -> None:
         """Delete a storage record by its ID.
 
         Args:
-            specs (StorageExtraSpecs): The extra specs associated with the
-                storage to delete.
+            storage_id (str): The ID of the storage to delete.
 
         Raises:
             NotImplementedError: If the method is not implemented.
@@ -179,8 +178,8 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         self,
         *,
         all_rows: bool = True,
-        **kwargs,
-    ) -> Union[StorageExtraSpecs, List[StorageExtraSpecs]]:
+        **kwargs: Any,  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    ) -> Union[Optional[StorageExtraSpecs], List[StorageExtraSpecs]]:
         """Filter storage extra specs based on criteria.
 
         Args:
@@ -194,7 +193,9 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._filter_extra_specs(all_rows=all_rows, **kwargs)
 
-    def get_spec_by_key_value(self, key: str, value: str) -> StorageExtraSpecs:
+    def get_spec_by_key_value(
+        self, key: str, value: str
+    ) -> Optional[StorageExtraSpecs]:
         """Retrieve a storage extra spec by key and value.
 
         Args:
@@ -207,7 +208,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         return self._get_spec_by_key_value(key, value)
 
     def update_spec_by_key_for_storage(
-        self, key: str, value: str, storage_id: UUID
+        self, key: str, value: str, storage_id: str
     ) -> None:
         """Update a storage extra spec by key for a specific storage.
 
@@ -223,8 +224,8 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         self,
         *,
         all_rows: bool,
-        **kwargs,
-    ) -> Union[StorageExtraSpecs, List[StorageExtraSpecs]]:
+        **kwargs: Any,  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    ) -> Union[Optional[StorageExtraSpecs], List[StorageExtraSpecs]]:
         """Filter storage extra specs based on criteria.
 
         Args:
@@ -242,7 +243,9 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_spec_by_key_value(self, key: str, value: str) -> StorageExtraSpecs:
+    def _get_spec_by_key_value(
+        self, key: str, value: str
+    ) -> Optional[StorageExtraSpecs]:
         """Retrieve a storage extra spec by key and value.
 
         Args:
@@ -259,7 +262,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _update_spec_by_key_for_storage(
-        self, key: str, value: str, storage_id: UUID
+        self, key: str, value: str, storage_id: str
     ) -> None:
         """Update a storage extra spec by key for a specific storage.
 
@@ -342,7 +345,7 @@ class SqlAlchemyRepository(AbstractRepository):
             .all()
         )
 
-    def _get_storage_by_name(self, storage_name: str) -> Storage:
+    def _get_storage_by_name(self, storage_name: str) -> Optional[Storage]:
         """Retrieve a storage record by its name.
 
         Args:
@@ -353,25 +356,25 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return self.session.query(Storage).filter_by(name=storage_name).first()
 
-    def _delete(self, storage_id: UUID) -> None:
+    def _delete(self, storage_id: str) -> None:
         """Delete a storage record by its ID.
 
         Args:
-            storage_id (UUID): The ID of the storage to delete.
+            storage_id (str): The ID of the storage to delete.
         """
         (
             self.session.query(StorageExtraSpecs)
             .filter_by(storage_id=storage_id)
             .delete(synchronize_session=False)
         )
-        return self.session.query(Storage).filter_by(id=storage_id).delete()
+        self.session.query(Storage).filter_by(id=storage_id).delete()
 
     def _filter_extra_specs(
         self,
         *,
         all_rows: bool,
-        **kwargs,
-    ) -> Union[StorageExtraSpecs, List[StorageExtraSpecs]]:
+        **kwargs: Any,  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    ) -> Union[Optional[StorageExtraSpecs], List[StorageExtraSpecs]]:
         """Filter storage extra specs based on criteria.
 
         Args:
@@ -389,7 +392,9 @@ class SqlAlchemyRepository(AbstractRepository):
             )
         return self.session.query(StorageExtraSpecs).filter_by(**kwargs).first()
 
-    def _get_spec_by_key_value(self, key: str, value: str) -> StorageExtraSpecs:
+    def _get_spec_by_key_value(
+        self, key: str, value: str
+    ) -> Optional[StorageExtraSpecs]:
         """Retrieve a storage extra spec by key and value.
 
         Args:
@@ -397,7 +402,7 @@ class SqlAlchemyRepository(AbstractRepository):
             value (str): The value of the extra spec.
 
         Returns:
-            StorageExtraSpecs: The retrieved storage extra spec.
+            Optional[StorageExtraSpecs]: The retrieved storage extra spec.
         """
         return (
             self.session.query(StorageExtraSpecs)
@@ -430,4 +435,4 @@ class SqlAlchemyRepository(AbstractRepository):
         Args:
             data (List): A list of storage records to update.
         """
-        self.session.bulk_update_mappings(Storage, data)
+        self.session.bulk_update_mappings(cast(Mapper, Storage), data)

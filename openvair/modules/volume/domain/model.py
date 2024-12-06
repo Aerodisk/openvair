@@ -11,7 +11,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar
+from typing import Dict, ClassVar, cast
 
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import nfs
@@ -75,4 +75,4 @@ class VolumeFactory(AbstractVolumeFactory):
                 mappings.
         """
         volume_class = self._volume_classes[db_volume['storage_type']]
-        return volume_class(**db_volume)
+        return cast(BaseVolume, volume_class(**db_volume))

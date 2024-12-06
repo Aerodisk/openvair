@@ -6,7 +6,7 @@ input data.
 """
 
 import abc
-from typing import Dict, ClassVar
+from typing import Dict, ClassVar, cast
 
 from openvair.modules.notification.domain.base import BaseNotification
 from openvair.modules.notification.domain.email_notification import (
@@ -67,4 +67,4 @@ class NotificationFactory(AbstractNotificationFactory):
         notification_class = self._notification_classes[
             db_notification['msg_type']
         ]
-        return notification_class(**db_notification)
+        return cast(BaseNotification, notification_class(**db_notification))

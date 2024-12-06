@@ -1,8 +1,7 @@
-"""XML configuration generator for virtual networks.
+"""XML configuration generator for app modules.
 
-This module provides a function to generate an XML configuration for a virtual
-network using Jinja2 templates. The generated XML is based on the provided
-virtual network data.
+This module provides a function to generate an XML configuration for an app
+modules using Jinja2 templates. The generated XML is based on the provided data.
 
 Functions:
     create_virtual_network_xml: Creates an XML configuration for a virtual
@@ -15,8 +14,8 @@ from pathlib import Path
 from jinja2 import Template
 
 from openvair.libs.log import get_logger
+from openvair.modules.tools.jinja_tools.config import TEMPLATES_DIR
 
-CURRENT_PATH = Path(__file__).parent
 LOG = get_logger(__name__)
 
 
@@ -46,7 +45,7 @@ def create_virtual_network_xml(vn_data: Dict) -> str:
         Exception: Any other error that occurs during rendering.
     """
     virtual_network_template = 'bridge_virtual_network_template.xml.j2'
-    template_path = f'{CURRENT_PATH}/{virtual_network_template}'
+    template_path = f'{TEMPLATES_DIR}/{virtual_network_template}'
 
     try:
         with Path(template_path).open('r') as tmp_file:

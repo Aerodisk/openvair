@@ -39,7 +39,8 @@ from __future__ import annotations
 
 import enum
 import uuid
-from typing import TYPE_CHECKING, Dict, List, NoReturn
+from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional, cast
+from pathlib import Path
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
@@ -50,7 +51,6 @@ from openvair.modules.image.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
-from openvair.libs.messaging.protocol import Protocol
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
@@ -58,14 +58,15 @@ from openvair.libs.messaging.exceptions import (
 from openvair.modules.image.domain.base import BaseImage
 from openvair.modules.image.adapters.orm import Image, ImageAttachVM
 from openvair.modules.image.service_layer import exceptions, unit_of_work
-from openvair.rpc_clients.storage_rpc_client import StorageServiceLayerRPCClient
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.image.adapters.serializer import DataSerializer
 from openvair.modules.event_store.entrypoints.crud import EventCrud
+from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
+    StorageServiceLayerRPCClient,
+)
 
 if TYPE_CHECKING:
-    from openvair.interfaces.storage_service_interface import (
-        StorageServiceLayerProtocolInterface,
-    )
+    from openvair.abstracts.base_exception import BaseCustomException
 
 LOG = get_logger(__name__)
 
@@ -145,7 +146,7 @@ class ImageServiceLayerManager(BackgroundTasks):
     handling and interaction with external services like storage management.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ImageServiceLayerManager.
 
         This constructor sets up the necessary components for the
@@ -162,13 +163,13 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         super().__init__()
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
-        self.domain_rpc = Protocol(client=True)(SERVICE_LAYER_DOMAIN_QUEUE_NAME)
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.storage_service_client: StorageServiceLayerProtocolInterface = (
-            StorageServiceLayerRPCClient()
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
+        self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store: EventCrud = EventCrud('image')
 
     def _call_domain_delete_from_tmp(
@@ -199,7 +200,7 @@ class ImageServiceLayerManager(BackgroundTasks):
     def _handle_create_image_rpc_exceptions(
         self,
         db_image: Image,
-        err: Exception,
+        err: BaseCustomException,
     ) -> NoReturn:
         """Handle RPC exceptions during image creation and clean up tmp files.
 
@@ -229,7 +230,7 @@ class ImageServiceLayerManager(BackgroundTasks):
     def _handle_create_image_exceptions(
         self,
         db_image: Image,
-        err: Exception,
+        err: BaseCustomException,
     ) -> NoReturn:
         """Handle exceptions during image creation and clean up temporary files.
 
@@ -248,6 +249,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         message = f'An error occurred while creating image: {err!s}'
         self._call_domain_delete_from_tmp(db_image, message)
+        LOG.error(message)
         err.message = message
         raise err
 
@@ -315,7 +317,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
     @staticmethod
     def _check_image_status(
-        image_status: str, available_statuses: List[str]
+        image_status: Optional[str], available_statuses: List[str]
     ) -> None:
         """Check if an image's status is valid.
 
@@ -331,11 +333,11 @@ class ImageServiceLayerManager(BackgroundTasks):
             exceptions.ImageStatusError: If the image status is invalid.
         """
         if image_status not in available_statuses:
-            message = (
+            message: str = (
                 f'Image status is {image_status} but '
                 f'must be in {available_statuses}'
             )
-            LOG.error(message)
+            LOG.info(message)
             raise exceptions.ImageStatusError(message)
 
     @staticmethod
@@ -373,7 +375,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         try:
             storage_info = self.storage_service_client.get_storage(
-                {'storage_id': storage_id}
+                {'storage_id': str(storage_id)}
             )
         except (RpcCallException, RpcCallTimeoutException) as err:
             message = f'An error occurred when getting storages: {err!s}'
@@ -417,7 +419,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
     @staticmethod
     def _check_available_space_on_storage(
-        image_size: int, storage: StorageInfo
+        image_size: Optional[int], storage: StorageInfo
     ) -> None:
         """Check if there is enough available space on the specified storage.
 
@@ -510,7 +512,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             if self.uow.images.get_by_name(image.name):
                 raise exceptions.ImageNameExistsException(image.name)
 
-            db_image = DataSerializer.to_db(image._asdict())
+            db_image: Image = cast(Image, DataSerializer.to_db(image._asdict()))
             db_image.status = ImageStatus.new.name
             LOG.info('Start inserting image into db with status new.')
             self.uow.images.add(db_image)
@@ -529,7 +531,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         message = 'Image was uploaded successfully'
         LOG.info(message)
         self.event_store.add_event(
-            db_image.id, user_id, self.upload_image.__name__, message
+            str(db_image.id), user_id, self.upload_image.__name__, message
         )
         return serialized_image
 
@@ -552,8 +554,8 @@ class ImageServiceLayerManager(BackgroundTasks):
         image_id = image_info.get('id', '')
         user_info = image_info.pop('user_info', {})
         user_id = user_info.get('id', '')
-        storage_id = image_info.get('storage_id')
-        storage_info = self._get_storage_info(storage_id)
+        storage_id = image_info.get('storage_id', '')
+        storage_info = self._get_storage_info(str(storage_id))
 
         with self.uow:
             db_image = self.uow.images.get(uuid.UUID(image_id))
@@ -620,7 +622,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             'Service Layer method _create_image was successfully processed'
         )
 
-    def delete_image(self, data: Dict) -> None:
+    def delete_image(self, data: Dict) -> Dict:
         """Service method for deleting an image.
 
         This method deletes an image from the database and initiates the
@@ -632,7 +634,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service Layer start handling response on delete image.')
         user_info = data.pop('user_info', {})
-        image_id = data.get('image_id')
+        image_id = data.get('image_id', '')
 
         with self.uow:
             db_image = self.uow.images.get(image_id)
@@ -664,7 +666,8 @@ class ImageServiceLayerManager(BackgroundTasks):
                 )
                 db_image.status = ImageStatus.error.name
                 db_image.information = message
-                raise exceptions.ImageDeletingError(err)
+                LOG.error(message)
+                raise exceptions.ImageDeletingError(message)
             finally:
                 self.uow.commit()
 
@@ -686,7 +689,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             ImageDeletingError: If an error occurs during the image deletion
                 process.
         """
-        image_id = image_info.get('id')
+        image_id = image_info.get('id', '')
         user_info = image_info.pop('user_info')
         user_id = user_info.get('id', '')
 
@@ -699,6 +702,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                         BaseImage.delete.__name__, data_for_manager=image_info
                     )
                 self.uow.session.delete(db_image)
+                self.uow.commit()
             except (RpcCallException, RpcCallTimeoutException) as err:
                 message = (
                     'An error occurred when calling the '
@@ -707,21 +711,15 @@ class ImageServiceLayerManager(BackgroundTasks):
                 self.event_store.add_event(
                     image_id, user_id, self._delete_image.__name__, message
                 )
-
-            else:
-                message = None
-            finally:
+                db_image.information = message or ''
                 db_image.status = (
                     ImageStatus.error.name
                     if message
                     else ImageStatus.available.name
                 )
-                db_image.information = message or ''
                 self.uow.commit()
-
-                if message:
-                    LOG.error(message)
-                    raise exceptions.ImageDeletingError(message)
+                LOG.error(message)
+                raise exceptions.ImageDeletingError(message)
 
         message = 'Image was deleted successfully'
 
@@ -735,7 +733,7 @@ class ImageServiceLayerManager(BackgroundTasks):
     def _check_image_has_same_attachment(
         image_attachments: List,
         new_attachment: Dict,
-    ) -> NoReturn:
+    ) -> None:
         """Checks if the image already has an attachment to a VM.
 
         Args:
@@ -776,7 +774,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Starting attach image to vm.')
         with self.uow:
-            db_image = self.uow.images.get(data.get('image_id'))
+            db_image = self.uow.images.get(data.get('image_id'))  # type: ignore
             available_statuses = [ImageStatus.available.name]
             try:
                 self._check_image_status(db_image.status, available_statuses)
@@ -784,9 +782,9 @@ class ImageServiceLayerManager(BackgroundTasks):
                     db_image.attachments, data
                 )
                 attachment = DataSerializer.to_db(data, ImageAttachVM)
-                db_image.attachments.append(attachment)
+                db_image.attachments.append(attachment)  # type: ignore
                 serialized_image = DataSerializer.to_domain(db_image)
-                return self.domain_rpc.call(
+                attach_result: Dict = self.domain_rpc.call(
                     BaseImage.attach_image_info.__name__,
                     data_for_manager=serialized_image,
                 )
@@ -795,23 +793,21 @@ class ImageServiceLayerManager(BackgroundTasks):
                     'An error occurred when calling the '
                     f'domain layer while attaching image: {err!s}'
                 )
+                db_image.status = ImageStatus.error.name
+                db_image.information = message
+                raise
             except exceptions.ImageStatusError as err:
                 message = 'An error occurred while attaching ' f'image: {err!s}'
-            finally:
-                message = None
-                db_image.status = (
-                    ImageStatus.error.name
-                    if message
-                    else ImageStatus.available.name
-                )
-                db_image.information = message or ''
+                LOG.error(str(err) + message)
+                db_image.status = ImageStatus.error.name
+                db_image.information = message
+                raise
+            else:
+                db_image.status = ImageStatus.available.name
+                db_image.information = ''
                 self.uow.commit()
-
-                if message:
-                    LOG.error(message)
-                    raise Exception(message)  # noqa: TRY002 nedd refact for this exception
-
                 LOG.info('Image was successfully attached.')
+                return attach_result
 
     def detach_image(self, data: Dict) -> Dict:
         """Detaches an image from a virtual machine.
@@ -864,7 +860,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Collecting storages information...')
 
-        prepared_storages = []
+        prepared_storages: List[StorageInfo] = []
         try:
             storages = self.storage_service_client.get_all_storages()
         except Exception as err:  # noqa: BLE001 Need to catch concrete exception
@@ -931,6 +927,10 @@ class ImageServiceLayerManager(BackgroundTasks):
             ImageStatusError: If the image status is not valid for monitoring.
         """
         LOG.info('Start monitoring.')
+        monitoring_statuses: List[str] = [
+            ImageStatus.available.name,
+            ImageStatus.error.name,
+        ]
         domain_images = self._get_domain_images()
         if not domain_images:
             LOG.info("Stop monitoring. Images don't exist.")
@@ -939,6 +939,15 @@ class ImageServiceLayerManager(BackgroundTasks):
         storages = self._get_available_storages()
         updated_images = []
         for domain_image in domain_images:
+            LOG.info(f'Checking image: {domain_image["name"]}')
+            image_status = domain_image.get('status', '')
+            try:
+                LOG.info(f'Current image status: {image_status}')
+                self._check_image_status(image_status, monitoring_statuses)
+            except exceptions.ImageStatusError:
+                LOG.info('Its not for monitoring, going to next image..')
+                continue
+
             try:
                 image_storage = self._get_image_storage(domain_image, storages)
                 self._validate_image_and_storage(domain_image, image_storage)
@@ -947,12 +956,12 @@ class ImageServiceLayerManager(BackgroundTasks):
             except (
                 exceptions.ImageHasNotStorage,
                 exceptions.StorageUnavailableException,
-                exceptions.ImageStatusError,
+                exceptions.ImageUnvailableError,
                 RpcCallException,
                 RpcCallTimeoutException,
             ) as err:
                 self._handle_monitoring_error(domain_image, err)
-
+            LOG.info(f'{domain_image["name"]} was checked')
         self._update_images_in_db(updated_images)
         LOG.info('Stop monitoring.')
 
@@ -971,24 +980,36 @@ class ImageServiceLayerManager(BackgroundTasks):
         self, domain_image: Dict, storages: Dict[str, StorageInfo]
     ) -> StorageInfo:
         """Get the storage information for the given image."""
-        storage_id = domain_image.get('storage_id')
-        image_storage = storages.get(storage_id)
+        storage_id = domain_image['storage_id']
+        image_storage = storages[storage_id]
         if not image_storage:
-            raise exceptions.ImageHasNotStorage(domain_image.get('id'))
+            raise exceptions.ImageHasNotStorage(str(domain_image.get('id')))
         return image_storage
 
     def _validate_image_and_storage(
         self, domain_image: Dict, image_storage: StorageInfo
     ) -> None:
-        """Validate the image status and storage availability."""
-        monitoring_statuses = [
-            ImageStatus.available.name,
-            ImageStatus.error.name,
-        ]
+        """Validate the image and storage availability."""
         self._check_storage_on_availability(image_storage)
-        self._check_image_status(
-            domain_image.get('status', ''), monitoring_statuses
+        self._check_image_on_availability(domain_image)
+
+    def _check_image_on_availability(self, domain_image: Dict) -> None:
+        """Trying to find image by path
+
+        Args:
+            domain_image (Dict): dict with image info
+
+        Raises:
+            exceptions.ImageUnvailableError: when cannot find image by its path
+        """
+        image_path: str = str(domain_image.get('path'))
+        LOG.info(
+            f'Checking availability for {domain_image["name"]}'
+            f'by path: {image_path}'
         )
+        if not Path(image_path).exists():
+            message = f'image_id {domain_image["id"]}, path: {image_path}'
+            raise exceptions.ImageUnvailableError(message)
 
     def _update_image_info(self, domain_image: Dict) -> Dict:
         """Get updated image information from the domain layer."""

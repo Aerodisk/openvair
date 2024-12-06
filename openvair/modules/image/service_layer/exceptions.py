@@ -24,124 +24,144 @@ Classes:
     ImageDeletingError: Raised when an error occurs during image deletion.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class UnexpectedDataArguments(BaseCustomException):
     """Raised when unexpected data arguments are provided."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the UnexpectedDataArguments exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(UnexpectedDataArguments, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class UploadImageDataError(BaseCustomException):
     """Raised when there is an error during image data upload."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the UploadImageDataError exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(UploadImageDataError, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ImageHasAttachmentError(BaseCustomException):
     """Raised when an operation is attempted on an image with attachments."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageHasAttachmentError exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(ImageHasAttachmentError, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ImageStatusError(BaseCustomException):
     """Raised when there is an error related to the image status."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageStatusError exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(ImageStatusError, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ValidateArgumentsError(BaseCustomException):
     """Raised when there is an error in validating arguments."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ValidateArgumentsError exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(ValidateArgumentsError, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class StorageUnavailableException(BaseCustomException):
     """Raised when the storage is unavailable."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the StorageUnavailableException exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(StorageUnavailableException, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ImageHasNotStorage(BaseCustomException):
     """Raised when an image does not have a corresponding storage."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageHasNotStorage exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(ImageHasNotStorage, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ImageHasSameAttachment(BaseCustomException):
     """Raised when an image has the same attachment already."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageHasSameAttachment exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(ImageHasSameAttachment, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ImageNameExistsException(BaseCustomException):
     """Raised when an image with the same name already exists."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageNameExistsException exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super(ImageNameExistsException, self).__init__(args)
+        super().__init__(message, *args)
 
 
 class ImageDeletingError(BaseCustomException):
     """Raised when an error occurs during image deletion."""
 
-    def __init__(self, *args):
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageDeletingError exception.
 
         Args:
+            message (str): Message with info about exception.
             *args: Variable length argument list.
         """
-        super().__init__(args)
+        super().__init__(message, *args)
+
+
+class ImageUnvailableError(BaseCustomException):
+    """Raised when checking existance image by ist path"""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the ImageUnvailableError exception."""
+        super().__init__(message, *args)

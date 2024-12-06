@@ -9,11 +9,11 @@ Classes:
 """
 
 import abc
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from openvair.modules.snmp.domain.base import BaseSNMP
 from openvair.modules.snmp.domain.agentx import agentx
-from openvair.modules.snmp.domain.exceptions import SNMPAgenTypeError
+from openvair.modules.snmp.domain.exceptions import SNMPAgentTypeError
 
 
 class AbstractSNMPFactory(metaclass=abc.ABCMeta):
@@ -59,10 +59,10 @@ class SNMPFactory(AbstractSNMPFactory):
         Raises:
             SNMPAgenTypeError: If the specified SNMP agent type is not found.
         """
-        snmp_class = self._snmp_classes.get(snmp_type)
-
-        if not snmp_class:
+        try:
+            snmp_class = self._snmp_classes[snmp_type]
+        except KeyError:
             message = f"SNMP type '{snmp_type}' not found"
-            raise SNMPAgenTypeError(message)
-
-        return snmp_class()
+            raise SNMPAgentTypeError(message)
+        else:
+            return cast(BaseSNMP, snmp_class())
