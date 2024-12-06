@@ -240,29 +240,23 @@ def execute(*cmd: str, **kwargs: Any) -> Tuple[str, str]:  # noqa: C901 ANN401 n
         raise
 
 
-def execute2(
-    *args: str,
-    shell: bool = False,
-    run_as_root: bool = False,
-    root_helper: str = 'sudo',
-    timeout: Optional[float] = None,
-    raise_on_error: bool = False,
+def run_command(
+    proc: subprocess.Popen,
+    cmd_str: str,
+    timeout: Optional[float],
+    *,
+    raise_on_error: bool,
 ) -> Dict[str, Union[str, int]]:
-    """Executes a shell command and returns its stdout, stderr, and exit code.
+    """Handles the execution of a subprocess and processes its results.
 
     Args:
-        *args (str): Command and its arguments to execute.
-        shell (bool): If True, the command will be executed through the shell.
-            Defaults to False.
-        run_as_root (bool): If True, the command will be executed with root
-            privileges using the specified root_helper. Defaults to False.
-        root_helper (str): Command to elevate privileges, such as 'sudo'.
-            Defaults to 'sudo'.
+        proc (subprocess.Popen): The subprocess to be executed.
+        cmd_str (str): The string representation of the command being executed.
         timeout (Optional[float]): Maximum time in seconds to wait for the
             command to complete. Defaults to None (no timeout).
         raise_on_error (bool): If True, raises an exception if the command exits
-            with a non-zero return code.If False, the return code is included in
-            the output dictionary for manual handling. Defaults to False.
+            with a non-zero return code. If False, includes the return code
+            in the output dictionary for manual handling.
 
     Returns:
         Dict[str, Union[str, int]]: A dictionary containing the following keys:
@@ -275,7 +269,81 @@ def execute2(
             specified timeout.
         ExecuteError: Raised if the command exits with a non-zero return code
             and raise_on_error is True.
-        OSError: Raised for system errors that occur during command execution.
+    """
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+        returncode = proc.returncode
+        LOG.info(
+            f"Command '{cmd_str}' completed with return code " f'{returncode}'
+        )
+        if raise_on_error and returncode != 0:
+            message = (
+                f"Command '{cmd_str}' failed with return code " f'{returncode}'
+            )
+            LOG.error(message)
+            raise ExecuteError(message)
+    except subprocess.TimeoutExpired:
+        LOG.warning(
+            f"Command '{cmd_str}' timed out. Attempting graceful termination."
+        )
+        proc.terminate()  # soft terminate
+        try:
+            proc.wait(timeout=5)  # 5 seconds for graceful termination
+        except subprocess.TimeoutExpired:
+            LOG.error(f"Command '{cmd_str}' did not terminate. Killing it now.")
+            proc.kill()  # kill process after 5 seconds if not terminated
+        _, stderr = proc.communicate()  # Get stderr after finishing process
+        message = (
+            f"Command '{cmd_str}' timed out and was killed.\n"
+            f'Error: {stderr}'
+        )
+        raise ExecuteTimeoutExpiredError(message)
+    return {
+        'stdout': stdout,
+        'stderr': stderr,
+        'returncode': returncode,
+    }
+
+
+def execute2(
+    *args: str,
+    shell: bool = False,
+    run_as_root: bool = False,
+    root_helper: str = 'sudo',
+    timeout: Optional[float] = None,
+    raise_on_error: bool = False,
+) -> Dict[str, Union[str, int]]:
+    """Executes a shell command and returns its stdout, stderr, and exit code.
+
+    Args:
+        *args (str): The command and its arguments to execute. Each argument
+            must be passed as a separate string.
+        shell (bool): If True, the command will be executed through the shell.
+            Defaults to False.
+        run_as_root (bool): If True, the command will be executed with root
+            privileges using the specified root_helper. Defaults to False.
+        root_helper (str): The command used to elevate privileges, such as
+            'sudo'. Defaults to 'sudo'.
+        timeout (Optional[float]): Maximum time in seconds to wait for the
+            command to complete. Defaults to None (no timeout).
+        raise_on_error (bool): If True, raises an exception if the command exits
+            with a non-zero return code. If False, includes the return code
+            in the output dictionary for manual handling. Defaults to False.
+
+    Returns:
+        Dict[str, Union[str, int]]: A dictionary containing the following keys:
+            - 'stdout': Standard output of the command (str).
+            - 'stderr': Standard error output of the command (str).
+            - 'returncode': The exit code of the command (int). This is included
+                only if raise_on_error is False.
+
+    Raises:
+        ExecuteTimeoutExpiredError: Raised if the command execution exceeds the
+            specified timeout.
+        ExecuteError: Raised if the command exits with a non-zero return code
+            and raise_on_error is True.
+        OSError: Raised for system-level errors, such as command not found or
+            permission issues.
 
     Example:
         >>> execute2('ls', '-l', raise_on_error=True)
@@ -296,55 +364,24 @@ def execute2(
 
     cmd_str = ' '.join(cmd)
     LOG.info(f'Executing command: {cmd_str}')
-
-    stdout, stderr, returncode = '', '', None
     try:
-        proc = subprocess.Popen(  # noqa: S603
+        with subprocess.Popen(  # noqa: S603
             shlex.split(cmd_str) if shell else cmd,
             shell=shell,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=subprocess.PIPE,
             text=True,
-        )
-
-        try:
-            stdout, stderr = proc.communicate(timeout=timeout)
-            returncode = proc.returncode
-            LOG.info(
-                f"Command '{cmd_str}' completed with return code {returncode}"
+        ) as proc:
+            return run_command(
+                proc,
+                cmd_str,
+                timeout,
+                raise_on_error=raise_on_error,
             )
-            if raise_on_error and returncode != 0:
-                message = (
-                    f"Command '{cmd_str}' failed with return code {returncode}"
-                )
-                LOG.error(message)
-                raise ExecuteError(message)
-        except subprocess.TimeoutExpired:
-            LOG.warning(
-                f"Command '{cmd_str}' timed out. Attempting "
-                'graceful termination.'
-            )
-            proc.terminate()  # soft terminate
-            try:
-                proc.wait(timeout=5)  # 5 seconds for graceful termination
-            except subprocess.TimeoutExpired:
-                LOG.error(
-                    f"Command '{cmd_str}' did not terminate. Killing it now."
-                )
-                proc.kill()  # kill process after 5 seconds if not terminated
-
-            _, stderr = (
-                proc.communicate()
-            )  # Получить stderr после завершения процесса
-            message = f"Command '{cmd_str}' timed out and was killed."
-            raise ExecuteTimeoutExpiredError(message)
-
     except OSError as err:
         LOG.error(f"OS error for command '{cmd_str}': {err}")
         raise
-
-    return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
 
 
 def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
