@@ -22,5 +22,5 @@ jobs:
         run: |
           git push --force gitflic
         env:
-          GIT_HTTPS_USER: "${{ secrets.GIT_USERNAME }}"
+          GIT_HTTPS_USER: "aerodisk_open_vair"
           GIT_HTTPS_PASSWORD: "${{ secrets.GIT_FLIC_PASSWORD }}"
