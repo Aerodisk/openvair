@@ -296,9 +296,11 @@ def execute2(
 
     cmd_str = ' '.join(cmd)
     LOG.info(f'Executing command: {cmd_str}')
+
+    stdout, stderr, returncode = '', '', None
     try:
         proc = subprocess.Popen(  # noqa: S603
-            cmd if not shell else shlex.split(cmd_str),
+            shlex.split(cmd_str) if shell else cmd,
             shell=shell,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -341,8 +343,8 @@ def execute2(
     except OSError as err:
         LOG.error(f"OS error for command '{cmd_str}': {err}")
         raise
-    else:
-        return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+
+    return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
 
 
 def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
@@ -818,10 +820,3 @@ def xml_to_jsonable(xml_string: str) -> Union[Dict, List]:
     # Парсим XML и убираем префиксы
     parsed_dict = xmltodict.parse(xml_string)
     return remove_prefix(parsed_dict)
-
-
-if __name__ == '__main__':
-    res = execute2(
-        'ls -l',
-    )
-    LOG.info(res)
