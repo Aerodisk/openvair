@@ -1,71 +1,19 @@
-"""Module for serializing and deserializing storage data.
+"""This module provides classes for serializing and deserializing Storages
 
-This module provides abstract and concrete classes for serializing and
-deserializing storage data between different formats, including domain
-objects, database objects, and web representations.
+It includes a concrete implementation `DataSerializer` which provides methods
+to convert Storage objects to domain, database, and web-friendly
+dictionaries.
 
 Classes:
-    AbstractDataSerializer: Abstract base class defining the serialization
-        interface.
-    DataSerializer: Concrete implementation of the serialization interface
-        for storage data.
+    DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import abc
 from typing import Dict, Type
 
 from sqlalchemy import inspect
 
+from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.storage.adapters.orm import Storage
-
-
-class AbstractDataSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class defining the serialization interface.
-
-    This class provides the interface for serializing and deserializing
-    storage data between different formats, including domain objects,
-    database objects, and web representations.
-    """
-
-    @classmethod
-    @abc.abstractmethod
-    def to_domain(cls, storage: Storage) -> Dict:
-        """Convert a database storage object to a domain dictionary.
-
-        Args:
-            storage (Storage): The storage object to convert.
-
-        Returns:
-            Dict: The converted domain dictionary.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    @abc.abstractmethod
-    def to_db(cls, data: Dict, orm_class: Type = Storage) -> Storage:
-        """Convert a domain dictionary to a database storage object.
-
-        Args:
-            data (Dict): The domain dictionary to convert.
-            orm_class (Type): The ORM class to use for the conversion.
-
-        Returns:
-            Storage: The converted database storage object.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    @abc.abstractmethod
-    def to_web(cls, storage: Storage) -> Dict:
-        """Convert a database storage object to a web dictionary.
-
-        Args:
-            storage (Storage): The storage object to convert.
-
-        Returns:
-            Dict: The converted web dictionary.
-        """
-        raise NotImplementedError
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -76,20 +24,24 @@ class DataSerializer(AbstractDataSerializer):
     """
 
     @classmethod
-    def to_domain(cls, storage: Storage) -> Dict:
-        """Convert a database storage object to a domain dictionary.
+    def to_domain(
+        cls,
+        orm_object: Storage,
+    ) -> Dict:
+        """Its get dictonary of data about the storage
 
         This method takes a storage object and a list of extra specs, and
         returns a dictionary of the storage object with the extra specs added
         to it.
 
         Args:
-            storage (Storage): The storage object to convert.
+            cls: The class that is being converted to a domain object.
+            orm_object (Storage): Storage
 
         Returns:
             Dict: The converted domain dictionary.
         """
-        storage_dict = storage.__dict__.copy()
+        storage_dict = orm_object.__dict__.copy()
         storage_dict.update(
             {
                 'id': str(storage_dict.get('id', '')),
@@ -108,11 +60,12 @@ class DataSerializer(AbstractDataSerializer):
         return storage_dict
 
     @classmethod
-    def to_db(cls, data: Dict, orm_class: Type = Storage) -> Storage:
-        """Convert a domain dictionary to a database storage object.
-
-        This method takes a dictionary and returns an object of the class
-        Storage.
+    def to_db(
+        cls,
+        data: Dict,
+        orm_class: Type = Storage,
+    ) -> Storage:
+        """It takes a dictionary and returns an object of the class Storage
 
         Args:
             data (Dict): The domain dictionary to convert.
@@ -129,20 +82,25 @@ class DataSerializer(AbstractDataSerializer):
         return orm_class(**orm_dict)
 
     @classmethod
-    def to_web(cls, storage: Storage) -> Dict:
-        """Convert a database storage object to a web dictionary.
+    def to_web(
+        cls,
+        orm_object: Storage,
+    ) -> Dict:
+        """It takes a dictionary and returns an object of the class Storage
 
         This method takes a storage object and a list of extra specs, and
         returns a dictionary of the storage object with the extra specs added
         to it.
 
         Args:
-            storage (Storage): The storage object to convert.
+            cls: The class of the object that is being converted.
+            orm_object: The storage object that we're converting to a
+                dictionary.
 
         Returns:
             Dict: The converted web dictionary.
         """
-        storage_dict = storage.__dict__.copy()
+        storage_dict = orm_object.__dict__.copy()
         storage_dict.update(
             {
                 'id': str(storage_dict.get('id', '')),

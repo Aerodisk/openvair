@@ -15,12 +15,10 @@ from typing import TYPE_CHECKING, List
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.virtual_network.adapters.orm import (
     PortGroup,
     VirtualNetwork,
-)
-from openvair.modules.virtual_network.adapters.exceptions import (
-    DBCannotBeConnectedError,
 )
 
 if TYPE_CHECKING:

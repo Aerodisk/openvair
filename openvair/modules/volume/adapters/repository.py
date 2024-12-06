@@ -17,8 +17,8 @@ from typing import TYPE_CHECKING, List
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.volume.adapters.orm import Volume
-from openvair.modules.volume.adapters.exceptions import DBCannotBeConnectedError
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session

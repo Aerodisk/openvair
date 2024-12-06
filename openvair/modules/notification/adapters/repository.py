@@ -11,10 +11,8 @@ from typing import TYPE_CHECKING, Dict, List, NoReturn
 
 from sqlalchemy.exc import OperationalError
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.notification.adapters.orm import Notification
-from openvair.modules.notification.adapters.exceptions import (
-    DBCannotBeConnectedError,
-)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
