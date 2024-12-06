@@ -15,20 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Шаг 2: Настроить SSH для GitFlic с использованием OpenSSH
+      # Шаг 2: Установить OpenSSH клиент
+      - name: Install OpenSSH client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
+
+      # Шаг 3: Настроить SSH для GitFlic
       - name: Configure SSH for GitFlic
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.GITFLIC_SSH_KEY }}" > ~/.ssh/gitflic_key
           chmod 600 ~/.ssh/gitflic_key
           echo -e "Host gitflic.ru\n\tIdentityFile ~/.ssh/gitflic_key\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-          # Устанавливаем OpenSSH для Ed25519
-          sudo apt-get install -y openssh-client
 
-      # Шаг 3: Добавить remote для GitFlic
+      # Шаг 4: Добавить remote для GitFlic
       - name: Add remote for GitFlic
         run: git remote add gitflic git@gitflic.ru:aerodisk_open_vair/openvair.git
 
-      # Шаг 4: Принудительно отправить изменения на GitFlic
+      # Шаг 5: Принудительно отправить изменения на GitFlic
       - name: Force push to GitFlic
         run: git push --force gitflic
