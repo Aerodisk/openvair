@@ -246,6 +246,7 @@ def execute2(
     run_as_root: bool = False,
     root_helper: str = 'sudo',
     timeout: Optional[float] = None,
+    raise_on_error: bool = False,
 ) -> Dict[str, Union[str, int]]:
     """Executes a shell command and returns its stdout, stderr, and exit code.
 
@@ -259,6 +260,9 @@ def execute2(
             Defaults to 'sudo'.
         timeout (Optional[float]): Maximum time in seconds to wait for the
             command to complete. Defaults to None (no timeout).
+        raise_on_error (bool): If True, raises an exception if the command exits
+            with a non-zero return code.If False, the return code is included in
+            the output dictionary for manual handling. Defaults to False.
 
     Returns:
         Dict[str, Union[str, int]]: A dictionary containing the following keys:
@@ -269,7 +273,22 @@ def execute2(
     Raises:
         ExecuteTimeoutExpiredError: Raised if the command execution exceeds the
             specified timeout.
+        ExecuteError: Raised if the command exits with a non-zero return code
+            and raise_on_error is True.
         OSError: Raised for system errors that occur during command execution.
+
+    Example:
+        >>> execute2('ls', '-l', raise_on_error=True)
+        {'stdout': 'output', 'stderr': '', 'returncode': 0}
+
+        >>> execute2('false', raise_on_error=True)
+        Traceback (most recent call last):
+            ...
+        ExecuteError: Command 'false' failed
+
+        >>> result = execute2('false', raise_on_error=False)
+        >>> print(result)
+        {'stdout': '', 'stderr': '', 'returncode': 1}
     """
     cmd: List[str] = list(args)
     if run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
@@ -279,7 +298,7 @@ def execute2(
     LOG.info(f'Executing command: {cmd_str}')
     try:
         proc = subprocess.Popen(  # noqa: S603
-            shlex.split(cmd_str),
+            cmd if not shell else shlex.split(cmd_str),
             shell=shell,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -293,11 +312,15 @@ def execute2(
             LOG.info(
                 f"Command '{cmd_str}' completed with return code {returncode}"
             )
-            stdout = os.fsdecode(stdout) if stdout is not None else ''
-            stderr = os.fsdecode(stderr) if stderr is not None else ''
+            if raise_on_error and returncode != 0:
+                message = (
+                    f"Command '{cmd_str}' failed with return code {returncode}"
+                )
+                LOG.error(message)
+                raise ExecuteError(message)
         except subprocess.TimeoutExpired:
-            proc.kill()  # Принудительно завершаем процесс
-            _, stderr = proc.communicate()  # Получаем stderr после остановки
+            proc.kill()
+            _, stderr = proc.communicate()
             message = f"Command '{cmd_str}' timed out."
             LOG.error(message)
             raise ExecuteTimeoutExpiredError(message)
@@ -782,3 +805,10 @@ def xml_to_jsonable(xml_string: str) -> Union[Dict, List]:
     # Парсим XML и убираем префиксы
     parsed_dict = xmltodict.parse(xml_string)
     return remove_prefix(parsed_dict)
+
+
+if __name__ == '__main__':
+    res = execute2(
+        'ls -l',
+    )
+    LOG.info(res)
