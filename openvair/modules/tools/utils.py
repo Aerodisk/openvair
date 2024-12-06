@@ -247,6 +247,30 @@ def execute2(
     root_helper: str = 'sudo',
     timeout: Optional[float] = None,
 ) -> Dict[str, Union[str, int]]:
+    """Executes a shell command and returns its stdout, stderr, and exit code.
+
+    Args:
+        *args (str): Command and its arguments to execute.
+        shell (bool): If True, the command will be executed through the shell.
+            Defaults to False.
+        run_as_root (bool): If True, the command will be executed with root
+            privileges using the specified root_helper. Defaults to False.
+        root_helper (str): Command to elevate privileges, such as 'sudo'.
+            Defaults to 'sudo'.
+        timeout (Optional[float]): Maximum time in seconds to wait for the
+            command to complete. Defaults to None (no timeout).
+
+    Returns:
+        Dict[str, Union[str, int]]: A dictionary containing the following keys:
+            - 'stdout': Standard output of the command (str).
+            - 'stderr': Standard error output of the command (str).
+            - 'returncode': The exit code of the command (int).
+
+    Raises:
+        ExecuteTimeoutExpiredError: Raised if the command execution exceeds the
+            specified timeout.
+        OSError: Raised for system errors that occur during command execution.
+    """
     cmd: List[str] = list(args)
     if run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
         cmd = [root_helper, *cmd]
