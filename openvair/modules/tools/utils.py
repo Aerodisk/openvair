@@ -240,7 +240,7 @@ def execute(*cmd: str, **kwargs: Any) -> Tuple[str, str]:  # noqa: C901 ANN401 n
         raise
 
 
-def run_command(
+def __run_command(
     proc: subprocess.Popen,
     cmd_str: str,
     timeout: Optional[float],
@@ -373,7 +373,7 @@ def execute2(
             stdin=subprocess.PIPE,
             text=True,
         ) as proc:
-            return run_command(
+            return __run_command(
                 proc,
                 cmd_str,
                 timeout,
