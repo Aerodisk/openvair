@@ -14,16 +14,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GITFLIC_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan gitflic.ru >> ~/.ssh/known_hosts
-
       - name: Add gitflic remote
         run: |
-          git remote add gitflic git@gitflic.ru:project/aerodisk_open_vair/openvair.git
+          git remote add gitflic https://aerodisk_open_vair:${{ secrets.GITFLIC_TOKEN }}@gitflic.ru/project/aerodisk_open_vair/openvair.git
 
       - name: Force push to GitFlic
         run: |
