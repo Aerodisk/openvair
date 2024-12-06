@@ -20,5 +20,4 @@ jobs:
 
       - name: Force push to GitFlic
         run: |
-          git push --force gitflic --all
-          git push --force gitflic --tags
+          git push --force gitflic
