@@ -240,6 +240,51 @@ def execute(*cmd: str, **kwargs: Any) -> Tuple[str, str]:  # noqa: C901 ANN401 n
         raise
 
 
+def execute2(
+    *args: str,
+    shell: bool = False,
+    run_as_root: bool = False,
+    root_helper: str = 'sudo',
+    timeout: Optional[float] = None,
+) -> Dict[str, Union[str, int]]:
+    cmd: List[str] = list(args)
+    if run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
+        cmd = [root_helper, *cmd]
+
+    cmd_str = ' '.join(cmd)
+    LOG.info(f'Executing command: {cmd_str}')
+    try:
+        proc = subprocess.Popen(  # noqa: S603
+            shlex.split(cmd_str),
+            shell=shell,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            text=True,
+        )
+
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+            returncode = proc.returncode
+            LOG.info(
+                f"Command '{cmd_str}' completed with return code {returncode}"
+            )
+            stdout = os.fsdecode(stdout) if stdout is not None else ''
+            stderr = os.fsdecode(stderr) if stderr is not None else ''
+        except subprocess.TimeoutExpired:
+            proc.kill()  # Принудительно завершаем процесс
+            _, stderr = proc.communicate()  # Получаем stderr после остановки
+            message = f"Command '{cmd_str}' timed out."
+            LOG.error(message)
+            raise ExecuteTimeoutExpiredError(message)
+
+    except OSError as err:
+        LOG.error(f"OS error for command '{cmd_str}': {err}")
+        raise
+    else:
+        return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+
+
 def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
     """Creates a JWT access token.
 
