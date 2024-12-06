@@ -25,7 +25,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.GITFLIC_SSH_KEY }}" > ~/.ssh/gitflic_key
           chmod 600 ~/.ssh/gitflic_key
+          # Настройка конфигурации SSH для использования ключа ED25519
           echo -e "Host gitflic.ru\n\tIdentityFile ~/.ssh/gitflic_key\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+          # Добавление ключа в агент
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/gitflic_key
 
       # Шаг 4: Добавить remote для GitFlic
       - name: Add remote for GitFlic
