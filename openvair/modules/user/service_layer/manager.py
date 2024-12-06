@@ -11,19 +11,18 @@ Usage:
 
 from openvair.libs.log import get_logger
 from openvair.modules.user.config import USER_SERVICE_LAYER_QUEUE_NAME
-from openvair.modules.user.adapters import orm
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.user.service_layer import services
+from openvair.libs.messaging.messaging_agents import MessagingServer
 
 LOG = get_logger('service-layer-manager')
 
 
 if __name__ == '__main__':
-    orm.start_mappers()
     LOG.info('Starting User RPCServer for consuming')
     service = services.UserManager
     service.start(block=False)
-    Protocol(server=True)(
+    server = MessagingServer(
         queue_name=USER_SERVICE_LAYER_QUEUE_NAME,
         manager=service,
     )
+    server.start()

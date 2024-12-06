@@ -7,9 +7,10 @@ updating, and deleting notifications.
 
 import abc
 from uuid import UUID
-from typing import TYPE_CHECKING, Dict, List, NoReturn
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.notification.adapters.orm import Notification
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 class AbstractRepository(metaclass=abc.ABCMeta):
     """Abstract base class for notification repositories."""
 
-    def _check_connection(self) -> NoReturn:
+    def _check_connection(self) -> None:
         """Check the database connection.
 
         Raises:
@@ -58,7 +59,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
     def get_notifications_by_type(
         self, notifications_type: str
-    ) -> List[Notification]:
+    ) -> Optional[Notification]:
         """Retrieve notifications by their type.
 
         Args:
@@ -71,7 +72,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
     def get_notifications_by_subject(
         self, notifications_subject: str
-    ) -> List[Notification]:
+    ) -> Optional[Notification]:
         """Retrieve notifications by their subject.
 
         Args:
@@ -133,12 +134,12 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _get_notifications_by_type(
-        self, notification_name: str
-    ) -> List[Notification]:
+        self, notifications_type: str
+    ) -> Optional[Notification]:
         """Retrieve notifications by their type.
 
         Args:
-            notification_name (str): The type of notifications to retrieve.
+            notifications_type (str): The type of notifications to retrieve.
 
         Returns:
             List[Notification]: A list of notifications of the specified type.
@@ -148,7 +149,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def _get_notifications_by_subject(
         self, notification_subject: str
-    ) -> List[Notification]:
+    ) -> Optional[Notification]:
         """Retrieve notifications by their subject.
 
         Args:
@@ -237,25 +238,25 @@ class SqlAlchemyRepository(AbstractRepository):
         return self.session.query(Notification).all()
 
     def _get_notifications_by_type(
-        self, notification_type: str
-    ) -> List[Notification]:
+        self, notifications_type: str
+    ) -> Optional[Notification]:
         """Retrieve notifications by their type.
 
         Args:
-            notification_type (str): The type of notifications to retrieve.
+            notifications_type (str): The type of notifications to retrieve.
 
         Returns:
             List[Notification]: A list of notifications of the specified type.
         """
         return (
             self.session.query(Notification)
-            .filter_by(name=notification_type)
+            .filter_by(name=notifications_type)
             .first()
         )
 
     def _get_notifications_by_subject(
         self, notification_subject: str
-    ) -> Notification:
+    ) -> Optional[Notification]:
         """Retrieve notifications by their subject.
 
         Args:
@@ -278,11 +279,7 @@ class SqlAlchemyRepository(AbstractRepository):
         Args:
             notification_id (UUID): The ID of the notification to delete.
         """
-        return (
-            self.session.query(Notification)
-            .filter_by(id=notification_id)
-            .delete()
-        )
+        self.session.query(Notification).filter_by(id=notification_id).delete()
 
     def _bulk_update(self, data: List[Dict]) -> None:
         """Perform a bulk update on notifications.
@@ -291,4 +288,4 @@ class SqlAlchemyRepository(AbstractRepository):
             data (List[Dict]): A list of dictionaries containing the updated
                 notification data.
         """
-        self.session.bulk_update_mappings(Notification, data)
+        self.session.bulk_update_mappings(cast(Mapper, Notification), data)

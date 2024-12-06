@@ -9,16 +9,14 @@ Classes:
     UnmountError: Raised when an error occurs during the unmounting process.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class UnmountError(BaseCustomException):
     """Raised when an error occurs during the unmounting process."""
 
-    def __init__(self, *args):
-        """Initialize UnmountError with optional arguments.
-
-        Args:
-            *args: Variable length argument list for exception details.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize UnmountError with optional arguments."""
+        super().__init__(message, *args)

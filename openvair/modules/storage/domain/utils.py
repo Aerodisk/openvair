@@ -12,11 +12,13 @@ Classes:
 import re
 from typing import Dict, List, Tuple, Union, Literal, ClassVar
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from openvair.libs.log import get_logger
 from openvair.modules.storage.domain.exception import (
+    PartitionTableInfoNotFound,
     UnsupportedPartitionTableTypeError,
+    NotFoundDataInPartitonInfoException,
 )
 
 LOG = get_logger(__name__)
@@ -36,8 +38,8 @@ class DiskSizeValueObject(BaseModel):
     value: Union[int, float]
     unit: Literal['B', 'kB', 'MB', 'GB', 'TB'] = 'GB'
 
+    @field_validator('value')
     @classmethod
-    @validator('value')
     def value_validator(cls, v: Union[int, float]) -> Union[int, float]:
         """Validate that the value is a positive number.
 
@@ -141,7 +143,7 @@ class PartedParser:
         """
         LOG.info('Converting size string to bytes float value.')
         number, unit = self._parse_size(size_str)
-        return number * self.SIZE_TO_BYTES[unit]
+        return float(number * self.SIZE_TO_BYTES[unit])
 
     def _collect_data_rows_from_print(
         self, parted_print_output: str
@@ -155,23 +157,58 @@ class PartedParser:
             List[str]: Data rows extracted from the output.
         """
         LOG.info("Extracting data rows from the 'parted' command output.")
-        partition_table_start_index = (
-            re.compile('Partition Table:').search(parted_print_output).start()
+        partition_table_type = self._get_partiton_table_type(
+            parted_print_output
         )
-        partition_table = (
+        start_index = self._get_start_index_of_partition_table(
+            partition_table_type, parted_print_output
+        )
+
+        return parted_print_output[start_index:].strip().splitlines()
+
+    def _get_partiton_table_type(self, parted_print_output: str) -> str:
+        """Find and return type of partition table"""
+        partition_table_str = re.compile('Partition Table:').search(
+            parted_print_output
+        )
+        if not partition_table_str:
+            error = PartitionTableInfoNotFound(parted_print_output)
+            LOG.error(str(error))
+            raise error
+
+        partition_table_start_index = partition_table_str.start()
+        return (
             parted_print_output[partition_table_start_index:]
             .strip()
             .splitlines()
         )[0]
-        if 'gpt' in partition_table:
+
+    def _get_start_index_of_partition_table(
+        self,
+        partition_table_type: str,
+        parted_print_output: str,
+    ) -> int:
+        """Find and return start index of partitions data"""
+        headers = self._get_headers(partition_table_type)
+
+        part_info = re.compile(headers).search(parted_print_output)
+        if not part_info:
+            error = NotFoundDataInPartitonInfoException(str(part_info))
+            LOG.error(str(error))
+            raise error
+        return part_info.start()
+
+    def _get_headers(self, partition_table_type: str) -> str:
+        """Find and return headers of partiton table"""
+        if 'gpt' in partition_table_type:
             headers = self.HEADER_TMP_GPT
-        elif 'msdos' in partition_table:
+        elif 'msdos' in partition_table_type:
             headers = self.HEADER_TMP_MSDOS
         else:
-            raise UnsupportedPartitionTableTypeError
-        start_index = re.compile(headers).search(parted_print_output).start()
-
-        return parted_print_output[start_index:].strip().splitlines()
+            error = UnsupportedPartitionTableTypeError(partition_table_type)
+            LOG.error(str(error))
+            raise error
+        return headers
 
     def _collect_headers_with_column_length(
         self, headers_str: str

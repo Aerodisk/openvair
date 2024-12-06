@@ -7,9 +7,10 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type
+from typing import Dict, Type, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.event_store.adapters.orm import Events
@@ -26,7 +27,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_db(
         cls,
         data: Dict,
-        orm_class: Type = Events,
+        orm_class: Type[Events] = Events,
     ) -> Events:
         """Convert web data to a database ORM object.
 
@@ -41,7 +42,7 @@ class DataSerializer(AbstractDataSerializer):
             Events: The ORM object created from the data.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             value = data.get(column_name)

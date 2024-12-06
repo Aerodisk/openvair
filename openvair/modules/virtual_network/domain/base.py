@@ -12,7 +12,9 @@ Classes:
 import abc
 from typing import Any, Dict, List
 
-from openvair.modules.virtual_network.adapters.virsh_adapter import VirshAdapter
+from openvair.modules.virtual_network.adapters.virsh_adapter import (
+    VirshNetworkAdapter,
+)
 
 
 class BasePortGroup(metaclass=abc.ABCMeta):
@@ -24,19 +26,19 @@ class BasePortGroup(metaclass=abc.ABCMeta):
         tags (List[str]): List of tags associated with the port group.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BasePortGroup instance."""
-        self.port_group_name: str = kwargs.pop('port_group_name')
-        self.is_trunk: str = kwargs.pop('is_trunk', 'no')
-        self.tags: List[str] = kwargs.pop('tags', [])
+        self.port_group_name = str(kwargs.pop('port_group_name'))
+        self.is_trunk = str(kwargs.pop('is_trunk', 'no'))
+        self.tags: List[str] = list(kwargs.pop('tags', []))
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         """Check if two port groups are equal based on their names."""
         if isinstance(other, BasePortGroup):
             return self.port_group_name == other.port_group_name
         return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Compute the hash value based on the port group name."""
         return hash(self.port_group_name)
 
@@ -50,7 +52,7 @@ class BasePortGroup(metaclass=abc.ABCMeta):
         """Abstract method to delete a tag from the port group."""
         raise NotImplementedError
 
-    def as_dict(self) -> Dict[str, str]:
+    def as_dict(self) -> Dict[str, Any]:
         """Converts the port group object to a dictionary.
 
         Returns:
@@ -77,18 +79,20 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         virsh_xml (str): The XML representation of the virtual network.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BaseVirtualNetwork instance."""
-        self.id = kwargs.pop('id', '')
-        self.network_name: str = kwargs.pop('network_name', '')
-        self.forward_mode: str = kwargs.pop('forward_mode', 'openvswitch')
-        self.bridge: str = kwargs.pop('bridge', '')
-        self.virtual_port_type: str = kwargs.pop(
-            'virtual_port_type', 'openvswitch'
+        self.id = str(kwargs.pop('id', ''))
+        self.network_name = str(kwargs.pop('network_name', ''))
+        self.forward_mode = str(kwargs.pop('forward_mode', 'openvswitch'))
+        self.bridge = str(kwargs.pop('bridge', ''))
+        self.virtual_port_type = str(
+            kwargs.pop('virtual_port_type', 'openvswitch')
         )
-        self.port_groups: List[BasePortGroup] = kwargs.pop('port_groups', [])
-        self.virsh_xml: str = kwargs.pop('virsh_xml', '')
-        self.virsh = VirshAdapter()
+        self.port_groups: List[BasePortGroup] = list(
+            kwargs.pop('port_groups', [])
+        )
+        self.virsh_xml = str(kwargs.pop('virsh_xml', ''))
+        self.virsh = VirshNetworkAdapter()
 
     @abc.abstractmethod
     def add_port_group(self, port_group: Dict) -> Dict[str, Any]:
@@ -103,11 +107,11 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def del_port_group_by_name(self, port_group_name: str) -> None:
+    def del_port_group_by_name(self, data: Dict) -> Dict[str, str]:
         """Abstract method to delete a port group from virtual network by name.
 
         Args:
-            port_group_name (str): The name of the port group to delete.
+            data (Dict): Dictopnary woth the name of the port group to delete.
         """
         raise NotImplementedError
 
@@ -144,7 +148,7 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def is_exist_in_virsh(self) -> Dict:
+    def is_exist_in_virsh(self) -> bool:
         """Abstract method to check if the virtual network exists in virsh.
 
         Returns:

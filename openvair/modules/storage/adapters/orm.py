@@ -15,70 +15,84 @@ Functions:
 """
 
 import uuid
+from typing import List
 
 from sqlalchemy import (
+    UUID,
     Text,
-    Table,
-    Column,
     String,
     Boolean,
     Integer,
-    MetaData,
     BigInteger,
     ForeignKey,
 )
-from sqlalchemy.orm import registry, relationship
-from sqlalchemy.dialects import postgresql
-
-# Metadata and registry for SQLAlchemy
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
-
-# Definition of the `storages` table
-storages = Table(
-    'storages',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('name', String(60)),
-    Column('description', String(255)),
-    Column('storage_type', String(30), nullable=False),
-    Column('initialized', Boolean, default=False),
-    Column('status', String(30), nullable=False),
-    Column('information', Text),
-    Column('size', BigInteger, default=0),
-    Column('available', BigInteger, default=0),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-)
-
-# Definition of the `storage_extra_specs` table
-storage_extra_specs = Table(
-    'storage_extra_specs',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('key', String(60)),
-    Column('value', String(155)),
-    Column(
-        'storage_id', postgresql.UUID(as_uuid=True), ForeignKey('storages.id')
-    ),
+from sqlalchemy.orm import (
+    Mapped,
+    DeclarativeBase,
+    relationship,
+    mapped_column,
 )
 
 
-class Storage:
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
+
+    pass
+
+
+class Storage(Base):
     """Represents the `storages` table in the database.
 
     This class maps to the `storages` table, which stores general information
     about each storage, such as its type, status, and size.
     """
 
-    pass
+    __tablename__ = 'storages'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(
+        String(60),
+        nullable=True,
+    )
+    description: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    storage_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    initialized: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    information: Mapped[str] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    size: Mapped[int] = mapped_column(
+        BigInteger,
+        default=0,
+        nullable=True,
+    )
+    available: Mapped[int] = mapped_column(
+        BigInteger,
+        default=0,
+        nullable=True,
+    )
+    user_id: Mapped[int] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+    extra_specs: Mapped[List['StorageExtraSpecs']] = relationship(
+        'StorageExtraSpecs', back_populates='storage', uselist=True
+    )
 
 
-class StorageExtraSpecs:
+class StorageExtraSpecs(Base):
     """Represents the `storage_extra_specs` table in the database.
 
     This table stores key-value pairs of extra specifications for each storage.
@@ -94,22 +108,24 @@ class StorageExtraSpecs:
         2     |   path    |  /nfs/data  |    UUID(1)
     """
 
-    pass
+    __tablename__ = 'storage_extra_specs'
 
-
-def start_mappers() -> None:
-    """Configure ORM mappings for storage-related tables.
-
-    This function maps the `Storage` and `StorageExtraSpecs` classes to
-    their corresponding tables in the database.
-    """
-    mapper_registry.map_imperatively(
-        Storage,
-        storages,
-        properties={
-            'extra_specs': relationship(
-                StorageExtraSpecs, backref='storage', uselist=True
-            ),
-        },
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(
+        String(60),
+        nullable=True,
     )
-    mapper_registry.map_imperatively(StorageExtraSpecs, storage_extra_specs)
+    value: Mapped[str] = mapped_column(
+        String(155),
+        nullable=True,
+    )
+    storage_id: Mapped[uuid.UUID] = mapped_column(
+        'storage_id',
+        UUID(),
+        ForeignKey('storages.id'),
+        nullable=True,
+    )
+
+    storage: Mapped[Storage] = relationship(
+        'Storage', back_populates='extra_specs'
+    )

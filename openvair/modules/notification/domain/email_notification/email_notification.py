@@ -5,12 +5,14 @@ sending email notifications using SMTP.
 """
 
 import smtplib
+from typing import Any
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from openvair.libs.log import get_logger
 from openvair.modules.notification.domain.base import BaseEmailNotification
 from openvair.modules.notification.domain.exceptions import (
+    NotificationSMTPException,
     NoRecipientsSpecifiedForEmailNotification,
 )
 
@@ -20,16 +22,16 @@ LOG = get_logger(__name__)
 class EmailNotification(BaseEmailNotification):
     """Class representing an email notification."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize an `EmailNotification` instance.
 
         Args:
-           *args: Variable length argument list.
-           **kwargs: Arbitrary keyword arguments, which may include:
+            args: Variable length argument list.
+            kwargs: Arbitrary keyword arguments, which may include:
                 - subject (str): The subject of the email.
         """
         super().__init__(*args, **kwargs)
-        self.subject = kwargs.get('subject', '')
+        self.subject = str(kwargs.get('subject', ''))
         LOG.info('Initialized EmailNotification')
 
     def send(self) -> None:
@@ -47,7 +49,9 @@ class EmailNotification(BaseEmailNotification):
                 specified for the email.
         """
         if not self.recipients:
-            raise NoRecipientsSpecifiedForEmailNotification
+            raise NoRecipientsSpecifiedForEmailNotification(
+                str(self.recipients)
+            )
 
         for recipient in self.recipients:
             self._send_msg_to_recipient(recipient)
@@ -64,10 +68,15 @@ class EmailNotification(BaseEmailNotification):
         complete_msg = msg.as_string()
 
         server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
-        server.login(self.smtp_username, self.smtp_password)
-        server.sendmail(self.smtp_username, recipient, complete_msg)
-        server.close()
-        LOG.info('Message was sent to recipient: %s', recipient)
+        try:
+            server.login(self.smtp_username, self.smtp_password)
+            server.sendmail(self.smtp_username, recipient, complete_msg)
+            server.close()
+            LOG.info('Message was sent to recipient: %s', recipient)
+        except smtplib.SMTPException as err:
+            error = NotificationSMTPException(str(err))
+            LOG.error(str(error))
+            raise error
 
     def _construct_msg(self) -> MIMEMultipart:
         """Construct the email message to be sent.

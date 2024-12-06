@@ -16,6 +16,7 @@ import abc
 from uuid import UUID
 from typing import TYPE_CHECKING, List
 
+from sqlalchemy import update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
 
@@ -318,7 +319,7 @@ class SqlAlchemyRepository(AbstractRepository):
         Args:
             image_id (UUID): The unique identifier of the image to delete.
         """
-        return self.session.query(Image).filter_by(id=image_id).delete()
+        self.session.query(Image).filter_by(id=image_id).delete()
 
     def _bulk_update(self, data: List) -> None:
         """Perform a bulk update on images.
@@ -326,4 +327,4 @@ class SqlAlchemyRepository(AbstractRepository):
         Args:
             data (List): A list of dictionaries containing the update data.
         """
-        self.session.bulk_update_mappings(Image, data)
+        self.session.execute(update(Image), data)

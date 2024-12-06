@@ -13,8 +13,8 @@ Classes:
 """
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.dashboard.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.messaging.messaging_agents import MessagingServer
 from openvair.modules.dashboard.service_layer import services
 
 LOG = get_logger('service-layer-manager')
@@ -24,7 +24,8 @@ if __name__ == '__main__':
     LOG.info('Starting dashboard RPCServer for consuming')
     service = services.DashboardServiceLayerManager
     service.start(block=False)
-    Protocol(server=True)(
+    server = MessagingServer(
         queue_name=API_SERVICE_LAYER_QUEUE_NAME,
         manager=services.DashboardServiceLayerManager,
     )
+    server.start()

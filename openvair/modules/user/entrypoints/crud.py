@@ -24,8 +24,8 @@ from typing import Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.user.config import USER_SERVICE_LAYER_QUEUE_NAME
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.user.service_layer import services
+from openvair.libs.messaging.messaging_agents import MessagingClient
 
 LOG = get_logger(__name__)
 
@@ -48,13 +48,13 @@ class UserCrud:
             returns a token.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the UserCrud class.
 
         Creates a connection to the service layer
         """
-        self.service_layer_rpc = Protocol(client=True)(
-            USER_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=USER_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_user(self, user_id: str) -> Dict:
@@ -67,10 +67,11 @@ class UserCrud:
             Dict: The user information.
         """
         LOG.info(f'Call service layer on getting user by ID: {user_id}')
-        return self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.UserManager.get_user.__name__,
-            data_for_method=user_id,
+            data_for_method={'user_id': user_id},
         )
+        return result
 
     def create_user(
         self,
@@ -89,10 +90,11 @@ class UserCrud:
             Dict: The created user information.
         """
         data.update({'user_id': user_id, 'user_data': user_data})
-        return self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.UserManager.create_user.__name__,
             data_for_method=data,
         )
+        return result
 
     def change_password(self, user_id: str, data: Dict) -> Dict:
         """Change the password for a user.
@@ -105,10 +107,10 @@ class UserCrud:
             Dict: The result of the password change operation.
         """
         data.update({'user_id': user_id})
-        return self.service_layer_rpc.call(
-            services.UserManager.change_password.__name__,
-            data_for_method=data
+        result: Dict = self.service_layer_rpc.call(
+            services.UserManager.change_password.__name__, data_for_method=data
         )
+        return result
 
     def delete_user(
         self,
@@ -124,10 +126,11 @@ class UserCrud:
         Returns:
             Dict: The result of the delete operation.
         """
-        return self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.UserManager.delete_user.__name__,
             data_for_method={'user_id': user_id, 'user_data': user_data},
         )
+        return result
 
     def auth(self, username: str, password: str) -> Dict:
         """Authenticate a user and return a token.
@@ -139,10 +142,11 @@ class UserCrud:
         Returns:
             Dict: A dictionary containing authentication tokens.
         """
-        return self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.UserManager.authenticate_user.__name__,
             data_for_method={
                 'username': username,
                 'password': password,
             },
         )
+        return result

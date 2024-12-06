@@ -1,82 +1,87 @@
 # Open vAir
 
-## Переводы
+## 🌍 Translations
 
-- [English](README.en.md)
+- [Русский](README.ru.md)
 
-## Описание проекта
+## 📖 Project Description
 
-**Open vAir** — это облегченное решение на основе проекта **vAir**,
-предназначенное для использования в качестве среды разработки и системы
-виртуализации. Программа функционирует в интерактивном режиме, предоставляя
-гибкий и удобный инструмент для управления виртуальной инфраструктурой.
+**Open vAir** is a lightweight solution based on the **vAir** project,
+designed for use as a development environment and virtualization system. The
+program operates in interactive mode, providing a flexible and convenient
+tool for managing virtual infrastructure.
 
-## Установка
+## 📦 Installation
 
-Для установки **Open vAir** на чистую систему с операционной системой Linux выполните следующие действия. Рекомендуется использовать **Ubuntu 20.04**, которая наиболее протестирована. Также поддерживается **Ubuntu 22.04**.
+To install **Open vAir** on a clean Linux system, follow these steps. It is
+recommended to use **Ubuntu 20.04**, which is the most tested version.
+**Ubuntu 22.04** is also supported.
 
-### Подготовка к установке проекта
+### ☑️ Preparation for Project Installation
 
-1. Убедитесь, что все системные пакеты обновлены. Для этого выполните следующие команды:
+1. Ensure all system packages are up to date. Execute the following commands:
 
     ```shell
     sudo apt update && sudo apt upgrade -y
     ```
-    > **Важно**: Не забудьте перезагрузить систему после выполнения команд для применения всех изменений.
+    > **Important**: Don't forget to restart the system after executing these
+    commands to apply all changes.
 
-2. Выполните следующие команды для создания и настройки пользователя:
+2. Execute the following commands to create and configure a user:
 
-    1. Создайте пользователя:
+    1. Create a user:
 
         ```shell
         sudo useradd -s /bin/bash -d /opt/aero -m aero
         ```
 
-    2. Назначьте необходимые права:
+    2. Assign necessary permissions:
 
         ```shell
         sudo chmod +x /opt/aero
         ```
 
-    3. Добавьте пользователя в список суперпользователей:
+    3. Add the user to the superuser list:
 
         ```shell
         echo "aero ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/aero
         ```
 
-    4. Переключитесь на нового пользователя:
+    4. Switch to the new user:
 
         ```shell
         sudo -u aero -i
         ```
 
-3. Скачайте репозиторий проекта:
+3. Download the project repository:
 
     ```shell
-    git clone http://git.aerodisk.local/vair/openvair.git
+    # GitHub
+    git clone https://github.com/Aerodisk/openvair.git
 
-    # или
-
+    # GitFlic
     git clone https://gitflic.ru/project/aerodisk_open_vair/openvair.git
 
-    # или
-    
-    git clone https://github.com/Aerodisk/openvair.git
+    # GitVerse
+    git clone https://gitverse.ru/Aerodisk/openvair.git
+
+    # GitLab
+    git clone https://git.aerodisk.ru/openvair/openvair.git
     ```
 
-4. Настройте конфигурационный файл:
+4. Configure the configuration file:
 
     ```shell
     vi ~/openvair/project_config.toml
     ```
 
-### Настройка проекта
+### ⚙️ Project Configuration
 
-Перед установкой **Open vAir** необходимо задать логин и пароль в файле `/opt
-aero/openvair/project_config.toml`. Эти данные требуются для авторизации в
-системе и доступа ко всем функциям приложения.
+Before installing **Open vAir**, you need to set the login and password in
+the `/opt/aero/openvair/project_config.toml` file. This data is required for
+system authorization and access to all application functions.
 
-Пример конфигурации:
+Configuration example:
 
 ```toml
 [default_user]
@@ -84,19 +89,19 @@ login = ''
 password = ''
 ```
 
-Примечание: Поля логина и пароля обязательно должны быть заполнены
-пользователем. В противном случае установка будет прервана.
+Note: The login and password fields must be filled in by the user. Otherwise,
+the installation will be aborted.
 
-###### Туннелирование приложения
-Если приложение необходимо запускать на отдельном хосте в качестве сервера,
-настройте туннелирование в виртуальную сеть. Определите локальный IP-адрес
-хоста, выполнив команду:
+### 🌀 Application Tunneling
+If the application needs to be run on a separate host as a server, configure
+tunneling to the virtual network. Determine the local IP address of the host
+by executing the command:
 
 ```bash
 ip a
 ```
 
-Укажите полученный IP-адрес в конфигурационном файле:
+Specify the obtained IP address in the configuration file:
 
 ```toml
 [web_app]
@@ -104,78 +109,83 @@ host = '192.168.1.2'
 port = 8000
 ```
 
-### Запуск установки
-1. Запустите скрипт установки:
+### 🚀 Starting the Installation
+1. Run the installation script:
 ```bash
 ./openvair/install.sh
 ```
 
-По завершении установки вы получите сообщение с текущим адресом приложения, логином и паролем для работы с системой.
+Upon completion of the installation, you will receive a message with the
+current application address, login, and password for working with the system.
 
-### Деинсталляция
-Для удаления Open vAir выполните скрипт деинсталляции:
+### 🗑️ Uninstallation
+To remove Open vAir, run the uninstallation script:
 ```bash
 ./openvair/uninstall.sh
 ```
 
-### Документация
-Документацию можно найти в файле `/docs/build/index.html`, который будет создан
-после установки проекта. Также документация доступна по эндпоинту `/docs/`
-после завершения установки.
+### 📚 Documentation
+Documentation can be found in the `/docs/build/index.html` file, which will be
+created after the project installation. Documentation is also available at
+the `/docs/` endpoint after installation is complete.
 
-### Демоны
+### 😈 Daemons
 
-##### Демон приложения *web-app*
-Демон web-app обеспечивает автоматический запуск и перезапуск основного
-приложения на базе FastAPI, которое отвечает за работу API и GUI. Доступ к
-приложению осуществляется по адресу, указанному в секции web_app файла
-configtoml. По умолчанию это `http://127.0.0.1:8000`.
+#### *web-app* Daemon
+The web-app daemon ensures automatic startup and restart of the main FastAPI
+based application, which is responsible for API and GUI operations. The
+application is accessible at the address specified in the web_app section of
+the config.toml file. By default, this is  `http://127.0.0.1:8000`.
 
-* Проверка состояния демона:
+* Check daemon status:
 ```bash
 sudo systemctl status web-app.service
 ```
-* Перезапуск демона:
+* Restart daemon:
 ```bash
 sudo systemctl restart web-app.service
 ```
-* Остановка демона:
+* Stop daemon:
 ```bash
 sudo systemctl stop web-app.service
 ```
-* Просмотр логов демона:
+* View daemon logs:
 ```bash
 sudo journalctl -fu web-app.service
 ```
 
-##### Демон *service-layer*
-Демоны service-layer выполняют удаленные вызовы функций сервисного слоя.
-Каждый модуль имеет свой собственный демон service-layer. Для проверки
-статуса и просмотра логов используйте аналогичные команды, изменив название
-сервиса на `<module>-service-layer.service`.
+#### *service-layer* Daemon
+Service-layer daemons perform remote function calls of the service layer.
+Each module has its own service-layer daemon. To check the status and view
+logs, use similar commands, changing the service name to
+`<module>-service-layer.service`.
 
-Например:
+For example:
 ```bash
 sudo systemctl status storage-service-layer.service
 ```
 
-##### Демон *domain*
-Демоны domain выполняют удаленные вызовы функций слоя доменной области. Для
-каждого модуля существует свой демон domain. Для проверки статуса и просмотра
-логов используйте аналогичные команды, изменив название сервиса на
+#### *domain* Daemon
+Domain daemons perform remote function calls of the domain layer. Each
+module has its own domain daemon. To check the status and view logs, use
+similar commands, changing the service name to
 *<имя_предметной_области>-domain.service*.
 ```bash
 sudo systemctl status storage-domain.service
 ```
 
-### Ссылки на документацию
-* Ознакомление с проектом: [on-boarding](ONBOARDING.md).
-* Как внести вклад в проект: [howto-contribute](CONTRIBUTING.md).
-* Кодекс поведения: [code-of-conduct](CODE_OF_CONDUCT.md).
-* Соглашение о коде: [code-convention](CODE_CONVENTION.md).
+### 🔗 Documentation Links
+* Project introduction: [on-boarding](ONBOARDING.md).
+* How to contribute to the project:  [howto-contribute](CONTRIBUTING.md).
+* Code of conduct: [code-of-conduct](CODE_OF_CONDUCT.md).
+* Code convention: [code-convention](CODE_CONVENTION.md).
 
-### Frontend проекта
-* Для работы с интерфейсом пользователя (Frontend) используйте репозиторий [Open vAir UI](https://github.com/Aerodisk/Open-vAIR-UI).
+### 🔗 Frontend of the project
+* To work with the user interface (Frontend), use the repository [Open vAir UI](https://github.com/Aerodisk/Open-vAIR-UI).
 
-### Документация проекта
-* Для работы с документацией проекта используйте репозиторий [Open vAIR docs](https://github.com/Aerodisk/Open-vAIR-docs).
+### 🔗 Documentation of the project
+* To work with the documentation, use the repository [Open vAIR docs](https://github.com/Aerodisk/Open-vAIR-docs).
+
+### 🔗 Useful Links
+* [Telegram-channel](https://t.me/aerodisk_open_vair)
+* [Open vAIR website](https://openvair.ru/)

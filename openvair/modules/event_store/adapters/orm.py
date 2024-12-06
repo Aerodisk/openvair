@@ -10,45 +10,48 @@ Functions:
     start_mappers: Function to start the mapping of classes to tables.
 """
 
-import contextlib
+import uuid
+import datetime
+from typing import Optional
 
-from sqlalchemy import Text, Table, Column, String, Integer, DateTime, MetaData
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import registry
+from sqlalchemy import Text, String, Integer, DateTime
+from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.dialects import postgresql
 
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
 
-events = Table(
-    'events',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('module', String(40)),
-    Column('object_id', postgresql.UUID(as_uuid=True)),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-    Column('event', String(50), default=''),
-    Column('timestamp', DateTime, default=func.now()),
-    Column('information', Text),
-)
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
+
+    pass
 
 
-class Events:
+class Events(Base):
     """A class representing an event in the system.
 
     This class is mapped to the `events` table, which stores information about
     various events occurring within the system.
     """
 
-    pass
+    __tablename__ = 'events'
 
-
-def start_mappers() -> None:
-    """Start the mapping of classes to tables.
-
-    This function suppresses any SQLAlchemy errors that may occur during the
-    mapping process and maps the `Events` class to the `events` table.
-    """
-    with contextlib.suppress(SQLAlchemyError):
-        mapper_registry.map_imperatively(Events, events)
+    id: Mapped[int] = mapped_column(
+        Integer(),
+        primary_key=True,
+    )
+    module: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    object_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        postgresql.UUID(as_uuid=True)
+    )
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        postgresql.UUID(as_uuid=True)
+    )
+    event: Mapped[Optional[str]] = mapped_column(
+        String(50), default='', nullable=True
+    )
+    timestamp: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime,
+        default=func.now(),
+        nullable=True,
+    )
+    information: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

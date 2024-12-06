@@ -14,7 +14,9 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self
 
 from openvair.modules.volume.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.volume.adapters import repository
@@ -38,7 +40,7 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         """Enter the context, starting a new database session."""
         raise NotImplementedError
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the context and roll back the transaction if necessary."""
         self.rollback()
 
@@ -70,15 +72,15 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 Defaults to `DEFAULT_SESSION_FACTORY`.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the context, starting a new database session."""
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.volumes = repository.SqlAlchemyRepository(self.session)
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the context, closing the session and rolling back if needed."""
         super(SqlAlchemyUnitOfWork, self).__exit__(*args)
         self.session.close()

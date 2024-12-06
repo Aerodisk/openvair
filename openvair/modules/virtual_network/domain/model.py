@@ -11,7 +11,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar
+from typing import Dict, ClassVar, cast
 
 from openvair.modules.virtual_network.domain.base import BaseVirtualNetwork
 from openvair.modules.virtual_network.domain.bridge_network.bridge_net import (
@@ -22,7 +22,7 @@ from openvair.modules.virtual_network.domain.bridge_network.bridge_net import (
 class AbstractVirtualNetworkFactory(metaclass=abc.ABCMeta):
     """Abstract factory for creating objects of the BaseVirtualNetwork class."""
 
-    def __call__(self, virtual_network_data: Dict):
+    def __call__(self, virtual_network_data: Dict) -> BaseVirtualNetwork:
         """Creates and returns a virtual network instance.
 
         This method is called when an instance of the factory is used as a
@@ -68,4 +68,6 @@ class VirtualNetworkFactory(AbstractVirtualNetworkFactory):
         virtual_network_class = self._virtual_network_classes[
             virtual_network_data['forward_mode']
         ]
-        return virtual_network_class(**virtual_network_data)
+        return cast(
+            BaseVirtualNetwork, virtual_network_class(**virtual_network_data)
+        )

@@ -8,6 +8,8 @@ Classes:
     LibvirtConnection: Context manager for Libvirt connections.
 """
 
+from typing import Any
+
 import libvirt
 
 from openvair.libs.log import get_logger
@@ -25,11 +27,11 @@ class LibvirtConnection:
         connection: The active Libvirt connection instance.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the LibvirtConnection instance."""
         self.connection = None
 
-    def __enter__(self):
+    def __enter__(self) -> libvirt.virConnect:  # type: ignore
         """Open a connection to the Libvirt hypervisor.
 
         Returns:
@@ -38,7 +40,7 @@ class LibvirtConnection:
         self.connection = libvirt.open('qemu:///system')
         return self.connection
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Close the connection to the Libvirt hypervisor."""
         if self.connection is not None:
             self.connection.close()

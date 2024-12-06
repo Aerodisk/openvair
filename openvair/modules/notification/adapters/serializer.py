@@ -8,9 +8,10 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type
+from typing import Dict, Type, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.notification.adapters.orm import Notification
@@ -54,7 +55,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_db(
         cls,
         data: Dict,
-        orm_class: Type = Notification,
+        orm_class: Type[Notification] = Notification,
     ) -> Notification:
         """Converts a dictionary to an SQLAlchemy object.
 
@@ -71,7 +72,7 @@ class DataSerializer(AbstractDataSerializer):
                 data dictionary.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)
@@ -88,7 +89,7 @@ class DataSerializer(AbstractDataSerializer):
         same data, but with the id field converted to a string.
 
         Args:
-          orm_object (Notification): The notification object to convert.
+            orm_object (Notification): The notification object to convert.
 
         Returns:
             Dict: A dictionary representation for web output.

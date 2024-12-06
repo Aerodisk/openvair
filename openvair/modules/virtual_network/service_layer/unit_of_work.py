@@ -13,7 +13,7 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from openvair.modules.virtual_network.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.virtual_network.adapters import repository
@@ -44,7 +44,7 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         """Start a new database session and return the unit of work."""
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Close the database session and rollback if necessary."""
         self.rollback()
 
@@ -78,15 +78,15 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
             session_factory (sessionmaker): SQLAlchemy session factory.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
-    def __enter__(self):
+    def __enter__(self) -> AbstractUnitOfWork:
         """Start a new database session and return the unit of work."""
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.virtual_networks = repository.SqlAlchemyRepository(self.session)
         return super(SqlAlchemyUnitOfWork, self).__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Close the database session and rollback if necessary."""
         super(SqlAlchemyUnitOfWork, self).__exit__(*args)
         self.session.close()

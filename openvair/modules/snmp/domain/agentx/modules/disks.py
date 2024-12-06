@@ -28,7 +28,8 @@ class Disks(pyagentx.Updater):
         Returns:
             List[psutil._common.sdiskpart]: A list of disk partitions.
         """
-        return psutil.disk_partitions()
+        result: List[sdiskpart] = psutil.disk_partitions()
+        return result
 
     def update(self) -> None:
         """Update the SNMP agent with the current disk usage statistics."""

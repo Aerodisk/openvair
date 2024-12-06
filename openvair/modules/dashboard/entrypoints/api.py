@@ -61,4 +61,4 @@ def get_node_data(crud: DashboardCrud = Depends(DashboardCrud)) -> NodeInfo:
     LOG.info('Api start getting dashboard info.')
     node_data = crud.get_data()
     LOG.info('Api request was successfully processed.')
-    return node_data
+    return NodeInfo(**node_data)

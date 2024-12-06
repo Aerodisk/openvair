@@ -8,9 +8,10 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type
+from typing import Dict, Type, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.block_device.adapters.orm import ISCSIInterface
@@ -58,7 +59,7 @@ class DataSerializer(AbstractDataSerializer):
             ISCSIInterface: ORM object of the ISCSI interface.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)

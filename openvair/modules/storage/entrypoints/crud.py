@@ -9,16 +9,16 @@ Classes:
         and partitions.
 """
 
-from typing import Dict
+from typing import Dict, List, cast
 
 from fastapi_pagination import Page, paginate
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import validate_objects
 from openvair.modules.storage.config import API_SERVICE_LAYER_QUEUE_NAME
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.storage.entrypoints import schemas
 from openvair.modules.storage.service_layer import services
+from openvair.libs.messaging.messaging_agents import MessagingClient
 
 LOG = get_logger(__name__)
 
@@ -30,10 +30,10 @@ class StorageCrud:
     and manage local disk partitions by interacting with the service layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the StorageCrud with service layer RPC."""
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_storage(self, storage_id: str) -> Dict:
@@ -46,7 +46,7 @@ class StorageCrud:
             Dict: The storage object data retrieved from the service layer.
         """
         LOG.info('Call service layer on getting storage.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.get_storage.__name__,
             data_for_method={'storage_id': storage_id},
         )
@@ -60,13 +60,13 @@ class StorageCrud:
             Page: A paginated list of all storages.
         """
         LOG.info('Call service layer on getting all storages.')
-        result = self.service_layer_rpc.call(
+        result: List = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.get_all_storages.__name__,
             data_for_method={},
         )
         LOG.debug('Response from service layer: %s.' % result)
         storages = validate_objects(result, schemas.Storage)
-        return paginate(storages)
+        return cast(Page, paginate(storages))
 
     def create_storage(self, data: Dict, user_data: Dict) -> Dict:
         """Create a new storage.
@@ -80,7 +80,7 @@ class StorageCrud:
         """
         LOG.info('Call service layer on create storage.')
         data.update({'user_data': user_data})
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.create_storage.__name__,
             data_for_method=data,
             priority=8,
@@ -99,7 +99,7 @@ class StorageCrud:
             Dict: Confirmation of the deletion operation.
         """
         LOG.info('Call service layer on delete storage.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.delete_storage.__name__,
             data_for_method={'storage_id': storage_id, 'user_data': user_data},
             priority=8,
@@ -107,9 +107,7 @@ class StorageCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_local_disks(
-        self, data: Dict
-    ) -> schemas.ListOfLocalDisks:
+    def get_local_disks(self, data: Dict) -> schemas.ListOfLocalDisks:
         """Retrieve a list of local disks.
 
         Args:
@@ -144,7 +142,7 @@ class StorageCrud:
         """
         LOG.info('Call service layer on creating partition.')
         data['user_data'] = user_data
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.create_local_partition.__name__,
             data_for_method=data,
         )
@@ -161,7 +159,7 @@ class StorageCrud:
             Dict: Information about the partitions on the specified disk.
         """
         LOG.info('Call service layer on getting local partitions.')
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.get_local_disk_partitions_info.__name__,
             data_for_method=data,
         )
@@ -180,25 +178,8 @@ class StorageCrud:
         """
         LOG.info('Call service layer on deleting partition.')
         data['user_data'] = user_data
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.delete_local_partition.__name__,
-            data_for_method=data,
-        )
-        LOG.info('Response from service layer successfully completed.')
-        return result
-
-    def edit_local_partition(self, data: Dict) -> Dict:
-        """Edit an existing partition on a local disk.
-
-        Args:
-            data (Dict): The data required to edit the partition.
-
-        Returns:
-            Dict: Information about the edited partition.
-        """
-        LOG.info('Call service layer on editing partition.')
-        result = self.service_layer_rpc.call(
-            services.StorageServiceLayerManager.edit_local_partition.__name__,
             data_for_method=data,
         )
         LOG.info('Response from service layer successfully completed.')

@@ -13,38 +13,51 @@ Functions:
 
 import uuid
 
-from sqlalchemy import Table, Column, String, Boolean, MetaData
-from sqlalchemy.orm import registry
+from sqlalchemy import String, Boolean
+from sqlalchemy.orm import (
+    Mapped,
+    DeclarativeBase,
+    mapped_column,
+)
 from sqlalchemy.dialects.postgresql import UUID
 
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
+
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
+
+    pass
 
 
-users = Table(
-    'users',
-    mapper_registry.metadata,
-    Column('id', UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
-    Column('username', String(30), unique=True),
-    Column('email', String(255), unique=True),
-    Column('is_superuser', Boolean, default=False),
-    Column('hashed_password', String(255)),
-)
-
-
-class User:
+class User(Base):
     """Placeholder class for user ORM mapping.
 
     This class is used as a placeholder for ORM mapping with SQLAlchemy.
     It does not contain any logic or attributes.
     """
-    pass
 
+    __tablename__ = 'users'
 
-def start_mappers() -> None:
-    """Maps the `User` class to the `users` table.
-
-    This function is responsible for setting up the ORM mappings for the
-    `User` class, associating it with the `users` table in the database.
-    """
-    mapper_registry.map_imperatively(User, users)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    username: Mapped[str] = mapped_column(
+        String(30),
+        unique=True,
+        nullable=True,
+    )
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=True,
+    )
+    is_superuser: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=True,
+    )
+    hashed_password: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )

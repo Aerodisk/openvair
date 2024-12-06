@@ -21,6 +21,7 @@ from collections import namedtuple
 
 from passlib import hash
 from sqlalchemy import exc
+from passlib.exc import MissingDigestError
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -47,7 +48,7 @@ class UserManager(BackgroundTasks):
     password management.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the UserManager.
 
         This constructor sets up the necessary components for the UserManager,
@@ -68,7 +69,7 @@ class UserManager(BackgroundTasks):
         Returns:
             str: The hashed password.
         """
-        return hash.bcrypt.hash(password)
+        return str(hash.bcrypt.hash(password))
 
     @staticmethod
     def _verify_password(password: str, hashed_password: str) -> bool:
@@ -83,18 +84,24 @@ class UserManager(BackgroundTasks):
                 otherwise.
         """
         LOG.info('Verifying password')
-        return hash.bcrypt.verify(password, hashed_password)
+        try:
+            is_verify: bool = hash.bcrypt.verify(password, hashed_password)
+        except MissingDigestError as err:
+            raise exceptions.PasswordVerifyException(str(err))
+        else:
+            return is_verify
 
-    def get_user(self, user_id: str) -> Dict:
+    def get_user(self, data: Dict) -> Dict:
         """Retrieve a user by ID from the database.
 
         Args:
-            user_id (str): The ID of the user to retrieve.
+            data (Dict): Dict that containing ID of the user to retrieve.
 
         Returns:
             Dict: The user's data serialized for web response.
         """
         LOG.info('Start getting user by id from DB.')
+        user_id = data.get('user_id', '')
         with self.uow:
             user: User = self.uow.users.get(user_id)
             return DataSerializer.to_web(user)
@@ -113,8 +120,8 @@ class UserManager(BackgroundTasks):
             UserCredentialsException: If the credentials are incorrect.
         """
         LOG.info('Start authenticate user.')
-        username: str = data.get('username')
-        password: str = data.get('password')
+        username: str = data.get('username', '')
+        password: str = data.get('password', '')
 
         with self.uow:
             db_user: User = self.uow.users.get_by_name(username)
@@ -140,7 +147,7 @@ class UserManager(BackgroundTasks):
         Raises:
             NotSuperUser: If the user is not a superuser.
         """
-        user_data: Dict = data.get('user_data')
+        user_data: Dict = data.get('user_data', {})
         if not user_data.get('is_superuser'):
             message = 'User is not a superuser'
             raise exceptions.NotSuperUser(message)
@@ -156,8 +163,8 @@ class UserManager(BackgroundTasks):
             WrongUserIdProvided: If the user ID does not match the current
                 user ID.
         """
-        user_id: str = data.get('user_id')
-        user_data: Dict = data.get('user_data')
+        user_id: str = data.get('user_id', '')
+        user_data: Dict = data.get('user_data', {})
         if user_id != user_data.get('id'):
             message = 'Provided id does not match with ' 'current user id'
             raise exceptions.WrongUserIdProvided(message)
@@ -173,7 +180,7 @@ class UserManager(BackgroundTasks):
         """
         return UserInfo(
             username=user_data.get('username'),
-            hashed_password=self._hash_password(user_data.get('password')),
+            hashed_password=self._hash_password(user_data.get('password', '')),
             email=user_data.get('email'),
             is_superuser=user_data.get('is_superuser', False),
         )
@@ -259,7 +266,7 @@ class UserManager(BackgroundTasks):
         """
         LOG.info('Start deleting user from db.')
         self._verificate_user_id(data)
-        user_id: str = data.get('user_id')
+        user_id: str = data.get('user_id', '')
         with self.uow:
             try:
                 self.uow.users.get(user_id)

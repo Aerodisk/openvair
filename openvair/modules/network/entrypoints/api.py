@@ -14,7 +14,7 @@ Routes:
     - PUT /interfaces/{name}/turn_off: Turn off a specific interface.
 """
 
-from typing import Dict, List
+from typing import Dict, List, cast
 
 from fastapi import Path, Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
@@ -71,7 +71,7 @@ async def get_interfaces(
         crud.get_all_interfaces, is_need_filter=is_need_filter
     )
     LOG.info('API: Request processed successfully.')
-    return paginate(interfaces)
+    return cast(Page, paginate(interfaces))
 
 
 @router.get(
@@ -81,7 +81,7 @@ async def get_interfaces(
 )
 async def get_bridges_list(
     crud: InterfaceCrud = Depends(InterfaceCrud),
-) -> List[str]:
+) -> List[Dict]:
     """API endpoint for retrieving the list of network bridges.
 
     Args:
@@ -129,7 +129,7 @@ async def get_interface(
     LOG.info('API: Start retrieving current network interface data')
     interface = await run_in_threadpool(crud.get_interface, iface_id)
     LOG.info('API: Request processed successfully.')
-    return interface
+    return schemas.Interface(**interface)
 
 
 @router.post(
@@ -161,7 +161,7 @@ async def bridge_create(
     LOG.info('API: Start creating a network bridge')
     bridge = await run_in_threadpool(crud.create_bridge, data.dict(), user_info)
     LOG.info('API: Request processed successfully.')
-    return bridge
+    return schemas.BridgeCreateResponse(**bridge)
 
 
 @router.delete(

@@ -49,7 +49,7 @@ router = APIRouter(
 def get_user(
     crud: UserCrud = Depends(UserCrud),
     user_dict: Dict = Depends(get_current_user),
-) -> schemas.UsersList:
+) -> schemas.User:
     """Retrieve current authenticated user information.
 
     Args:
@@ -60,9 +60,9 @@ def get_user(
         schemas.User: The current authenticated user's information.
     """
     LOG.info('Api start getting current user info.')
-    user: Dict = crud.get_user(user_dict.get('id'))
+    user: Dict = crud.get_user(user_dict.get('id', ''))
     LOG.info('Api request was successfully processed.')
-    return user
+    return schemas.User(**user)
 
 
 @router.post(
@@ -91,7 +91,7 @@ def create_user(
     LOG.info('Api start creating user.')
     user: Dict = crud.create_user(data.dict(), user_id, user_data)
     LOG.info('Api request was successfully processed.')
-    return user
+    return schemas.User(**user)
 
 
 @router.delete(
@@ -117,7 +117,7 @@ def delete_user(
     LOG.info('Api start deleting user.')
     result: Dict = crud.delete_user(user_id, user_data)
     LOG.info('Api request was successfully processed.')
-    return result
+    return schemas.UserDelete(**result)
 
 
 @router.post(
@@ -147,4 +147,4 @@ def change_password(
     LOG.info('Api start changing user password.')
     result: Dict = crud.change_password(user_id, data.dict())
     LOG.info('Api request was successfully processed.')
-    return result
+    return schemas.User(**result)

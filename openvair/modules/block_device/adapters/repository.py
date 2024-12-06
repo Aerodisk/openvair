@@ -147,8 +147,4 @@ class SqlAlchemyRepository(AbstractRepository):
         return self.session.query(ISCSIInterface).all()
 
     def _delete(self, interface_id: str) -> None:
-        return (
-            self.session.query(ISCSIInterface)
-            .filter_by(id=interface_id)
-            .delete()
-        )
+        self.session.query(ISCSIInterface).filter_by(id=interface_id).delete()

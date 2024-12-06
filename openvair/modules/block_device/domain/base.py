@@ -16,7 +16,7 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 
@@ -35,7 +35,7 @@ class BaseBlockInterface(metaclass=abc.ABCMeta):
         port (str): The port number of the block device interface.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a BaseBlockInterface object.
 
         Args:
@@ -96,10 +96,6 @@ class BaseFibreChannelInterface(metaclass=abc.ABCMeta):
     block device interfaces.
     """
 
-    def __init__(self, *args, **kwargs):  # noqa: B027
-        """Initialize a BaseFibreChannelInterface object."""
-        ...
-
     @abc.abstractmethod
     def lip_scan(self) -> str:
         """Perform a Loop Initialization Protocol (LIP) scan."""
@@ -113,7 +109,7 @@ class BaseISCSI(BaseBlockInterface):
     ISCSI-specific functionality.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a BaseISCSI object.
 
         Args:
@@ -188,8 +184,8 @@ class BaseFibreChannel(BaseFibreChannelInterface):
     Fibre channel functionality.
     """
 
-    def __init__(self, *args, **kwargs):
-        """_summary_"""
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize a BaseFibreChannel object."""
         super().__init__(*args, **kwargs)
 
     @abc.abstractmethod

@@ -14,55 +14,41 @@ Classes:
         storage information.
 """
 
-from openvair.modules.tools.base_exception import BaseCustomException
+from typing import Any
+
+from openvair.abstracts.base_exception import BaseCustomException
 
 
 class NfsPathDoesNotExistOnShareError(BaseCustomException):
     """Raised when the specified NFS path does not exist on the share."""
 
-    def __init__(self, *args):
-        """Initialize NfsPathDoesNotExistOnShareError with optional arguments.
-
-        Args:
-            *args: Variable length argument list for exception details.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize NfsPathDoesNotExistOnShareError."""
+        super().__init__(message, *args)
 
 
 class NfsIpIsNotAvailableError(BaseCustomException):
     """Raised when the specified NFS IP address is not available."""
 
-    def __init__(self, *args):
-        """Initialize NfsIpIsNotAvailableError with optional arguments.
-
-        Args:
-            *args: Variable length argument list for exception details.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize NfsIpIsNotAvailableError with optional arguments."""
+        super().__init__(message, *args)
 
 
 class GettinStorageInfoError(BaseCustomException):
     """Raised when an error occurs while retrieving storage information."""
 
-    def __init__(self, *args):
-        """Initialize GettinStorageInfoError with optional arguments.
-
-        Args:
-            *args: Variable length argument list for exception details.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize GettinStorageInfoError with optional arguments."""
+        super().__init__(message, *args)
 
 
 class NFSCantBeMountError(BaseCustomException):
     """Raised when an NFS share cannot be mounted."""
 
-    def __init__(self, *args):
-        """Initialize NFSCantBeMountError with optional arguments.
-
-        Args:
-            *args: Variable length argument list for exception details.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize NFSCantBeMountError with optional arguments."""
+        super().__init__(message, *args)
 
 
 class PackageIsNotInstalled(BaseCustomException):
@@ -70,17 +56,8 @@ class PackageIsNotInstalled(BaseCustomException):
 
     This exception is used to indicate that a necessary software package is
     missing, which is required for the execution of a specific operation.
-
-    Attributes:
-        args: Arguments passed to the exception, typically including the name of
-            the missing package.
     """
 
-    def __init__(self, *args):
-        """Initialize the PackageIsNotInstalled with the provided arguments.
-
-        Args:
-            args: Variable length argument list to pass error details, typically
-                the name of the missing package.
-        """
-        super().__init__(*args)
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the PackageIsNotInstalled with the provided arguments."""
+        super().__init__(message, *args)

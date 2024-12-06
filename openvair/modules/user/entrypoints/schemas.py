@@ -17,7 +17,7 @@ Schemas:
 
 from typing import List, Optional
 
-from pydantic import EmailStr, BaseModel, validator
+from pydantic import EmailStr, BaseModel, ConfigDict, field_validator
 
 from openvair.modules.tools.validators import uuid_validate
 
@@ -30,8 +30,9 @@ class BaseUser(BaseModel):
         email (Optional[EmailStr]): The email address of the user.
         is_superuser (bool): Indicates if the user is a superuser.
     """
+
     username: str
-    email: Optional[EmailStr]
+    email: Optional[EmailStr] = None
     is_superuser: bool
 
 
@@ -41,9 +42,10 @@ class UserId(BaseModel):
     Attributes:
         id (str): The unique identifier for the user.
     """
+
     id: str
 
-    _normalize_id = validator('id', allow_reuse=True)(uuid_validate)
+    _normalize_id = field_validator('id')(uuid_validate)
 
 
 class User(BaseUser):
@@ -55,12 +57,11 @@ class User(BaseUser):
     Config:
         orm_mode (bool): Enable ORM mode for compatibility with ORMs.
     """
+
     id: str
 
-    _normalize_id = validator('id', allow_reuse=True)(uuid_validate)
-
-    class Config:  # noqa: D106
-        orm_mode = True
+    _normalize_id = field_validator('id')(uuid_validate)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UsersList(BaseModel):
@@ -70,6 +71,7 @@ class UsersList(BaseModel):
         users (List[Optional[User]]): A list of user objects, which may
             include None.
     """
+
     users: List[Optional[User]]
 
 
@@ -79,6 +81,7 @@ class UserCreate(BaseUser):
     Attributes:
         password (str): The password for the new user.
     """
+
     password: str
 
 
@@ -88,6 +91,7 @@ class UserChangePassword(BaseModel):
     Attributes:
         new_password (str): The new password for the user.
     """
+
     new_password: str
 
 
@@ -98,10 +102,11 @@ class UserDelete(BaseModel):
         id (str): The unique identifier of the deleted user.
         message (str): A message indicating the result of the deletion.
     """
+
     id: str
     message: str
 
-    _normalize_id = validator('id', allow_reuse=True)(uuid_validate)
+    _normalize_id = field_validator('id')(uuid_validate)
 
 
 class Token(BaseModel):
@@ -113,6 +118,7 @@ class Token(BaseModel):
             token.
         token_type (str): The type of token, default is 'bearer'.
     """
+
     access_token: str
     refresh_token: str
     token_type: str = 'bearer'

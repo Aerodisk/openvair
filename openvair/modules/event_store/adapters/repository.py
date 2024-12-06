@@ -189,4 +189,9 @@ class SqlAlchemyRepository(AbstractRepository):
         Returns:
             List[Events]: A list of the most recent events.
         """
-        return self.session.query(Events).order_by(desc(Events.id)).limit(limit)
+        return (
+            self.session.query(Events)
+            .order_by(desc(Events.id))
+            .limit(limit)
+            .all()
+        )

@@ -8,9 +8,7 @@ from openvair.libs.client.base_client import BaseClient
 # make polymorphic use for all clients
 class VMClient(BaseClient):  # noqa: D101
     def __init__(self, access_token: str):  # noqa: D107
-        super().__init__(
-            service='virtual-machines', access_token=access_token
-        )
+        super().__init__(service='virtual-machines', access_token=access_token)
 
     def get_vm(self, vm_id):  # noqa: ANN201, D102, ANN001
         vm_get_url = f'{self.url}/{vm_id}/'

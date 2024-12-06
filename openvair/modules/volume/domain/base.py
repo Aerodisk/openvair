@@ -11,7 +11,7 @@ Classes:
 import re
 import abc
 import json
-from typing import Dict
+from typing import Any, Dict, cast
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -30,7 +30,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
     creating, deleting, and extending volumes.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a BaseVolume instance.
 
         Args:
@@ -122,7 +122,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
             return {}
 
         try:
-            return json.loads(output)
+            return cast(Dict, json.loads(output))
         except json.JSONDecodeError as e:
             LOG.error(f'Failed to parse JSON output: {e}')
             return {}
@@ -135,7 +135,7 @@ class RemoteFSVolume(BaseVolume):
     filesystems.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a RemoteFSVolume instance."""
         LOG.info('Initialized RemoteFSVolume')
         super(RemoteFSVolume, self).__init__(*args, **kwargs)

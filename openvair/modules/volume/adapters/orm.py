@@ -14,86 +14,124 @@ Functions:
 """
 
 import uuid
+from typing import List
 
 from sqlalchemy import (
+    UUID,
     Text,
-    Table,
-    Column,
     String,
     Boolean,
     Integer,
-    MetaData,
     BigInteger,
     ForeignKey,
 )
-from sqlalchemy.orm import registry, relationship
-from sqlalchemy.dialects import postgresql
-
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
-
-volumes = Table(
-    'volumes',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('name', String(40)),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-    Column('format', String(10)),
-    Column('size', BigInteger),
-    Column('used', BigInteger),
-    Column('status', String(20)),
-    Column('information', Text),
-    Column('path', String(255), default=''),
-    Column('description', String(255)),
-    Column('storage_id', postgresql.UUID(as_uuid=True)),
-    Column('storage_type', String(30), default=''),
-    Column('read_only', Boolean(), default=False),
+from sqlalchemy.orm import (
+    Mapped,
+    DeclarativeBase,
+    relationship,
+    mapped_column,
 )
 
 
-volume_attach_vm = Table(
-    'volume_attach_vm',
-    mapper_registry.metadata,
-    Column('id', Integer, primary_key=True),
-    Column(
-        'volume_id', postgresql.UUID(as_uuid=True), ForeignKey('volumes.id')
-    ),
-    Column('vm_id', postgresql.UUID(as_uuid=True)),
-    Column('user_id', postgresql.UUID(as_uuid=True)),
-    Column('target', String(50)),
-)
+class Base(DeclarativeBase):
+    """Base class for inheritance volumes and attachments volumes."""
+
+    pass
 
 
-class Volume:
+class Volume(Base):
     """ORM class representing a volume."""
 
-    pass
+    __tablename__ = 'volumes'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(
+        String(40),
+        nullable=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+    format: Mapped[str] = mapped_column(
+        String(10),
+        nullable=True,
+    )
+    size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+    used: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    information: Mapped[str] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    path: Mapped[str] = mapped_column(
+        String(255),
+        default='',
+        nullable=True,
+    )
+    description: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    storage_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+    storage_type: Mapped[str] = mapped_column(
+        String(30),
+        default='',
+        nullable=True,
+    )
+    read_only: Mapped[bool] = mapped_column(
+        Boolean(),
+        default=False,
+        nullable=True,
+    )
+
+    attachments: Mapped[List['VolumeAttachVM']] = relationship(
+        'VolumeAttachVM',
+        back_populates='volume',
+        uselist=True,
+    )
 
 
-class VolumeAttachVM:
+class VolumeAttachVM(Base):
     """ORM class representing the attachment volume to a virtual machine."""
 
-    pass
-
-
-def start_mappers() -> None:
-    """Initialize the ORM mappings for the volume-related tables.
-
-    This function sets up the ORM mappings between the Volume and VolumeAttachVM
-    classes and their corresponding database tables.
-    """
-    mapper_registry.map_imperatively(
-        Volume,
-        volumes,
-        properties={
-            'attachments': relationship(
-                VolumeAttachVM, backref='volume', uselist=True
-            ),
-        },
+    __tablename__ = 'volume_attach_vm'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    volume_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('volumes.id'),
+        nullable=True,
     )
-    mapper_registry.map_imperatively(VolumeAttachVM, volume_attach_vm)
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
+    target: Mapped[str] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+
+    volume: Mapped[Volume] = relationship(
+        'Volume',
+        back_populates='attachments',
+    )

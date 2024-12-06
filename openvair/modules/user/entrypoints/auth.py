@@ -109,5 +109,5 @@ def refresh_token(refresh_token: str) -> Dict:
         return {
             'access_token': new_access_token,
             'refresh_token': new_refresh_token,
-            'token_type': TOKEN_TYPE
+            'token_type': TOKEN_TYPE,
         }

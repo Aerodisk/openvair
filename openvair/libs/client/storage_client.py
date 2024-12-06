@@ -10,9 +10,7 @@ from openvair.libs.client.base_client import BaseClient
 # make polymorphic use for all clients
 class StorageClient(BaseClient):  # noqa: D101
     def __init__(self, access_token: Optional[str] = None):  # noqa: D107
-        super().__init__(
-            service='storages', access_token=access_token
-        )
+        super().__init__(service='storages', access_token=access_token)
 
     def get_storage_by_id(self, storage_id):  # noqa: D102, ANN201, ANN001
         storage_url = f'{self.url}/{storage_id}/'

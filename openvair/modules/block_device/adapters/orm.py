@@ -2,35 +2,27 @@
 
 import uuid
 
-from sqlalchemy import Table, Column, String, MetaData
-from sqlalchemy.orm import registry
-from sqlalchemy.dialects import postgresql
-
-metadata = MetaData()
-mapper_registry = registry(metadata=metadata)
-
-iscsi_interfaces = Table(
-    'iscsi_interfaces',
-    mapper_registry.metadata,
-    Column(
-        'id',
-        postgresql.UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    ),
-    Column('inf_type', String(20)),
-    Column('ip', String(40), unique=True),
-    Column('port', String(20), nullable=True),
-    Column('status', String(20)),
-)
+from sqlalchemy import UUID, String
+from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
 
 
-class ISCSIInterface:
-    """ORM model for iscsi_interfaces table"""
+class Base(DeclarativeBase):
+    """Base class for inheritance images and attachments tables."""
 
     pass
 
 
-def start_mappers() -> None:
-    """Start mapping ORM models to tables on db for the block device module"""
-    mapper_registry.map_imperatively(ISCSIInterface, iscsi_interfaces)
+class ISCSIInterface(Base):
+    """ORM model for iscsi_interfaces table"""
+
+    __tablename__ = 'iscsi_interfaces'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    inf_type: Mapped[str] = mapped_column(String(20), nullable=True)
+    ip: Mapped[str] = mapped_column(String(40), unique=True, nullable=True)
+    port: Mapped[str] = mapped_column(String(20), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=True)

@@ -8,12 +8,13 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type
+from typing import Dict, Type, Union, cast
 
 from sqlalchemy import inspect
+from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
-from openvair.modules.storage.adapters.orm import Storage
+from openvair.modules.storage.adapters.orm import Storage, StorageExtraSpecs
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -63,8 +64,8 @@ class DataSerializer(AbstractDataSerializer):
     def to_db(
         cls,
         data: Dict,
-        orm_class: Type = Storage,
-    ) -> Storage:
+        orm_class: Union[Type[Storage], Type[StorageExtraSpecs]] = Storage,
+    ) -> Union[Storage, StorageExtraSpecs]:
         """It takes a dictionary and returns an object of the class Storage
 
         Args:
@@ -75,7 +76,7 @@ class DataSerializer(AbstractDataSerializer):
             Storage: The converted database storage object.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)

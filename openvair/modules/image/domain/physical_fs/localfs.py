@@ -9,7 +9,7 @@ Classes:
         methods for performing file operations related to the image.
 """
 
-from typing import Dict
+from typing import Any, Dict
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -23,7 +23,7 @@ LOG = get_logger(__name__)
 class LocalFSImage(BaseLocalFSImage):
     """Class representing an image stored on the local file system."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initializes a `LocalFSImage` instance.
 
         Args:
@@ -52,8 +52,8 @@ class LocalFSImage(BaseLocalFSImage):
                 'convert',
                 '-f raw',
                 '-O qcow2',
-                image_tmp,
-                image_path,
+                image_tmp,  # type: ignore
+                image_path,  # type: ignore
             )
         except Exception as e:
             LOG.exception(f'Failed to upload image with ID {self.id}')
@@ -93,7 +93,7 @@ class LocalFSImage(BaseLocalFSImage):
         """
         LOG.info('Deleting LocalFSImage from temporary directory...')
         image_tmp = Path(TMP_DIR, self.name)
-        execute('rm', '-f', image_tmp, run_as_root=self._execute_as_root)
+        execute('rm', '-f', image_tmp, run_as_root=self._execute_as_root)  # type: ignore
         LOG.info('LocalFSImage successfully deleted from temporary directory.')
         return self.__dict__
 

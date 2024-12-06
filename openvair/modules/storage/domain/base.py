@@ -14,7 +14,7 @@ Classes:
 
 import abc
 import uuid
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -43,7 +43,7 @@ class BaseStorage(metaclass=abc.ABCMeta):
         initialized (bool): Whether the storage has been initialized.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BaseStorage with given parameters.
 
         Args:
@@ -58,11 +58,7 @@ class BaseStorage(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def do_setup(self) -> Dict:
-        """Perform any necessary setup for the storage.
-
-        Returns:
-            Dict: Setup details or results.
-        """
+        """Perform any necessary setup for the storage."""
         ...
 
     @abc.abstractmethod
@@ -103,7 +99,7 @@ class RemoteFSStorage(BaseStorage):
         storage_prefix (str): Prefix used for the storage mount point.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the RemoteFSStorage with given parameters.
 
         Args:
@@ -118,13 +114,10 @@ class RemoteFSStorage(BaseStorage):
         self.storage_prefix = 'remotefs'
 
     def do_setup(self) -> Dict:
-        """Perform any initialization required by the volume driver.
-
-        Returns:
-            Dict: Details of the setup process.
-        """
+        """Perform any initialization required by the volume driver."""
         self._check_or_create_path(self.mount_point_path())
         self._ensure_share_mounted()
+        return self.__dict__
 
     def create(self) -> Dict:
         """Create the remote file system storage.
@@ -202,7 +195,7 @@ class RemoteFSStorage(BaseStorage):
         if not path.is_dir():
             path.mkdir(parents=True, exist_ok=True)
 
-    def _ensure_share_mounted(self) -> Dict:
+    def _ensure_share_mounted(self) -> None:
         """Ensure that the remote share is mounted.
 
         Raises:
@@ -237,7 +230,7 @@ class LocalFSStorage(BaseStorage):
         fs_type (str): The file system type (e.g., "ext4", "xfs").
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the LocalFSStorage with given parameters.
 
         Args:
@@ -259,6 +252,7 @@ class LocalFSStorage(BaseStorage):
         if not self.initialized:
             self.formatting()
         self._ensure_storage_mounted()
+        return self.__dict__
 
     def create(self) -> Dict:
         """Create the local file system storage.
@@ -356,7 +350,12 @@ class LocalFSStorage(BaseStorage):
         """
         try:
             out, err = execute(
-                'dpkg', '-l', '|', 'grep', package, run_as_root=False
+                'dpkg',
+                '-l',
+                '|',
+                'grep',
+                package,
+                run_as_root=False,
             )
             if not out:
                 raise PackageIsNotInstalled(package)
@@ -386,14 +385,15 @@ class BasePartition(metaclass=abc.ABCMeta):
             on the storage.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BasePartition with given parameters.
 
         Args:
             kwargs: Arbitrary keyword arguments for initializing the partition
                 attributes.
         """
-        self.parted_adapter = PartedAdapter(kwargs.get('local_disk_path', ''))
+        local_disk_path = str(kwargs.get('local_disk_path', ''))
+        self.parted_adapter = PartedAdapter(local_disk_path)
         self.parted_parser = PartedParser()
         self.partitions: Dict
 

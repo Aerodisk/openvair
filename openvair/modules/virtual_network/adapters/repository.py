@@ -10,7 +10,7 @@ Classes:
 """
 
 import abc
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import joinedload
@@ -48,7 +48,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get(virt_net_id)
 
-    def get_by_name(self, virt_net_name: str) -> VirtualNetwork:
+    def get_by_name(self, virt_net_name: str) -> Optional[VirtualNetwork]:
         """Get a virtual network by name.
 
         Args:
@@ -88,7 +88,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_by_name(self, vn_name: str) -> VirtualNetwork:
+    def _get_by_name(self, vn_name: str) -> Optional[VirtualNetwork]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -144,7 +144,7 @@ class SqlAlchemyRepository(AbstractRepository):
             .one()
         )
 
-    def _get_by_name(self, vn_name: str) -> VirtualNetwork:
+    def _get_by_name(self, vn_name: str) -> Optional[VirtualNetwork]:
         """Get a virtual network by name.
 
         Args:

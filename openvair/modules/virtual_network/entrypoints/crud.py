@@ -10,18 +10,15 @@ Classes:
         their associated port groups.
 """
 
-from typing import TYPE_CHECKING, Dict
+from typing import Dict
 
 from openvair.libs.log import get_logger
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.virtual_network.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_network.entrypoints import schemas
 from openvair.modules.virtual_network.service_layer.services import (
     VirtualNetworkServiceLayerManager,
 )
-
-if TYPE_CHECKING:
-    from openvair.libs.messaging.rpc import RabbitRPCClient
 
 LOG = get_logger(__name__)
 
@@ -34,10 +31,10 @@ class VirtualNetworkCrud:
             communication with the service layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes the VirtualNetworkCrud class."""
-        self.service_layer_rpc: RabbitRPCClient = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
     def get_all_virtual_networks(self) -> Dict:
@@ -49,7 +46,7 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on getting virtual networks...')
 
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_all_virtual_networks.__name__,
             data_for_method={},
         )
@@ -68,7 +65,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on getting virtual networks: {vn_id}...')
 
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_virtual_network_by_id.__name__,
             data_for_method={'id': vn_id},
         )
@@ -87,7 +84,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on getting virtual network: {vn_name}...')
 
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_virtual_network_by_name.__name__,
             data_for_method={'virtual_network_name': vn_name},
         )
@@ -116,7 +113,7 @@ class VirtualNetworkCrud:
         service_data = vn_info.dict()
         service_data['user_info'] = user_info
 
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.create_virtual_network.__name__,
             data_for_method=service_data,
             priority=8,
@@ -138,7 +135,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on deleting virtual network: {vn_id}...')
 
-        service_data = {'virtual_network_id': vn_id}
+        service_data: Dict = {'virtual_network_id': vn_id}
         service_data['user_info'] = user_info
         self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.delete_virtual_network.__name__,
@@ -205,7 +202,7 @@ class VirtualNetworkCrud:
             'port_group_info': port_group.dict(),
         }
         service_data['user_info'] = user_info
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.add_port_group.__name__,
             data_for_method=service_data,
         )
@@ -229,7 +226,7 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on deleting port group...')
 
-        service_data = {
+        service_data: Dict = {
             'virtual_network_id': vn_id,
             'port_group_name': port_group_name,
         }
@@ -258,13 +255,13 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on adding tag to trunk port group...')
 
-        service_data = {
+        service_data: Dict = {
             'vn_id': vn_id,
             'pg_name': pg_name,
             'tag': tag_id,
         }
         service_data['user_info'] = user_info
-        result = self.service_layer_rpc.call(
+        result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.add_tag_to_port_group.__name__,
             data_for_method=service_data,
         )

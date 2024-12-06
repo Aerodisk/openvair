@@ -14,7 +14,7 @@ Classes:
     ISCSIInterface: Provides functionality to manage ISCSI connections.
 """
 
-from typing import Dict
+from typing import Any, Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
@@ -38,7 +38,7 @@ class ISCSIInterface(BaseISCSI):
     discovery, login, and logout operations.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize an ISCSIInterface object.
 
         Args:
@@ -69,11 +69,8 @@ class ISCSIInterface(BaseISCSI):
         LOG.info(f'Got the IQN of the host initiator: {iqn}')
         return iqn
 
-    def discovery(self, ip_address: str) -> str:
+    def discovery(self) -> str:
         """Discover iSCSI target on the specified IP address.
-
-        Args:
-            ip_address (str): The IP address to discover iSCSI targets on.
 
         Returns:
             str: The discovered iSCSI IQN.
@@ -82,10 +79,8 @@ class ISCSIInterface(BaseISCSI):
             ISCSIDiscoveryError: If an error occurs during the discovery
                 process.
         """
-        LOG.info(f'Start to discover iSCSI target IQN on the IP: {ip_address}')
-        command = (
-            f'sudo iscsiadm -m discovery -t st -p {ip_address}:{self.port}'
-        )
+        LOG.info(f'Start to discover iSCSI target IQN on the IP: {self.ip}')
+        command = f'sudo iscsiadm -m discovery -t st -p {self.ip}:{self.port}'
         result, error = execute(command)
 
         if error:
@@ -107,7 +102,7 @@ class ISCSIInterface(BaseISCSI):
             ISCSILoginError: If an error occurs during the login process.
         """
         LOG.info(f'Start to login to the iSCSI target: {self.ip}')
-        discovered_iqn = self.discovery(self.ip)
+        discovered_iqn = self.discovery()
         command = (
             f'sudo iscsiadm -m node -T {discovered_iqn} -p'
             f' {self.ip}:{self.port} --login'
@@ -132,7 +127,7 @@ class ISCSIInterface(BaseISCSI):
             ISCSILogoutError: If an error occurs during the logout process.
         """
         LOG.info(f'Start to logging out from the ISCSI target: {self.ip}')
-        discovered_iqn = self.discovery(self.ip)
+        discovered_iqn = self.discovery()
         command = (
             f'sudo iscsiadm -m node -T {discovered_iqn} -p'
             f' {self.ip}:{self.port} --logout'

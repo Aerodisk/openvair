@@ -14,20 +14,18 @@ Classes:
 from __future__ import annotations
 
 import enum
-from typing import Dict, List
+from typing import Dict, List, Optional, cast
 from collections import namedtuple
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from openvair.libs.log import get_logger
 from openvair.modules.network import utils
-from openvair.libs.client.config import get_os_type
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.network.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
-from openvair.libs.messaging.protocol import Protocol
 from openvair.modules.network.adapters import orm
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
@@ -35,6 +33,7 @@ from openvair.libs.messaging.exceptions import (
 )
 from openvair.modules.network.domain.base import BaseBridge, BaseInterface
 from openvair.modules.network.service_layer import exceptions, unit_of_work
+from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.network.adapters.serializer import DataSerializer
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 
@@ -56,9 +55,8 @@ CreateInterfaceInfo = namedtuple(
 
 
 class InterfaceStatus(enum.Enum):
-    """Enumeration for interface status.
+    """Enumeration for interface status.fastork interfaces,
 
-    This enum class defines possible statuses for network interfaces,
     including 'new', 'creating', 'available', 'error', and 'deleting'.
     """
 
@@ -88,7 +86,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             network operations.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the NetworkServiceLayerManager.
 
         This constructor sets up the necessary components for the
@@ -97,9 +95,11 @@ class NetworkServiceLayerManager(BackgroundTasks):
         store.
         """
         super(NetworkServiceLayerManager, self).__init__()
-        self.domain_rpc = Protocol(client=True)(SERVICE_LAYER_DOMAIN_QUEUE_NAME)
-        self.service_layer_rpc = Protocol(client=True)(
-            API_SERVICE_LAYER_QUEUE_NAME
+        self.domain_rpc = MessagingClient(
+            queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
+        )
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
         self.event_store = EventCrud('networks')
@@ -123,7 +123,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 interfaces' data.
         """
         LOG.info('Start getting all interfaces from db.')
-        is_need_filter = data.pop('is_need_filter')
+        is_need_filter = data.pop('is_need_filter', None)
         filterable_ifaces_names = ['lo']
         with self.uow:
             web_interfaces = []
@@ -171,20 +171,25 @@ class NetworkServiceLayerManager(BackgroundTasks):
         )
         return web_iface
 
-    def get_bridges_list(self) -> List:
+    def get_bridges_list(self, data: Dict) -> List[Dict]:
         """Retrieve the list of network bridges.
 
         This method retrieves a list of network bridges based on the operating
         system type.
 
+        Args:
+            data (Dict): A dictionary containing inf_type and
+                network_config_manager info
+
         Returns:
             List: A list of network bridges.
         """
         LOG.info('Start getting all network bridges')
-        os_type_interface = get_os_type()
-        return self.domain_rpc.call(
-            BaseBridge.get_bridges_list.__name__,
-            data_for_manager={'inf_type': os_type_interface},
+        return list(
+            self.domain_rpc.call(
+                BaseBridge.get_bridges_list.__name__,
+                data_for_manager=data,
+            )
         )
 
     def create_bridge(self, data: Dict) -> Dict:
@@ -205,10 +210,14 @@ class NetworkServiceLayerManager(BackgroundTasks):
             Dict: A serialized dictionary representing the created bridge's
                 data.
         """
+        self._check_existance_and_port_compabilities(data)
         create_iface_info = self._validate_create_interface_info(data)
         try:
             with self.uow:
-                db_iface = DataSerializer.to_db(create_iface_info._asdict())
+                db_iface = cast(
+                    orm.Interface,
+                    DataSerializer.to_db(create_iface_info._asdict()),
+                )
                 LOG.info('Start inserting interface into db.')
                 self.uow.interfaces.add(db_iface)
                 self.uow.commit()
@@ -288,7 +297,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 turned on.
         """
         LOG.info('Start service layer call for turning on interface:')
-        iface_name = data.get('name')
+        iface_name = data.get('name', '')
         LOG.info(f'Interface name: {iface_name}')
 
         with self.uow:
@@ -319,7 +328,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 turned off.
         """
         LOG.info('Start service layer call for turning off interface:')
-        iface_name = data.get('name')
+        iface_name = data.get('name', '')
         LOG.info(f'Interface name: {iface_name}')
 
         LOG.info('Sending disable interface command to domain layer...')
@@ -421,9 +430,9 @@ class NetworkServiceLayerManager(BackgroundTasks):
             exceptions.InterfaceDeletingError: If an error occurs during the
                 RPC call to the domain layer.
         """
-        user_info = data.get('user_info', {})
-        user_id = user_info.get('id', '')
-        iface_id = data.get('id')
+        user_info = data.get('user_data', {})
+        user_id = user_info.get('user_id', '')
+        iface_id = data.get('id', '')
 
         with self.uow:
             db_iface = self.uow.interfaces.get(iface_id)
@@ -473,7 +482,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 data.
         """
         LOG.info('Service layer start handling response on edit interface.')
-        interface_name = data.get('name')
+        interface_name = data.get('name', '')
         with self.uow:
             db_interface = self.uow.interfaces.get_by_name(interface_name)
             if not db_interface:
@@ -509,6 +518,18 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
             return DataSerializer.to_web(db_interface)
 
+    def _check_existance_and_port_compabilities(self, data: Dict) -> None:
+        interfaces = self.get_all_interfaces(data)
+        if data['name'] in [bridge['name'] for bridge in interfaces]:
+            error = exceptions.InerfaceAllreadyExistException(data['name'])
+            LOG.error(error)
+            raise error
+
+        ovs_bridges = self.get_bridges_list(data)
+        for iface in data.get('interfaces', []):
+            if iface['name'] in [bridge['ifname'] for bridge in ovs_bridges]:
+                raise exceptions.NestedOVSBridgeNotAllowedError(iface['name'])
+
     def _create_interface_in_db(self, data: Dict) -> Dict:
         """Create a new network interface in the database.
 
@@ -526,7 +547,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on create interface.')
         with self.uow:
-            db_interface = DataSerializer.to_db(data)
+            db_interface = cast(orm.Interface, DataSerializer.to_db(data))
             for key, value in data.get('specs', {}).items():
                 spec = {
                     'key': key,
@@ -534,7 +555,10 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     'interface_id': db_interface.id,
                 }
                 db_interface.extra_specs.append(
-                    DataSerializer.to_db(spec, orm.InterfaceExtraSpec)
+                    cast(
+                        orm.InterfaceExtraSpec,
+                        DataSerializer.to_db(spec, orm.InterfaceExtraSpec),
+                    )
                 )
             self.uow.interfaces.add(db_interface)
             self.uow.commit()
@@ -562,7 +586,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 the database.
         """
         LOG.info('Service layer start handling response on delete interface.')
-        interface_id = data.get('id')
+        interface_id = data.get('id', '')
         with self.uow:
             db_interface = self.uow.interfaces.get(interface_id)
             if not db_interface:
@@ -626,7 +650,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
     @staticmethod
     def _update_extra_specs(
         db_interface: orm.Interface,
-        specs: orm.InterfaceExtraSpec,
+        specs: Dict,
     ) -> None:
         """Update extra specifications for a network interface in the database.
 
@@ -683,22 +707,22 @@ class NetworkServiceLayerManager(BackgroundTasks):
             }
 
             LOG.debug('Got interfaces from db %s' % db_interfaces)
-            for os_iface_name, os_iface_data in interfaces_from_os.items():
+            for (os_iface_name), os_iface_data in interfaces_from_os.items():
                 db_interface = self.__synchronize_os_to_db_info(
-                    os_iface_data, db_interfaces.get(os_iface_name)
+                    os_iface_data,
+                    db_interfaces.get(os_iface_name),
                 )
                 db_interface.status = InterfaceStatus.available.name
                 self.uow.interfaces.add(db_interface)
                 db_interfaces.pop(os_iface_name, None)
 
+            prefixes_to_delete = ['vnet', 'veth']
             for db_iface_name, db_iface in db_interfaces.items():
-                # if there are no ovs ports in the system, then the "ovs system"
-                # port is deleted automatically
-                if db_iface_name == 'ovs-system' or (
-                    db_iface_name.startswith('vnet')
-                    and db_iface_name[4:].isdigit()
+                if db_iface_name.startswith('ovs-system') or any(
+                    db_iface_name.startswith(prefix) for prefix
+                    in prefixes_to_delete
                 ):
-                    self.uow.interfaces.delete(str(db_iface.id))
+                    self.uow.interfaces.delete(db_iface.id)
                 # Set the status to 'error' for all other interfaces
                 else:
                     LOG.info(
@@ -711,7 +735,9 @@ class NetworkServiceLayerManager(BackgroundTasks):
         LOG.info('Stop monitoring')
 
     def __synchronize_os_to_db_info(
-        self, os_iface: Dict, db_iface: orm.Interface
+        self,
+        os_iface: Dict,
+        db_iface: Optional[orm.Interface],
     ) -> orm.Interface:
         """Synchronize the OS interface data with the database.
 
@@ -728,21 +754,19 @@ class NetworkServiceLayerManager(BackgroundTasks):
         Returns:
             orm.Interface: The updated or created database interface object.
         """
-        os_iface_name = os_iface.get('ifname')
+        os_iface_name = os_iface.get('name')
         if db_iface is None:
             LOG.warning(
                 f'Interface {os_iface_name} not found in db. Trying to '
                 'synchronize...'
             )
-            db_iface = DataSerializer.to_db(os_iface)
+            db_iface = cast(orm.Interface, DataSerializer.to_db(os_iface))
             LOG.info(f'Interface {os_iface_name} successfully prepared for db')
         else:
             self._update_extra_specs(db_iface, os_iface.get('extra_specs', {}))
 
         for attribute in CreateInterfaceInfo._fields:
-            attribute_value = os_iface.get(
-                attribute, getattr(db_iface, attribute)
-            )
+            attribute_value = os_iface.get(attribute)
             setattr(db_iface, attribute, attribute_value)
 
         return db_iface

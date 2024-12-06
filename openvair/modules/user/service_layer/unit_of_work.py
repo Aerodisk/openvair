@@ -14,7 +14,7 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from openvair.modules.user.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.user.adapters import repository
@@ -41,7 +41,7 @@ class AbstractUnitOfWork(metaclass=abc.ABCMeta):
         """
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the runtime context and rollback if necessary.
 
         Args:
@@ -75,7 +75,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 use.
         """
         self.session_factory = session_factory
-        self.session = None
+        self.session: Session
 
     def __enter__(self) -> AbstractUnitOfWork:
         """Enter the runtime context related to this object.
@@ -86,11 +86,11 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         Returns:
             SqlAlchemyUnitOfWork: The instance of the Unit of Work.
         """
-        self.session: Session = self.session_factory()
+        self.session = self.session_factory()
         self.users = repository.SqlAlchemyRepository(self.session)
         return super().__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Exit the runtime context and close the session.
 
         This method ensures that the session is closed after the transaction
