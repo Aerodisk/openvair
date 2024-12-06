@@ -154,7 +154,7 @@ sudo journalctl -fu web-app.service
 Демоны service-layer выполняют удаленные вызовы функций сервисного слоя.
 Каждый модуль имеет свой собственный демон service-layer. Для проверки
 статуса и просмотра логов используйте аналогичные команды, изменив название
-сервиса на `<module>-service-layer.service`.
+сервиса на `<module_name>-service-layer.service`.
 
 Например:
 ```bash
@@ -165,7 +165,7 @@ sudo systemctl status storage-service-layer.service
 Демоны domain выполняют удаленные вызовы функций слоя доменной области. Для
 каждого модуля существует свой демон domain. Для проверки статуса и просмотра
 логов используйте аналогичные команды, изменив название сервиса на
-*<имя_предметной_области>-domain.service*.
+`<module_name>-domain.service`.
 ```bash
 sudo systemctl status storage-domain.service
 ```
