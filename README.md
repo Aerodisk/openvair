@@ -203,7 +203,7 @@ sudo systemctl status storage-domain.service
 * To work with the documentation, use the repository [Open vAIR docs](https://github.com/Aerodisk/Open-vAIR-docs).
 
 ### 🔗 Useful Links
-* [Telegram-channel](https://t.me/aerodisk_open_vair)
+* [Telegram-channel](https://t.me/Open_vAIR_AERODISK)
 * [Open vAIR website](https://openvair.ru/)
 
 ### Statistics (including documentation and frontend projects)
