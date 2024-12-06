@@ -1,106 +1,82 @@
 # Open vAir
 
-## Translations
+## Переводы
 
-- [Русский](README.ru.md)
+- [English](README.en.md)
 
-## Contents
+## Описание проекта
 
-1. [Preparation for Project Installation](#preparation-for-project-installation)
-2. [Project Configuration](#project-configuration)
-3. [Application Tunneling](#application-tunneling)
-4. [Starting the Installation](#starting-the-installation)
-5. [Uninstallation](#uninstallation)
-6. [Documentation](#documentation)
-7. [Daemons](#daemons)
-8. [Links](#documentation-links)
-9. [Contribution](#contribution)
+**Open vAir** — это облегченное решение на основе проекта **vAir**,
+предназначенное для использования в качестве среды разработки и системы
+виртуализации. Программа функционирует в интерактивном режиме, предоставляя
+гибкий и удобный инструмент для управления виртуальной инфраструктурой.
 
+## Установка
 
-## Project Description
+Для установки **Open vAir** на чистую систему с операционной системой Linux выполните следующие действия. Рекомендуется использовать **Ubuntu 20.04**, которая наиболее протестирована. Также поддерживается **Ubuntu 22.04**.
 
-**Open vAir** is a lightweight solution based on the **vAir** project,
-designed for use as a development environment and virtualization system. The
-program operates in interactive mode, providing a flexible and convenient
-tool for managing virtual infrastructure.
+### Подготовка к установке проекта
 
-![](.assets/dashboard.gif)
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
-![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-
----
-
-<h3 align="left">Technologies:</h3>
-<p align="left"> <a href="https://www.docker.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original-wordmark.svg" alt="docker" width="40" height="40"/> </a> <a href="https://www.linux.org/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" alt="linux" width="40" height="40"/> </a> <a href="https://www.postgresql.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original-wordmark.svg" alt="postgresql" width="40" height="40"/> </a> <a href="https://www.python.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="python" width="40" height="40"/> </a> <a href="https://www.rabbitmq.com" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/rabbitmq/rabbitmq-icon.svg" alt="rabbitMQ" width="40" height="40"/> </a> <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer"> <img src="https://www.svgrepo.com/download/330413/fastapi.svg" alt="fastapi" width="40" height="40"/></a><a href="https://www.qemu.org/" target="_blank" rel="noreferrer"> <img src="https://www.svgrepo.com/download/306622/qemu.svg" alt="qemu" width="40" height="40"/> </a></p>
-
----
-
-## Installation
-
-To install **Open vAir** on a clean Linux system, follow these steps. It is
-recommended to use **Ubuntu 20.04**, which is the most tested version.
-**Ubuntu 22.04** is also supported.
-
-### Preparation for Project Installation
-
-1. Ensure all system packages are up to date. Execute the following commands:
+1. Убедитесь, что все системные пакеты обновлены. Для этого выполните следующие команды:
 
     ```shell
     sudo apt update && sudo apt upgrade -y
     ```
-    > **Important**: Don't forget to restart the system after executing these
-    commands to apply all changes.
+    > **Важно**: Не забудьте перезагрузить систему после выполнения команд для применения всех изменений.
 
-2. Execute the following commands to create and configure a user:
+2. Выполните следующие команды для создания и настройки пользователя:
 
-    1. Create a user:
+    1. Создайте пользователя:
 
         ```shell
         sudo useradd -s /bin/bash -d /opt/aero -m aero
         ```
 
-    2. Assign necessary permissions:
+    2. Назначьте необходимые права:
 
         ```shell
         sudo chmod +x /opt/aero
         ```
 
-    3. Add the user to the superuser list:
+    3. Добавьте пользователя в список суперпользователей:
 
         ```shell
         echo "aero ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/aero
         ```
 
-    4. Switch to the new user:
+    4. Переключитесь на нового пользователя:
 
         ```shell
         sudo -u aero -i
         ```
 
-3. Download the project repository:
+3. Скачайте репозиторий проекта:
 
     ```shell
+    git clone http://git.aerodisk.local/vair/openvair.git
+
+    # или
+
+    git clone https://gitflic.ru/project/aerodisk_open_vair/openvair.git
+
+    # или
+    
     git clone https://github.com/Aerodisk/openvair.git
     ```
 
-4. Configure the configuration file:
+4. Настройте конфигурационный файл:
 
     ```shell
     vi ~/openvair/project_config.toml
     ```
 
-### Project Configuration
+### Настройка проекта
 
-Before installing **Open vAir**, you need to set the login and password in
-the `/opt/aero/openvair/project_config.toml` file. This data is required for
-system authorization and access to all application functions.
+Перед установкой **Open vAir** необходимо задать логин и пароль в файле `/opt
+aero/openvair/project_config.toml`. Эти данные требуются для авторизации в
+системе и доступа ко всем функциям приложения.
 
-Configuration example:
+Пример конфигурации:
 
 ```toml
 [default_user]
@@ -108,19 +84,19 @@ login = ''
 password = ''
 ```
 
-Note: The login and password fields must be filled in by the user. Otherwise,
-the installation will be aborted.
+Примечание: Поля логина и пароля обязательно должны быть заполнены
+пользователем. В противном случае установка будет прервана.
 
-### Application Tunneling
-If the application needs to be run on a separate host as a server, configure
-tunneling to the virtual network. Determine the local IP address of the host
-by executing the command:
+###### Туннелирование приложения
+Если приложение необходимо запускать на отдельном хосте в качестве сервера,
+настройте туннелирование в виртуальную сеть. Определите локальный IP-адрес
+хоста, выполнив команду:
 
 ```bash
 ip a
 ```
 
-Specify the obtained IP address in the configuration file:
+Укажите полученный IP-адрес в конфигурационном файле:
 
 ```toml
 [web_app]
@@ -128,95 +104,78 @@ host = '192.168.1.2'
 port = 8000
 ```
 
-### Starting the Installation
-1. Run the installation script:
+### Запуск установки
+1. Запустите скрипт установки:
 ```bash
 ./openvair/install.sh
 ```
 
-Upon completion of the installation, you will receive a message with the
-current application address, login, and password for working with the system.
+По завершении установки вы получите сообщение с текущим адресом приложения, логином и паролем для работы с системой.
 
-### Uninstallation
-To remove Open vAir, run the uninstallation script:
+### Деинсталляция
+Для удаления Open vAir выполните скрипт деинсталляции:
 ```bash
 ./openvair/uninstall.sh
 ```
 
-### Documentation
-Documentation can be found in the `/docs/build/index.html` file, which will be
-created after the project installation. Documentation is also available at
-the `/docs/` endpoint after installation is complete.
+### Документация
+Документацию можно найти в файле `/docs/build/index.html`, который будет создан
+после установки проекта. Также документация доступна по эндпоинту `/docs/`
+после завершения установки.
 
-### Daemons
+### Демоны
 
-##### *web-app* Daemon
-The web-app daemon ensures automatic startup and restart of the main FastAPI
-based application, which is responsible for API and GUI operations. The
-application is accessible at the address specified in the web_app section of
-the config.toml file. By default, this is  `http://127.0.0.1:8000`.
+##### Демон приложения *web-app*
+Демон web-app обеспечивает автоматический запуск и перезапуск основного
+приложения на базе FastAPI, которое отвечает за работу API и GUI. Доступ к
+приложению осуществляется по адресу, указанному в секции web_app файла
+configtoml. По умолчанию это `http://127.0.0.1:8000`.
 
-* Check daemon status:
+* Проверка состояния демона:
 ```bash
 sudo systemctl status web-app.service
 ```
-* Restart daemon:
+* Перезапуск демона:
 ```bash
 sudo systemctl restart web-app.service
 ```
-* Stop daemon:
+* Остановка демона:
 ```bash
 sudo systemctl stop web-app.service
 ```
-* View daemon logs:
+* Просмотр логов демона:
 ```bash
 sudo journalctl -fu web-app.service
 ```
 
-##### *service-layer* Daemon
-Service-layer daemons perform remote function calls of the service layer.
-Each module has its own service-layer daemon. To check the status and view
-logs, use similar commands, changing the service name to
-`<module_name>-service-layer.service`.
+##### Демон *service-layer*
+Демоны service-layer выполняют удаленные вызовы функций сервисного слоя.
+Каждый модуль имеет свой собственный демон service-layer. Для проверки
+статуса и просмотра логов используйте аналогичные команды, изменив название
+сервиса на `<module>-service-layer.service`.
 
-For example:
+Например:
 ```bash
 sudo systemctl status storage-service-layer.service
 ```
 
-##### *domain* Daemon
-Domain daemons perform remote function calls of the domain layer. Each
-module has its own domain daemon. To check the status and view logs, use
-similar commands, changing the service name to
-`<module_name>-domain.service`.
+##### Демон *domain*
+Демоны domain выполняют удаленные вызовы функций слоя доменной области. Для
+каждого модуля существует свой демон domain. Для проверки статуса и просмотра
+логов используйте аналогичные команды, изменив название сервиса на
+*<имя_предметной_области>-domain.service*.
 ```bash
 sudo systemctl status storage-domain.service
 ```
 
-### Documentation Links
-* Project introduction: [on-boarding](ONBOARDING.md).
-* How to contribute to the project:  [howto-contribute](CONTRIBUTING.md).
-* Code of conduct: [code-of-conduct](CODE_OF_CONDUCT.md).
-* Code convention: [code-convention](CODE_CONVENTION.md).
+### Ссылки на документацию
+* Ознакомление с проектом: [on-boarding](ONBOARDING.md).
+* Как внести вклад в проект: [howto-contribute](CONTRIBUTING.md).
+* Кодекс поведения: [code-of-conduct](CODE_OF_CONDUCT.md).
+* Соглашение о коде: [code-convention](CODE_CONVENTION.md).
 
-### Frontend of the project
-* To work with the user interface (Frontend), use the repository [Open vAir UI](https://github.com/Aerodisk/Open-vAIR-UI).
+### Frontend проекта
+* Для работы с интерфейсом пользователя (Frontend) используйте репозиторий [Open vAir UI](https://github.com/Aerodisk/Open-vAIR-UI).
 
-### Documentation of the project
-* To work with the documentation, use the repository [Open vAIR docs](https://github.com/Aerodisk/openvair-docs).
-
----
-
-### Statistics (including documentation and frontend projects)
-<p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=aerodisk&show_icons=true&locale=en&layout=compact" alt="aerodisk" /></p> <p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=aerodisk&show_icons=true&locale=en" alt="aerodisk" /></p>
-
----
-
-### Contribution
-Instructions for contributing to the project:
-
-1. Fork the repository
-2. Create a new branch (git checkout -b feature/your-feature)
-3. Make changes and commit (git commit -m 'Added new feature')
-4. Push changes (git push origin feature/your-feature)
-5. Create a Pull Request
+### Документация проекта
+* Для работы с документацией проекта используйте репозиторий [Open vAIR docs](https://github.com/Aerodisk/Open-vAIR-docs).

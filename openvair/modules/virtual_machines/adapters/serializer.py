@@ -1,114 +1,20 @@
-"""Module for data serialization related to virtual machines.
+"""This module provides classes for serializing and deserializing VirtualMachine
 
-This module provides an abstract base class and a concrete implementation
-for serializing and deserializing virtual machine data between domain models,
-database models, and web representations. The serialization handles various
-ORM entities associated with virtual machines, ensuring that the data is
-properly transformed for each use case.
+It includes a concrete implementation `DataSerializer` which provides methods
+to convert VirtualMachine objects to domain, database, and web-friendly
+dictionaries.
 
 Classes:
-    AbstractDataSerializer: Abstract base class defining the interface for
-        data serialization and deserialization.
-    DataSerializer: Concrete implementation of the AbstractDataSerializer
-        that handles serialization and deserialization of virtual machine
-        data between different representations.
+    DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import abc
 import json
 from typing import Dict, Type, Union
 
 from sqlalchemy import inspect
 
+from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.virtual_machines.adapters import orm
-
-
-class AbstractDataSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for virtual machine data serialization.
-
-    This class defines the methods required for converting virtual machine
-    data between domain models, database models, and web representations.
-    """
-
-    @classmethod
-    @abc.abstractmethod
-    def to_domain(cls, virtual_machine: orm.VirtualMachines) -> Dict:
-        """Convert a database model to a domain model.
-
-        Args:
-            virtual_machine (orm.VirtualMachines): The ORM model instance to
-                convert.
-
-        Returns:
-            Dict: A dictionary representing the domain model.
-        """
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def to_db(
-        cls,
-        data: Dict,
-        orm_class: Type,
-    ) -> Union[
-        orm.VirtualMachines,
-        orm.CpuInfo,
-        orm.Os,
-        orm.Disk,
-        orm.VirtualInterface,
-        orm.ProtocolGraphicInterface,
-        orm.RAM,
-    ]:
-        """Convert a dictionary to a database model.
-
-        Args:
-            data (Dict): A dictionary containing the data to populate the ORM
-                model.
-            orm_class (Type): The ORM class to instantiate with the data.
-
-        Returns:
-            Union: An instance of the specified ORM class populated with
-                theprovided data.
-        """
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def to_web(
-        cls,
-        orm_object: Union[
-            orm.VirtualMachines,
-            orm.CpuInfo,
-            orm.Os,
-            orm.Disk,
-            orm.VirtualInterface,
-            orm.ProtocolGraphicInterface,
-            orm.RAM,
-        ],
-    ) -> Dict:
-        """Convert a database model to a web representation.
-
-        Args:
-            orm_object (Union): The ORM model instance to convert.
-
-        Returns:
-            Dict: A dictionary representing the web model.
-        """
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def vm_to_web(cls, virtual_machine: orm.VirtualMachines) -> Dict:
-        """Convert a virtual machine model to a detailed web representation.
-
-        Args:
-            virtual_machine (orm.VirtualMachines): The virtual machine ORM model
-                instance.
-
-        Returns:
-            Dict: A dictionary representing the detailed web model.
-        """
-        pass
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -119,18 +25,20 @@ class DataSerializer(AbstractDataSerializer):
     """
 
     @classmethod
-    def to_domain(cls, virtual_machine: orm.VirtualMachines) -> Dict:
+    def to_domain(
+        cls,
+        orm_object: orm.VirtualMachines,
+    ) -> Dict:
         """Convert a VirtualMachine ORM model to a domain model.
 
         Args:
-            virtual_machine (orm.VirtualMachines): The ORM model instance to
-                convert.
+            cls: The class that we're converting to.
+            orm_object (VirtualMachine): VirtualMachine
 
         Returns:
-            Dict: A dictionary representing the domain model, with the 'id'
-                field converted to a string.
+            A dictionary of the virtual machine's data.
         """
-        data = virtual_machine.__dict__.copy()
+        data = orm_object.__dict__.copy()
         data.pop('_sa_instance_state')
         data.update({'id': str(data.get('id', ''))})
         return data
@@ -217,7 +125,10 @@ class DataSerializer(AbstractDataSerializer):
         return data
 
     @classmethod
-    def vm_to_web(cls, virtual_machine: orm.VirtualMachines) -> Dict:
+    def vm_to_web(
+        cls,
+        virtual_machine: orm.VirtualMachines,
+    ) -> Dict:
         """Convert a VirtualMachine ORM model to a detailed web representation.
 
         This method includes related entities such as CPU, OS, disks, etc.

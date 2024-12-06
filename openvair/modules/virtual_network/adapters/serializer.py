@@ -1,20 +1,20 @@
-"""Data serialization for the virtual network adapter.
+"""Provide classes for serializing and deserializing VirtualNetworks objects
 
-This module provides the `DataSerializer` class for converting data between
-database, domain, and web representations.
+It includes a concrete implementation `DataSerializer` which provides methods
+to convert VirtualNetworks and PortGroup objects to domain, database,
+and web-friendly dictionaries.
 
 Classes:
-    - AbstractDataSerializer: Abstract base class for data serializers.
-    - DataSerializer: Implementation of a data serializer.
+    DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import abc
 import json
 from typing import Dict, Type, Union
 
 from sqlalchemy import inspect as orm_inspect
 
 from openvair.libs.log import get_logger
+from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.virtual_network.adapters import orm as db
 from openvair.modules.virtual_network.entrypoints import schemas as web
 from openvair.modules.virtual_network.domain.bridge_network.bridge_net import (
@@ -23,40 +23,6 @@ from openvair.modules.virtual_network.domain.bridge_network.bridge_net import (
 )
 
 LOG = get_logger(__name__)
-
-
-class AbstractDataSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for data serializers."""
-
-    @classmethod
-    @abc.abstractmethod
-    def to_domain(
-        cls,
-        instance: Union[db.VirtualNetwork, db.PortGroup],
-        domain_class: Type,
-    ) -> Dict:
-        """Converts data to a domain object."""
-        ...
-
-    @classmethod
-    @abc.abstractmethod
-    def to_db(
-        cls,
-        data: Dict,
-        orm_class: Type,
-    ) -> Union[db.VirtualNetwork, db.PortGroup]:
-        """Converts data to a database object."""
-        ...
-
-    @classmethod
-    @abc.abstractmethod
-    def to_web(
-        cls,
-        instance: Union[db.VirtualNetwork, db.PortGroup],
-        web_class: Type,
-    ) -> Dict:
-        """Converts data to a web response object."""
-        ...
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -73,14 +39,14 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_domain(
         cls,
-        instance: Union[db.VirtualNetwork, db.PortGroup],
+        orm_object: Union[db.VirtualNetwork, db.PortGroup],
         domain_class: Type = BridgeNetwork,
     ) -> Dict:
         """Converts data to a domain object.
 
         Args:
-            instance (Union[db.VirtualNetwork, db.PortGroup]): The data instance
-                to convert.
+            orm_object (Union[db.VirtualNetwork, db.PortGroup]): The data
+                instance to convert.
             domain_class (Type): The domain class to convert to. Defaults to
                 BridgeNetwork.
 
@@ -89,7 +55,7 @@ class DataSerializer(AbstractDataSerializer):
         """
         LOG.info('Converting data to domain object...')
 
-        orm_obj_dict = instance.__dict__.copy()
+        orm_obj_dict = orm_object.__dict__.copy()
         orm_obj_dict.pop('_sa_instance_state')
         orm_port_groups = orm_obj_dict.get('port_groups')
         if orm_port_groups:

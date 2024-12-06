@@ -16,10 +16,8 @@ from typing import TYPE_CHECKING, List
 
 from sqlalchemy.exc import OperationalError
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.block_device.adapters.orm import ISCSIInterface
-from openvair.modules.block_device.adapters.exceptions import (
-    DBCannotBeConnectedError,
-)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session

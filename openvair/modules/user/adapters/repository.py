@@ -30,8 +30,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import OperationalError
 
+from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.user.adapters.orm import User
-from openvair.modules.user.adapters.exceptions import DBCannotBeConnectedError
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
