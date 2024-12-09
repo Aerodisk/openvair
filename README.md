@@ -174,7 +174,7 @@ sudo journalctl -fu web-app.service
 Service-layer daemons perform remote function calls of the service layer.
 Each module has its own service-layer daemon. To check the status and view
 logs, use similar commands, changing the service name to
-`<module>-service-layer.service`.
+`<module_name>-service-layer.service`.
 
 For example:
 ```bash
@@ -185,7 +185,7 @@ sudo systemctl status storage-service-layer.service
 Domain daemons perform remote function calls of the domain layer. Each
 module has its own domain daemon. To check the status and view logs, use
 similar commands, changing the service name to
-*<имя_предметной_области>-domain.service*.
+`<module_name>-domain.service`.
 ```bash
 sudo systemctl status storage-domain.service
 ```
@@ -208,9 +208,12 @@ sudo systemctl status storage-domain.service
 
 ### Statistics (including documentation and frontend projects)
 <p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=aerodisk&show_icons=true&locale=en&layout=compact" alt="aerodisk" /></p> <p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=aerodisk&show_icons=true&locale=en" alt="aerodisk" /></p>
+
 ---
+
 ### Contribution
 Instructions for contributing to the project:
+
 1. Fork the repository
 2. Create a new branch (git checkout -b feature/your-feature)
 3. Make changes and commit (git commit -m 'Added new feature')
