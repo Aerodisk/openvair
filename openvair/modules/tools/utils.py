@@ -63,6 +63,7 @@ from sqlalchemy.exc import OperationalError
 
 from openvair import config
 from openvair.libs.log import get_logger
+from openvair.models.execution_result import ExecutionResult
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -240,13 +241,36 @@ def execute(*cmd: str, **kwargs: Any) -> Tuple[str, str]:  # noqa: C901 ANN401 n
         raise
 
 
+def terminate_process(proc: subprocess.Popen, cmd_str: str) -> str:
+    """Attempts to gracefully terminate a subprocess and force kill it if fails.
+
+    Args:
+        proc (subprocess.Popen): The subprocess to be terminated.
+        cmd_str (str): The command string representing the subprocess for
+            logging purposes.
+
+    Returns:
+        str: The standard error output (stderr) collected from the subprocess
+            after termination.
+    """
+    LOG.warning(f"Command '{cmd_str}' timed out. Terminating process.")
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        LOG.error(f"Command '{cmd_str}' did not terminate. Killing it.")
+        proc.kill()
+    _, stderr = proc.communicate()
+    return str(stderr)
+
+
 def __run_command(
     proc: subprocess.Popen,
     cmd_str: str,
     timeout: Optional[float],
     *,
     raise_on_error: bool,
-) -> Dict[str, Union[str, int]]:
+) -> ExecutionResult:
     """Handles the execution of a subprocess and processes its results.
 
     Args:
@@ -256,13 +280,13 @@ def __run_command(
             command to complete. Defaults to None (no timeout).
         raise_on_error (bool): If True, raises an exception if the command exits
             with a non-zero return code. If False, includes the return code
-            in the output dictionary for manual handling.
+            in the output for manual handling.
 
     Returns:
-        Dict[str, Union[str, int]]: A dictionary containing the following keys:
-            - 'stdout': Standard output of the command (str).
-            - 'stderr': Standard error output of the command (str).
-            - 'returncode': The exit code of the command (int).
+        ExecutionResult: An object containing the following fields:
+            - returncode (int): The exit code of the command.
+            - stdout (str): Standard output of the command.
+            - stderr (str): Standard error output of the command.
 
     Raises:
         ExecuteTimeoutExpiredError: Raised if the command execution exceeds the
@@ -273,16 +297,23 @@ def __run_command(
     try:
         stdout, stderr = proc.communicate(timeout=timeout)
         returncode = proc.returncode
-        LOG.info(
-            f"Command '{cmd_str}' completed with return code " f'{returncode}'
-        )
+        LOG.info(f"Command '{cmd_str}' completed with return code {returncode}")
         if raise_on_error and returncode != 0:
             message = (
-                f"Command '{cmd_str}' failed with return code " f'{returncode}'
+                f"Command '{cmd_str}' failed with return code {returncode}"
             )
             LOG.error(message)
             raise ExecuteError(message)
+
+        return ExecutionResult(
+            returncode=returncode,
+            stdout=stdout or '',
+            stderr=stderr or '',
+        )
+
     except subprocess.TimeoutExpired:
+        stderr = terminate_process(proc, cmd_str)
+
         LOG.warning(
             f"Command '{cmd_str}' timed out. Attempting graceful termination."
         )
@@ -295,24 +326,19 @@ def __run_command(
         _, stderr = proc.communicate()  # Get stderr after finishing process
         message = (
             f"Command '{cmd_str}' timed out and was killed.\n"
-            f'Error: {stderr}'
+            f'Error: {stderr.decode()}'
         )
         raise ExecuteTimeoutExpiredError(message)
-    return {
-        'stdout': stdout,
-        'stderr': stderr,
-        'returncode': returncode,
-    }
 
 
-def execute2(
+def execute_command(
     *args: str,
     shell: bool = False,
     run_as_root: bool = False,
     root_helper: str = 'sudo',
     timeout: Optional[float] = None,
     raise_on_error: bool = False,
-) -> Dict[str, Union[str, int]]:
+) -> ExecutionResult:
     """Executes a shell command and returns its stdout, stderr, and exit code.
 
     Args:
@@ -366,7 +392,7 @@ def execute2(
     LOG.info(f'Executing command: {cmd_str}')
     try:
         with subprocess.Popen(  # noqa: S603
-            shlex.split(cmd_str) if shell else cmd,
+            cmd_str if shell else cmd,
             shell=shell,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
