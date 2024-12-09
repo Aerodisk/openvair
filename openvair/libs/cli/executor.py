@@ -18,7 +18,7 @@ from openvair.libs.cli.exceptions import (
     ExecuteTimeoutExpiredError,
 )
 from openvair.modules.tools.utils import LOG
-from openvair.models.execution_result import ExecutionResult
+from openvair.libs.cli.execution_models import ExecutionResult
 
 
 def __terminate_process(proc: Popen, cmd_str: str) -> str:
