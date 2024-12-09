@@ -1,4 +1,4 @@
-# Open vAIR
+# Open vAir
 
 ## 🌍 Translations
 
@@ -6,30 +6,14 @@
 
 ## 📖 Project Description
 
-**Open vAIR** is a lightweight solution based on the **vAIR** project,
+**Open vAir** is a lightweight solution based on the **vAir** project,
 designed for use as a development environment and virtualization system. The
 program operates in interactive mode, providing a flexible and convenient
 tool for managing virtual infrastructure.
 
-![](.assets/dashboard.gif)
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
-![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-
----
-
-<h3 align="left">Technologies:</h3>
-<p align="left"> <a href="https://www.docker.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original-wordmark.svg" alt="docker" width="40" height="40"/> </a> <a href="https://www.linux.org/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" alt="linux" width="40" height="40"/> </a> <a href="https://www.postgresql.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original-wordmark.svg" alt="postgresql" width="40" height="40"/> </a> <a href="https://www.python.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="python" width="40" height="40"/> </a> <a href="https://www.rabbitmq.com" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/rabbitmq/rabbitmq-icon.svg" alt="rabbitMQ" width="40" height="40"/> </a> <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer"> <img src="https://www.svgrepo.com/download/330413/fastapi.svg" alt="fastapi" width="40" height="40"/></a><a href="https://www.qemu.org/" target="_blank" rel="noreferrer"> <img src="https://www.svgrepo.com/download/306622/qemu.svg" alt="qemu" width="40" height="40"/> </a></p>
-
----
-
 ## 📦 Installation
 
-To install **Open vAIR** on a clean Linux system, follow these steps. It is
+To install **Open vAir** on a clean Linux system, follow these steps. It is
 recommended to use **Ubuntu 20.04**, which is the most tested version.
 **Ubuntu 22.04** is also supported.
 
@@ -93,7 +77,7 @@ recommended to use **Ubuntu 20.04**, which is the most tested version.
 
 ### ⚙️ Project Configuration
 
-Before installing **Open vAIR**, you need to set the login and password in
+Before installing **Open vAir**, you need to set the login and password in
 the `/opt/aero/openvair/project_config.toml` file. This data is required for
 system authorization and access to all application functions.
 
@@ -135,7 +119,7 @@ Upon completion of the installation, you will receive a message with the
 current application address, login, and password for working with the system.
 
 ### 🗑️ Uninstallation
-To remove Open vAIR, run the uninstallation script:
+To remove Open vAir, run the uninstallation script:
 ```bash
 ./openvair/uninstall.sh
 ```
@@ -174,7 +158,7 @@ sudo journalctl -fu web-app.service
 Service-layer daemons perform remote function calls of the service layer.
 Each module has its own service-layer daemon. To check the status and view
 logs, use similar commands, changing the service name to
-`<module_name>-service-layer.service`.
+`<module>-service-layer.service`.
 
 For example:
 ```bash
@@ -185,7 +169,7 @@ sudo systemctl status storage-service-layer.service
 Domain daemons perform remote function calls of the domain layer. Each
 module has its own domain daemon. To check the status and view logs, use
 similar commands, changing the service name to
-`<module_name>-domain.service`.
+*<имя_предметной_области>-domain.service*.
 ```bash
 sudo systemctl status storage-domain.service
 ```
@@ -197,25 +181,11 @@ sudo systemctl status storage-domain.service
 * Code convention: [code-convention](CODE_CONVENTION.md).
 
 ### 🔗 Frontend of the project
-* To work with the user interface (Frontend), use the repository [Open vAIR UI](https://github.com/Aerodisk/Open-vAIR-UI).
+* To work with the user interface (Frontend), use the repository [Open vAir UI](https://github.com/Aerodisk/Open-vAIR-UI).
 
 ### 🔗 Documentation of the project
 * To work with the documentation, use the repository [Open vAIR docs](https://github.com/Aerodisk/Open-vAIR-docs).
 
 ### 🔗 Useful Links
-* [Telegram-channel](https://t.me/Open_vAIR_AERODISK)
+* [Telegram-channel](https://t.me/aerodisk_open_vair)
 * [Open vAIR website](https://openvair.ru/)
-
-### Statistics (including documentation and frontend projects)
-<p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=aerodisk&show_icons=true&locale=en&layout=compact" alt="aerodisk" /></p> <p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=aerodisk&show_icons=true&locale=en" alt="aerodisk" /></p>
-
----
-
-### Contribution
-Instructions for contributing to the project:
-
-1. Fork the repository
-2. Create a new branch (git checkout -b feature/your-feature)
-3. Make changes and commit (git commit -m 'Added new feature')
-4. Push changes (git push origin feature/your-feature)
-5. Create a Pull Request
