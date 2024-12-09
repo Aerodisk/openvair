@@ -214,4 +214,4 @@ sudo systemctl status storage-domain.service
 2. Создайте новую ветку (git checkout -b feature/ваша-фича)
 3. Внесите изменения и закоммитьте (git commit -m 'Добавил новую фичу')
 4. Запушьте изменения (git push origin feature/ваша-фича)
-5. Создайте Pull Request 
+5. Создайте Pull Request
