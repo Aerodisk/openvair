@@ -1,5 +1,0 @@
-<network>
-    <name>{{ network.mode }}_network_{{ network.interface }}</name>
-    <forward mode='{{ network.mode }}'/>
-    <bridge name='{{ network.interface }}'/>
-</network>
