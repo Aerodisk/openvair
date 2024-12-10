@@ -1,18 +1,21 @@
 from enum import Enum
 from typing import NoReturn, Optional
-from pathlib import Path
 
 from typing_extensions import Self
 
+from openvair.libs.log import get_logger
+from openvair.libs.cli.models import ExecuteParams, ExecutionResult
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import (
     ExecuteError,
     ExecuteTimeoutExpiredError,
 )
-from openvair.modules.tools.utils import LOG
 from openvair.abstracts.base_exception import BaseCustomException
-from openvair.libs.cli.execution_models import ExecutionResult
-from openvair.modules.backup.adapters.exceptions import ResticAdapterException
+from openvair.modules.backup.adapters.exceptions import (
+    ResticExecutorException,
+)
+
+LOG = get_logger(__name__)
 
 
 class ReturnCode(Enum):
@@ -61,15 +64,22 @@ class ResticCommandExecutor:
 
     COMMAND_FORMAT = 'restic --json'
 
-    def __init__(self, repo_path: Path) -> None:
+    def __init__(self, restic_dir: str, restic_pass: str) -> None:
         """Initialize the executor with the repository path.
 
         Args:
-            repo_path (Path): Path to the restic repository.
+            restic_dir (str): Path to the restic repository.
+            restic_pass (str): Password for the restic repository.
         """
-        self.repo_path = repo_path
+        self.restic_dir = str(restic_dir)
+        self.restic_pass = restic_pass
 
-    def build_command(self, subcommand: str) -> str:
+    def init_repository(self) -> ExecutionResult:
+        command = self._build_command('init')
+        result = self._execute(command)
+        return self._execute(command)
+
+    def _build_command(self, subcommand: str) -> str:
         """Build the full restic command with necessary options.
 
         Args:
@@ -78,9 +88,9 @@ class ResticCommandExecutor:
         Returns:
             str: The complete command string.
         """
-        return f'{self.COMMAND_FORMAT} -r {self.repo_path} {subcommand}'
+        return f'{self.COMMAND_FORMAT} -r {self.restic_dir} {subcommand}'
 
-    def execute(
+    def _execute(
         self, command: str, timeout: Optional[float] = 60.0
     ) -> ExecutionResult:
         """Executes a command and checks the result.
@@ -97,12 +107,21 @@ class ResticCommandExecutor:
         """
         try:
             LOG.debug(f'Executing command: {command}')
-            result: ExecutionResult = execute(  # noqa: S604
-                command, run_as_root=False, timeout=timeout, shell=True
+            result: ExecutionResult = execute(
+                command,
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=True,
+                    timeout=timeout,
+                    shell=True,
+                    root_helper='sudo -E',
+                    env={
+                        'RESTIC_PASSWORD': self.restic_pass,
+                        'RESTIC_REPOSITORY': self.restic_dir,
+                    },
+                ),
             )
             self._check_result(command, result)
-            return result
-        except (BaseCustomException, OSError) as e:
+        except (ExecuteTimeoutExpiredError, ExecuteError, OSError) as e:
             self._handle_error(command, e)
         else:
             return result
@@ -126,11 +145,11 @@ class ResticCommandExecutor:
             description = (
                 return_code.description if return_code else 'Unknown exit code'
             )
-            msg = (
-                f'Command failed: {result.stderr} '
-                f'(exit code: {result.returncode}, description: {description})'
-            )
-            raise ResticAdapterException(msg)
+            # msg = (
+            #     f'Command failed: {result.stderr} '
+            #     f'(exit code: {result.returncode}, description: {description})'
+            # )
+            # raise ResticExecutorException(msg)
 
     def _handle_error(self, command: str, exception: Exception) -> NoReturn:
         """Handles errors raised during command execution.
@@ -140,7 +159,7 @@ class ResticCommandExecutor:
             exception (Exception): The raised exception.
 
         Raises:
-            ResticAdapterException: Wrapped exception with additional context.
+            ResticExecutorException: Wrapped exception with additional context.
         """
         error_mapping = {
             ExecuteTimeoutExpiredError: (
@@ -159,7 +178,7 @@ class ResticCommandExecutor:
                         command=command, exception=exception
                     )
                 )
-                raise ResticAdapterException(
+                raise ResticExecutorException(
                     message_template.format(
                         command=command, exception=exception
                     )
@@ -168,4 +187,4 @@ class ResticCommandExecutor:
         # Default case for unexpected errors
         LOG.error(f"Unexpected error for command '{command}': {exception!s}")
         msg = f'Unexpected error: {exception!s}'
-        raise ResticAdapterException(msg) from exception
+        raise ResticExecutorException(msg) from exception
