@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import (
     ExecuteError,
@@ -23,7 +24,7 @@ from openvair.libs.cli.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from openvair.libs.cli.execution_models import ExecutionResult
+    from openvair.libs.cli.models import ExecutionResult
 
 
 def test_execute_success() -> None:
@@ -62,7 +63,7 @@ def test_execute_with_error() -> None:
         mock_popen.return_value = process_mock
 
         with pytest.raises(ExecuteError):
-            execute('false', raise_on_error=True)
+            execute('false', params=ExecuteParams(raise_on_error=True))
 
 
 def test_execute_timeout() -> None:
@@ -81,7 +82,7 @@ def test_execute_timeout() -> None:
         )
 
         with pytest.raises(ExecuteTimeoutExpiredError):
-            execute('sleep', '5', timeout=1)
+            execute('sleep', '5', params=ExecuteParams(timeout=1))
 
 
 def test_execute_invalid_command() -> None:
