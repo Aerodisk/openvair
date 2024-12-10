@@ -46,6 +46,7 @@ def __terminate_process(proc: Popen, cmd_str: str) -> str:
     _, stderr = proc.communicate()
     return str(stderr)
 
+
 def execute(
     *args: str,
     shell: bool = False,
