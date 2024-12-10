@@ -9,10 +9,17 @@ from typing import Any
 from openvair.abstracts.base_exception import BaseCustomException
 
 
-class ResticAdapterException(BaseCustomException):
+class ResticException(BaseCustomException):
     """Base exception class for exceptions in ResticAdapter"""
 
     def __init__(self, message: str, *args: Any):  # noqa: ANN401
         """Initialize ResticAdapterException"""
         super().__init__(message, args)
 
+
+class ResticExecutorException(ResticException):
+    """Base exception class for exceptions in ResticAdapter"""
+
+    def __init__(self, message: str, *args: Any):  # noqa: ANN401
+        """Initialize ResticExecutorException"""
+        super().__init__(message, args)
