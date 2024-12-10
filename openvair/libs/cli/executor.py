@@ -132,8 +132,8 @@ def execute(
 
                 return ExecutionResult(
                     returncode=returncode,
-                    stdout=stdout or '',
-                    stderr=stderr or '',
+                    stdout=stdout.strip() or '',
+                    stderr=stderr.strip() or '',
                 )
             except TimeoutExpired:
                 stderr = __terminate_process(proc, cmd_str)
