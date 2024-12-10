@@ -16,15 +16,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import (
     ExecuteError,
     ExecuteTimeoutExpiredError,
 )
-from openvair.libs.cli.execution_models import ExecuteParams
 
 if TYPE_CHECKING:
-    from openvair.libs.cli.execution_models import ExecutionResult
+    from openvair.libs.cli.models import ExecutionResult
 
 
 def test_execute_success() -> None:
