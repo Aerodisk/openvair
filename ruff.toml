@@ -143,6 +143,9 @@ ignore = [
 "__init__.py" = ["D104"]
 "config.py" = ["D100"]
 
+# Ignore Use of assert detected for tests
+"test*.py" = ["S101"]
+
 # Ignore import rules for main.py
 "main.py" = ["E402"]
 
