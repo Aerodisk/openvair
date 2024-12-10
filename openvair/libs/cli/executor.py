@@ -12,12 +12,14 @@ import os
 from typing import Dict, List
 from subprocess import PIPE, Popen, TimeoutExpired
 
+from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
 from openvair.libs.cli.exceptions import (
     ExecuteError,
     ExecuteTimeoutExpiredError,
 )
-from openvair.modules.tools.utils import LOG
+
+LOG = get_logger(__name__)
 
 
 def __terminate_process(proc: Popen, cmd_str: str) -> str:
