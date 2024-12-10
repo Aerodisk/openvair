@@ -1,16 +1,15 @@
 """Executor module for running shell commands with advanced error handling.
 
 Functions:
-    terminate_process: Attempts to gracefully terminate a subprocess and
+    __terminate_process: Attempts to gracefully terminate a subprocess and
         forcefully kills it if necessary.
-    __run_command: Executes a subprocess, handles timeout and errors, and
-        returns the results.
+    __prepare_env: Prepares the environment variables for command execution.
     execute: Executes a shell command with optional root privileges,
         timeout, and error handling.
 """
 
 import os
-from typing import List, Optional
+from typing import Dict, List
 from subprocess import PIPE, Popen, TimeoutExpired
 
 from openvair.libs.cli.exceptions import (
@@ -18,7 +17,7 @@ from openvair.libs.cli.exceptions import (
     ExecuteTimeoutExpiredError,
 )
 from openvair.modules.tools.utils import LOG
-from openvair.libs.cli.execution_models import ExecutionResult
+from openvair.libs.cli.execution_models import ExecuteParams, ExecutionResult
 
 
 def __terminate_process(proc: Popen, cmd_str: str) -> str:
@@ -47,83 +46,79 @@ def __terminate_process(proc: Popen, cmd_str: str) -> str:
     return str(stderr)
 
 
+def __prepare_env(env_params: Dict[str, str]) -> Dict[str, str]:
+    """Prepares the environment variables for the command execution.
+
+    Args:
+        env_params (Dict[str, str]): Key-value pairs representing environment
+            variables to be added or overridden.
+
+    Returns:
+        Dict[str, str]: The merged environment variables, combining the current
+        environment and the provided `env_params`.
+    """
+    env_vars = os.environ.copy()  # Copy current environment
+    for var, val in env_params.items():
+        env_vars[var] = val
+    return env_vars
+
+
 def execute(
     *args: str,
-    shell: bool = False,
-    run_as_root: bool = False,
-    root_helper: str = 'sudo',
-    timeout: Optional[float] = None,
-    raise_on_error: bool = False,
+    params: ExecuteParams = ExecuteParams(),
 ) -> ExecutionResult:
     """Executes a shell command and returns its stdout, stderr, and exit code.
 
     Args:
         *args (str): The command and its arguments to execute. Each argument
             must be passed as a separate string.
-        shell (bool): If True, the command will be executed through the shell.
-            Defaults to False.
-        run_as_root (bool): If True, the command will be executed with root
-            privileges using the specified root_helper. Defaults to False.
-        root_helper (str): The command used to elevate privileges, such as
-            'sudo'. Defaults to 'sudo'.
-        timeout (Optional[float]): Maximum time in seconds to wait for the
-            command to complete. Defaults to None (no timeout).
-        raise_on_error (bool): If True, raises an exception if the command exits
-            with a non-zero return code. If False, includes the return code
-            in the output dictionary for manual handling. Defaults to False.
+        params (ExecuteParams): A Pydantic model containing command execution
+            parameters such as `shell`, `timeout`, `env`, etc.
 
     Returns:
-        Dict[str, Union[str, int]]: A dictionary containing the following keys:
-            - 'stdout': Standard output of the command (str).
-            - 'stderr': Standard error output of the command (str).
-            - 'returncode': The exit code of the command (int). This is included
-                only if raise_on_error is False.
+        ExecutionResult: A model containing:
+            - `returncode` (int): The exit code of the command.
+            - `stdout` (str): Standard output of the command.
+            - `stderr` (str): Standard error output of the command.
 
     Raises:
         ExecuteTimeoutExpiredError: Raised if the command execution exceeds the
             specified timeout.
         ExecuteError: Raised if the command exits with a non-zero return code
-            and raise_on_error is True.
+            and `raise_on_error` is True.
         OSError: Raised for system-level errors, such as command not found or
             permission issues.
 
     Example:
-        >>> execute2('ls', '-l', raise_on_error=True)
-        {'stdout': 'output', 'stderr': '', 'returncode': 0}
-
-        >>> execute2('false', raise_on_error=True)
-        Traceback (most recent call last):
-            ...
-        ExecuteError: Command 'false' failed
-
-        >>> result = execute2('false', raise_on_error=False)
-        >>> print(result)
-        {'stdout': '', 'stderr': '', 'returncode': 1}
+        >>> params = ExecuteParams(shell=True, timeout=10, raise_on_error=True)
+        >>> result = execute('ls', '-la', params=params)
+        >>> print(result.stdout)
     """
     cmd: List[str] = list(args)
-    if run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
-        cmd = [root_helper, *cmd]
+    if params.run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
+        cmd = [params.root_helper, *cmd]
 
     cmd_str = ' '.join(cmd)
     LOG.info(f'Executing command: {cmd_str}')
     try:
         with Popen(  # noqa: S603
-            cmd_str if shell else cmd,
-            shell=shell,
+            cmd_str if params.shell else cmd,
+            shell=params.shell,
             stdout=PIPE,
             stderr=PIPE,
             stdin=PIPE,
             text=True,
+            env=__prepare_env(params.env) if params.env else None,
         ) as proc:
             try:
-                stdout, stderr = proc.communicate(timeout=timeout)
+                stdout, stderr = proc.communicate(timeout=params.timeout)
                 returncode = proc.returncode
                 LOG.info(
                     f"Command '{cmd_str}' completed with return code: "
                     f'{returncode}'
                 )
 
-                if raise_on_error and returncode != 0:
+                if params.raise_on_error and returncode != 0:
                     message = (
                         f"Command '{cmd_str}' failed with return code "
                         f'{returncode}'

@@ -1,18 +1,17 @@
-"""This module defines the `ExecutionResult` model used across the project.
-
-The `ExecutionResult` model represents the outcome of a command execution,
-providing details about the return code, standard output, and standard error.
+"""This module defines the models for command execution parameters and results.
 
 Classes:
-    ExecutionResult: A Pydantic model encapsulating the result of a command
-        execution, including the return code, stdout, and stderr.
+    ExecutionResult: Represents the outcome of a command execution.
+    ExecuteParams: Encapsulates parameters for executing a shell command.
 """
 
-from pydantic import BaseModel
+from typing import Dict, Optional
+
+from pydantic import Field, BaseModel
 
 
 class ExecutionResult(BaseModel):
-    """A model representing the result of a command execution.
+    """Represents the result of a command execution.
 
     Attributes:
         returncode (int): The exit code of the executed command.
@@ -23,3 +22,47 @@ class ExecutionResult(BaseModel):
     returncode: int
     stdout: str
     stderr: str
+
+
+class ExecuteParams(BaseModel):
+    """Encapsulates parameters for executing a shell command.
+
+    Attributes:
+        shell (bool): If True, the command will be executed through the shell.
+        run_as_root (bool): If True, the command will be executed with root
+            privileges.
+        root_helper (str): Command used to elevate privileges, such as 'sudo'.
+        timeout (Optional[float]): Maximum time in seconds to wait for the
+            command to complete.
+        env (Optional[Dict[str, str]]): Environment variables for the command.
+        raise_on_error (bool): If True, raises an exception if the command
+            fails.
+    """
+
+    shell: bool = Field(
+        default=False,
+        description='If True, the command will be executed through the shell.',
+    )
+    run_as_root: bool = Field(
+        default=False,
+        description=(
+            'If True, the command will be executed with root privileges.'
+        ),
+    )
+    root_helper: str = Field(
+        default='sudo',
+        description="Command used to elevate privileges, such as 'sudo'.",
+    )
+    timeout: Optional[float] = Field(
+        default=None,
+        description=(
+            'Maximum time in seconds to wait for the command to complete.'
+        ),
+    )
+    env: Optional[Dict[str, str]] = Field(
+        default=None, description='Environment variables for the command.'
+    )
+    raise_on_error: bool = Field(
+        default=False,
+        description='If True, raises an exception if the command fails.',
+    )
