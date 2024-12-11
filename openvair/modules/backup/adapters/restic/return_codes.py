@@ -13,12 +13,12 @@ class ReturnCode(Enum):
     """
 
     SUCCESS = 0, 'Command was successful'
-    COMMAND_FAILED = 1, 'Command failed, see command help for more details'
+    COMMAND_FAILED = 1, 'Command failed'
     GO_RUNTIME_ERROR = 2, 'Go runtime error'
     PARTIAL_BACKUP = 3, 'Backup command could not read some source data'
-    REPO_NOT_EXIST = 10, 'Repository does not exist (since restic 0.17.0)'
-    REPO_LOCK_FAILED = 11, 'Failed to lock repository (since restic 0.17.0)'
-    WRONG_PASSWORD = 12, 'Wrong password (since restic 0.17.1)'
+    REPO_NOT_EXIST = 10, 'Repository does not exist'
+    REPO_LOCK_FAILED = 11, 'Failed to lock repository'
+    WRONG_PASSWORD = 12, 'Wrong password'
     INTERRUPTED = 130, 'Restic was interrupted using SIGINT or SIGSTOP'
 
     def __init__(self, code: int, description: str) -> None:
