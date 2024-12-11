@@ -15,7 +15,7 @@ from subprocess import PIPE, Popen, TimeoutExpired
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
 from openvair.libs.cli.exceptions import (
-    ExecuteError,
+    UnsuccessReturnCodeError,
     ExecuteTimeoutExpiredError,
 )
 
@@ -86,8 +86,8 @@ def execute(
     Raises:
         ExecuteTimeoutExpiredError: Raised if the command execution exceeds the
             specified timeout.
-        ExecuteError: Raised if the command exits with a non-zero return code
-            and `raise_on_error` is True.
+        UnsuccessReturnCodeError: Raised if the command exits with a non-zero
+            return code and `raise_on_error` is True.
         OSError: Raised for system-level errors, such as command not found or
             permission issues.
 
@@ -126,7 +126,7 @@ def execute(
                         f'{returncode}'
                     )
                     LOG.error(message)
-                    raise ExecuteError(message)
+                    raise UnsuccessReturnCodeError(message)
 
                 return ExecutionResult(
                     returncode=returncode,
