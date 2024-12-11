@@ -1,25 +1,25 @@
-"""Module for custom exceptions in the backup adapters.
-
-Classes:
-    BackupDomainException: base exception class for exceptions in backup domain
-"""
+"""Module for custom exceptions in the restic adapters."""
 
 from typing import Any
 
 from openvair.abstracts.base_exception import BaseCustomException
 
 
-class ResticException(BaseCustomException):
-    """Base exception class for exceptions in ResticAdapter"""
+class ResticError(BaseCustomException):
+    """Base errro class for error in restic adapter"""
 
     def __init__(self, message: str, *args: Any):  # noqa: ANN401
         """Initialize ResticAdapterException"""
         super().__init__(message, args)
 
 
-class ResticExecutorException(ResticException):
-    """Base exception class for exceptions in ResticAdapter"""
+class ResticExecutorError(ResticError):
+    """Raises when execution failed"""
 
-    def __init__(self, message: str, *args: Any):  # noqa: ANN401
-        """Initialize ResticExecutorException"""
-        super().__init__(message, args)
+    ...
+
+
+class ResticInitRepoError(ResticError):
+    """Raises when getting error while initialize restic repository"""
+
+    ...
