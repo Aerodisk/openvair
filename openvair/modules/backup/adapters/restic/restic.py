@@ -17,6 +17,8 @@ from openvair.libs.cli.models import ExecutionResult
 from openvair.modules.tools.utils import change_directory
 from openvair.modules.backup.adapters.restic.exceptions import (
     ResticError,
+    ResticBackupError,
+    ResticRestoreError,
     ResticInitRepoError,
     ResticBackupRepoError,
 )
@@ -70,7 +72,7 @@ class ResticAdapter:
                 ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
-            actual_error = ResticBackupRepoError(f'{err!s}')
+            actual_error = ResticBackupError(f'{err!s}')
             LOG.error(actual_error)
             raise actual_error from err
 

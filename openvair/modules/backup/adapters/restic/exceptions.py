@@ -25,7 +25,12 @@ class ResticInitRepoError(ResticError):
     ...
 
 
-class ResticBackupRepoError(ResticError):
+class ResticBackupError(ResticError):
     """Raises when error while backup restic operation"""
+
+    ...
+
+class ResticRestoreError(ResticError):
+    """Raises when error while restoring restic operation"""
 
     ...
