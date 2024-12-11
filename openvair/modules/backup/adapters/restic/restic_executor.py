@@ -35,7 +35,7 @@ class ResticCommandExecutor:
         restic_dir (str): Path to the restic repository.
         restic_pass (str): Password for the restic repository.
     """
-    COMMAND_FORMAT = 'restic --json'
+    COMMAND_FORMAT = 'restic --json -q'
 
     def __init__(self, restic_dir: str, restic_pass: str) -> None:
         """Initialize the executor with the repository path.
