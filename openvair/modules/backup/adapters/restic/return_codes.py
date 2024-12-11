@@ -1,3 +1,16 @@
+"""Module for defining and managing restic return codes.
+
+This module provides an Enum class to represent the various exit codes
+produced by restic commands. Each exit code is associated with a textual
+description, allowing for better readability and error handling in
+restic-based applications.
+
+Typical usage example:
+    result_code = ReturnCode.from_code(0)
+    if result_code == ReturnCode.SUCCESS:
+        print("Command executed successfully.")
+"""
+
 from enum import Enum
 from typing import Optional
 
@@ -8,8 +21,12 @@ class ReturnCode(Enum):
     """Represents exit codes for commands and their descriptions.
 
     This Enum maps numerical exit codes to their corresponding textual
-    descriptions. These exit codes are used to determine the result of
-    executed commands and to provide meaningful error messages.
+    descriptions. These exit codes help interpret the results of restic
+    commands and provide meaningful messages for debugging or error handling.
+
+    Attributes:
+        code (int): The numerical exit code associated with a command.
+        description (str): A textual description explaining the exit code.
     """
 
     SUCCESS = 0, 'Command was successful'
@@ -40,6 +57,6 @@ class ReturnCode(Enum):
 
         Returns:
             Optional[Self]: The matching ReturnCode instance if found, or None
-            if the code does not correspond to a defined ReturnCode.
+                if the code does not correspond to a defined ReturnCode.
         """
         return next((rc for rc in cls if rc.code == code), None)
