@@ -1,3 +1,19 @@
+"""Module to execute and manage restic commands.
+
+This module provides a class for building and executing restic commands
+while handling errors. It includes logging, command formatting, and result
+validation functionalities.
+
+Dependencies:
+    - openvair.libs.log: For logging command execution.
+    - openvair.libs.cli.models: For execution parameters and results.
+    - openvair.libs.cli.executor: For command execution logic.
+
+Typical usage example:
+    executor = ResticCommandExecutor('/path/to/repo', 'password')
+    result = executor.execute('backup /path/to/files')
+"""
+
 from typing import Optional
 
 from openvair.libs.log import get_logger
@@ -8,8 +24,17 @@ LOG = get_logger(__name__)
 
 
 class ResticCommandExecutor:
-    """Executes restic commands and handles errors."""
+    """Executes restic commands and handles errors.
 
+    This class is responsible for constructing and executing restic commands
+    with specified parameters. It ensures commands are properly formatted and
+    securely executed, leveraging environment variables for authentication.
+
+    Attributes:
+        COMMAND_FORMAT (str): The base command format for restic execution.
+        restic_dir (str): Path to the restic repository.
+        restic_pass (str): Password for the restic repository.
+    """
     COMMAND_FORMAT = 'restic --json'
 
     def __init__(self, restic_dir: str, restic_pass: str) -> None:
@@ -39,8 +64,8 @@ class ResticCommandExecutor:
         """Executes a command and checks the result.
 
         Args:
-            subcommand (str): Subcomand of restic.
-            timeout (float): Timeout for the command.
+            subcommand (str): Subcommand to execute with restic.
+            timeout (Optional[float]): Timeout for the command, in seconds.
 
         Returns:
             ExecutionResult: The result of the command execution.
