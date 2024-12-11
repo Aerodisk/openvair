@@ -7,22 +7,23 @@ Classes:
     ResticAdapter: Adapter class for managing backups.
 """
 
-from typing import TYPE_CHECKING, Optional
+import json
+from typing import Dict, Union, Optional
+from pathlib import Path
 
 from openvair.libs.log import get_logger
 from openvair.modules.backup import config
 from openvair.libs.cli.models import ExecutionResult
+from openvair.modules.tools.utils import change_directory
 from openvair.modules.backup.adapters.restic.exceptions import (
     ResticError,
     ResticInitRepoError,
+    ResticBackupRepoError,
 )
 from openvair.modules.backup.adapters.restic.return_codes import ReturnCode
 from openvair.modules.backup.adapters.restic.restic_executor import (
     ResticCommandExecutor,
 )
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 LOG = get_logger(__name__)
 
@@ -31,6 +32,7 @@ class ResticAdapter:
     """Provides business logic for interacting with restic."""
 
     INIT_SUBCOMMAND = 'init'
+    BACKUP_SUBCOMMAND = 'backup --skip-if-unchanged'
 
     def __init__(self) -> None:
         """Initialize ResticAdapter instance."""
@@ -56,6 +58,23 @@ class ResticAdapter:
             LOG.error(err)
             raise err from e
 
+    def backup(self, source_path: Path) -> Dict[str, Union[str, int]]:
+        with change_directory(source_path):
+            result = self.executor.execute(f'{self.BACKUP_SUBCOMMAND} * ')
+        return_code = ReturnCode.from_code(result.returncode)
+        try:
+            self._check_result(
+                self.BACKUP_SUBCOMMAND,
+                result,
+                return_code,
+            )
+        except ResticError as e:
+            err = ResticBackupRepoError(f'{e}.\n\tstderr: {result.stderr}')
+            LOG.error(err)
+            raise err from e
+        backup_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
+        return backup_info
+
     def _check_result(
         self,
         operation: str,
@@ -76,4 +95,4 @@ class ResticAdapter:
 
 if __name__ == '__main__':
     r = ResticAdapter()
-    r.init_repository()
+    res = r.backup(Path('/opt/aero/openvair/data'))

@@ -23,3 +23,9 @@ class ResticInitRepoError(ResticError):
     """Raises when getting error while initialize restic repository"""
 
     ...
+
+
+class ResticBackupRepoError(ResticError):
+    """Raises when error while backup restic operation"""
+
+    ...
