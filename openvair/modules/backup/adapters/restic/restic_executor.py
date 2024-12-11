@@ -11,52 +11,12 @@ from openvair.libs.cli.exceptions import (
     ExecuteTimeoutExpiredError,
 )
 from openvair.abstracts.base_exception import BaseCustomException
-from openvair.modules.backup.adapters.exceptions import (
-    ResticExecutorException,
+from openvair.modules.backup.adapters.restic.exceptions import (
+    ResticExecutorError,
 )
+from openvair.modules.backup.adapters.restic.return_codes import ReturnCode
 
 LOG = get_logger(__name__)
-
-
-class ReturnCode(Enum):
-    """Represents exit codes for commands and their descriptions.
-
-    This Enum maps numerical exit codes to their corresponding textual
-    descriptions. These exit codes are used to determine the result of
-    executed commands and to provide meaningful error messages.
-    """
-
-    SUCCESS = 0, 'Command was successful'
-    COMMAND_FAILED = 1, 'Command failed, see command help for more details'
-    GO_RUNTIME_ERROR = 2, 'Go runtime error'
-    PARTIAL_BACKUP = 3, 'Backup command could not read some source data'
-    REPO_NOT_EXIST = 10, 'Repository does not exist (since restic 0.17.0)'
-    REPO_LOCK_FAILED = 11, 'Failed to lock repository (since restic 0.17.0)'
-    WRONG_PASSWORD = 12, 'Wrong password (since restic 0.17.1)'
-    INTERRUPTED = 130, 'Restic was interrupted using SIGINT or SIGSTOP'
-
-    def __init__(self, code: int, description: str) -> None:
-        """Initializes a ReturnCode instance with a code and description.
-
-        Args:
-            code (int): The numerical exit code associated with the command.
-            description (str): A textual description of the exit code.
-        """
-        self.code: int = code
-        self.description: str = description
-
-    @classmethod
-    def from_code(cls, code: int) -> Optional[Self]:
-        """Finds the corresponding ReturnCode by numerical exit code.
-
-        Args:
-            code (int): The numerical exit code to look up.
-
-        Returns:
-            Optional[Self]: The matching ReturnCode instance if found, or None
-            if the code does not correspond to a defined ReturnCode.
-        """
-        return next((rc for rc in cls if rc.code == code), None)
 
 
 class ResticCommandExecutor:
@@ -76,7 +36,6 @@ class ResticCommandExecutor:
 
     def init_repository(self) -> ExecutionResult:
         command = self._build_command('init')
-        result = self._execute(command)
         return self._execute(command)
 
     def _build_command(self, subcommand: str) -> str:
@@ -91,7 +50,7 @@ class ResticCommandExecutor:
         return f'{self.COMMAND_FORMAT} -r {self.restic_dir} {subcommand}'
 
     def _execute(
-        self, command: str, timeout: Optional[float] = 60.0
+        self, command: str, timeout: Optional[float] = None
     ) -> ExecutionResult:
         """Executes a command and checks the result.
 
@@ -145,11 +104,11 @@ class ResticCommandExecutor:
             description = (
                 return_code.description if return_code else 'Unknown exit code'
             )
-            # msg = (
-            #     f'Command failed: {result.stderr} '
-            #     f'(exit code: {result.returncode}, description: {description})'
-            # )
-            # raise ResticExecutorException(msg)
+            msg = (
+                f'Command failed: {result.stderr} '
+                f'(exit code: {result.returncode}, description: {description})'
+            )
+            raise ResticExecutorError(msg)
 
     def _handle_error(self, command: str, exception: Exception) -> NoReturn:
         """Handles errors raised during command execution.
@@ -178,7 +137,7 @@ class ResticCommandExecutor:
                         command=command, exception=exception
                     )
                 )
-                raise ResticExecutorException(
+                raise ResticExecutorError(
                     message_template.format(
                         command=command, exception=exception
                     )
@@ -187,4 +146,4 @@ class ResticCommandExecutor:
         # Default case for unexpected errors
         LOG.error(f"Unexpected error for command '{command}': {exception!s}")
         msg = f'Unexpected error: {exception!s}'
-        raise ResticExecutorException(msg) from exception
+        raise ResticExecutorError(msg) from exception
