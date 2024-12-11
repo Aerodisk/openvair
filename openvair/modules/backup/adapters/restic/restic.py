@@ -80,7 +80,9 @@ class ResticAdapter:
         return backup_info
 
     def snapshots(self) -> List[Dict[str, Union[str, int]]]:
-        result = self.executor.execute(self.SNAPSHOTS_SUBCOMMAND)
+        result = self.executor.execute(
+            self.SNAPSHOTS_SUBCOMMAND
+        )
 
         self._check_result(
             self.SNAPSHOTS_SUBCOMMAND,
