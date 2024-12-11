@@ -95,6 +95,29 @@ class ResticAdapter:
         )
         return snapshots_info
 
+    def restore(
+        self,
+        target_path: Path,
+        backup_id: str = 'latest',
+    ) -> Dict[str, Union[str, int]]:
+        result = self.executor.execute(
+            f'{self.RESTORE_SUBCOMMAND} {target_path} {backup_id}'
+        )
+
+        try:
+            self._check_result(
+                self.BACKUP_SUBCOMMAND,
+                result,
+                ReturnCode.from_code(result.returncode),
+            )
+        except ResticError as err:
+            actual_error = ResticRestoreError(f'{err!s}')
+            LOG.error(actual_error)
+            raise actual_error from err
+
+        restore_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
+        return restore_info
+
     def _check_result(
         self,
         operation: str,
