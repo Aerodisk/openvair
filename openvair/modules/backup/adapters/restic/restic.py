@@ -20,7 +20,6 @@ from openvair.modules.backup.adapters.restic.exceptions import (
     ResticBackupError,
     ResticRestoreError,
     ResticInitRepoError,
-    ResticBackupRepoError,
 )
 from openvair.modules.backup.adapters.restic.return_codes import ReturnCode
 from openvair.modules.backup.adapters.restic.restic_executor import (
@@ -31,14 +30,33 @@ LOG = get_logger(__name__)
 
 
 class ResticAdapter:
-    """Provides business logic for interacting with restic."""
+    """Encapsulates business logic for interacting with restic.
+
+    This class provides methods for initializing repositories, performing
+    backups, restoring data, and fetching snapshots, leveraging the
+    ResticCommandExecutor to execute commands and validate results.
+
+    Attributes:
+        INIT_SUBCOMMAND (str): Subcommand for initializing a repository.
+        BACKUP_SUBCOMMAND (str): Subcommand for creating backups.
+        RESTORE_SUBCOMMAND (str): Subcommand for restoring data.
+        SNAPSHOTS_SUBCOMMAND (str): Subcommand for listing snapshots.
+        restic_dir (Path): Path to the restic repository.
+        restic_pass (str): Password for the restic repository.
+        executor (ResticCommandExecutor): The command executor for restic.
+    """
 
     INIT_SUBCOMMAND = 'init'
     BACKUP_SUBCOMMAND = 'backup --skip-if-unchanged'
+    RESTORE_SUBCOMMAND = 'restore --target'
     SNAPSHOTS_SUBCOMMAND = 'snapshots'
 
     def __init__(self) -> None:
-        """Initialize ResticAdapter instance."""
+        """Initialize a ResticAdapter instance.
+
+        This initializes the adapter with the repository path and password
+        from the configuration, and sets up the ResticCommandExecutor.
+        """
         self.restic_dir: Path = config.RESTIC_DIR
         self.restic_pass: str = config.RESTIC_PASSWORD
         self.executor = ResticCommandExecutor(
@@ -47,7 +65,11 @@ class ResticAdapter:
         )
 
     def init_repository(self) -> None:
-        """Executes command to init restic repository"""
+        """Executes the command to initialize a restic repository.
+
+        Raises:
+            ResticInitRepoError: If the repository initialization fails.
+        """
         result = self.executor.execute(self.INIT_SUBCOMMAND)
 
         try:
@@ -62,6 +84,18 @@ class ResticAdapter:
             raise actual_error from err
 
     def backup(self, source_path: Path) -> Dict[str, Union[str, int]]:
+        """Performs a backup of the specified source path.
+
+        Args:
+            source_path (Path): Path to the directory or files to back up.
+
+        Returns:
+            Dict[str, Union[str, int]]: Information about the backup, parsed
+                from the JSON output of the restic command.
+
+        Raises:
+            ResticBackupError: If the backup operation fails.
+        """
         with change_directory(source_path):
             result = self.executor.execute(f'{self.BACKUP_SUBCOMMAND} * ')
 
@@ -80,9 +114,13 @@ class ResticAdapter:
         return backup_info
 
     def snapshots(self) -> List[Dict[str, Union[str, int]]]:
-        result = self.executor.execute(
-            self.SNAPSHOTS_SUBCOMMAND
-        )
+        """Fetches a list of snapshots from the restic repository.
+
+        Returns:
+            List[Dict[str, Union[str, int]]]: List of snapshot details, parsed
+                from the JSON output of the restic command.
+        """
+        result = self.executor.execute(self.SNAPSHOTS_SUBCOMMAND)
 
         self._check_result(
             self.SNAPSHOTS_SUBCOMMAND,
@@ -100,6 +138,20 @@ class ResticAdapter:
         target_path: Path,
         backup_id: str = 'latest',
     ) -> Dict[str, Union[str, int]]:
+        """Restores data from a specified backup.
+
+        Args:
+            target_path (Path): Path to restore data to.
+            backup_id (str, optional): ID of the backup to restore. Defaults to
+                'latest'.
+
+        Returns:
+            Dict[str, Union[str, int]]: Information about the restore process,
+            parsed from the JSON output of the restic command.
+
+        Raises:
+            ResticRestoreError: If the restore operation fails.
+        """
         result = self.executor.execute(
             f'{self.RESTORE_SUBCOMMAND} {target_path} {backup_id}'
         )
@@ -124,6 +176,17 @@ class ResticAdapter:
         result: ExecutionResult,
         return_code: Optional[ReturnCode],
     ) -> None:
+        """Checks the result of a restic command and validates its success.
+
+        Args:
+            operation (str): The operation being performed (e.g., "backup").
+            result (ExecutionResult): The result of the executed command.
+            return_code (Optional[ReturnCode]): The return code of the command.
+
+        Raises:
+            ResticError: If the command result is unsuccessful or the return
+                code indicates failure.
+        """
         if return_code is None or return_code != ReturnCode.SUCCESS:
             description = (
                 return_code.description if return_code else 'Unknown exit code'
@@ -135,9 +198,3 @@ class ResticAdapter:
             )
             error = ResticError(message)
             raise error
-
-
-if __name__ == '__main__':
-    r = ResticAdapter()
-    # res = r.backup(Path('/opt/aero/openvair/data'))
-    r.snapshots()
