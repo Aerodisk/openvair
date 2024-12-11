@@ -8,7 +8,7 @@ Classes:
 """
 
 import json
-from typing import Dict, Union, Optional
+from typing import Dict, List, Union, Optional
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -47,32 +47,33 @@ class ResticAdapter:
     def init_repository(self) -> None:
         """Executes command to init restic repository"""
         result = self.executor.execute(self.INIT_SUBCOMMAND)
-        return_code = ReturnCode.from_code(result.returncode)
+
         try:
             self._check_result(
                 self.INIT_SUBCOMMAND,
                 result,
-                return_code,
+                ReturnCode.from_code(result.returncode),
             )
-        except ResticError as e:
-            err = ResticInitRepoError(f'{e}.\n\tstderr: {result.stderr}')
-            LOG.error(err)
-            raise err from e
+        except ResticError as err:
+            actual_error = ResticInitRepoError(f'{err!s}')
+            LOG.error(actual_error)
+            raise actual_error from err
 
     def backup(self, source_path: Path) -> Dict[str, Union[str, int]]:
         with change_directory(source_path):
             result = self.executor.execute(f'{self.BACKUP_SUBCOMMAND} * ')
-        return_code = ReturnCode.from_code(result.returncode)
+
         try:
             self._check_result(
                 self.BACKUP_SUBCOMMAND,
                 result,
-                return_code,
+                ReturnCode.from_code(result.returncode),
             )
-        except ResticError as e:
-            err = ResticBackupRepoError(f'{e}.\n\tstderr: {result.stderr}')
-            LOG.error(err)
-            raise err from e
+        except ResticError as err:
+            actual_error = ResticBackupRepoError(f'{err!s}')
+            LOG.error(actual_error)
+            raise actual_error from err
+
         backup_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
         return backup_info
 
@@ -103,6 +104,7 @@ class ResticAdapter:
             message = (
                 f'Operation {operation} not success '
                 f'(exit code: {result.returncode}, description: {description})'
+                f'\n\tstderr: {result.stderr}'
             )
             error = ResticError(message)
             raise error
@@ -110,4 +112,5 @@ class ResticAdapter:
 
 if __name__ == '__main__':
     r = ResticAdapter()
-    res = r.backup(Path('/opt/aero/openvair/data'))
+    # res = r.backup(Path('/opt/aero/openvair/data'))
+    r.snapshots()
