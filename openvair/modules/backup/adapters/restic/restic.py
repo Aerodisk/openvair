@@ -33,6 +33,7 @@ class ResticAdapter:
 
     INIT_SUBCOMMAND = 'init'
     BACKUP_SUBCOMMAND = 'backup --skip-if-unchanged'
+    SNAPSHOTS_SUBCOMMAND = 'snapshots'
 
     def __init__(self) -> None:
         """Initialize ResticAdapter instance."""
@@ -74,6 +75,20 @@ class ResticAdapter:
             raise err from e
         backup_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
         return backup_info
+
+    def snapshots(self) -> List[Dict[str, Union[str, int]]]:
+        result = self.executor.execute(self.SNAPSHOTS_SUBCOMMAND)
+
+        self._check_result(
+            self.SNAPSHOTS_SUBCOMMAND,
+            result,
+            ReturnCode.from_code(result.returncode),
+        )
+
+        snapshots_info: List[Dict[str, Union[str, int]]] = json.loads(
+            result.stdout
+        )
+        return snapshots_info
 
     def _check_result(
         self,
