@@ -7,19 +7,30 @@ Classes:
     ResticAdapter: Adapter class for managing backups.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
+from openvair.libs.log import get_logger
 from openvair.modules.backup import config
-from openvair.modules.backup.adapters.restic_executor import (
+from openvair.libs.cli.models import ExecutionResult
+from openvair.modules.backup.adapters.restic.exceptions import (
+    ResticError,
+    ResticInitRepoError,
+)
+from openvair.modules.backup.adapters.restic.return_codes import ReturnCode
+from openvair.modules.backup.adapters.restic.restic_executor import (
     ResticCommandExecutor,
 )
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+LOG = get_logger(__name__)
+
 
 class ResticAdapter:
     """Provides business logic for interacting with restic."""
+
+    INIT_SUBCOMMAND = 'init'
 
     def __init__(self) -> None:
         """Initialize ResticAdapter instance."""
@@ -30,6 +41,39 @@ class ResticAdapter:
             self.restic_pass,
         )
 
-    def init_repository(self) -> bool:
-        result = self.executor.init_repository()
+    def init_repository(self) -> None:
+        """Executes command to init restic repository"""
+        result = self.executor.execute(self.INIT_SUBCOMMAND)
+        return_code = ReturnCode.from_code(result.returncode)
+        try:
+            self._check_result(
+                self.INIT_SUBCOMMAND,
+                result,
+                return_code,
+            )
+        except ResticError as e:
+            err = ResticInitRepoError(f'{e}.\n\tstderr: {result.stderr}')
+            LOG.error(err)
+            raise err from e
 
+    def _check_result(
+        self,
+        operation: str,
+        result: ExecutionResult,
+        return_code: Optional[ReturnCode],
+    ) -> None:
+        if return_code is None or return_code != ReturnCode.SUCCESS:
+            description = (
+                return_code.description if return_code else 'Unknown exit code'
+            )
+            message = (
+                f'Operation {operation} not success '
+                f'(exit code: {result.returncode}, description: {description})'
+            )
+            error = ResticError(message)
+            raise error
+
+
+if __name__ == '__main__':
+    r = ResticAdapter()
+    r.init_repository()
