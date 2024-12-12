@@ -56,3 +56,6 @@ dsn = ''
     smtp_username = 'your_email@example.com'
     smtp_password = 'your_password'
 
+[backup]
+restic_dir = ''
+restic_pass = ''
