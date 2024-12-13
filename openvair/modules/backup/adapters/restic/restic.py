@@ -91,7 +91,24 @@ class ResticAdapter:
         Returns:
             Dict[str, Union[str, int]]: Information about the backup, parsed
                 from the JSON output of the restic command.
-
+                - message_type: Always “summary”
+                - files_new: Number of new files
+                - files_changed: Number of files that changed
+                - files_unmodified: Number of files that did not change
+                - dirs_new: Number of new directories
+                - dirs_changed: Number of directories that changed
+                - dirs_unmodified: Number of directories that did not change
+                - data_blobs: Number of data blobs added
+                - tree_blobs: Number of tree blobs added
+                - data_added: Amount of (uncompressed) data added, in bytes
+                - data_added_packed: Amount of data added (after compression),
+                    in bytes
+                - total_files_processed: Total number of files processed
+                - total_bytes_processed: Total number of bytes processed
+                - total_duration: Total time it took for the operation to
+                    complete
+                - snapshot_id: ID of the new snapshot. Field is omitted if
+                    snapshot creation was skipped
         Raises:
             ResticBackupError: If the backup operation fails.
         """
@@ -118,6 +135,21 @@ class ResticAdapter:
         Returns:
             List[Dict[str, Union[str, int]]]: List of snapshot details, parsed
                 from the JSON output of the restic command.
+                snapshot details:
+                - time: Timestamp of when the backup was started
+                - parent: ID of the parent snapshot
+                - tree: ID of the root tree blob
+                - paths: List of paths included in the backup
+                - hostname: Hostname of the backed up machine
+                - username: Username the backup command was run as
+                - uid: ID of owner
+                - gid: ID of group
+                - excludes: List of paths and globs excluded from the backup
+                - tags: List of tags for the snapshot in question
+                - program_version: restic version used to create snapshot
+                - summary: Snapshot statistics, see “Summary object”
+                - id: Snapshot ID
+                - short_id: Snapshot ID, short form
         """
         result = self.executor.execute(self.SNAPSHOTS_SUBCOMMAND)
 
@@ -135,7 +167,7 @@ class ResticAdapter:
     def restore(
         self,
         target_path: Path,
-        backup_id: str = 'latest',
+        backup_id: str,
     ) -> Dict[str, Union[str, int]]:
         """Restores data from a specified backup.
 
@@ -147,7 +179,14 @@ class ResticAdapter:
         Returns:
             Dict[str, Union[str, int]]: Information about the restore process,
             parsed from the JSON output of the restic command.
-
+            - message_type: Always “summary”
+            - seconds_elapsed: Time since restore started
+            - total_files: Total number of files detected
+            - files_restored: Files restored
+            - files_skipped: Files skipped due to overwrite setting
+            - total_bytes: Total number of bytes in restore set
+            - bytes_restored: Number of bytes restored
+            - bytes_skipped: Total size of skipped files
         Raises:
             ResticRestoreError: If the restore operation fails.
         """
