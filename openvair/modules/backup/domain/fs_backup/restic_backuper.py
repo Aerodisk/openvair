@@ -115,13 +115,3 @@ class ResticBackuper(FSBackuper):
         except ResticError as err:
             LOG.error(f'Error while getting snapshots: {err!s}')
             raise
-
-
-if __name__ == '__main__':
-    r = ResticBackuper(
-        '/opt/aero/openvair/data',
-        '/srv/restic_domain',
-        'qwer123',
-    )
-    # r.init_repository()
-    res = r.get_snapshots()
