@@ -51,14 +51,14 @@ class ResticAdapter:
     RESTORE_SUBCOMMAND = 'restore --target'
     SNAPSHOTS_SUBCOMMAND = 'snapshots'
 
-    def __init__(self) -> None:
+    def __init__(self, restic_dir: Path, restic_pass: str) -> None:
         """Initialize a ResticAdapter instance.
 
         This initializes the adapter with the repository path and password
         from the configuration, and sets up the ResticCommandExecutor.
         """
-        self.restic_dir: Path = config.RESTIC_DIR
-        self.restic_pass: str = config.RESTIC_PASSWORD
+        self.restic_dir = restic_dir
+        self.restic_pass = restic_pass
         self.executor = ResticCommandExecutor(
             str(self.restic_dir),
             self.restic_pass,
