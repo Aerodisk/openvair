@@ -14,7 +14,6 @@ from abc import ABCMeta, abstractmethod
 from typing import Dict, Type, ClassVar
 
 from openvair.modules.backup.domain.base import DBBackuper, BaseBackuper
-from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.backup.domain.fs_backup.restic_backuper import (
     ResticBackuper,
 )
@@ -100,12 +99,3 @@ class BackuperFactory(AbstractBackuperFactory):
         """
         backuper_cls: Type[BaseBackuper] = self._backuper_classes[backuper_type]
         return backuper_cls(**backuper_data)
-
-
-if __name__ == '__main__':
-    domain_rpc = MessagingClient(queue_name='backup_service_layer_domain')
-    domain_rpc.call(
-        method_name=ResticBackuper.new_method.__name__,
-        data_for_manager={'backuper_type': 'restic'},
-        data_for_method={},
-    )
