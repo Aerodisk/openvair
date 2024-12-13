@@ -12,7 +12,6 @@ from typing import Dict, List, Union, Optional
 from pathlib import Path
 
 from openvair.libs.log import get_logger
-from openvair.modules.backup import config
 from openvair.libs.cli.models import ExecutionResult
 from openvair.modules.tools.utils import change_directory
 from openvair.modules.backup.adapters.restic.exceptions import (
