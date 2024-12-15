@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Внесение Изменений в Проект &mdash; документация openvair 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/translations.js?v=9bfe3ffa"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" />
+    <link rel="next" title="Отправка Изменений на Проверку" href="end.html" />
+    <link rel="prev" title="Начало Работы" href="begin.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            openvair
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install/index.html">Установка и Удаление</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Руководство для Контрибьюта</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Введение</a></li>
+<li class="toctree-l2"><a class="reference internal" href="begin.html">Начало Работы</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Внесение Изменений в Проект</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Создание Локальной Ветки</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Изменение Кода или Документации</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="end.html">Отправка Изменений на Проверку</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../project_structure/index.html">Структура Проекта</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/index.html">Гайд для Пользователей</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">openvair</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Руководство для Контрибьюта</a></li>
+      <li class="breadcrumb-item active">Внесение Изменений в Проект</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/contributors_guide/changing.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>Внесение Изменений в Проект<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<section id="id2">
+<h2>Создание Локальной Ветки<a class="headerlink" href="#id2" title="Ссылка на этот заголовок"></a></h2>
+<p>1. Перейдите в директорию скачанного проекта. Не забудьте перед этим сделать переход
+на созданного на этапе установки специального пользователя.</p>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-u<span class="w"> </span>aero<span class="w"> </span>-i
+</pre></div>
+</div>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/opt/aero/openvair
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Сделайте новую рабочую ветку для внесения ваших изменений.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>adding_new_awesome_feature
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Важно</p>
+<p>Учитывайте, что название вашей рабочей ветки должно кратко объяснять суть
+вносимых вами изменений, чтобы остальные члены комьюнити могли примерно
+понять назначение патча.</p>
+</div>
+<p>Теперь у вас все готово для продуктивной и плодотворной работы над кодовой и
+документальной базой проекта Open vAIR.</p>
+</section>
+<section id="id3">
+<h2>Изменение Кода или Документации<a class="headerlink" href="#id3" title="Ссылка на этот заголовок"></a></h2>
+<p>Уверены, что у вас все получиться, а для того, чтобы в процессе у вас возникало
+меньше вопросов по созданию вашего собственного патча для проекта Open vAIR,
+мы подготовили список рекомендаций, который поможет сделать хороший <cite>merge request</cite>
+в наш проект с открытым исходным кодом.</p>
+<ol class="arabic simple">
+<li><p>Просто придерживайтесь общего стиля кода, который принят в проекте (Тут должна быть ссылка на наш стайлгайд).</p></li>
+</ol>
+<p>2. После внесения изменений в код или документацию не забывайте их
+закоммитить с помощью команды <cite>git commit</cite>.</p>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span>comment
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Важно</p>
+<p>Учтите, что пока вы работаете в вашей собственной ветке, это ваш рабочий черновик.
+Вы вольны называть коммиты как угодно (в рамках приличия естественно).
+Но помните, что в конечном итоге произойдет объединение всех коммитов в один (<cite>squash</cite>),
+поэтому последний коммит должен иметь читаемое осмысленное название и комментарий,
+который объясняет цель вносимых изменений и как это отразится на конечном
+пользователе.</p>
+</div>
+<p>3. Не забывайте, что пока все ваши изменения индексируются и хранятся в
+вашем локальном репозитории.
+Пора сделать  <cite>git push</cite>  и сохранить их в удаленном репозитории на GitHub.</p>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push
+</pre></div>
+</div>
+<p>Или если ветка еще не была запушена:</p>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push<span class="w"> </span>origin
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="begin.html" class="btn btn-neutral float-left" title="Начало Работы" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="end.html" class="btn btn-neutral float-right" title="Отправка Изменений на Проверку" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
