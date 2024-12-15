@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Установка &mdash; документация openvair 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/translations.js?v=9bfe3ffa"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" />
+    <link rel="next" title="Удаление" href="uninstall.html" />
+    <link rel="prev" title="Системные Требования" href="system_requirements.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            openvair
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Установка и Удаление</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Введение</a></li>
+<li class="toctree-l2"><a class="reference internal" href="system_requirements.html">Системные Требования</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Установка</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Подготовка к Установке</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Этапы установки</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Обновление Системных Пакетов</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">Создание Пользователя</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">Загрузка Репозитория Проекта</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">Запуск Скрипта Установки</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="uninstall.html">Удаление</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributors_guide/index.html">Руководство для Контрибьюта</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_structure/index.html">Структура Проекта</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/index.html">Гайд для Пользователей</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">openvair</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Установка и Удаление</a></li>
+      <li class="breadcrumb-item active">Установка</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/install/install.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="install-osv-label">
+<span id="id1"></span><h1>Установка<a class="headerlink" href="#install-osv-label" title="Ссылка на этот заголовок"></a></h1>
+<section id="id2">
+<h2>Подготовка к Установке<a class="headerlink" href="#id2" title="Ссылка на этот заголовок"></a></h2>
+<p>Необходимо подготовить «чистую» машину, во избежания каких-либо конфликтов
+и коллизий в зависимостях, с операционной системой, указанной
+в системных требованиях.</p>
+<div class="admonition important">
+<p class="admonition-title">Важно</p>
+<p>Не во всех дистрибутивах есть предустановленный из коробки git.
+Этот инструмент
+понадобиться вам для загрузки репозитория с исходным кодом, поэтому
+проверьте его наличие и установите его, если он отсутствует.</p>
+</div>
+</section>
+<section id="id3">
+<h2>Этапы установки<a class="headerlink" href="#id3" title="Ссылка на этот заголовок"></a></h2>
+<p>Ниже представлена пошаговая инструкция для установки Open vAIR.</p>
+<section id="id4">
+<h3>Обновление Системных Пакетов<a class="headerlink" href="#id4" title="Ссылка на этот заголовок"></a></h3>
+<ol class="arabic simple">
+<li><p>Апдейт.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>update
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Апгрейд.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>upgrade
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Перезагрузка ОС для применения всех изменений.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>reboot
+</pre></div>
+</div>
+</section>
+<section id="id5">
+<h3>Создание Пользователя<a class="headerlink" href="#id5" title="Ссылка на этот заголовок"></a></h3>
+<ol class="arabic simple">
+<li><p>Создать пользователя.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>useradd<span class="w"> </span>-s<span class="w"> </span>/bin/bash<span class="w"> </span>-d<span class="w"> </span>/opt/aero<span class="w"> </span>-m<span class="w"> </span>aero
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Наделить правами.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span>/opt/aero
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Добавить права суперпользователя.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;aero ALL=(ALL) NOPASSWD: ALL&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/sudoers.d/aero
+</pre></div>
+</div>
+</section>
+<section id="id6">
+<h3>Загрузка Репозитория Проекта<a class="headerlink" href="#id6" title="Ссылка на этот заголовок"></a></h3>
+<p>1. Переключиться на созданного пользователя. Все действия, описанные ниже,
+выполняйте под этим пользователем.</p>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-u<span class="w"> </span>aero<span class="w"> </span>-i
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Скачать репозиторий.</p></li>
+</ol>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Aerodisk/Open-vAIR
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h3>Запуск Скрипта Установки<a class="headerlink" href="#id7" title="Ссылка на этот заголовок"></a></h3>
+<p>1. Запустить скрипт установки из скачанного репозитория с помощью встроенной
+команды source.</p>
+<div class="highlight-Shell notranslate"><div class="highlight"><pre><span></span>./openvair/install.sh
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Примечание</p>
+<p>Во время установки все логи будут записываться в файл <cite>/openvair/install.log</cite>.
+Рекомендуется проверять этот файл для отслеживания хода установки и диагностики
+возможных ошибок.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="system_requirements.html" class="btn btn-neutral float-left" title="Системные Требования" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="uninstall.html" class="btn btn-neutral float-right" title="Удаление" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
