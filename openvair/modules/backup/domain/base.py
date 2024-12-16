@@ -40,6 +40,7 @@ class FSBackuper(BaseBackuper):
         source_path (Path): Path to the source directory or file to be backed
             up.
     """
+
     def __init__(self, source_path: str) -> None:
         """Initialize an FSBackuper instance.
 
@@ -70,8 +71,3 @@ class FSBackuper(BaseBackuper):
                 represented as a dictionary.
         """
         ...
-
-
-class DBBackuper(BaseBackuper):
-    """Base class for database backups."""
-    ...

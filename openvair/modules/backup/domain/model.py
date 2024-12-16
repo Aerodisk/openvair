@@ -13,8 +13,8 @@ Classes:
 from abc import ABCMeta, abstractmethod
 from typing import Dict, Type, ClassVar
 
-from openvair.modules.backup.domain.base import DBBackuper, BaseBackuper
-from openvair.modules.backup.domain.fs_backup.restic_backuper import (
+from openvair.modules.backup.domain.base import BaseBackuper
+from openvair.modules.backup.domain.backupers.restic_backuper import (
     ResticBackuper,
 )
 
@@ -76,7 +76,6 @@ class BackuperFactory(AbstractBackuperFactory):
     """
 
     _backuper_classes: ClassVar = {
-        'postgres': DBBackuper,
         'restic': ResticBackuper,
     }
 
