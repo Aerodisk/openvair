@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>service_layer &mdash; документация openvair 1</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=47a0e12c"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../../_static/translations.js?v=9bfe3ffa"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" />
+    <link rel="next" title="Остальное содержимое каталога модуля" href="module_dir.html" />
+    <link rel="prev" title="entrypoints" href="entrypoints.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            openvair
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install/index.html">Установка и Удаление</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors_guide/index.html">Руководство для Контрибьюта</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Структура Проекта</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../introduction.html">Введение</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../general_terms.html">Общие Положения</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Общая Структура Модуля</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="introduction.html">Содержимое Модуля</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapters.html">adapters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="domain.html">domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="entrypoints.html">entrypoints</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">service_layer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#exceptions-py">exceptions.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#manager-py">manager.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unit-of-work-py">unit_of_work.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#services-py">services.py</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="module_dir.html">Остальное содержимое каталога модуля</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/index.html">Гайд для Пользователей</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">openvair</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Структура Проекта</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Общая Структура Модуля</a></li>
+      <li class="breadcrumb-item active">service_layer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/project_structure/general_module/service_layer.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="service-layer">
+<h1>service_layer<a class="headerlink" href="#service-layer" title="Ссылка на этот заголовок"></a></h1>
+<p>Сервисный слой модуля, который объединяет инфраструктуру и ядро, реализуя
+в себе бизнес-логику</p>
+<section id="exceptions-py">
+<h2>exceptions.py<a class="headerlink" href="#exceptions-py" title="Ссылка на этот заголовок"></a></h2>
+<p>Кастомные исключения для четкой и быстрой диагностики возможных ошибок.</p>
+</section>
+<section id="manager-py">
+<h2>manager.py<a class="headerlink" href="#manager-py" title="Ссылка на этот заголовок"></a></h2>
+<p>Это файл, который, по сути, является демоном, который инициирует «сервер»
+для общения приема сообщений в очереди сервисного слоя.</p>
+<p>Просто передайте имя очереди для ядра в аргумент «queue_name» и SchedulerManager
+в «manager».</p>
+<p>Не забудьте сделать запустить маппинг, ведь именно на сервисном слое происходит
+работа с полученными данными из БД.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">orm</span><span class="o">.</span><span class="n">start_mappers</span><span class="p">()</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting RPCServer for consuming&#39;</span><span class="p">)</span>
+    <span class="n">Protocol</span><span class="p">(</span><span class="n">server</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span>
+        <span class="n">queue_name</span><span class="o">=</span><span class="n">API_SCHEDULER_QUEUE_NAME</span><span class="p">,</span>
+        <span class="n">manager</span><span class="o">=</span><span class="n">services</span><span class="o">.</span><span class="n">SchedulerManager</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="unit-of-work-py">
+<h2>unit_of_work.py<a class="headerlink" href="#unit-of-work-py" title="Ссылка на этот заголовок"></a></h2>
+<p>Контекстный менеджер для работы с транзакциями БД.</p>
+<section id="abstraction">
+<h3>abstraction<a class="headerlink" href="#abstraction" title="Ссылка на этот заголовок"></a></h3>
+<p>Абстрактный unit_of_work для дальнейшей конкретной реализации, зависящей
+от текущего фреймворка.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">AbstractUnitOfWork</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="n">storages</span><span class="p">:</span> <span class="n">repository</span><span class="o">.</span><span class="n">AbstractRepository</span>
+    <span class="n">storage_extra_specs</span><span class="p">:</span> <span class="n">repository</span><span class="o">.</span><span class="n">AbstractRepository</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractUnitOfWork</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">rollback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</pre></div>
+</div>
+</section>
+<section id="session-factory">
+<h3>session_factory<a class="headerlink" href="#session-factory" title="Ссылка на этот заголовок"></a></h3>
+<p>Предоставляет актуальную сессию работы с БД.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">DEFAULT_SESSION_FACTORY</span> <span class="o">=</span> <span class="n">sessionmaker</span><span class="p">(</span>
+    <span class="n">expire_on_commit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">bind</span><span class="o">=</span><span class="n">create_engine</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">get_postgres_uri</span><span class="p">(),</span>
+        <span class="n">isolation_level</span><span class="o">=</span><span class="s2">&quot;REPEATABLE READ&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="realization">
+<h3>realization<a class="headerlink" href="#realization" title="Ссылка на этот заголовок"></a></h3>
+<p>Конкретная реализация абстрактного unit_of_work. В названии отражена
+прямая зависимость от текущего ORM-фреймворка.
+Здесь реализованы ранее описанные абстрактные методы «commit» &amp; «rollback».
+Данный unit_of_work спроектирован с принципом «явного коммита».
+Поэтому после каждого успешного изменения состояния таблицы, необходимо будет
+явно вызывать метод «commit».</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">SqlAlchemyUnitOfWork</span><span class="p">(</span><span class="n">AbstractUnitOfWork</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_factory</span><span class="o">=</span><span class="n">DEFAULT_SESSION_FACTORY</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_factory</span> <span class="o">=</span> <span class="n">session_factory</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_factory</span><span class="p">()</span>  <span class="c1"># type: Session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storages</span> <span class="o">=</span> <span class="n">repository</span><span class="o">.</span><span class="n">SqlAlchemyRepository</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SqlAlchemyUnitOfWork</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SqlAlchemyUnitOfWork</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">rollback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="services-py">
+<h2>services.py<a class="headerlink" href="#services-py" title="Ссылка на этот заголовок"></a></h2>
+<p>Здесь хранится SchedulerManager (название во всех модулях одинаковое),
+«менеджер», реализующий взаимодействие адаптеров и ядра модуля, а также
+межмодульное взаимодействие.</p>
+<p>После конструктора класса, который объединяет в себе большое количество структур
+модуля, идет описание методов для работы с модулем.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">SchedulerManager</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uow</span> <span class="o">=</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">SqlAlchemyUnitOfWork</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factory</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">StorageFactory</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">core_rpc</span> <span class="o">=</span> <span class="n">Protocol</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">SCHEDULER_CORE_QUEUE_NAME</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler_rpc</span> <span class="o">=</span> <span class="n">Protocol</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">API_SCHEDULER_QUEUE_NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_storage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The function gets a storage id from the request, gets the storage</span>
+<span class="sd">        from the database, and returns the storage</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          data (dict): dict - the data that came from the client</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          A dict with the storage information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Scheduler start handling response on get storage.&quot;</span><span class="p">)</span>
+        <span class="n">storage_id</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;storage_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Get storage id from request: </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">storage_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">storage_id</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incorrect arguments were received &quot;</span>
+                       <span class="sa">f</span><span class="s2">&quot;in the request get volume: </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">StorageAttributeError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">uow</span><span class="p">:</span>
+            <span class="n">db_storage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">storages</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">storage_id</span><span class="p">)</span>
+            <span class="n">web_storage</span> <span class="o">=</span> <span class="n">DataSerializer</span><span class="o">.</span><span class="n">to_web</span><span class="p">(</span><span class="n">db_storage</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Got storage from db: </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">web_storage</span><span class="p">)</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Scheduler method get storage was successfully processed&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">web_storage</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="entrypoints.html" class="btn btn-neutral float-left" title="entrypoints" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="module_dir.html" class="btn btn-neutral float-right" title="Остальное содержимое каталога модуля" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

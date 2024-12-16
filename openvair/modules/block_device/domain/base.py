@@ -184,10 +184,6 @@ class BaseFibreChannel(BaseFibreChannelInterface):
     Fibre channel functionality.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Initialize a BaseFibreChannel object."""
-        super().__init__(*args, **kwargs)
-
     @abc.abstractmethod
     def lip_scan(self) -> str:
         """Perform a Loop Initialization Protocol (LIP) scan."""

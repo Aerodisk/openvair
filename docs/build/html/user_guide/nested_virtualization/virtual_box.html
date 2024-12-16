@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VirtualBox &mdash; документация openvair 1</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=47a0e12c"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../../_static/translations.js?v=9bfe3ffa"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" />
+    <link rel="next" title="Патчирование/Обновление проекта" href="../update/index.html" />
+    <link rel="prev" title="Введение" href="introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            openvair
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install/index.html">Установка и Удаление</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors_guide/index.html">Руководство для Контрибьюта</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure/index.html">Структура Проекта</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Гайд для Пользователей</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../introduction.html">Введение</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../storages/index.html">Хранилища</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/index.html">Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sentry/index.html">Sentry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../virtual_networks/index.html">Виртуальные сети</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../block_devices/index.html">Блочные устройства</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Образы</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../event_store/index.html">Event Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notification/index.html">Уведомления</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">Управление пользователями</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../SNMP/index.html">SNMP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../volume/index.html">Виртуальные диски</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../virtual_machines/index.html">Виртуальные машины</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dashboard/index.html">Dashboard</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Вложенная виртуализация</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="introduction.html">Введение</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">VirtualBox</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../update/index.html">Патчирование/Обновление проекта</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">openvair</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Гайд для Пользователей</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Вложенная виртуализация</a></li>
+      <li class="breadcrumb-item active">VirtualBox</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/user_guide/nested_virtualization/virtual_box.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="virtualbox">
+<h1>VirtualBox<a class="headerlink" href="#virtualbox" title="Ссылка на этот заголовок"></a></h1>
+<p>Вложенная виртуализация позволяет запускать гипервизоры внутри виртуальных
+машин, что полезно для разработки, тестирования и других задач. Она
+поддерживается различными гипервизорами, такими как KVM, VMware, Hyper-V и
+другими.</p>
+<p><strong>Пример: Включение вложенной виртуализации в VirtualBox на Windows</strong></p>
+<p>При попытке запустить виртуальную машину во вложенной виртуализации,
+используя VirtualBox на операционной системе Windows, можно получить ошибку:
+<cite>«End of file while reading data: Input/output error while starting vm».</cite></p>
+<p><strong>Решение проблемы:</strong></p>
+<p>Команда:</p>
+<div class="highlight-Bash notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;C:\Program Files\Oracle\VirtualBox\VBoxManage.exe&quot;</span><span class="w"> </span>modifyvm<span class="w"> </span><span class="s2">&quot;Название вашей виртуальной машины&quot;</span><span class="w"> </span>--nested-hw-virt<span class="w"> </span>on
+</pre></div>
+</div>
+<p>Данная команда позволяет включить вложенную виртуализацию для виртуальной
+машины в VirtualBox на хосте с операционной системой Windows. Вложенная
+виртуализация позволяет гостевой виртуальной машине использовать аппаратную
+поддержку виртуализации, необходимую для запуска других виртуальных машин
+внутри неё. Это особенно полезно, когда требуется запускать гипервизоры, такие
+как KVM, внутри виртуальной машины VirtualBox.</p>
+<p><strong>Как команда решает проблему:</strong></p>
+<p>Когда вы пытаетесь использовать KVM внутри виртуальной машины VirtualBox, KVM
+требует доступ к аппаратным возможностям виртуализации процессора, таких как
+Intel VT-x или AMD-V. По умолчанию, VirtualBox не передаёт эти возможности
+внутрь своих виртуальных машин. Это приводит к тому, что гостевая виртуальная
+машина не может использовать KVM, и вы получаете ошибку:
+<cite>«Unable to open /dev/kvm: No such file or directory»</cite></p>
+<p>Эта ошибка указывает на то, что KVM не имеет доступа к необходимым аппаратным
+возможностям, предоставляемым процессором. Использование команды <cite>VBoxManage</cite>
+для включения вложенной виртуализации решает эту проблему, позволяя KVM
+внутри гостевой виртуальной машины использовать аппаратную поддержку
+виртуализации процессора.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="introduction.html" class="btn btn-neutral float-left" title="Введение" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="../update/index.html" class="btn btn-neutral float-right" title="Патчирование/Обновление проекта" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
