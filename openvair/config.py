@@ -16,6 +16,7 @@ Functions:
 """
 
 import pathlib
+import tempfile
 from typing import Dict, Type
 
 import toml
@@ -26,6 +27,7 @@ from openvair.rpc_queues import RPCQueueNames
 from openvair.abstracts.exceptions import ConfigParameterNotSpecifiedError
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent
+TMP_DIR = tempfile.gettempdir()
 
 # Path to the TOML configuration file
 toml_path = pathlib.Path(__file__).parent.parent / 'project_config.toml'
@@ -35,6 +37,7 @@ RPC_QUEUES: Type[RPCQueueNames] = RPCQueueNames
 with pathlib.Path.open(toml_path, 'r') as config_toml:
     data = toml.load(config_toml)
 
+database: Dict = data.get('database', {})
 
 def get_postgres_uri() -> str:
     """Generates a PostgreSQL URI from configuration settings.
@@ -43,7 +46,6 @@ def get_postgres_uri() -> str:
         str: PostgreSQL URI for connecting to the database.
     """
     try:
-        database: Dict = data.get('database', {})
         port: int = database['port']
         host: str = database['host']
         password: str = database['password']

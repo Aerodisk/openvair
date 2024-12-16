@@ -43,11 +43,11 @@ from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional, cast
 from pathlib import Path
 from collections import namedtuple
 
+from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import get_size
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.image.config import (
-    TMP_DIR,
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )

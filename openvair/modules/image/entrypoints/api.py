@@ -17,9 +17,10 @@ from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
+from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import regex_matcher, get_current_user
-from openvair.modules.image.config import TMP_DIR, CHUNK_SIZE
+from openvair.modules.image.config import CHUNK_SIZE
 from openvair.modules.image.entrypoints import schemas, exceptions
 from openvair.modules.image.entrypoints.crud import ImageCrud
 
@@ -70,9 +71,7 @@ async def get_images(
     dependencies=[Depends(get_current_user)],
 )
 async def get_image(
-    image_id: str = Path(
-        description='Image id (UUID4)', regex=UUID_REGEX
-    ),
+    image_id: str = Path(description='Image id (UUID4)', regex=UUID_REGEX),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
     """Returns the image with the specified id
