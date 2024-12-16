@@ -12,9 +12,9 @@ Classes:
 from typing import Any, Dict
 from pathlib import Path
 
+from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import execute
-from openvair.modules.image.config import TMP_DIR
 from openvair.modules.image.domain.base import BaseLocalFSImage
 
 LOG = get_logger(__name__)
