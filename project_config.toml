@@ -57,5 +57,6 @@ dsn = ''
     smtp_password = 'your_password'
 
 [backup]
-restic_dir = ''
-restic_pass = ''
+    [backup.restic]
+    repository = ''
+    password = ''
