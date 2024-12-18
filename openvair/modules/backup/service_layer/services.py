@@ -44,48 +44,25 @@ class BackupServiceLayerManager(BackgroundTasks):
         self.event_store = EventCrud('networks')
         self.backup_file_name = 'backup.sql'
 
-    def create_backup(
-        self,
-        data: Dict[str, Union[str, int, None]],
-    ) -> Dict[str, Union[str, int, None]]:
+    def create_backup(self) -> Dict[str, Union[str, int, None]]:
         """Perform a database backup and trigger ResticBackuper."""
-        backuper_type: str = data['backuper']
-        container_name: str = data['container_name']
-
-        db_name = db_config['db_name']
-        db_user = db_config['user']
-        dump = self.__dump_database(
-            container_name,
-            db_name,
-            db_user,
-        )
+        dump = self.__dump_database()
         self.__write_dump(dump)
 
-        source_path = str(STORAGE_DATA)
-        restic_path = str(RESTIC_DIR)
-        restic_password = str(RESTIC_PASSWORD)
         result = self.domain_rpc.call(
             FSBackuper.backup.__name__,
-            data_for_manager={
-                'backuper_type': backuper_type,
-                'backuper_data': {
-                    'source_path': source_path,
-                    'restic_path': restic_path,
-                    'restic_password': restic_password,
-                },
-            },
+            data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
         return result
 
     def __dump_database(
         self,
-        container_name: str,
-        db_name: str,
-        db_user: str,
     ) -> str:
+        db_name = db_config['db_name']
+        db_user = db_config['user']
         command = (
-            f'docker exec -t {container_name} '
+            f'docker exec -t {DB_CONTAINER} '
             f'pg_dump -U {db_user} -d {db_name}'
         )
         with self.uow:
@@ -127,3 +104,10 @@ class BackupServiceLayerManager(BackgroundTasks):
         )
         LOG.info('Dump successfuul moved into project data folder')
 
+
+    def __create_data_for_domain_manager(self) -> Dict[str, Any]:
+        if BACKUPER_TYPE == 'restic':
+            return DataForResticManager().model_dump()
+        message = f'Unknown backuper type: {BACKUPER_TYPE}.'
+        LOG.error(message)
+        raise WrongBackuperTypeError(message)
