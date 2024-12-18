@@ -63,7 +63,7 @@ class ResticBackuper(FSBackuper):
         self.restic_path = restic_path
         self.restic = ResticAdapter(Path(restic_path), restic_password)
 
-    def backup(self) -> Dict[str, Union[str, int]]:
+    def backup(self) -> Dict[str, Union[str, int, None]]:
         """Performs a backup of the specified source path.
 
         This method uses the ResticAdapter to back up files or directories to
@@ -88,7 +88,7 @@ class ResticBackuper(FSBackuper):
             LOG.error(message)
             raise BackupResticBackuperError(message)
 
-    def restore(self, data: Dict[str, str]) -> Dict[str, Union[str, int]]:
+    def restore(self, data: Dict[str, str]) -> Dict[str, Union[str, int, None]]:
         """Restores data from a specific snapshot.
 
         This method restores files or directories from a snapshot stored in the
