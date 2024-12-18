@@ -36,7 +36,7 @@ class ResticBackuperData(BaseModel):
     restic_password: str = str(RESTIC_PASSWORD)
 
 
-class DataForResticManager(BaseModel):
+class DataForResticManager(ResticBackuperData):
     """Schema for preparing data for the Restic domain manager.
 
     This schema wraps Restic backuper configuration data along with the
@@ -49,4 +49,3 @@ class DataForResticManager(BaseModel):
     """
 
     backuper_type: str = 'restic'
-    backuper_data: Dict = ResticBackuperData().model_dump()
