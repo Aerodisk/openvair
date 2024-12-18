@@ -1,4 +1,10 @@
-"""Service layer for managing backups."""
+"""Service layer for managing backup operations.
+
+This module defines the `BackupServiceLayerManager` class, which orchestrates
+backup, restore, repository initialization, and snapshot management operations.
+It acts as a bridge between the service layer and domain layer, coordinating
+tasks via messaging and background processes.
+"""
 
 from typing import Any, Dict, List, Union
 from pathlib import Path
@@ -31,14 +37,26 @@ LOG = get_logger(__name__)
 class BackupServiceLayerManager(BackgroundTasks):
     """Manager for backup operations in the service layer.
 
-    This class manages backup operations by coordinating communication
-    between the service layer, domain layer, and the restic adapter.
+    This class coordinates backup, restore, snapshot retrieval, and
+    repository initialization processes. It communicates with the domain
+    layer using messaging and manages database operations internally.
 
     Attributes:
-        ...
+        domain_rpc (MessagingClient): Client for interacting with the domain
+            layer.
+        uow (SqlAlchemyUnitOfWork): Unit of work for managing database
+            operations.
+        event_store (EventCrud): Event store for recording and retrieving
+            events.
+        backup_file_name (str): Name of the database backup file.
     """
 
     def __init__(self) -> None:
+        """Initialize a BackupServiceLayerManager instance.
+
+        Sets up messaging clients, unit of work, event storage, and default
+        configurations for managing backups.
+        """
         super().__init__()
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
@@ -48,49 +66,86 @@ class BackupServiceLayerManager(BackgroundTasks):
         self.backup_file_name = 'backup.sql'
 
     def create_backup(self) -> Dict[str, Union[str, int, None]]:
-        """Perform a database backup and trigger ResticBackuper."""
+        """Perform a database backup and trigger ResticBackuper.
+
+        This method dumps the database, writes the dump to a temporary file,
+        and invokes the domain layer to manage further backup operations.
+
+        Returns:
+            Dict[str, Union[str, int, None]]: Result of the backup operation,
+            as returned by the domain layer.
+        """
         dump = self.__dump_database()
         self.__write_dump(dump)
 
-        result = self.domain_rpc.call(
+        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.backup.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
         return result
 
-    def restore_backup(self, data: Dict[str, Union[str, int, None]]) -> Dict:
-        """Restore data using a specific snapshot ID."""
+    def restore_backup(self) -> Dict[str, Union[str, int, None]]:
+        """Restore data using a specific snapshot ID.
+
+        This method restores the database and invokes the domain layer to manage
+        additional restore operations.
+
+        Returns:
+            Dict[str, Union[str, int, None]]: Result of the restore operation,
+                as returned by the domain layer.
+        """
         self.__restore_db()
-        result = self.domain_rpc.call(
+        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.restore.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
-            data_for_method={},
+            data_for_method={'asdad': 'asdasd'},
         )
-        return {}
+        return result
 
-    def get_snapshots(self) -> List[str]:
+    def get_snapshots(self) -> List[Dict]:
+        """Retrieve a list of available snapshots.
+
+        This method queries the domain layer to fetch metadata for available
+        snapshots stored in the backup repository.
+
+        Returns:
+            List[Dict]: A list of snapshot metadata.
+        """
         """Retrieve a list of available snapshots."""
-
-        result = self.domain_rpc.call(
+        result: List[Dict] = self.domain_rpc.call(
             FSBackuper.get_snapshots.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
         return result
 
-    def initialize_backup_repository(self) -> Dict:
-        """Initialize the backup repository using ResticBackuper."""
-        result = self.domain_rpc.call(
+    def initialize_backup_repository(self) -> None:
+        """Initialize the backup repository using ResticBackuper.
+
+        This method invokes the domain layer to create and configure the backup
+        repository.
+        """
+        self.domain_rpc.call(
             FSBackuper.init_repository.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
-        return {}
 
     def __dump_database(
         self,
     ) -> str:
+        """Dump the PostgreSQL database to a string.
+
+        Executes a command to generate a database dump.
+
+        Returns:
+            str: The database dump content as a string.
+
+        Raises:
+            ExecuteError: If the dump command fails.
+            OSError: If an OS-level error occurs.
+        """
         db_name = db_config['db_name']
         db_user = db_config['user']
         command = (
@@ -117,6 +172,14 @@ class BackupServiceLayerManager(BackgroundTasks):
                 return dump_result.stdout
 
     def __write_dump(self, dump: str) -> None:
+        """Write the database dump to a file and move it to the storage dir.
+
+        Args:
+            dump (str): The database dump content as a string.
+
+        Raises:
+            ExecuteError: If the file write or move operation fails.
+        """
         LOG.info('Writing dump to tmp dir...')
 
         backup_file = Path(TMP_DIR) / self.backup_file_name
@@ -137,13 +200,19 @@ class BackupServiceLayerManager(BackgroundTasks):
         LOG.info('Dump successfuul moved into project data folder')
 
     def __restore_db(self) -> None:
+        """Restore the PostgreSQL database from a backup file.
+
+        This method drops the current database, recreates it, and populates it
+        with data from the backup file.
+
+        Raises:
+            ExecuteError: If the restore command fails.
+            OSError: If an OS-level error occurs.
+        """
         backup_file = str(STORAGE_DATA / self.backup_file_name)
         db_name: str = db_config['db_name']
-        db_user: str = db_config['db_user']
+        db_user: str = db_config['user']
         with self.uow:
-            self.uow.repository.terminate_all_connections(db_name)
-            self.uow.commit()
-
             self.uow.repository.drop_db(db_name)
 
             self.uow.repository.create_db(db_name)
@@ -156,7 +225,9 @@ class BackupServiceLayerManager(BackgroundTasks):
             try:
                 execute(
                     restore_command,
-                    params=ExecuteParams(shell=True, raise_on_error=False),
+                    params=ExecuteParams(  # noqa: S604
+                        shell=True, raise_on_error=False, run_as_root=True
+                    ),
                 )
             except (ExecuteError, OSError) as err:
                 LOG.error(f'{err!s}')
@@ -165,6 +236,16 @@ class BackupServiceLayerManager(BackgroundTasks):
             LOG.info(f'Database restored successfully from: {backup_file}')
 
     def __create_data_for_domain_manager(self) -> Dict[str, Any]:
+        """Generate data for the domain layer manager.
+
+        Returns:
+            Dict[str, Any]: Data required to initialize or manage domain layer
+                tasks.
+
+        Raises:
+            WrongBackuperTypeError: If the `BACKUPER_TYPE` configuration is
+                invalid.
+        """
         if BACKUPER_TYPE == 'restic':
             return DataForResticManager().model_dump()
         message = f'Unknown backuper type: {BACKUPER_TYPE}.'
