@@ -69,22 +69,20 @@ class BackupServiceLayerManager(BackgroundTasks):
         )
         return {}
 
-    def get_snapshots(
-        self, data: Dict[str, Union[str, int, None]]
-    ) -> List[str]:
+    def get_snapshots(self) -> List[str]:
         """Retrieve a list of available snapshots."""
 
         result = self.domain_rpc.call(
-            FSBackuper.restore.__name__,
+            FSBackuper.get_snapshots.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
-        return []
+        return result
 
     def initialize_backup_repository(self) -> Dict:
         """Initialize the backup repository using ResticBackuper."""
         result = self.domain_rpc.call(
-            FSBackuper.restore.__name__,
+            FSBackuper.init_repository.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
