@@ -56,6 +56,16 @@ class BackupServiceLayerManager(BackgroundTasks):
         )
         return result
 
+    def restore_backup(self, data: Dict[str, Union[str, int, None]]) -> Dict:
+        """Restore data using a specific snapshot ID."""
+        self.__restore_db()
+        result = self.domain_rpc.call(
+            FSBackuper.restore.__name__,
+            data_for_manager=self.__create_data_for_domain_manager(),
+            data_for_method={},
+        )
+        return {}
+
     def __dump_database(
         self,
     ) -> str:
@@ -104,6 +114,33 @@ class BackupServiceLayerManager(BackgroundTasks):
         )
         LOG.info('Dump successfuul moved into project data folder')
 
+    def __restore_db(self) -> None:
+        backup_file = str(STORAGE_DATA / self.backup_file_name)
+        db_name: str = db_config['db_name']
+        db_user: str = db_config['db_user']
+        with self.uow:
+            self.uow.repository.terminate_all_connections(db_name)
+            self.uow.commit()
+
+            self.uow.repository.drop_db(db_name)
+
+            self.uow.repository.create_db(db_name)
+
+            restore_command = (
+                f'docker exec -i {DB_CONTAINER} psql -U {db_user} '
+                f'-d {db_name} < {backup_file}'
+            )
+            LOG.info(f'Executing restore command: {restore_command}')
+            try:
+                execute(
+                    restore_command,
+                    params=ExecuteParams(shell=True, raise_on_error=False),
+                )
+            except (ExecuteError, OSError) as err:
+                LOG.error(f'{err!s}')
+                raise
+
+            LOG.info(f'Database restored successfully from: {backup_file}')
 
     def __create_data_for_domain_manager(self) -> Dict[str, Any]:
         if BACKUPER_TYPE == 'restic':
