@@ -10,4 +10,11 @@ from openvair.abstracts.base_exception import BaseCustomException
 
 class BackupServiceLayerException(BaseCustomException):
     """Base exception for exceptions in in the service layer of backup module"""
+
+    ...
+
+
+class WrongBackuperTypeError(BackupServiceLayerException):
+    """Raised when getting wrong backuper type from config"""
+
     ...
