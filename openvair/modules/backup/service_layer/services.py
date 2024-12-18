@@ -75,6 +75,7 @@ class BackupServiceLayerManager(BackgroundTasks):
             Dict[str, Union[str, int, None]]: Result of the backup operation,
             as returned by the domain layer.
         """
+        LOG.info('Start creating backup')
         dump = self.__dump_database()
         self.__write_dump(dump)
 
@@ -83,6 +84,7 @@ class BackupServiceLayerManager(BackgroundTasks):
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
+        LOG.info('Backup successfull created')
         return result
 
     def restore_backup(self) -> Dict[str, Union[str, int, None]]:
@@ -95,12 +97,14 @@ class BackupServiceLayerManager(BackgroundTasks):
             Dict[str, Union[str, int, None]]: Result of the restore operation,
                 as returned by the domain layer.
         """
+        LOG.info('Start restoring backup')
         self.__restore_db()
         result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.restore.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={'asdad': 'asdasd'},
         )
+        LOG.info('Restoring successfull complete')
         return result
 
     def get_snapshots(self) -> List[Dict]:
@@ -112,12 +116,13 @@ class BackupServiceLayerManager(BackgroundTasks):
         Returns:
             List[Dict]: A list of snapshot metadata.
         """
-        """Retrieve a list of available snapshots."""
+        LOG.info('Getting backup snapshots')
         result: List[Dict] = self.domain_rpc.call(
             FSBackuper.get_snapshots.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
+        LOG.info('Snpashots successfull collected')
         return result
 
     def initialize_backup_repository(self) -> None:
@@ -126,11 +131,13 @@ class BackupServiceLayerManager(BackgroundTasks):
         This method invokes the domain layer to create and configure the backup
         repository.
         """
+        LOG.info('Start initializing repository')
         self.domain_rpc.call(
             FSBackuper.init_repository.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
         )
+        LOG.info('Initializing repository successfull complete')
 
     def __dump_database(
         self,
