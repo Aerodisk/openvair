@@ -1,23 +1,26 @@
 """Service layer for managing backups."""
 
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 from pathlib import Path
 
-from openvair.config import TMP_DIR, database as db_config
+from openvair.config import TMP_DIR, DB_CONTAINER, database as db_config
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.base_manager import BackgroundTasks
 from openvair.modules.backup.config import (
-    RESTIC_DIR,
     STORAGE_DATA,
-    RESTIC_PASSWORD,
+    BACKUPER_TYPE,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
 from openvair.modules.backup.domain.base import FSBackuper
 from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.modules.backup.service_layer.schemas import DataForResticManager
 from openvair.modules.event_store.entrypoints.crud import EventCrud
+from openvair.modules.backup.service_layer.exceptions import (
+    WrongBackuperTypeError,
+)
 from openvair.modules.backup.service_layer.unit_of_work import (
     SqlAlchemyUnitOfWork,
 )
