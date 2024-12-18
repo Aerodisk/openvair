@@ -5,8 +5,6 @@ configuration data used in the backup service layer. These schemas
 help ensure proper data structures are passed between components.
 """
 
-from typing import Dict
-
 from pydantic import BaseModel
 
 from openvair.modules.backup.config import (
