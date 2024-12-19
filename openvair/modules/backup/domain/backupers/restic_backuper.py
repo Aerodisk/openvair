@@ -10,12 +10,12 @@ from typing import Dict, List, Union
 from pathlib import Path
 
 from openvair.libs.log import get_logger
-from openvair.modules.backup.domain.base import FSBackuper
-from openvair.modules.backup.domain.schemas import (
+from openvair.modules.backup.schemas import (
     ResticSnapshot,
     ResticBackupResult,
     ResticRestoreResult,
 )
+from openvair.modules.backup.domain.base import FSBackuper
 from openvair.modules.backup.domain.exceptions import (
     BackupResticBackuperError,
     RestoreResticBackuperError,
