@@ -82,12 +82,17 @@ class BackupServiceLayerManager(BackgroundTasks):
         result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.backup.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
-            data_for_method={},
         )
         LOG.info('Backup successfull created')
         return result
 
-    def restore_backup(self) -> Dict[str, Union[str, int, None]]:
+    def restore_backup(
+        self,
+        data: Dict[
+            str,
+            Union[str, int, None],
+        ],
+    ) -> Dict[str, Union[str, int, None]]:
         """Restore data using a specific snapshot ID.
 
         This method restores the database and invokes the domain layer to manage
@@ -102,7 +107,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.restore.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
-            data_for_method={'asdad': 'asdasd'},
+            data_for_method={'snapshot_id': data.get('snapshot_id', 'latest')},
         )
         LOG.info('Restoring successfull complete')
         return result

@@ -106,7 +106,7 @@ class ResticBackuper(FSBackuper):
         Raises:
             RestoreResticBackuperError: If the restore operation fails.
         """
-        snapshot_id = data.get('snapshot_id', 'latest')
+        snapshot_id = data['snapshot_id']
         try:
             LOG.info(f'Restoring data from snapshot: `{snapshot_id}`...')
             restore_data = self.restic.restore(self.source_path, snapshot_id)
