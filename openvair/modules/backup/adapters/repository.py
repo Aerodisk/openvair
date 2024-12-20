@@ -132,6 +132,6 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         with self.engine.connect().execution_options(
             isolation_level='AUTOCOMMIT'
-        ) as conn:  # Подключение без транзакции
+        ) as conn:  # Connect without transaction
             conn.execute(text(f'CREATE DATABASE "{db_name}";'))
 
