@@ -23,12 +23,12 @@ class BaseBackuper(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def backup(self) -> Dict[str, Union[str, int]]:
+    def backup(self) -> Dict[str, Union[str, int, None]]:
         """For implementing backup logic"""
         ...
 
     @abstractmethod
-    def restore(self, data: Dict[str, str]) -> Dict[str, Union[str, int]]:
+    def restore(self, data: Dict[str, str]) -> Dict[str, Union[str, int, None]]:
         """For implementing restore logic"""
         ...
 

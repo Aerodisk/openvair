@@ -49,16 +49,18 @@ class ResticRestoreResult(BaseModel):
         total_files (int): Total number of files in the backup.
         files_restored (int): Number of files successfully restored.
         files_skipped (int): Number of files skipped during restore.
-        total_bytes (int): Total size of the backup, in bytes.
-        bytes_restored (int): Size of data successfully restored, in bytes.
-        bytes_skipped (int): Size of data skipped during restore, in bytes.
+        total_bytes (Optional[int]): Total size of the backup, in bytes.
+        bytes_restored (Optional[int]): Size of data successfully restored, in
+            bytes.
+        bytes_skipped (Optional[int]): Size of data skipped during restore, in
+            bytes.
     """
     total_files: int
     files_restored: int
     files_skipped: int
-    total_bytes: int
-    bytes_restored: int
-    bytes_skipped: int
+    total_bytes: Optional[int] = None
+    bytes_restored: Optional[int] = None
+    bytes_skipped: Optional[int] = None
 
     class Config:
         """Pydantic configuration for the model.

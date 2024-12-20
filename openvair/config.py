@@ -38,6 +38,7 @@ with pathlib.Path.open(toml_path, 'r') as config_toml:
     data = toml.load(config_toml)
 
 database: Dict = data.get('database', {})
+DB_CONTAINER: str = data['docker']['db_container']
 
 def get_postgres_uri() -> str:
     """Generates a PostgreSQL URI from configuration settings.
