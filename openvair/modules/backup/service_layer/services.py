@@ -20,9 +20,9 @@ from openvair.modules.backup.config import (
     BACKUPER_TYPE,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
+from openvair.modules.backup.schemas import DataForResticManager
 from openvair.modules.backup.domain.base import FSBackuper
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.backup.service_layer.schemas import DataForResticManager
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.backup.service_layer.exceptions import (
     WrongBackuperTypeError,
