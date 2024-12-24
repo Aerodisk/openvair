@@ -676,6 +676,15 @@ install_jq(){
     execute "sudo apt-get install jq -y" "$message"
 }
 
+install_restic(){
+  local apt_get_command="sudo apt-get install restic"
+  local self_update_command"sudo restic self-update" 
+  local install_message="Installing restic"
+  local update_message="Updating restic"
+  execute "$apt_get_command" "$install_message"
+  execute "$self_update_command" "$update_message"
+}
+
 # ========= Daemons =========
 process_services() {
   go_to_home_dir
@@ -819,6 +828,7 @@ main() {
     install_node_exporter
     install_open_iscsi
     clone_novnc
+    install_restic
     process_services
     clear_home_dir
     make_hashed_password
