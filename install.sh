@@ -700,7 +700,7 @@ process_services() {
 # Clear home directory
 clear_home_dir() {
   local message="Clear home directory"
-  execute "rm -rf .nvm .npm .cache .config" "$message"
+  execute "sudo rm -rf .nvm .npm .cache .config" "$message"
 }
 
 # Create hashed password
