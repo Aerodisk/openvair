@@ -678,7 +678,7 @@ install_jq(){
 
 install_restic(){
   local apt_get_command="sudo apt-get install restic"
-  local self_update_command"sudo restic self-update" 
+  local self_update_command="sudo restic self-update" 
   local install_message="Installing restic"
   local update_message="Updating restic"
   execute "$apt_get_command" "$install_message"
