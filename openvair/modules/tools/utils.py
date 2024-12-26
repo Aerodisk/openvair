@@ -713,3 +713,33 @@ def xml_to_jsonable(xml_string: str) -> Union[Dict, List]:
     # Парсим XML и убираем префиксы
     parsed_dict = xmltodict.parse(xml_string)
     return remove_prefix(parsed_dict)
+
+@contextmanager
+def change_directory(
+    destination: Path,
+) -> Generator[None, Any, None]:
+    """Context manager to temporarily change the working directory.
+
+    This context manager changes the current working directory to the specified
+    destination for the duration of the context. After exiting the context, it
+    restores the original working directory.
+
+    Args:
+        destination (Path): The directory to change to during the context.
+
+    Yields:
+        None: No values are yielded; the context simply changes the directory.
+
+    Example:
+        with change_directory("/tmp"):
+            # Current working directory is now "/tmp".
+            ...
+
+        # Original working directory is restored.
+    """
+    original_directory = Path.cwd()
+    try:
+        os.chdir(destination)
+        yield
+    finally:
+        os.chdir(original_directory)

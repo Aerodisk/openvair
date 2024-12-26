@@ -11,6 +11,9 @@ password = 'guest'
 host = 'localhost'
 port = 5672
 
+[docker]
+db_container = 'postgres'
+
 [storage]
 data_path = '/opt/aero/openvair/data'
 
@@ -56,3 +59,8 @@ dsn = ''
     smtp_username = 'your_email@example.com'
     smtp_password = 'your_password'
 
+[backup]
+    backuper = 'restic'
+    [backup.restic]
+    repository = ''
+    password = ''
