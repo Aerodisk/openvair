@@ -9,4 +9,4 @@ data/
 cert.pem
 key.pem
 *.log
-docs/build
+docs/
