@@ -685,6 +685,22 @@ install_restic(){
   execute "$self_update_command" "$update_message"
 }
 
+install_documentation(){
+  local clone_docs_repo="git clone https://github.com/Aerodisk/openvair-docs.git"
+  local clone_message="Cloning documentation repository..."
+
+  local change_dir_to_docs_repo="cd ./openvair-docs/"
+  local change_dir_message="Changing directory to ./openvair-docs/"
+  
+  local install_docs="./install.sh"
+  local install_docs_message="Installing documentation..."
+
+  execute "$clone_docs_repo" "$clone_message"
+  execute "$change_dir_to_docs_repo" "$change_dir_message"
+  execute "$install_docs" "$install_docs_message"
+  go_to_home_dir
+}
+
 # ========= Daemons =========
 process_services() {
   go_to_home_dir
@@ -833,6 +849,7 @@ main() {
     clear_home_dir
     make_hashed_password
     create_default_user
+    install_documentation
     restart_service 'web-app.service'
     print_final_message
 }
