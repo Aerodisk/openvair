@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+#test
 
 # User settings
 USER=aero
