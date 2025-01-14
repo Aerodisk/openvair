@@ -2,6 +2,7 @@
 
 USER=aero
 FOLDER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DOCUMENTATION_PATH="/opt/aero/openvair-docs"
 
 # Color settings
 RED='\033[0;31m'
@@ -212,6 +213,17 @@ remove_project_folder(){
   fi
 }
 remove_project_folder
+
+remove_documentation_repository(){
+  if [ -d "$DOCUMENTATION_PATH" ]; then
+      # Выполнение команды удаления папки
+      sudo rm -rf "$DOCUMENTATION_PATH"
+      echo "Папка $DOCUMENTATION_PATH успешно удалена."
+  else
+      echo "Папка $DOCUMENTATION_PATH не найдена."
+  fi
+}
+remove_documentation_repository
 
 restart_service "cups-browsed.service"
 restart_service "cups.service"
