@@ -5,8 +5,10 @@ USER=aero
 OS=$(lsb_release -i | awk '{print tolower($3)}')
 ARCH=$(uname -m)
 PROJECT_NAME=openvair
+DOCS_PROJECT_NAME=openvair-docs
 USER_PATH=/opt/$USER
 PROJECT_PATH="${USER_PATH}/${PROJECT_NAME}"
+DOCS_PROJECT_PATH="${USER_PATH}/${DOCS_PROJECT_NAME}"
 PROJECT_CONFIG_FILE="$PROJECT_PATH/project_config.toml"
 DEPENDENCIES_FILE="${PROJECT_PATH}/third_party_requirements.txt"
 
@@ -686,18 +688,22 @@ install_restic(){
 }
 
 install_documentation(){
-  local clone_docs_repo="git clone https://github.com/Aerodisk/openvair-docs.git"
-  local clone_message="Cloning documentation repository..."
+  local doc_repo="https://github.com/Aerodisk/openvair-docs.git"
 
-  local change_dir_to_docs_repo="cd ./openvair-docs/"
-  local change_dir_message="Changing directory to ./openvair-docs/"
+  local clone_docs_repo="git clone $doc_repo"
+  local clone_message="Cloning documentation repository..."
   
-  local install_docs="./install.sh"
+  local install_docs="bash $DOCS_PROJECT_PATH/install.sh"
   local install_docs_message="Installing documentation..."
 
-  execute "$clone_docs_repo" "$clone_message"
-  execute "$change_dir_to_docs_repo" "$change_dir_message"
-  execute "$install_docs" "$install_docs_message"
+  if [ -d "$DOCS_PROJECT_PATH" ]; then
+    log $GREEN "Documentation repository already exists at $DOCS_PROJECT_PATH"
+  else
+    execute "$clone_docs_repo" "$clone_message"
+    execute "cd $DOCS_PROJECT_PATH" "Changing directory to $DOCS_PROJECT_PATH"
+    execute "$install_docs" "$install_docs_message"
+  fi
+
   go_to_home_dir
 }
 

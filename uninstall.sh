@@ -1,8 +1,10 @@
 #!/usr/bin/bash
 
 USER=aero
+DOCS_PROJECT_NAME=openvair-docs
+USER_PATH=/opt/$USER
 FOLDER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DOCUMENTATION_PATH="/opt/aero/openvair-docs"
+DOCS_PROJECT_PATH="${USER_PATH}/${DOCS_PROJECT_NAME}"
 
 # Color settings
 RED='\033[0;31m'
@@ -215,12 +217,11 @@ remove_project_folder(){
 remove_project_folder
 
 remove_documentation_repository(){
-  if [ -d "$DOCUMENTATION_PATH" ]; then
-      # Выполнение команды удаления папки
-      sudo rm -rf "$DOCUMENTATION_PATH"
-      echo "Папка $DOCUMENTATION_PATH успешно удалена."
+  if [ -d "$DOCS_PROJECT_PATH" ]; then
+      sudo rm -rf "$DOCS_PROJECT_PATH"
+      echo "Папка $DOCS_PROJECT_PATH успешно удалена."
   else
-      echo "Папка $DOCUMENTATION_PATH не найдена."
+      echo "Папка $DOCS_PROJECT_PATH не найдена."
   fi
 }
 remove_documentation_repository
