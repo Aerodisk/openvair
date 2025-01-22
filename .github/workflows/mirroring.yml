@@ -18,21 +18,22 @@ jobs:
         run: |
           git remote add gitflic https://aerodisk_open_vair:${{ secrets.GITFLIC_TOKEN }}@gitflic.ru/project/aerodisk_open_vair/openvair.git
 
-      - name: Force push to GitFlic
-        run: |
-          git push --force gitflic
-
       - name: Add GitLab remote
         run: |
           git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@git.aerodisk.ru/openvair/openvair.git
 
-      - name: Force push to GitLab
-        run: |
-          git push --force gitlab
-
       - name: Add GitVerse remote
         run: |
           git remote add gitverse https://Aerodisk:${{ secrets.GITVERSE_TOKEN }}@gitverse.ru/Aerodisk/openvair.git
+
+
+      - name: Force push to GitFlic
+        run: |
+          git push --force gitflic
+
+      - name: Force push to GitLab
+        run: |
+          git push --force gitlab
 
       - name: Force push to GitVerse
         run: |
