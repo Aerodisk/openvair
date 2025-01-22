@@ -30,3 +30,10 @@ jobs:
         run: |
           git push --force gitverse
 
+      - name: Add GitLab remote
+        run: |
+          git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@git.aerodisk.ru/openvair/openvair.git
+
+      - name: Force push to GitLab
+        run: |
+          git push --force gitlab
