@@ -21,3 +21,12 @@ jobs:
       - name: Force push to GitFlic
         run: |
           git push --force gitflic
+
+      - name: Add GitVerse remote
+        run: |
+          git remote add gitverse https://Aerodisk:${{ secrets.GITVERSE_TOKEN }}@gitverse.ru/Aerodisk/openvair.git
+
+      - name: Force push to GitVerse
+        run: |
+          git push --force gitverse
+
