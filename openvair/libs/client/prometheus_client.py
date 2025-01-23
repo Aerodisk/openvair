@@ -26,18 +26,17 @@ class PrometheusClient(PrometheusBaseClient):
     specific node information based on predefined metrics.
     """
 
-    def get_prometheus_data(self, option: str) -> Dict:
+    def get_prometheus_data(self, query: str) -> Dict:
         """Retrieve data from Prometheus based on the specified query option.
 
         Args:
-            option (str): The query option to be used in the Prometheus API
-                call.
+            query (str): The query to be used in the Prometheus API call.
 
         Returns:
             Dict: The JSON response from Prometheus as a dictionary.
         """
-        option_url = f'{self.source_url}/api/v1/query?query={option}'
-        result = self.session.get(option_url, verify=False)
+        query_url = f'{self.source_url}/api/v1/query?query={query}'
+        result = self.session.get(query_url, verify=False)
         return result.json()
 
     def ping(self) -> None:
