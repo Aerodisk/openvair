@@ -8,7 +8,7 @@ Classes:
     PrometheusClient: A client class for interacting with the Prometheus API.
 """
 
-from typing import Dict
+from typing import Dict, List
 
 from requests import RequestException
 
@@ -51,33 +51,6 @@ class PrometheusClient(PrometheusBaseClient):
         """
         self.session.get(self.source_url, verify=False)
 
-    def request_to_prometheus_for_query(self, query: str) -> float:
-        """Send a query request to Prometheus and sum the results.
-
-        This method sends a request to the Prometheus service using the provided
-        query string. It then sums up the values of the returned metric rows.
-
-        Args:
-            query (str): The Prometheus query string.
-
-        Returns:
-            float: The sum of the metric rows returned by the query.
-        """
-        LOG.info(f'Start Prometheus API request with query: {query}')
-        try:
-            result = 0.0
-
-            data = self.get_prometheus_data(query)['data']['result']
-            for row in data:
-                result += float(row['value'][1])
-
-            LOG.info('Finished Prometheus API request.')
-        except RequestException:
-            LOG.error('Prometheus API request failed.')
-            return 0.0
-        else:
-            return result
-
     def get_node_info(self, option: str) -> float:
         """Retrieve node information from Prometheus based on a metric name.
 
@@ -93,22 +66,23 @@ class PrometheusClient(PrometheusBaseClient):
                 fails.
         """
         LOG.info(f'Start getting node info from Prometheus. Option: {option}')
-        query = PROMETHEUS_QUERIES.get(option, '')
 
-        if not query:
+        node_info_values_sum = 0.0
+        try:
+            query_result = self.get_prometheus_data(
+                PROMETHEUS_QUERIES[option]['query']
+            )
+
+            data_result: List[Dict] = query_result['data']['result']
+            for row in data_result:
+                node_info_values_sum += float(row['value'][1])
+        except (KeyError, RequestException) as err:
+            LOG.warning(err)
             LOG.warning(
                 f'Failed to get node info from Prometheus with option: {option}'
             )
+            LOG.error('Prometheus API request failed.')
             return 0.0
-
-        if option in ['io-write-ps', 'io-read-ps']:
-            kname = '???'
-            response = self.request_to_prometheus_for_query(
-                query['query'].format(kname)
-            )
         else:
-            response = self.request_to_prometheus_for_query(query['query'])
-
-        LOG.info('Finished getting node info from Prometheus successfully.')
-
-        return response if response else 0.0
+            LOG.info('Finished getting node info from Prometheus successfully.')
+            return node_info_values_sum
