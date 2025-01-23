@@ -20,8 +20,8 @@ jobs:
           git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@git.aerodisk.ru/openvair/openvair.git
           git remote add gitverse https://Aerodisk:${{ secrets.GITVERSE_TOKEN }}@gitverse.ru/Aerodisk/openvair.git
 
-      - name: Fetch full history
-        run: git fetch --all
+      # - name: Fetch full history
+      #   run: git fetch --all
 
       - name: Force push to GitFlic
         run: |
