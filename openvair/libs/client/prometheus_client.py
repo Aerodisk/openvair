@@ -40,7 +40,7 @@ class PrometheusClient(PrometheusBaseClient):
         result = self.session.get(option_url, verify=False)
         return result.json()
 
-    def ping(self) -> Dict:
+    def ping(self) -> None:
         """Ping the Prometheus service to check its availability.
 
         This method sends a simple GET request to the Prometheus service URL
@@ -50,7 +50,7 @@ class PrometheusClient(PrometheusBaseClient):
             Dict: The response from Prometheus, typically the status or health
                 check data.
         """
-        return self.session.get(self.source_url, verify=False)
+        self.session.get(self.source_url, verify=False)
 
     def request_to_prometheus_for_query(self, query: str) -> float:
         """Send a query request to Prometheus and sum the results.
