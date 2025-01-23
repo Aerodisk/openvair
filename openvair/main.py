@@ -74,6 +74,7 @@ app.add_middleware(
 from openvair.modules.user.entrypoints.api import router as user
 from openvair.modules.image.entrypoints.api import router as image
 from openvair.modules.user.entrypoints.auth import router as auth
+from openvair.modules.backup.entrypoints.api import router as backup_router
 from openvair.modules.volume.entrypoints.api import router as volume
 from openvair.modules.network.entrypoints.api import router as network
 from openvair.modules.storage.entrypoints.api import router as storage
@@ -101,6 +102,7 @@ app.include_router(event_store)
 app.include_router(notification_router)
 app.include_router(block_router)
 app.include_router(vn_router)
+app.include_router(backup_router)
 
 project_dir = Path(__file__).parent
 templates = Jinja2Templates(directory=project_dir / 'dist')

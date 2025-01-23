@@ -1,4 +1,21 @@
-# noqa: D100
+"""API module for managing images.
+
+This module defines a FastAPI router with endpoints for managing images,
+including retrieving image metadata, uploading, deleting, and attaching
+or detaching images to/from virtual machines (VMs). It provides a RESTful
+interface for image operations.
+
+Endpoints:
+    - GET `/images/`: Retrieve a list of images with optional filtering by
+        storage.
+    - GET `/images/{image_id}/`: Retrieve metadata of a specific image by ID.
+    - POST `/images/upload/`: Upload a new image to a storage.
+    - DELETE `/images/{image_id}/`: Delete an image by ID.
+    - POST `/images/{image_id}/attach/`: Attach an image to a virtual machine.
+    - DELETE `/images/{image_id}/detach/`: Detach an image from a virtual
+        machine.
+"""
+
 from typing import Dict, Optional, cast
 from pathlib import Path as Path_lib
 
@@ -17,9 +34,10 @@ from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
+from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import regex_matcher, get_current_user
-from openvair.modules.image.config import TMP_DIR, CHUNK_SIZE
+from openvair.modules.image.config import CHUNK_SIZE
 from openvair.modules.image.entrypoints import schemas, exceptions
 from openvair.modules.image.entrypoints.crud import ImageCrud
 
@@ -47,15 +65,22 @@ async def get_images(
     ),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> Page[schemas.Image]:
-    """It gets all the images from the database and returns them
+    """Retrieve a paginated list of images.
+
+    This endpoint allows retrieving all images stored in the database, with
+    an optional filter by a specific storage ID. It uses the `ImageCrud`
+    service to interact with the storage backend.
 
     Args:
-        storage_id: Storage id
-        crud: Depends(ImageCrud) - this is a dependency injection. It means
-        that the function will receive an instance of ImageCrud class.
+        storage_id (Optional[str]): Storage ID to filter images by.
+        crud (ImageCrud): Dependency injection for CRUD operations.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
 
     Returns:
-        Page[schemas.Image]: A list of images.
+        Page[schemas.Image]: A paginated response containing metadata of
+        images matching the filter criteria, if provided.
     """
     LOG.info('Api start getting list of images')
     images = await run_in_threadpool(crud.get_all_images, storage_id)
@@ -70,24 +95,23 @@ async def get_images(
     dependencies=[Depends(get_current_user)],
 )
 async def get_image(
-    image_id: str = Path(
-        description='Image id (UUID4)', regex=UUID_REGEX
-    ),
+    image_id: str = Path(description='Image id (UUID4)', regex=UUID_REGEX),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
-    """Returns the image with the specified id
+    """Retrieve metadata of a specific image by its ID.
 
-    It takes an image id, uses the ImageCrud dependency to get the image, and
-    returns the image
+    This endpoint fetches metadata of an image specified by its ID using
+    the `ImageCrud` service.
 
     Args:
-        image_id (str): str = Query(None, description="Image id")
-        crud: Depends(ImageCrud) - this is a dependency injection. It means
-        that the ImageCrud class will be instantiated and passed to
-        the function as a parameter.
+        image_id (str): ID of the image to retrieve.
+        crud (ImageCrud): Dependency injection for CRUD operations.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
 
     Returns:
-        schemas.Image: The image is being returned.
+        schemas.Image: Metadata of the specified image.
     """
     LOG.info('Api handle response on get image.')
     image = await run_in_threadpool(crud.get_image, image_id)
@@ -116,22 +140,28 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
-    """Uploads an image to the storage.
+    """Upload a new image to the storage.
 
-    It reads the image from the request, saves it to a temporary file,
-    and then passes the file name to the `ImageCrud` class
+    This endpoint reads the uploaded image file, saves it temporarily, and
+    uploads it to the specified storage using the `ImageCrud` service.
 
     Args:
-        storage_id (str): str - the id of the storage where the image will be
-        uploaded
-        name (str): str - the name of the image.
-        description (str): str - the description of the image.
-        image (UploadFile): UploadFile = File(...)
-        user_info: The dependency that check user was authorised
-        crud: Depends(ImageCrud) - this is a dependency injection.
+        description (str): Description of the image.
+        storage_id (str): ID of the storage where the image will be saved.
+        name (str): Name of the image file.
+        image (UploadFile): The uploaded image file.
+        user_info (Dict): Authorized user information.
+        crud (ImageCrud): Dependency injection for CRUD operations.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
 
     Returns:
-        schemas.Image: The image object.
+        schemas.Image: Metadata of the uploaded image.
+
+    Raises:
+        HTTPException: If the file name exceeds the allowed length or if
+        the file extension is unsupported.
     """
     LOG.info(f'Api start uploading image: {name}')
     tmp_path = Path_lib(TMP_DIR, name)
@@ -175,15 +205,21 @@ async def delete_image(
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> JSONResponse:
-    """It deletes an image from the database
+    """Delete an image by its ID.
+
+    This endpoint deletes an image specified by its ID using the `ImageCrud`
+    service.
 
     Args:
-        image_id (str): str - the image id to delete
-        user_info: The dependency that check user was authorised
-        crud: This is the dependency that we created in the previous section.
+        image_id (str): ID of the image to delete.
+        user_info (Dict): Authorized user information.
+        crud (ImageCrud): Dependency injection for CRUD operations.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
 
     Returns:
-        JSONResponse(status_code=status.HTTP_200_OK, content=message)
+        JSONResponse: A response confirming successful deletion.
     """
     LOG.info('Api handle response on delete image: %s.' % image_id)
     result = await run_in_threadpool(crud.delete_image, image_id, user_info)
@@ -203,20 +239,23 @@ async def attach_image(
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.AttachImageInfo:
-    """Attach an image to a VM
+    """Attach an image to a virtual machine (VM).
 
-    The first line of the function is a docstring. This is a string that
-    describes what the function does. It's a good idea to include
-    a docstring for every function you write
+    This endpoint attaches an image specified by its ID to a virtual machine
+    (VM) using the `ImageCrud` service.
 
     Args:
-        image_id (str): str - the id of the image to be attached
-        data (str): str - the id of the VM to which the image will be attached
-        user_info: The dependency that check user was authorised
-        crud: This is the dependency that we created in the previous section.
+        data (schemas.AttachImage): Data containing the VM ID to which
+        the image will be attached.
+        image_id (str): ID of the image to attach.
+        user_info (Dict): Authorized user information.
+        crud (ImageCrud): Dependency injection for CRUD operations.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
 
     Returns:
-        schemas.AttachImageInfo: The attached image.
+        schemas.AttachImageInfo: Metadata of the attached image.
     """
     LOG.info('Api handle response on attach image: %s to vm:' % image_id)
     attached_image = await run_in_threadpool(
@@ -237,17 +276,23 @@ async def detach_image(
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
-    """It takes an image_id and a vm_id, and returns a detached_image
+    """Detach an image from a virtual machine (VM).
+
+    This endpoint detaches an image specified by its ID from a virtual
+    machine (VM) using the `ImageCrud` service.
 
     Args:
-        image_id (str): str - the id of the image to be detached
-        detach_info (str): str - the id of the VM to which the image is attached
-        user_info: The dependency that check user was authorised
-        crud: Depends(ImageCrud) - this is a dependency injection.
+        detach_info (schemas.DetachImage): Data containing the VM ID from
+        which the image will be detached.
+        image_id (str): ID of the image to detach.
+        user_info (Dict): Authorized user information.
+        crud (ImageCrud): Dependency injection for CRUD operations.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
 
     Returns:
-        schemas.Image: The detached image.
-
+        schemas.Image: Metadata of the detached image.
     """
     LOG.info(
         'Api handle response on detach '

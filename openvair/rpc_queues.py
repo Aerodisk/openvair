@@ -22,6 +22,13 @@ class RPCQueueNames:
     """Container for RPC queue names used across system modules."""
 
     @dataclass(frozen=True)
+    class Backup:
+        """Queue names for backup-related operations."""
+
+        SERVICE_LAYER: str = 'backup_api_service_layer'
+        DOMAIN_LAYER: str = 'backup_service_layer_domain'
+
+    @dataclass(frozen=True)
     class BlockDevice:
         """Queue names for block device operations."""
 

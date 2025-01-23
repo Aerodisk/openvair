@@ -5,8 +5,10 @@ USER=aero
 OS=$(lsb_release -i | awk '{print tolower($3)}')
 ARCH=$(uname -m)
 PROJECT_NAME=openvair
+DOCS_PROJECT_NAME=openvair-docs
 USER_PATH=/opt/$USER
 PROJECT_PATH="${USER_PATH}/${PROJECT_NAME}"
+DOCS_PROJECT_PATH="${USER_PATH}/${DOCS_PROJECT_NAME}"
 PROJECT_CONFIG_FILE="$PROJECT_PATH/project_config.toml"
 DEPENDENCIES_FILE="${PROJECT_PATH}/third_party_requirements.txt"
 
@@ -676,6 +678,35 @@ install_jq(){
     execute "sudo apt-get install jq -y" "$message"
 }
 
+install_restic(){
+  local apt_get_command="sudo apt-get install restic"
+  local self_update_command="sudo restic self-update" 
+  local install_message="Installing restic"
+  local update_message="Updating restic"
+  execute "$apt_get_command" "$install_message"
+  execute "$self_update_command" "$update_message"
+}
+
+install_documentation(){
+  local doc_repo="https://github.com/Aerodisk/openvair-docs.git"
+
+  local clone_docs_repo="git clone $doc_repo"
+  local clone_message="Cloning documentation repository..."
+  
+  local install_docs="bash $DOCS_PROJECT_PATH/install.sh"
+  local install_docs_message="Installing documentation..."
+
+  if [ -d "$DOCS_PROJECT_PATH" ]; then
+    log $GREEN "Documentation repository already exists at $DOCS_PROJECT_PATH"
+  else
+    execute "$clone_docs_repo" "$clone_message"
+    execute "cd $DOCS_PROJECT_PATH" "Changing directory to $DOCS_PROJECT_PATH"
+    execute "$install_docs" "$install_docs_message"
+  fi
+
+  go_to_home_dir
+}
+
 # ========= Daemons =========
 process_services() {
   go_to_home_dir
@@ -691,7 +722,7 @@ process_services() {
 # Clear home directory
 clear_home_dir() {
   local message="Clear home directory"
-  execute "rm -rf .nvm .npm .cache .config" "$message"
+  execute "sudo rm -rf .nvm .npm .cache .config" "$message"
 }
 
 # Create hashed password
@@ -819,10 +850,12 @@ main() {
     install_node_exporter
     install_open_iscsi
     clone_novnc
+    install_restic
     process_services
     clear_home_dir
     make_hashed_password
     create_default_user
+    install_documentation
     restart_service 'web-app.service'
     print_final_message
 }
