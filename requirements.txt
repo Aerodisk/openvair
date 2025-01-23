@@ -89,3 +89,4 @@ watchfiles==0.22.0
 websockets==12.0
 xmltodict==0.13.0
 zipp==3.19.2
+pre-commit==3.5.0
