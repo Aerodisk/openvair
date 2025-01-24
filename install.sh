@@ -255,14 +255,7 @@ install_python_requirements() {
   install_python_package "-r $PROJECT_PATH/requirements.txt" "python requirements"
 }
 
-setup_local_hooks(){
-  local install_command="cd $PROJECT_PATH && git config core.hooksPath .githooks"
-  local message="Setting up local hooks"
-  execute "$install_command" "$message"
-  go_to_home_dir 
-}
-
-install_pre-install_pre-commit(){
+install_pre-commit(){
   local install_command="pre-commit install"
   local message="Installing pre-commit"
   execute "$install_command" "$message"
@@ -846,7 +839,6 @@ main() {
     install_requirements_for_storages
     install_wheel
     install_python_requirements
-    setup_local_hooks
     install_pre-commit
     install_openvswitch
     install_multipath
