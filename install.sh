@@ -256,9 +256,10 @@ install_python_requirements() {
 }
 
 setup_local_hooks(){
-  local install_command="git config core.hooksPath .githooks"
+  local install_command="cd $PROJECT_PATH && git config core.hooksPath .githooks"
   local message="Setting up local hooks"
   execute "$install_command" "$message"
+  go_to_home_dir 
 }
 
 install_pre-install_pre-commit(){
