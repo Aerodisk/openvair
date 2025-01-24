@@ -210,13 +210,6 @@ add_pythonpath_to_activate() {
     execute "$command" "$message"
 }
 
-install_pre-commit_hook(){
-  local install_command="pre-commit install"
-  local message="Installing pre-commit"
-  execute "$install_command" "$message"
-  execute 
-}
-
 # Installing libpq-dev
 install_libpq_dev(){
     check_or_install "libpq-dev"
@@ -260,6 +253,12 @@ install_wheel() {
 # Installing requirements python
 install_python_requirements() {
   install_python_package "-r $PROJECT_PATH/requirements.txt" "python requirements"
+}
+
+install_pre-commit_hook(){
+  local install_command="pre-commit install"
+  local message="Installing pre-commit"
+  execute "$install_command" "$message"
 }
 
 # Installing psycopg
@@ -833,7 +832,6 @@ main() {
     install_venv_and_pip
     make_venv
     add_pythonpath_to_activate
-    install_pre-commit_hook
     install_libpq_dev
     install_python3_websockify
     install_requirements_for_libvirt
@@ -841,6 +839,7 @@ main() {
     install_requirements_for_storages
     install_wheel
     install_python_requirements
+    install_pre-commit_hook
     install_openvswitch
     install_multipath
     change_owner
