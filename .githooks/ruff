@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo 'Running ruff check'
-if ! ruff check --config=ruff.toml; then
+if ! ./venv/bin/ruff check --config=ruff.toml; then
     echo
     echo
     echo "=========================================================================="
