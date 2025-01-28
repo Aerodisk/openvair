@@ -256,7 +256,7 @@ install_python_requirements() {
 }
 
 install_pre-commit(){
-  local install_command="$PROJECT_PATH/venv/bin/python3 pre-commit install"
+  local install_command="$PROJECT_PATH/venv/bin/pre-commit install"
   local message="Installing pre-commit"
   execute "$install_command" "$message"
 }
