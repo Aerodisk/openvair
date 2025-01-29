@@ -11,8 +11,10 @@ Classes:
 
 from typing import Any, Dict
 
+from openvair.libs.cli.exceptions import ExecuteTimeoutExpiredError, UnsuccessReturnCodeError
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.modules.virtual_machines.config import SERVER_IP
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 
@@ -135,11 +137,23 @@ class LibvirtDriver(BaseLibvirtDriver):
                 '/opt/aero/openvair/openvair/libs/noVNC/',
                 vnc_port,
                 f'localhost:{port}',
-                run_as_root=True,
+                 params=ExecuteParams(  # noqa: S604
+                    run_as_root=True,
+                    shell=True,
+                )
             )
+        except UnsuccessReturnCodeError as e:
+            msg = (f'Failed to start websockify due to unsuccessful '
+                   f'return code: {e!s}')
+            LOG.error(msg)
+            raise RuntimeError(msg) from e
+        except ExecuteTimeoutExpiredError as e:
+            msg = f'Failed to start websockify due to timeout: {e!s}'
+            LOG.error(msg)
+            raise RuntimeError(msg) from e
         except Exception as e:
-            LOG.error(f'Failed to start websockify: {e!s}')
             msg = f'Failed to start websockify: {e!s}'
+            LOG.error(msg)
             raise RuntimeError(msg) from e
 
         vnc_url = (
