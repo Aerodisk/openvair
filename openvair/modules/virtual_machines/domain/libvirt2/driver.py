@@ -11,10 +11,13 @@ Classes:
 
 from typing import Any, Dict
 
-from openvair.libs.cli.exceptions import ExecuteTimeoutExpiredError, UnsuccessReturnCodeError
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import (
+    UnsuccessReturnCodeError,
+    ExecuteTimeoutExpiredError,
+)
 from openvair.modules.virtual_machines.config import SERVER_IP
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 
@@ -56,7 +59,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         Raises:
             Exception: If an error occurs while starting the virtual machine.
         """
-        LOG.info(f"Starting VM {self.vm_info.get('name')}")
+        LOG.info(f'Starting VM {self.vm_info.get("name")}')
         with self.connection as connection:
             domain = connection.createXML(self.vm_xml)
             state, _ = domain.state()
@@ -86,7 +89,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             Exception: If an error occurs while turning off the
             virtual machine.
         """
-        LOG.info(f"Turning off VM {self.vm_info.get('name')}")
+        LOG.info(f'Turning off VM {self.vm_info.get("name")}')
         with self.connection as connection:
             domain = connection.lookupByName(self.vm_info.get('name'))
             domain.destroy()
@@ -105,7 +108,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             ValueError: If the graphic interface URL is not set or is invalid.
             RuntimeError: If starting `websockify` fails.
         """
-        LOG.info(f"Starting VNC for VM {self.vm_info.get('name')}")
+        LOG.info(f'Starting VNC for VM {self.vm_info.get("name")}')
 
         graphic_interface = self.vm_info.get('graphic_interface', {})
         LOG.info(f'Graphic interface info: {graphic_interface}')
@@ -114,8 +117,8 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         if not vm_url:
             LOG.error(
-                f"Graphic interface URL not set for VM "
-                f"{self.vm_info.get('name')}"
+                f'Graphic interface URL not set for VM '
+                f'{self.vm_info.get("name")}'
             )
             msg = 'Graphic interface URL is not set'
             raise ValueError(msg)
@@ -137,14 +140,16 @@ class LibvirtDriver(BaseLibvirtDriver):
                 '/opt/aero/openvair/openvair/libs/noVNC/',
                 vnc_port,
                 f'localhost:{port}',
-                 params=ExecuteParams(  # noqa: S604
+                params=ExecuteParams(  # noqa: S604
                     run_as_root=True,
                     shell=True,
-                )
+                ),
             )
         except UnsuccessReturnCodeError as e:
-            msg = (f'Failed to start websockify due to unsuccessful '
-                   f'return code: {e!s}')
+            msg = (
+                f'Failed to start websockify due to unsuccessful '
+                f'return code: {e!s}'
+            )
             LOG.error(msg)
             raise RuntimeError(msg) from e
         except ExecuteTimeoutExpiredError as e:
