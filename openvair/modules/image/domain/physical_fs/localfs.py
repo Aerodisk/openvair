@@ -57,7 +57,8 @@ class LocalFSImage(BaseLocalFSImage):
                 '-O qcow2',
                 str(image_tmp),  # type: ignore
                 str(image_path),  # type: ignore
-                params=ExecuteParams(
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
                     run_as_root=self._execute_as_root,
                     raise_on_error=True
                 )
