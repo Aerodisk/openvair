@@ -45,6 +45,7 @@ from typing import (
     Any,
     Dict,
     List,
+    Type,
     Tuple,
     Union,
     Optional,
@@ -719,6 +720,7 @@ def xml_to_jsonable(xml_string: str) -> Union[Dict, List]:
     # Парсим XML и убираем префиксы
     parsed_dict = xmltodict.parse(xml_string)
     return remove_prefix(parsed_dict)
+
 
 @contextmanager
 def change_directory(
