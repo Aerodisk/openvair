@@ -14,12 +14,10 @@ from typing import Any, Dict
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import (
-    UnsuccessReturnCodeError,
-    ExecuteTimeoutExpiredError,
-)
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.virtual_machines.config import SERVER_IP
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
+from openvair.modules.virtual_machines.domain.exceptions import VNCSessionError
 
 LOG = get_logger(__name__)
 
@@ -126,10 +124,10 @@ class LibvirtDriver(BaseLibvirtDriver):
         try:
             port = vm_url.split(':')[-1]
             vnc_port = f'6{port[1:]}'
-        except (AttributeError, IndexError) as e:
+        except (AttributeError, IndexError) as err:
             LOG.error(f'Invalid graphic interface URL format: {vm_url}')
             msg = f'Invalid graphic interface URL format: {vm_url}'
-            raise ValueError(msg) from e
+            raise ValueError(msg) from err
 
         try:
             execute(
@@ -143,23 +141,13 @@ class LibvirtDriver(BaseLibvirtDriver):
                 params=ExecuteParams(  # noqa: S604
                     run_as_root=True,
                     shell=True,
+                    raise_on_error=True
                 ),
             )
-        except UnsuccessReturnCodeError as e:
-            msg = (
-                f'Failed to start websockify due to unsuccessful '
-                f'return code: {e!s}'
-            )
+        except (ExecuteError, OSError) as err:
+            msg = f'Failed to start websockify: {err!s}'
             LOG.error(msg)
-            raise RuntimeError(msg) from e
-        except ExecuteTimeoutExpiredError as e:
-            msg = f'Failed to start websockify due to timeout: {e!s}'
-            LOG.error(msg)
-            raise RuntimeError(msg) from e
-        except Exception as e:
-            msg = f'Failed to start websockify: {e!s}'
-            LOG.error(msg)
-            raise RuntimeError(msg) from e
+            raise VNCSessionError(msg)
 
         vnc_url = (
             f'http://{SERVER_IP}:{vnc_port}/vnc.html?'
