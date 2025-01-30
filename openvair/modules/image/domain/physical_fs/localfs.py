@@ -16,10 +16,7 @@ from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import (
-    UnsuccessReturnCodeError,
-    ExecuteTimeoutExpiredError,
-)
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.image.domain.base import BaseLocalFSImage
 
 LOG = get_logger(__name__)
@@ -60,15 +57,14 @@ class LocalFSImage(BaseLocalFSImage):
                 '-O qcow2',
                 image_tmp,  # type: ignore
                 image_path,  # type: ignore
-                params=ExecuteParams(raise_on_error=True)
+                params=ExecuteParams(
+                    run_as_root=self._execute_as_root,
+                    raise_on_error=True
+                )
             )
             LOG.info('Image converted successfully')
-        except UnsuccessReturnCodeError as e:
-            msg = f'Failed to upload image with ID {self.id}: {e}'
-            LOG.exception(msg)
-            raise
-        except ExecuteTimeoutExpiredError as e:
-            msg = f'Timeout while uploading image with ID {self.id}: {e}'
+        except (ExecuteError, OSError) as err:
+            msg = f'Failed to upload image with ID {self.id}: {err}'
             LOG.exception(msg)
             raise
         else:
@@ -101,8 +97,8 @@ class LocalFSImage(BaseLocalFSImage):
                         raise_on_error=True
                     )
                 )
-            except UnsuccessReturnCodeError as e:
-                msg = f'Failed to delete image with ID {self.id}: {e}'
+            except (ExecuteError, OSError) as err:
+                msg = f'Failed to delete image with ID {self.id}: {err}'
                 LOG.exception(msg)
                 raise
 
@@ -129,13 +125,14 @@ class LocalFSImage(BaseLocalFSImage):
                     raise_on_error=True
                 )
             )  # type: ignore
-        except UnsuccessReturnCodeError as e:
+        except (ExecuteError, OSError) as err:
             msg = (
                 f'Failed to delete image with ID {self.id} '
-                f'from temporary directory: {e}'
+                f'from temporary directory: {err}'
             )
             LOG.exception(msg)
             raise
+
         LOG.info('LocalFSImage successfully deleted from temporary directory.')
         return self.__dict__
 
