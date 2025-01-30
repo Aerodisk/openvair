@@ -14,7 +14,12 @@ from pathlib import Path
 
 from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import (
+    UnsuccessReturnCodeError,
+    ExecuteTimeoutExpiredError,
+)
 from openvair.modules.image.domain.base import BaseRemoteFSImage
 
 LOG = get_logger(__name__)
@@ -54,10 +59,15 @@ class NfsImage(BaseRemoteFSImage):
                 '-O qcow2',
                 image_tmp,  # type: ignore
                 image_path,  # type: ignore
+                params=ExecuteParams(raise_on_error=True)
             )
-        except Exception as e:
-            LOG.exception(f'Failed to upload image with ID {self.id}:')
-            LOG.error(e)
+        except UnsuccessReturnCodeError as e:
+            msg = f'Failed to upload image with ID {self.id}: {e}'
+            LOG.exception(msg)
+            raise
+        except ExecuteTimeoutExpiredError as e:
+            msg = f'Timeout while uploading image with ID {self.id}: {e}'
+            LOG.exception(msg)
             raise
         else:
             LOG.info(f'Image with ID {self.id} uploaded successfully')
@@ -73,7 +83,21 @@ class NfsImage(BaseRemoteFSImage):
         """
         LOG.info('Deleting NFSImage...')
         image_path = f'{self.path}/image-{self.id}'
-        execute('rm', '-f', image_path, run_as_root=self._execute_as_root)
+        try:
+            execute(
+                'rm',
+                '-f',
+                image_path,
+                params=ExecuteParams(
+                    run_as_root=self._execute_as_root,
+                    raise_on_error=True
+                )
+            )
+        except UnsuccessReturnCodeError as e:
+            msg = f'Failed to delete image with ID {self.id}: {e}'
+            LOG.exception(msg)
+            raise
+
         LOG.info('NFSImage successfully deleted.')
         return self.__dict__
 
@@ -87,7 +111,24 @@ class NfsImage(BaseRemoteFSImage):
         """
         LOG.info('Deleting NFSImage from temporary directory...')
         image_tmp = Path(TMP_DIR, self.name)
-        execute('rm', '-f', image_tmp, run_as_root=self._execute_as_root)  # type: ignore
+        try:
+            execute(
+                'rm',
+                '-f',
+                image_tmp,
+                params=ExecuteParams(
+                    run_as_root=self._execute_as_root,
+                    raise_on_error=True
+                )
+            )
+        except UnsuccessReturnCodeError as e:
+            msg = (
+                f'Failed to delete image with ID {self.id} from '
+                f'temporary directory: {e}'
+            )
+            LOG.exception(msg)
+            raise
+
         LOG.info('NFSImage successfully deleted from temporary directory.')
         return self.__dict__
 
