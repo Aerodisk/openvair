@@ -575,22 +575,62 @@ def validate_objects(
     *,
     skip_corrupted_object: bool = True,
 ) -> List[BaseModel]:
-    """Validates a list of objects against a Pydantic schema.
+    """Validates a list of objects against a Pydantic schema
+
+    Ensures that all returned objects are valid instances of the schema.
+
+    This function processes a list of dictionary-based objects, attempting to
+    validate each object against the provided Pydantic schema. If an object
+    fails validation, it can either be replaced with a "corrupted object"
+    (containing default values that satisfy the schema) or raise an exception,
+    depending on the `skip_corrupted_object` parameter.
+
+    The function guarantees that all returned objects conform to the schema,
+    making it suitable for use in scenarios where subsequent processing (e.g.,
+    API responses in FastAPI) requires fully valid Pydantic models.
 
     Args:
-        objects (List[Dict[str, Any]]): The list of objects to validate.
-        pydantic_schema (Type[BaseModel]): The Pydantic schema to validate
-            against.
-        skip_corrupted_object (bool): Whether to skip corrupted objects or raise
-            an error.
+        objects (List[Dict[str, Any]]):
+            A list of dictionaries representing objects to be validated.
+        pydantic_schema (Type[BaseModel]):
+            The Pydantic schema against which each object will be validated.
+        skip_corrupted_object (bool, optional):
+            If True (default), objects that fail validation are replaced with
+            a "corrupted object" containing default values.
+            If False, the function raises a `ValidationError` upon encountering
+            an invalid object.
 
     Returns:
-        List[BaseModel]: A list of validated Pydantic objects.
+        List[BaseModel]:
+            A list of validated Pydantic objects, where all elements conform
+            to the specified schema. If `skip_corrupted_object=True`,
+            invalid objects are replaced with valid "corrupted" versions.
 
     Raises:
-        ValidationError: If validation fails and `skip_corrupted_object` is
-            False.
-    """
+        ValidationError:
+            If `skip_corrupted_object=False` and an object fails validation,
+            an exception is raised instead of replacing it.
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> from typing import List
+        >>> class UserModel(BaseModel):
+        ...     id: int
+        ...     name: str
+        ...     status: str = 'active'
+        >>> objects = [
+        ...     {'id': 1, 'name': 'Alice'},
+        ...     {'id': 2, 'name': 123},  # Invalid: name should be str
+        ...     {'id': '3'},  # Missing name (required field)
+        ... ]
+        >>> valid_users = validate_objects(objects, UserModel)
+        >>> for user in valid_users:
+        ...     print(user)
+        UserModel(id=1, name='Alice', status='active')
+        UserModel(id=2, name='', status='corrupted object') # Replaced invalid entry
+        UserModel(id=3, name='', status='corrupted object') # Replaced invalid entry
+
+    """  # noqa: E501
     result: List[BaseModel] = []
     for _object in objects:
         try:
