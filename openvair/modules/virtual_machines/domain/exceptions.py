@@ -8,7 +8,8 @@ Classes:
         searching port of graphic in vm xml
     GraphicTypeNotFoundInXmlException: Exception raised when getting error while
         searching type of graphic in vm xml
-    VNCSessionError: Exception raised for errors related to VNC session management.
+    VNCSessionError: Exception raised for errors related to VNC session
+        management.
 """
 
 from typing import Any
