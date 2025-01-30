@@ -18,11 +18,11 @@ Entrypoints:
     DELETE /storages/{storage_id}/delete/ - Delete a storage by its ID.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 from fastapi import Path, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
@@ -48,7 +48,7 @@ router = APIRouter(
 )
 async def get_storages(
     crud: StorageCrud = Depends(StorageCrud),
-) -> Page:
+) -> Page[schemas.Storage]:
     """It gets a list of storages from the database
 
     Args:
@@ -60,7 +60,7 @@ async def get_storages(
     LOG.info('Api start getting list of storages')
     storages = await run_in_threadpool(crud.get_all_storages)
     LOG.info('Api request was successfully processed.')
-    return storages
+    return cast(Page, paginate(storages))
 
 
 @router.get(

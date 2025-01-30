@@ -9,9 +9,7 @@ Classes:
         and partitions.
 """
 
-from typing import Dict, List, cast
-
-from fastapi_pagination import Page, paginate
+from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import validate_objects
@@ -53,7 +51,7 @@ class StorageCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_all_storages(self) -> Page:
+    def get_all_storages(self) -> List[schemas.BaseModel]:
         """Retrieve all storages from the database.
 
         Returns:
@@ -65,8 +63,7 @@ class StorageCrud:
             data_for_method={},
         )
         LOG.debug('Response from service layer: %s.' % result)
-        storages = validate_objects(result, schemas.Storage)
-        return cast(Page, paginate(storages))
+        return validate_objects(result, schemas.Storage)
 
     def create_storage(self, data: Dict, user_data: Dict) -> Dict:
         """Create a new storage.
@@ -128,7 +125,7 @@ class StorageCrud:
         )
         LOG.debug('Response from service layer: %s.' % result)
         local_disks = validate_objects(result, schemas.LocalDisk)
-        return schemas.ListOfLocalDisks(disks=local_disks)
+        return schemas.ListOfLocalDisks.model_validate({'disks': local_disks})
 
     def create_local_partition(self, data: Dict, user_data: Dict) -> Dict:
         """Create a new partition on a local disk.
