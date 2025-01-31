@@ -86,6 +86,27 @@ class BackupServiceLayerManager(BackgroundTasks):
         LOG.info('Backup successfull created')
         return result
 
+    def delete_snapshot(
+        self, data: Dict[str, str]
+    ) -> Dict[str, Union[str, int, None]]:
+        """_summary_
+
+        Args:
+            data (Dict[str, str]): _description_
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            Dict[str, Union[str, int, None]]: _description_
+        """
+        self.domain_rpc.call(
+            FSBackuper.delete_snapshot.__name__,
+            data_for_manager=self.__create_data_for_domain_manager(),
+            data_for_method={'snapshot_id': data.get('snapshot_id', 'latest')},
+        )
+        raise NotImplementedError
+
     def restore_backup(
         self,
         data: Dict[

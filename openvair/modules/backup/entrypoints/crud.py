@@ -104,3 +104,19 @@ class BackupCrud:
         self.service_layer_rpc.call(
             BackupServiceLayerManager.initialize_backup_repository.__name__
         )
+
+    def delete_snapshot(self, snapshot_id: str) -> None:
+        """Delete a specific backup snapshot.
+
+        This method calls the service layer to remove a given backup snapshot.
+
+        Args:
+            snapshot_id (str): ID of the snapshot to delete.
+
+        Returns:
+            None
+        """
+        self.service_layer_rpc.call(
+            BackupServiceLayerManager.delete_snapshot.__name__,
+            data_for_method={'snapshot_id': snapshot_id},
+        )
