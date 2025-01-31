@@ -49,6 +49,7 @@ class ResticAdapter:
     BACKUP_SUBCOMMAND = 'backup --skip-if-unchanged'
     RESTORE_SUBCOMMAND = 'restore --target'
     SNAPSHOTS_SUBCOMMAND = 'snapshots'
+    FORGET_SUBCOMMAND = 'forget --prune'
 
     def __init__(self, restic_dir: Path, restic_pass: str) -> None:
         """Initialize a ResticAdapter instance.
@@ -203,6 +204,37 @@ class ResticAdapter:
 
         restore_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
         return restore_info
+
+    def forget(self, snapshot_id: str) -> Dict[str, Union[str, int]]:
+        """_summary_
+
+        Args:
+            snapshot_id (str): _description_
+
+        Returns:
+            Dict[str, Union[str, int]]: _description_
+        """
+        result = self.executor.execute(
+            f'{self.FORGET_SUBCOMMAND} {snapshot_id}'
+        )
+        try:
+            self._check_result(
+                self.BACKUP_SUBCOMMAND,
+                result,
+            )
+        except ResticError as err:
+            actual_error = ResticRestoreError(f'{err!s}')
+            LOG.error(actual_error)
+            raise actual_error from err
+
+        forget_info: Dict[str, Union[str, int]] = {
+            'message': (
+                f'results of deleting snapshot {snapshot_id}:\n'
+                f'stdout: "{result.stdout}"'
+                f'\nstderr: "{result.stderr}"'
+            )
+        }
+        return forget_info
 
     def _check_result(
         self,
