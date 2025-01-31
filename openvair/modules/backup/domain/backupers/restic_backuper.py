@@ -167,3 +167,19 @@ class ResticBackuper(FSBackuper):
             message = f'Error while getting snapshots: {err!s}'
             LOG.error(message)
             raise SnapshotGettingResticBackuperError(message)
+
+    def delete_snapshot(
+        self, data: Dict[str, str]
+    ) -> Dict[str, Union[str, int, None]]:
+        """_summary_
+
+        Args:
+            data (Dict[str, str]): _description_
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            Dict[str, Union[str, int, None]]: _description_
+        """
+        raise NotImplementedError
