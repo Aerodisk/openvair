@@ -206,13 +206,21 @@ class ResticAdapter:
         return restore_info
 
     def forget(self, snapshot_id: str) -> Dict[str, Union[str, int]]:
-        """_summary_
+        """Remove a specific snapshot from the restic repository.
+
+        This method executes the `forget --prune` command to delete a given
+        snapshot from the repository, ensuring that the storage space is
+        reclaimed.
 
         Args:
-            snapshot_id (str): _description_
+            snapshot_id (str): ID of the snapshot to be removed.
 
         Returns:
-            Dict[str, Union[str, int]]: _description_
+            Dict[str, Union[str, int]]: A dictionary containing a message with
+                the results of the deletion operation.
+
+        Raises:
+            ResticRestoreError: If the snapshot deletion operation fails.
         """
         result = self.executor.execute(
             f'{self.FORGET_SUBCOMMAND} {snapshot_id}'

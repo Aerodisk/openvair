@@ -76,7 +76,7 @@ class FSBackuper(BaseBackuper):
     def delete_snapshot(
         self, data: Dict[str, str]
     ) -> Dict[str, Union[str, int, None]]:
-        """Delete a specific backup snapshot.
+        """Delete a specific snapshot.
 
         This abstract method should be implemented by subclasses to remove
         a snapshot from the backup repository.

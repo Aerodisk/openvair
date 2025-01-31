@@ -164,17 +164,18 @@ async def delete_backup(
 ) -> BaseResponse[ResticDeleteResult]:
     """Delete a specific backup snapshot.
 
-    This endpoint removes a backup snapshot by calling the `BackupCrud` service.
+    This endpoint removes a backup snapshot by calling the `BackupCrud`.
 
     Args:
         snapshot_id (str): ID of the snapshot to delete.
-        crud (BackupCrud): Dependency injection of the `BackupCrud` service.
+        crud (BackupCrud): Dependency injection of the `BackupCrud`.
 
     Dependencies:
         - User authentication via `get_current_user`.
 
     Returns:
-        BaseResponse: A response indicating the success of the operation.
+        BaseResponse[ResticDeleteResult]: A response containing the result
+            of the deletion operation.
     """
     LOG.info(f'API: Start deleting snapshot: {snapshot_id}')
     result = await run_in_threadpool(crud.delete_snapshot, snapshot_id)

@@ -109,13 +109,14 @@ class BackupCrud:
     def delete_snapshot(self, snapshot_id: str) -> ResticDeleteResult:
         """Delete a specific backup snapshot.
 
-        This method calls the service layer to remove a given backup snapshot.
+        This method calls the service layer to remove a snapshot from the
+        backup repository.
 
         Args:
             snapshot_id (str): ID of the snapshot to delete.
 
         Returns:
-            None
+            ResticDeleteResult: The result of the deletion operation.
         """
         delete_info = self.service_layer_rpc.call(
             BackupServiceLayerManager.delete_snapshot.__name__,

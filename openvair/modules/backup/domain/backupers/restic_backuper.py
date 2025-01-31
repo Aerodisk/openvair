@@ -172,16 +172,21 @@ class ResticBackuper(FSBackuper):
     def delete_snapshot(
         self, data: Dict[str, str]
     ) -> Dict[str, Union[str, int, None]]:
-        """_summary_
+        """Delete a specific snapshot from the Restic repository.
+
+        This method removes a snapshot from the Restic repository using
+        the `forget --prune` command.
 
         Args:
-            data (Dict[str, str]): _description_
-
-        Raises:
-            NotImplementedError: _description_
+            data (Dict[str, str]): Dictionary containing snapshot information.
+                Must include the key `snapshot_id`.
 
         Returns:
-            Dict[str, Union[str, int, None]]: _description_
+            Dict[str, Union[str, int, None]]: Information about the deletion
+                result, corresponding to the `ResticDeleteResult` model.
+
+        Raises:
+            RestoreResticBackuperError: If the deletion operation fails.
         """
         snapshot_id = data['snapshot_id']
         try:
