@@ -23,6 +23,7 @@ from openvair.modules.tools.utils import get_current_user
 from openvair.modules.backup.schemas import (
     ResticSnapshot,
     ResticBackupResult,
+    ResticDeleteResult,
     ResticRestoreResult,
 )
 from openvair.modules.backup.entrypoints.crud import BackupCrud
@@ -155,12 +156,12 @@ async def init_repository(
 @router.delete(
     '/{snapshot_id}',
     dependencies=[Depends(get_current_user)],
-    response_model=BaseResponse,
+    response_model=BaseResponse[ResticDeleteResult],
 )
 async def delete_backup(
     snapshot_id: str,
     crud: BackupCrud = Depends(BackupCrud),
-) -> BaseResponse:
+) -> BaseResponse[ResticDeleteResult]:
     """Delete a specific backup snapshot.
 
     This endpoint removes a backup snapshot by calling the `BackupCrud` service.
@@ -176,6 +177,7 @@ async def delete_backup(
         BaseResponse: A response indicating the success of the operation.
     """
     LOG.info(f'API: Start deleting snapshot: {snapshot_id}')
-    await run_in_threadpool(crud.delete_snapshot, snapshot_id)
+    result = await run_in_threadpool(crud.delete_snapshot, snapshot_id)
     LOG.info(f'API: Snapshot {snapshot_id} successfully deleted')
-    return BaseResponse(status='success')
+    LOG.info(result.message)
+    return BaseResponse(status='success', data=result)

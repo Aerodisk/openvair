@@ -16,6 +16,7 @@ from openvair.modules.backup.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.backup.schemas import (
     ResticSnapshot,
     ResticBackupResult,
+    ResticDeleteResult,
     ResticRestoreResult,
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -105,7 +106,7 @@ class BackupCrud:
             BackupServiceLayerManager.initialize_backup_repository.__name__
         )
 
-    def delete_snapshot(self, snapshot_id: str) -> None:
+    def delete_snapshot(self, snapshot_id: str) -> ResticDeleteResult:
         """Delete a specific backup snapshot.
 
         This method calls the service layer to remove a given backup snapshot.
@@ -116,7 +117,8 @@ class BackupCrud:
         Returns:
             None
         """
-        self.service_layer_rpc.call(
+        delete_info = self.service_layer_rpc.call(
             BackupServiceLayerManager.delete_snapshot.__name__,
             data_for_method={'snapshot_id': snapshot_id},
         )
+        return ResticDeleteResult(**delete_info)
