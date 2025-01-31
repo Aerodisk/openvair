@@ -100,12 +100,12 @@ class BackupServiceLayerManager(BackgroundTasks):
         Returns:
             Dict[str, Union[str, int, None]]: _description_
         """
-        self.domain_rpc.call(
+        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.delete_snapshot.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
-            data_for_method={'snapshot_id': data.get('snapshot_id', 'latest')},
+            data_for_method={'snapshot_id': data.get('snapshot_id')},
         )
-        raise NotImplementedError
+        return result
 
     def restore_backup(
         self,
