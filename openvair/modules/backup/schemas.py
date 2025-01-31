@@ -120,6 +120,13 @@ class ResticSnapshot(BaseModel):
 
         extra = 'ignore'
 
+class ResticDeleteResult(BaseModel):
+    """_summary_
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    message: str
 
 class ResticBackuperData(BaseModel):
     """Schema for Restic backuper configuration data.
