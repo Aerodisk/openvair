@@ -8,7 +8,7 @@ Classes:
 """
 
 import json
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -75,7 +75,6 @@ class ResticAdapter:
             self._check_result(
                 self.INIT_SUBCOMMAND,
                 result,
-                ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
             actual_error = ResticInitRepoError(f'{err!s}')
@@ -119,7 +118,6 @@ class ResticAdapter:
             self._check_result(
                 self.BACKUP_SUBCOMMAND,
                 result,
-                ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
             actual_error = ResticBackupError(f'{err!s}')
@@ -156,7 +154,6 @@ class ResticAdapter:
         self._check_result(
             self.SNAPSHOTS_SUBCOMMAND,
             result,
-            ReturnCode.from_code(result.returncode),
         )
 
         snapshots_info: List[Dict[str, Union[str, int]]] = json.loads(
@@ -198,7 +195,6 @@ class ResticAdapter:
             self._check_result(
                 self.BACKUP_SUBCOMMAND,
                 result,
-                ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
             actual_error = ResticRestoreError(f'{err!s}')
@@ -212,19 +208,18 @@ class ResticAdapter:
         self,
         operation: str,
         result: ExecutionResult,
-        return_code: Optional[ReturnCode],
     ) -> None:
         """Checks the result of a restic command and validates its success.
 
         Args:
             operation (str): The operation being performed (e.g., "backup").
             result (ExecutionResult): The result of the executed command.
-            return_code (Optional[ReturnCode]): The return code of the command.
 
         Raises:
             ResticError: If the command result is unsuccessful or the return
                 code indicates failure.
         """
+        return_code = ReturnCode.from_code(result.returncode)
         if return_code is None or return_code != ReturnCode.SUCCESS:
             description = (
                 return_code.description if return_code else 'Unknown exit code'
