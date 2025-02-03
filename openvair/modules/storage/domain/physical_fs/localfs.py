@@ -13,7 +13,9 @@ Classes:
 from typing import Any, Dict, Optional
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.storage.domain import exception as exc
 from openvair.modules.storage.domain.base import BasePartition, LocalFSStorage
 from openvair.modules.storage.domain.utils import DiskSizeValueObject
@@ -77,7 +79,12 @@ class LocalDiskStorage(LocalFSStorage):
     def _ensure_storage_mounted(self) -> None:
         """Mount the storage to the mount point."""
         LOG.info(f'Mounting storage to {self.mount_point} directory...')
-        execute('mount', self.path, self.mount_point, run_as_root=False)
+        execute(
+            'mount',
+            self.path,
+            self.mount_point,
+            params=ExecuteParams(shell=True, run_as_root=True),  # noqa: S604
+        )
 
     def _get_fs_uuid(self) -> str:
         """Get the UUID of the file system.
@@ -86,8 +93,15 @@ class LocalDiskStorage(LocalFSStorage):
             str: The UUID of the file system.
         """
         LOG.info('Getting UUID of the file system...')
-        output, _ = execute('blkid', self.path, run_as_root=True)
-        return output.split('"')[1]
+        exec_result = execute(
+            'blkid',
+            self.path,
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+            ),
+        )
+        return exec_result.stdout.split('"')[1]
 
     def _create(self) -> Dict:
         """Create the storage by retrieving its UUID.
@@ -102,11 +116,28 @@ class LocalDiskStorage(LocalFSStorage):
         """Unmount the storage and delete the mount point."""
         try:
             LOG.info(f'Unmounting storage from {self.mount_point} directory...')
-            execute('umount', self.mount_point, run_as_root=False)
+            execute(
+                'umount',
+                self.mount_point,
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=True,
+                ),
+            )
             LOG.info(f'Deleting {self.mount_point} directory...')
-            execute('rm', '-rf', self.mount_point, run_as_root=False)
-        except UnmountError as e:
+            execute(
+                'rm',
+                '-rf',
+                self.mount_point,
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=True,
+                    raise_on_error=True,
+                ),
+            )
+        except ExecuteError as e:
             LOG.warning(f'Error during unmounting storage - {e}')
+            raise UnmountError(str(e))
 
     def _get_capacity_info(self) -> Dict:
         """Get the size and available space of the storage.
@@ -115,15 +146,23 @@ class LocalDiskStorage(LocalFSStorage):
             str: The instance's dictionary representation.
         """
         LOG.info('Getting the size and available space of the storage...')
-        out, _ = execute(
-            'df',
-            '--portability',
-            '--block-size',
-            '1',
-            self.mount_point,
-            run_as_root=False,
-        )
-        out = out.splitlines()[1]
+        try:
+            exec_result = execute(
+                'df',
+                '--portability',
+                '--block-size',
+                '1',
+                self.mount_point,
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=False,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except (ExecuteError, OSError) as err:
+            LOG.error(err)
+            raise
+        out = exec_result.stdout.splitlines()[1]
 
         self.size = int(out.split()[1])
         self.available = int(out.split()[3])
@@ -136,7 +175,15 @@ class LocalDiskStorage(LocalFSStorage):
             disk_path (str): The path to the disk.
         """
         LOG.info(f'Formatting the disk with XFS file system at {disk_path}...')
-        execute('mkfs.xfs', '-f', disk_path, run_as_root=self._execute_as_root)
+        execute(
+            'mkfs.xfs',
+            '-f',
+            disk_path,
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=self._execute_as_root,
+            ),
+        )
 
     def _format_ext4(self, disk_path: str) -> None:
         """Format the disk with the EXT4 file system.
@@ -145,7 +192,15 @@ class LocalDiskStorage(LocalFSStorage):
             disk_path (str): The path to the disk.
         """
         LOG.info(f'Formatting the disk with EXT4 file system at {disk_path}...')
-        execute('mkfs.ext4', '-F', disk_path, run_as_root=self._execute_as_root)
+        execute(
+            'mkfs.ext4',
+            '-F',
+            disk_path,
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=self._execute_as_root,
+            ),
+        )
 
     def formatting(self) -> None:
         """Format the storage according to its file system type."""
