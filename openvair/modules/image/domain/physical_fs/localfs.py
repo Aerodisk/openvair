@@ -55,8 +55,8 @@ class LocalFSImage(BaseLocalFSImage):
                 'convert',
                 '-f raw',
                 '-O qcow2',
-                str(image_tmp),  # type: ignore
-                str(image_path),  # type: ignore
+                str(image_tmp),
+                str(image_path),
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
                     run_as_root=self._execute_as_root,
@@ -87,6 +87,7 @@ class LocalFSImage(BaseLocalFSImage):
             self._check_image_exists()
         except Exception as _:
             LOG.exception("LocalFSImage doesn't exist on storage.")
+            raise
         else:
             try:
                 image_path = f'{self.path}/image-{self.id}'
@@ -120,12 +121,12 @@ class LocalFSImage(BaseLocalFSImage):
             execute(
                 'rm',
                 '-f',
-                image_tmp,
+                str(image_tmp),
                 params=ExecuteParams(
                     run_as_root=self._execute_as_root,
                     raise_on_error=True
                 )
-            )  # type: ignore
+            )
         except (ExecuteError, OSError) as err:
             msg = (
                 f'Failed to delete image with ID {self.id} '

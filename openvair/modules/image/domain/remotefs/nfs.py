@@ -55,8 +55,8 @@ class NfsImage(BaseRemoteFSImage):
                 'convert',
                 '-f raw',
                 '-O qcow2',
-                str(image_tmp),  # type: ignore
-                str(image_path),  # type: ignore
+                str(image_tmp),
+                str(image_path),
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
                     run_as_root=self._execute_as_root,
@@ -114,7 +114,7 @@ class NfsImage(BaseRemoteFSImage):
             execute(
                 'rm',
                 '-f',
-                image_tmp,
+                str(image_tmp),
                 params=ExecuteParams(
                     run_as_root=self._execute_as_root,
                     raise_on_error=True
