@@ -83,7 +83,10 @@ class LocalDiskStorage(LocalFSStorage):
             'mount',
             self.path,
             self.mount_point,
-            params=ExecuteParams(shell=True, run_as_root=True),  # noqa: S604
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+            ),
         )
 
     def _get_fs_uuid(self) -> str:
@@ -122,6 +125,7 @@ class LocalDiskStorage(LocalFSStorage):
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
                     run_as_root=True,
+                    raise_on_error=True
                 ),
             )
             LOG.info(f'Deleting {self.mount_point} directory...')
@@ -135,7 +139,7 @@ class LocalDiskStorage(LocalFSStorage):
                     raise_on_error=True,
                 ),
             )
-        except ExecuteError as e:
+        except (ExecuteError, OSError) as e:
             LOG.warning(f'Error during unmounting storage - {e}')
             raise UnmountError(str(e))
 

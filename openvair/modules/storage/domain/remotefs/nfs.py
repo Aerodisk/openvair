@@ -104,7 +104,7 @@ class NfsStorage(RemoteFSStorage):
                         raise_on_error=True,
                     ),
                 )
-            except ExecuteError:
+            except (ExecuteError, OSError):
                 msg = f"Nfs {self.share} can't be mount."
                 raise NFSCantBeMountError(msg)
             else:
@@ -136,7 +136,7 @@ class NfsStorage(RemoteFSStorage):
             )
             if 'Export list' not in exec_res.stdout:
                 raise NfsIpIsNotAvailableError(self.ip)
-        except ExecuteError:
+        except (ExecuteError, OSError):
             message = f'Nfs ip {self.ip} is not available'
             LOG.error(message)
             raise NfsIpIsNotAvailableError(message)

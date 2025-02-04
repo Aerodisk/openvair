@@ -371,7 +371,7 @@ class LocalFSStorage(BaseStorage):
             )
             if not exec_res.stdout:
                 raise PackageIsNotInstalled(package)
-        except (OSError, ExecuteError) as _:
+        except (ExecuteError, OSError) as _:
             ...
 
     def formatting(self) -> None:
