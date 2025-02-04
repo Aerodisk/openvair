@@ -12,7 +12,8 @@ Classes:
 from typing import Dict
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.modules.storage.adapters import exceptions
 
 LOG = get_logger(__name__)
@@ -54,13 +55,20 @@ class PartedAdapter:
             f'primary {start_part} {end_part}'
         )
 
-        stdout, stderr = execute(command, run_as_root=True)
-        if 'error' in stderr.lower():
+        exec_result = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if 'error' in exec_result.stderr.lower():
+            stderr = exec_result.stderr
             LOG.error(f'Error occurred during partition creation: {stderr}')
             raise exceptions.PartedError(stderr)
 
-        LOG.info(f'Partition created successfully: {stdout}')
-        return {'stdout': stdout, 'stderr': stderr}
+        LOG.info(f'Partition created successfully: {exec_result.stdout}')
+        return {'stdout': exec_result.stdout, 'stderr': exec_result.stderr}
 
     def print(self, *, free: bool = True) -> str:
         """Print partition information using parted.
@@ -77,27 +85,49 @@ class PartedAdapter:
         """
         free_arg = 'free' if free else ''
         print_command = f'parted -s {self.disk_path} unit B print {free_arg}'
-        stdout, stderr = execute(print_command, run_as_root=True)
-        if stderr:
-            LOG.error(f'Error occurred during partition print: {stderr}')
+        exec_result = execute(
+            print_command,
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+            ),
+        )
+        if exec_result.stderr:
+            LOG.error(
+                f'Error occurred during partition print: {exec_result.stderr}'
+            )
 
             LOG.info('Try running create disk table')
             init_label_command = f'parted -s {self.disk_path} mktable gpt '
-            stdout, stderr = execute(init_label_command, run_as_root=True)
-            if stderr:
+            exec_result = execute(
+                init_label_command,
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=True,
+                ),
+            )
+            if exec_result.stderr:
+                stderr = exec_result.stderr
                 msg = f'Error during mktable partition creation: {stderr}'
                 LOG.error(msg)
                 raise exceptions.PartedError(msg)
             LOG.info('Disk table created successfully')
 
             LOG.info('Creating partition using parted again.')
-            stdout, stderr = execute(print_command, run_as_root=True)
-            if stderr:
+            exec_result = execute(
+                print_command,
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=True,
+                ),
+            )
+            if exec_result.stderr:
+                stderr = exec_result.stderr
                 msg = f'Error occurred during partition print: {stderr}'
                 LOG.error(msg)
                 raise exceptions.PartedError(msg)
 
-        return stdout
+        return exec_result.stdout
 
     def rm(self, partition_number: str) -> None:
         """Remove a partition using parted.
@@ -109,9 +139,17 @@ class PartedAdapter:
             PartedError: If an error occurs during the removal process.
         """
         command = f'parted -s {self.disk_path} rm {partition_number!s}'
-        stdout, stderr = execute(command, run_as_root=True)
-        if 'error' in stderr.lower():
-            LOG.error(f'Error occurred during partition removal: {stderr}')
-            raise exceptions.PartedError(stderr)
+        exec_result = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+            ),
+        )
+        if 'error' in exec_result.stderr.lower():
+            LOG.error(
+                f'Error occurred during partition removal: {exec_result.stderr}'
+            )
+            raise exceptions.PartedError(exec_result.stderr)
 
-        LOG.info(f'Partition removed successfully: {stdout}')
+        LOG.info(f'Partition removed successfully: {exec_result.stdout}')
