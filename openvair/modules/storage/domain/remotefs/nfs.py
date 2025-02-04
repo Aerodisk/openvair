@@ -14,7 +14,9 @@ import re
 from typing import Any, Dict
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import ExecuteTimeoutExpiredError, execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.storage.domain.base import RemoteFSStorage
 from openvair.modules.storage.domain.remotefs.exceptions import (
     NFSCantBeMountError,
@@ -87,7 +89,7 @@ class NfsStorage(RemoteFSStorage):
         if not os.path.ismount(self.mount_point):
             LOG.info('Starting mount command.')
             try:
-                out, _ = execute(
+                exec_res = execute(
                     'mount',
                     '-t',
                     'nfs',
@@ -95,14 +97,18 @@ class NfsStorage(RemoteFSStorage):
                     f'vers={self.mount_version},async,nolock',
                     self.share,
                     self.mount_point,
-                    timeout=2,
-                    run_as_root=False,
+                    params=ExecuteParams(  # noqa: S604
+                        timeout=2,
+                        shell=True,
+                        run_as_root=True,
+                        raise_on_error=True,
+                    ),
                 )
-            except ExecuteTimeoutExpiredError:
+            except ExecuteError:
                 msg = f"Nfs {self.share} can't be mount."
                 raise NFSCantBeMountError(msg)
             else:
-                LOG.debug(out)
+                LOG.debug(exec_res.stdout)
         LOG.info('Finished mounting NFS share.')
 
     def _check_ip_and_path(self) -> None:
@@ -118,14 +124,23 @@ class NfsStorage(RemoteFSStorage):
         """
         LOG.info('Starting _check_ip_and_path method.')
         try:
-            output, _ = execute('showmount', '-e', self.ip, timeout=3)
-            if 'Export list' not in output:
+            exec_res = execute(
+                'showmount',
+                '-e',
+                self.ip,
+                params=ExecuteParams(  # noqa: S604
+                    timeout=3,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+            if 'Export list' not in exec_res.stdout:
                 raise NfsIpIsNotAvailableError(self.ip)
-        except ExecuteTimeoutExpiredError:
+        except ExecuteError:
             message = f'Nfs ip {self.ip} is not available'
             LOG.error(message)
             raise NfsIpIsNotAvailableError(message)
-        available_paths = re.findall(r'\n(.*?)\s', output)
+        available_paths = re.findall(r'\n(.*?)\s', exec_res.stdout)
         if self.path not in available_paths:
             message = f"Nfs doesn't have current path {self.path}."
             LOG.error(message)
@@ -154,8 +169,25 @@ class NfsStorage(RemoteFSStorage):
         deletes the mount point directory.
         """
         LOG.info('Starting _delete method.')
-        execute('umount', self.mount_point, run_as_root=False)
-        execute('rm', '-rf', self.mount_point, run_as_root=False)
+        execute(
+            'umount',
+            self.mount_point,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+                raise_on_error=True,
+            ),
+        )
+        execute(
+            'rm',
+            '-rf',
+            self.mount_point,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+                raise_on_error=True,
+            ),
+        )
         LOG.info('Finished _delete method.')
 
     def _get_capacity_info(self) -> Dict:
@@ -173,18 +205,21 @@ class NfsStorage(RemoteFSStorage):
             retrieved.
         """
         LOG.info('Starting _get_capacity_info method.')
-        out, err = execute(
+        exec_res = execute(
             'df',
             '--portability',
             '--block-size',
             '1',
             self.mount_point,
-            run_as_root=False,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
         )
-        if err:
+        if exec_res.stderr:
             msg = "Can't get info about storage."
             raise GettinStorageInfoError(msg)
-        out = out.splitlines()[1]
+        out = exec_res.stdout.splitlines()[1]
 
         self.size = int(out.split()[1])
         self.available = int(out.split()[3])
