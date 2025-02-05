@@ -90,7 +90,7 @@ class LocalFSImage(BaseLocalFSImage):
             raise
         else:
             try:
-                image_path = f'{self.path}/image-{self.id}'
+                image_path = Path(self.path, f'image-{self.id}')
                 execute(
                     'rm', '-f',
                     image_path,
