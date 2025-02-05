@@ -643,7 +643,7 @@ def validate_objects(
             )
             LOG.warning(message)
             if skip_corrupted_object:
-                corrupted_object: BaseModel = pydantic_schema.model_validate(
+                corrupted_object: BaseModel = pydantic_schema.model_construct(
                     **_create_corrupted_data(pydantic_schema, _object)
                 )
                 result.append(corrupted_object)
