@@ -93,7 +93,7 @@ class LocalFSImage(BaseLocalFSImage):
                 image_path = Path(self.path, f'image-{self.id}')
                 execute(
                     'rm', '-f',
-                    image_path,
+                    str(image_path),
                     params=ExecuteParams(
                         run_as_root=self._execute_as_root,
                         raise_on_error=True
