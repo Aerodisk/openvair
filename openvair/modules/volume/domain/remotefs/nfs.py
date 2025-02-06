@@ -60,7 +60,7 @@ class NfsVolume(RemoteFSVolume):
                 '-o',
                 f'preallocation={preallocation}',
                 str(volume_path),
-                self.size,
+                str(self.size),
                 params=ExecuteParams(  # noqa: S604
                     run_as_root=self._execute_as_root,
                     shell=True,
@@ -125,8 +125,11 @@ class NfsVolume(RemoteFSVolume):
                 'qemu-img',
                 'resize',
                 str(volume_path),
-                new_size,
-                run_as_root=self._execute_as_root,
+                str(new_size),
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=self._execute_as_root,
+                )
             )
         except (ExecuteError, OSError) as err:
             message = f'Qemu img extend volume raised exception: {err!s}'

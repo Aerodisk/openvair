@@ -101,7 +101,7 @@ class LocalFSVolume(BaseLocalFSVolume):
                 '-o',
                 f'preallocation={preallocation}',
                 str(volume_path),
-                self.size,
+                str(self.size),
                 params=ExecuteParams(  # noqa: S604
                     run_as_root=self._execute_as_root,
                     shell=True,
@@ -159,7 +159,7 @@ class LocalFSVolume(BaseLocalFSVolume):
                 'qemu-img',
                 'resize',
                 str(volume_path),
-                new_size,
+                str(new_size),
                 params=ExecuteParams(  # noqa: S604
                     run_as_root=self._execute_as_root,
                     shell=True,
