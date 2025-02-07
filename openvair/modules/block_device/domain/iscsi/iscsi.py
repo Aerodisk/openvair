@@ -17,7 +17,9 @@ Classes:
 from typing import Any, Dict
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.block_device.domain.base import BaseISCSI
 from openvair.modules.block_device.domain.exceptions import (
     ISCSILoginError,
@@ -57,15 +59,22 @@ class ISCSIInterface(BaseISCSI):
             ISCSIGetIQNException: If an error occurs while retrieving the IQN.
         """
         LOG.info('Start getting the IQN of the host initiator.')
-        command = 'sudo cat /etc/iscsi/initiatorname.iscsi'
-        result, error = execute(command)
-
-        if error:
-            message = f'Error while getting host iqn: {error}'
+        command = 'cat /etc/iscsi/initiatorname.iscsi'
+        try:
+            exec_res = execute(
+                command,
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=True,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except ExecuteError as err:
+            message = f'Error while getting host iqn: {err}'
             LOG.error(message)
             raise ISCSIGetIQNException(message)
 
-        iqn = self._get_iqn_from_string(result)
+        iqn = self._get_iqn_from_string(exec_res.stdout)
         LOG.info(f'Got the IQN of the host initiator: {iqn}')
         return iqn
 
@@ -80,15 +89,22 @@ class ISCSIInterface(BaseISCSI):
                 process.
         """
         LOG.info(f'Start to discover iSCSI target IQN on the IP: {self.ip}')
-        command = f'sudo iscsiadm -m discovery -t st -p {self.ip}:{self.port}'
-        result, error = execute(command)
-
-        if error:
-            message = f'Error while discovering ISCSI target IQN: {error}'
+        command = f'iscsiadm -m discovery -t st -p {self.ip}:{self.port}'
+        try:
+            exec_res = execute(
+                command,
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=True,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except ExecuteError as err:
+            message = f'Error while discovering ISCSI target IQN: {err}'
             LOG.error(message)
             raise ISCSIDiscoveryError(message)
 
-        discovered_iqn = self._get_discovered_iqn(result)
+        discovered_iqn = self._get_discovered_iqn(exec_res.stdout)
         LOG.info(f'Discovered ISCSI target IQN: {discovered_iqn}')
         return discovered_iqn
 
@@ -104,13 +120,20 @@ class ISCSIInterface(BaseISCSI):
         LOG.info(f'Start to login to the iSCSI target: {self.ip}')
         discovered_iqn = self.discovery()
         command = (
-            f'sudo iscsiadm -m node -T {discovered_iqn} -p'
+            f'iscsiadm -m node -T {discovered_iqn} -p'
             f' {self.ip}:{self.port} --login'
         )
-        _, error = execute(command)
-
-        if error:
-            message = f'Failed to login: {error}'
+        try:
+            execute(
+                command,
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=True,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except ExecuteError as err:
+            message = f'Failed to login: {err}'
             LOG.error(message)
             raise ISCSILoginError(message)
 
@@ -129,13 +152,20 @@ class ISCSIInterface(BaseISCSI):
         LOG.info(f'Start to logging out from the ISCSI target: {self.ip}')
         discovered_iqn = self.discovery()
         command = (
-            f'sudo iscsiadm -m node -T {discovered_iqn} -p'
+            f'iscsiadm -m node -T {discovered_iqn} -p'
             f' {self.ip}:{self.port} --logout'
         )
-        _, error = execute(command)
-
-        if error:
-            message = f'Failed to logout: {error}'
+        try:
+            execute(
+                command,
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=True,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except ExecuteError as err:
+            message = f'Failed to logout: {err}'
             LOG.error(message)
             raise ISCSILogoutError(message)
 

@@ -15,8 +15,6 @@ Classes:
         devices.
 """
 
-from typing import Any
-
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import lip_scan as utils_lip_scan
 from openvair.modules.block_device.domain.base import BaseFibreChannel
@@ -35,7 +33,7 @@ class FibreChannelInterface(BaseFibreChannel):
     adapters.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self) -> None:
         """Initialize a FibreChannelInterface object.
 
         Args:
@@ -44,7 +42,7 @@ class FibreChannelInterface(BaseFibreChannel):
             **kwargs: Keyword arguments passed to the `BaseFibreChannel`
                 constructor.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     def lip_scan(self) -> str:
         """Perform a LIP (Loop Initialization Procedure) scan.
