@@ -54,8 +54,7 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_all()
             ]
-            validate_objects(web_events, schemas.Event)
-            return web_events
+            return validate_objects(web_events, schemas.Event)
 
     def get_all_events_by_module(self) -> List:
         """Retrieve all events by module from the database.

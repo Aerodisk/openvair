@@ -45,6 +45,7 @@ from typing import (
     Any,
     Dict,
     List,
+    Type,
     Tuple,
     Union,
     Optional,
@@ -58,7 +59,7 @@ import jwt
 import yaml
 import xmltodict
 from fastapi import Depends, HTTPException, security
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from sqlalchemy.exc import OperationalError
 
 from openvair import config
@@ -544,62 +545,108 @@ def get_size(file_path: str) -> int:
     return Path(file_path).stat().st_size
 
 
-def validate_objects(  # noqa: C901, PLR0912 because need to check the need for this function as a whole
-    objects: List,
-    pydantic_schema: type,
-    skip_corrupted_object: bool = True,  # noqa: FBT001, FBT002 because need to check the need for this function as a whole
-) -> List:
-    """Validates a list of objects against a Pydantic schema.
+def _create_corrupted_data(
+    pydantic_schema: Type[BaseModel],
+    _object: Dict[str, Any],
+) -> Dict[str, Any]:
+    corrupted_data: Dict[str, Any] = {}
+    for (
+        field_name,
+        field_info,
+    ) in pydantic_schema.model_fields.items():
+        if field_name == 'id':
+            corrupted_data[field_name] = _object.get('id')
+        elif field_name == 'status':
+            corrupted_data[field_name] = 'corrupted object'
+        else:
+            adapter: TypeAdapter[Any] = TypeAdapter(field_info.annotation)
+            try:
+                corrupted_data[field_name] = adapter.validate_python(
+                    None, strict=False
+                )
+            except ValidationError:
+                corrupted_data[field_name] = None
+    return corrupted_data
+
+
+def validate_objects(
+    objects: List[Dict[str, Any]],
+    pydantic_schema: Type[BaseModel],
+    *,
+    skip_corrupted_object: bool = True,
+) -> List[BaseModel]:
+    """Validates a list of objects against a Pydantic schema
+
+    Ensures that all returned objects are valid instances of the schema.
+
+    This function processes a list of dictionary-based objects, attempting to
+    validate each object against the provided Pydantic schema. If an object
+    fails validation, it can either be replaced with a "corrupted object"
+    (containing default values that satisfy the schema) or raise an exception,
+    depending on the `skip_corrupted_object` parameter.
+
+    The function guarantees that all returned objects conform to the schema,
+    making it suitable for use in scenarios where subsequent processing (e.g.,
+    API responses in FastAPI) requires fully valid Pydantic models.
 
     Args:
-        objects (List): The list of objects to validate.
-        pydantic_schema (type): The Pydantic schema to validate against.
-        skip_corrupted_object (bool): Whether to skip corrupted objects.
+        objects (List[Dict[str, Any]]):
+            A list of dictionaries representing objects to be validated.
+        pydantic_schema (Type[BaseModel]):
+            The Pydantic schema against which each object will be validated.
+        skip_corrupted_object (bool, optional):
+            If True (default), objects that fail validation are replaced with
+            a "corrupted object" containing default values.
+            If False, the function raises a `ValidationError` upon encountering
+            an invalid object.
 
     Returns:
-        List: A list of validated objects.
+        List[BaseModel]:
+            A list of validated Pydantic objects, where all elements conform
+            to the specified schema. If `skip_corrupted_object=True`,
+            invalid objects are replaced with valid "corrupted" versions.
 
     Raises:
-        TypeError, ValueError, AssertionError: If validation fails and
-            `skip_corrupted_object` is False.
-    """
-    result = []
+        ValidationError:
+            If `skip_corrupted_object=False` and an object fails validation,
+            an exception is raised instead of replacing it.
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> from typing import List
+        >>> class UserModel(BaseModel):
+        ...     id: int
+        ...     name: str
+        ...     status: str = 'active'
+        >>> objects = [
+        ...     {'id': 1, 'name': 'Alice'},
+        ...     {'id': 2, 'name': 123},  # Invalid: name should be str
+        ...     {'id': '3'},  # Missing name (required field)
+        ... ]
+        >>> valid_users = validate_objects(objects, UserModel)
+        >>> for user in valid_users:
+        ...     print(user)
+        UserModel(id=1, name='Alice', status='active')
+        UserModel(id=2, name='', status='corrupted object') # Replaced invalid entry
+        UserModel(id=3, name='', status='corrupted object') # Replaced invalid entry
+
+    """  # noqa: E501
+    result: List[BaseModel] = []
     for _object in objects:
         try:
-            result.append(pydantic_schema(**_object))
-        except (TypeError, ValueError, AssertionError) as err:
+            validated_object = pydantic_schema.model_validate(_object)
+            result.append(validated_object)
+        except ValidationError as err:
             message = (
-                f'Catch error: {err.__class__.__name__}\n {err!s}\n while '
-                f'validating object: {_object} with '
-                f'pydantic schema: {pydantic_schema.__class__.__name__}.'
+                f'Validation error: {err}\nWhile validating object: {_object} '
+                f'with schema: {pydantic_schema.__name__}'
             )
+            LOG.warning(message)
             if skip_corrupted_object:
-                LOG.warning(message)
-                data_for_pydantic = {}
-                for key, field in pydantic_schema.__fields__.items():  # type: ignore
-                    if key == 'id':
-                        data_for_pydantic.update({key: _object.get('id')})
-                        continue
-                    elif key == 'status':  # noqa: RET507 because need to check the need for this function as a whole
-                        data_for_pydantic.update({key: 'corrupted object'})
-                        continue
-
-                    if isinstance(field.type_, type):
-                        value: Any
-                        if issubclass(field.type_, str):
-                            value = ''
-                        elif issubclass(field.type_, int):
-                            value = 0
-                        elif issubclass(field.type_, dict):
-                            value = {}
-                        elif issubclass(field.type_, list):
-                            value = []
-                        elif issubclass(field.type_, BaseModel):
-                            value = field.type_(**_object.get(key))
-                        else:
-                            value = None
-                        data_for_pydantic.update({key: value})
-                result.append(pydantic_schema(**data_for_pydantic))
+                corrupted_object: BaseModel = pydantic_schema.model_construct(
+                    **_create_corrupted_data(pydantic_schema, _object)
+                )
+                result.append(corrupted_object)
             else:
                 LOG.error(message)
                 raise
@@ -713,6 +760,7 @@ def xml_to_jsonable(xml_string: str) -> Union[Dict, List]:
     # Парсим XML и убираем префиксы
     parsed_dict = xmltodict.parse(xml_string)
     return remove_prefix(parsed_dict)
+
 
 @contextmanager
 def change_directory(
