@@ -121,6 +121,20 @@ class ResticSnapshot(BaseModel):
         extra = 'ignore'
 
 
+class ResticDeleteResult(BaseModel):
+    """Schema for restic snapshot deletion results.
+
+    This schema represents the result of a snapshot deletion operation
+    performed using Restic.
+
+    Attributes:
+        message (str): A message describing the outcome of the deletion
+            operation, including stdout and stderr details.
+    """
+
+    message: str
+
+
 class ResticBackuperData(BaseModel):
     """Schema for Restic backuper configuration data.
 
