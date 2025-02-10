@@ -81,12 +81,13 @@ class NfsImage(BaseRemoteFSImage):
             Dict: A dictionary containing the image's attributes.
         """
         LOG.info('Deleting NFSImage...')
-        image_path = f'{self.path}/image-{self.id}'
+        image_path = Path(self.path, f'image-{self.id}')
+
         try:
             execute(
                 'rm',
                 '-f',
-                image_path,
+                str(image_path),
                 params=ExecuteParams(
                     run_as_root=self._execute_as_root,
                     raise_on_error=True
