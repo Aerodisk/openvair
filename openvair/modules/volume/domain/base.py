@@ -15,7 +15,9 @@ from typing import Any, Dict, cast
 from pathlib import Path
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams, ExecutionResult
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.volume.domain.exceptions import (
     VolumeDoesNotExistOnStorage,
 )
@@ -102,29 +104,33 @@ class BaseVolume(metaclass=abc.ABCMeta):
         Raises:
             json.JSONDecodeError: If the `qemu-img` output is not valid JSON.
         """
-        output, err = execute(
-            'qemu-img',
-            'info',
-            '--output=json',
-            f'{self.path}/volume-{self.id}',
-            timeout=1,
-        )
-
-        write_lock_warning_pattern = re.compile(
-            r'Failed to get shared "write" lock'
-        )
-
-        if err:
+        volume_path = Path(self.path, f'volume-{self.id}')
+        try:
+            exec_result: ExecutionResult  = execute(
+                'qemu-img',
+                'info',
+                '--output=json',
+                str(volume_path),
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    raise_on_error=True,
+                    timeout=1,
+                )
+            )
+        except (ExecuteError, OSError) as err:
+            write_lock_warning_pattern = re.compile(
+                r'Failed to get shared "write" lock'
+            )
             if write_lock_warning_pattern.search(err):
                 LOG.warning(err)
             else:
-                LOG.error(err)
+                LOG.error(f'Error executing `qemu-img info`: {err}')
             return {}
 
         try:
-            return cast(Dict, json.loads(output))
-        except json.JSONDecodeError as e:
-            LOG.error(f'Failed to parse JSON output: {e}')
+            return cast(Dict, json.loads(exec_result.stdout))
+        except json.JSONDecodeError as err:
+            LOG.error(f'Failed to parse JSON output: {err}')
             return {}
 
 
