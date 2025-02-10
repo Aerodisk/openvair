@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code with full history
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Add remotes
         run: |
@@ -20,8 +22,8 @@ jobs:
           git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@git.aerodisk.ru/openvair/openvair.git
           git remote add gitverse https://Aerodisk:${{ secrets.GITVERSE_TOKEN }}@gitverse.ru/Aerodisk/openvair.git
 
-      # - name: Fetch full history
-      #   run: git fetch --all
+      - name: Fetch all branches
+        run: git fetch --unshallow --tags || git fetch --all
 
       - name: Force push to GitFlic
         run: |
