@@ -121,7 +121,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
             write_lock_warning_pattern = re.compile(
                 r'Failed to get shared "write" lock'
             )
-            if write_lock_warning_pattern.search(err):
+            if write_lock_warning_pattern.search(str(err)):
                 LOG.warning(err)
             else:
                 LOG.error(f'Error executing `qemu-img info`: {err}')
