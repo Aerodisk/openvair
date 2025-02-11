@@ -155,7 +155,7 @@ class InterfacesFromSystem(list):
             ),
         )
         duplex = exec_res.stdout
-        return duplex[0].strip() if duplex[0] else None
+        return duplex.strip() if duplex else None
 
     @staticmethod
     def _get_speed_by_name(interface_name: str) -> Optional[str]:
@@ -168,7 +168,7 @@ class InterfacesFromSystem(list):
             ),
         )
         speed = exec_res.stdout
-        return speed[0].strip() if speed[0] else None
+        return speed.strip() if speed else None
 
     @staticmethod
     def _get_slot_port_by_name(interface_name: str) -> Optional[str]:
@@ -195,8 +195,8 @@ class InterfacesFromSystem(list):
             ),
         )
         result = exec_res.stdout
-        if result[0]:
-            slot_port_match = re.search(r'=(.+)', result[0])
+        if result:
+            slot_port_match = re.search(r'=(.+)', result)
             if slot_port_match:
                 return slot_port_match.group(1)
 
@@ -223,7 +223,7 @@ class InterfacesFromSystem(list):
                 shell=True,
             ),
         )
-        result = exec_res.stdout[0]
+        result = exec_res.stdout
         return re.findall(r'/net/(.+)(?:\s|$)', result)
 
     def get_all(self) -> List:  # noqa: D102
