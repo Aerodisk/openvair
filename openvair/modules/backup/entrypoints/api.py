@@ -1,14 +1,15 @@
 """Module providing API endpoints for managing backups.
 
 This module defines a FastAPI router with endpoints for managing backups,
-including creating backups, restoring data, retrieving snapshots, and
-initializing backup repositories.
+including creating backups, restoring data, retrieving snapshots, deleting
+snapshots, and initializing backup repositories.
 
 Endpoints:
     - GET `/backup/`: Retrieve a list of backup snapshots.
     - POST `/backup/`: Create a new backup.
     - POST `/backup/restore`: Restore data from a specific snapshot.
     - POST `/backup/repository`: Initialize a backup repository.
+    - DELETE `/backup/{snapshot_id}`: Delete a specific backup snapshot.
 """
 
 from typing import List
@@ -22,6 +23,7 @@ from openvair.modules.tools.utils import get_current_user
 from openvair.modules.backup.schemas import (
     ResticSnapshot,
     ResticBackupResult,
+    ResticDeleteResult,
     ResticRestoreResult,
 )
 from openvair.modules.backup.entrypoints.crud import BackupCrud
@@ -149,3 +151,34 @@ async def init_repository(
     await run_in_threadpool(crud.initialize_backup_repository)
     LOG.info('API: Repository successfull inited')
     return BaseResponse(status='success')
+
+
+@router.delete(
+    '/{snapshot_id}',
+    dependencies=[Depends(get_current_user)],
+    response_model=BaseResponse[ResticDeleteResult],
+)
+async def delete_backup(
+    snapshot_id: str,
+    crud: BackupCrud = Depends(BackupCrud),
+) -> BaseResponse[ResticDeleteResult]:
+    """Delete a specific backup snapshot.
+
+    This endpoint removes a backup snapshot by calling the `BackupCrud`.
+
+    Args:
+        snapshot_id (str): ID of the snapshot to delete.
+        crud (BackupCrud): Dependency injection of the `BackupCrud`.
+
+    Dependencies:
+        - User authentication via `get_current_user`.
+
+    Returns:
+        BaseResponse[ResticDeleteResult]: A response containing the result
+            of the deletion operation.
+    """
+    LOG.info(f'API: Start deleting snapshot: {snapshot_id}')
+    result = await run_in_threadpool(crud.delete_snapshot, snapshot_id)
+    LOG.info(f'API: Snapshot {snapshot_id} successfully deleted')
+    LOG.info(result.message)
+    return BaseResponse(status='success', data=result)

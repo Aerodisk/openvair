@@ -8,7 +8,7 @@ Classes:
 """
 
 import json
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -49,6 +49,7 @@ class ResticAdapter:
     BACKUP_SUBCOMMAND = 'backup --skip-if-unchanged'
     RESTORE_SUBCOMMAND = 'restore --target'
     SNAPSHOTS_SUBCOMMAND = 'snapshots'
+    FORGET_SUBCOMMAND = 'forget --prune'
 
     def __init__(self, restic_dir: Path, restic_pass: str) -> None:
         """Initialize a ResticAdapter instance.
@@ -75,7 +76,6 @@ class ResticAdapter:
             self._check_result(
                 self.INIT_SUBCOMMAND,
                 result,
-                ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
             actual_error = ResticInitRepoError(f'{err!s}')
@@ -119,7 +119,6 @@ class ResticAdapter:
             self._check_result(
                 self.BACKUP_SUBCOMMAND,
                 result,
-                ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
             actual_error = ResticBackupError(f'{err!s}')
@@ -156,7 +155,6 @@ class ResticAdapter:
         self._check_result(
             self.SNAPSHOTS_SUBCOMMAND,
             result,
-            ReturnCode.from_code(result.returncode),
         )
 
         snapshots_info: List[Dict[str, Union[str, int]]] = json.loads(
@@ -198,7 +196,6 @@ class ResticAdapter:
             self._check_result(
                 self.BACKUP_SUBCOMMAND,
                 result,
-                ReturnCode.from_code(result.returncode),
             )
         except ResticError as err:
             actual_error = ResticRestoreError(f'{err!s}')
@@ -208,23 +205,61 @@ class ResticAdapter:
         restore_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
         return restore_info
 
+    def forget(self, snapshot_id: str) -> Dict[str, Union[str, int]]:
+        """Remove a specific snapshot from the restic repository.
+
+        This method executes the `forget --prune` command to delete a given
+        snapshot from the repository, ensuring that the storage space is
+        reclaimed.
+
+        Args:
+            snapshot_id (str): ID of the snapshot to be removed.
+
+        Returns:
+            Dict[str, Union[str, int]]: A dictionary containing a message with
+                the results of the deletion operation.
+
+        Raises:
+            ResticRestoreError: If the snapshot deletion operation fails.
+        """
+        result = self.executor.execute(
+            f'{self.FORGET_SUBCOMMAND} {snapshot_id}'
+        )
+        try:
+            self._check_result(
+                self.BACKUP_SUBCOMMAND,
+                result,
+            )
+        except ResticError as err:
+            actual_error = ResticRestoreError(f'{err!s}')
+            LOG.error(actual_error)
+            raise actual_error from err
+
+        forget_info: Dict[str, Union[str, int]] = {
+            'message': (
+                f'results of deleting snapshot {snapshot_id}:\n'
+                f'stdout: "{result.stdout}"'
+                f'\nstderr: "{result.stderr}"'
+            )
+        }
+        return forget_info
+
     def _check_result(
         self,
         operation: str,
         result: ExecutionResult,
-        return_code: Optional[ReturnCode],
     ) -> None:
         """Checks the result of a restic command and validates its success.
 
         Args:
             operation (str): The operation being performed (e.g., "backup").
             result (ExecutionResult): The result of the executed command.
-            return_code (Optional[ReturnCode]): The return code of the command.
 
         Raises:
             ResticError: If the command result is unsuccessful or the return
                 code indicates failure.
         """
+        return_code = ReturnCode.from_code(result.returncode)
         if return_code is None or return_code != ReturnCode.SUCCESS:
             description = (
                 return_code.description if return_code else 'Unknown exit code'

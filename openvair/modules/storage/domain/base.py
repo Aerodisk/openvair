@@ -18,7 +18,9 @@ from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.storage.config import STORAGE_DATA
 from openvair.modules.storage.domain.utils import PartedParser
 from openvair.modules.storage.adapters.parted import PartedAdapter
@@ -213,8 +215,14 @@ class RemoteFSStorage(BaseStorage):
         Raises:
             Exception: If the package is not installed.
         """
-        out, err = execute(package, run_as_root=False)
-        if not out:
+        exec_res = execute(
+            package,
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=False,
+            ),
+        )
+        if not exec_res.stdout:
             raise PackageIsNotInstalled(package)
 
 
@@ -349,17 +357,21 @@ class LocalFSStorage(BaseStorage):
             Exception: If the package is not installed.
         """
         try:
-            out, err = execute(
+            exec_res = execute(
                 'dpkg',
                 '-l',
                 '|',
                 'grep',
                 package,
-                run_as_root=False,
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=False,
+                    raise_on_error=True,
+                ),
             )
-            if not out:
+            if not exec_res.stdout:
                 raise PackageIsNotInstalled(package)
-        except OSError as _:
+        except (ExecuteError, OSError) as _:
             ...
 
     def formatting(self) -> None:

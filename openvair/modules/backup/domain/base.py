@@ -71,3 +71,22 @@ class FSBackuper(BaseBackuper):
                 represented as a dictionary.
         """
         ...
+
+    @abstractmethod
+    def delete_snapshot(
+        self, data: Dict[str, str]
+    ) -> Dict[str, Union[str, int, None]]:
+        """Delete a specific snapshot.
+
+        This abstract method should be implemented by subclasses to remove
+        a snapshot from the backup repository.
+
+        Args:
+            data (Dict[str, str]): A dictionary containing the snapshot ID
+                to be deleted.
+
+        Returns:
+            Dict[str, Union[str, int, None]]: A dictionary containing the result
+                of the deletion operation.
+        """
+        ...

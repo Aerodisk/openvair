@@ -69,8 +69,7 @@ class VMCrud:
             data_for_method={},
         )
         LOG.debug('Response from service layer: %s.', result)
-        vms: List = validate_objects(result, schemas.VirtualMachineInfo)
-        return vms
+        return validate_objects(result, schemas.VirtualMachineInfo)
 
     def create_vm(self, data: Dict, user_info: Dict) -> Dict:
         """Create a new virtual machine.
