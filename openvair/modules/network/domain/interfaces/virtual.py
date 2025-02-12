@@ -48,7 +48,7 @@ class VirtualInterface(BaseInterface):
             ),
         )
         LOG.info(
-            f'Domain layer successfully enabled physical interface {self.name}'
+            f'Domain layer successfully enabled virtual interface {self.name}'
         )
 
     def disable(self) -> None:
