@@ -5,12 +5,10 @@ OpenVair application, including command execution, token generation, validation,
 and disk information retrieval.
 
 Functions:
-    execute: Runs a shell command and returns the output.
     create_access_token: Creates a JWT access token.
     create_refresh_token: Creates a JWT refresh token.
     create_tokens: Generates both access and refresh tokens.
     get_current_user: Retrieves the user from a JWT token.
-    is_superuser: Validates if the current user is a superuser.
     get_block_devices_info: Retrieves information about block devices.
     get_system_disks: Retrieves information about local disks.
     is_system_disk: Checks if a disk is a system disk.
@@ -25,28 +23,16 @@ Functions:
     read_yaml_file: Reads data from a YAML file.
     synchronized_session: Context manager for safely executing database
         session operations.
-
-Classes:
-    UnknownArgumentError: Raised when an unknown argument is passed to a
-        function.
-    NoRootWrapSpecifiedError: Raised when a command requests root but no
-        root helper is specified.
-    ExecuteTimeoutExpiredError: Raised when a command execution reaches
-        its timeout.
-    ExecuteError: General exception for command execution errors.
 """
 
 import os
 import json
-import shlex
-import subprocess
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
     List,
     Type,
-    Tuple,
     Union,
     Optional,
     Generator,
@@ -64,6 +50,9 @@ from sqlalchemy.exc import OperationalError
 
 from openvair import config
 from openvair.libs.log import get_logger
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -121,124 +110,6 @@ SYSTEM_MOUNTPOINTS = [
     '/var/tmp',  # noqa: S108 because its system directory
     '/var/www',
 ]
-
-
-class UnknownArgumentError(Exception):
-    """Raised when an unknown argument is passed to a function."""
-
-    def __init__(self, message: Optional[str] = None):
-        """Initialize the UnknownArgumentError.
-
-        Args:
-            message (Optional[str]): An optional error message to provide
-                context for the exception.
-        """
-        super(UnknownArgumentError, self).__init__(message)
-
-
-class NoRootWrapSpecifiedError(Exception):
-    """Raised when a command requests root but no root helper is specified."""
-
-    def __init__(self, message: Optional[str] = None):
-        """Initialize the NoRootWrapSpecifiedError.
-
-        Args:
-            message (Optional[str]): An optional error message to provide
-                context for the exception.
-        """
-        super(NoRootWrapSpecifiedError, self).__init__(message)
-
-
-class ExecuteTimeoutExpiredError(Exception):
-    """Raised when a command execution reaches its timeout."""
-
-    def __init__(self, message: Optional[str] = None):
-        """Initialize the ExecuteTimeoutExpiredError.
-
-        Args:
-            message (Optional[str]): An optional error message to provide
-                context for the exception.
-        """
-        super(ExecuteTimeoutExpiredError, self).__init__(message)
-
-
-class ExecuteError(Exception):
-    """General exception for command execution errors."""
-
-    def __init__(self, message: Optional[str] = None):
-        """Initialize the ExecuteError.
-
-        Args:
-            message (Optional[str]): An optional error message to provide
-                context for the exception.
-        """
-        super(ExecuteError, self).__init__(message)
-
-
-def execute(*cmd: str, **kwargs: Any) -> Tuple[str, str]:  # noqa: C901 ANN401 need refact this method TODO need to parameterize the arguments correctly, in accordance with static typing
-    """Runs a shell command and returns the output.
-
-    Args:
-        *cmd: Command and arguments to run.
-        kwargs: Additional options for command execution, such as shell,
-            run_as_root, root_helper, and timeout.
-
-    Returns:
-        Tuple[str, str]: A tuple containing the stdout and stderr output.
-
-    Raises:
-        UnknownArgumentError: If unknown keyword arguments are passed.
-        NoRootWrapSpecifiedError: If run_as_root is True and no root helper is
-            specified.
-        ExecuteTimeoutExpiredError: If the command execution reaches its
-            timeout.
-        OSError: If an OS-level error occurs during command execution.
-    """
-    shell = kwargs.pop('shell', True)
-    run_as_root = kwargs.pop('run_as_root', False)
-    root_helper = kwargs.pop('root_helper', 'sudo')
-    timeout = kwargs.pop('timeout', None)
-    if kwargs:
-        raise UnknownArgumentError('Got unknown keyword args: %r' % kwargs)
-
-    if run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
-        if not root_helper:
-            msg = 'Command requested root, but did not specify a root helper.'
-            raise NoRootWrapSpecifiedError(msg)
-        if shell:
-            cmd = [' '.join((root_helper, cmd[0]))] + list(cmd[1:])  # type: ignore # noqa: RUF005 need refact this method
-        else:
-            cmd = [shlex.split(root_helper) + list(cmd)]  # type: ignore
-    cmd = ' '.join(map(str, cmd))  # type: ignore
-    try:
-        LOG.info('Running cmd (subprocess): %s' % cmd)
-        _pipe = subprocess.PIPE
-
-        proc = subprocess.Popen(  # noqa: S603 need refact this method
-            cmd,
-            shell=shell,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-        )
-        try:
-            result = proc.communicate(timeout=timeout)
-            proc.stdin.close()  # type: ignore
-            LOG.info('CMD "%s" returned: %s', cmd, proc.returncode)
-            if result is not None:
-                (stdout, stderr) = result
-                stdout = os.fsdecode(stdout)  # type: ignore
-                stderr = os.fsdecode(stderr)  # type: ignore
-                return stdout, stderr  # type: ignore
-        except subprocess.TimeoutExpired as _:
-            LOG.info('CMD "%s" reached timeout', cmd)
-            raise ExecuteTimeoutExpiredError
-        else:
-            return result
-    except OSError as err:
-        message = 'Got an OSError\ncommand: %(cmd)r\nerrno: %(errno)r'
-        LOG.info(message, {'cmd': cmd, 'errno': err.errno})
-        raise
 
 
 def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
@@ -368,23 +239,6 @@ def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
         return payload
 
 
-def is_superuser(user: Dict = Depends(get_current_user)) -> Dict:
-    """Checks if the current user is a superuser.
-
-    Args:
-        user (Dict): The user object retrieved from the JWT token.
-
-    Returns:
-        Dict: The user object if the user is a superuser.
-
-    Raises:
-        HTTPException: If the user is not a superuser.
-    """
-    if not user.get('is_superuser'):
-        raise HTTPException(status_code=403, detail='Not enough permissions')
-    return user
-
-
 def get_block_devices_info() -> List[Dict[str, str]]:
     """Retrieves information about block devices on the system.
 
@@ -394,10 +248,21 @@ def get_block_devices_info() -> List[Dict[str, str]]:
         List[Dict[str, str]]: A dictionary containing information about block
             devices.
     """
-    res, _ = execute(
-        'lsblk', '-bp', '-io', 'NAME,SIZE,TYPE,MOUNTPOINT,UUID,FSTYPE', '--json'
+    exec_result = execute(
+        'lsblk',
+        '-bp',
+        '-io',
+        'NAME,SIZE,TYPE,MOUNTPOINT,UUID,FSTYPE',
+        '--json',
+        params=ExecuteParams(  # noqa: S604
+            shell=True,
+            run_as_root=True,
+            raise_on_error=True,
+        ),
     )
-    result: List[Dict[str, str]] = json.loads(res)['blockdevices']
+    result: List[Dict[str, str]] = json.loads(exec_result.stdout)[
+        'blockdevices'
+    ]
     return result
 
 
@@ -520,17 +385,16 @@ def lip_scan() -> None:
     try:
         # Execute the command to issue LIP scan for all Fibre Channel
         # host adapters
-        execute(  # noqa: S604 need refact ececute
-            'for i in /sys/class/fc_host/*; do sudo sh -c "echo 1 > $i/issue_lip"; done',  # noqa: E501 because need one line command for better readability
-            shell=True,
-            run_as_root=True,
+        execute(
+            'for i in /sys/class/fc_host/*; do sudo sh -c "echo 1 > $i/issue_lip"; done',  # noqa: E501 because need one line command for better readability            params=ExecuteParams(shell=True, run_as_root=True),  # noqa: S604
         )
-    except OSError as e:
+    except (OSError, ExecuteError) as e:
         # Handle any errors accessing or writing to the file
         msg = (
             f'Error accessing or writing to /sys/class/fc_host/*/issue_lip: {e}'
         )
-        raise OSError(msg)
+        LOG.error(msg)
+        raise
 
 
 def get_size(file_path: str) -> int:
@@ -661,9 +525,13 @@ def get_virsh_list() -> Dict:
     Returns:
         Dict: A dictionary containing the names and power states of running VMs.
     """
-    res, _ = execute('virsh', 'list')
+    exec_res = execute(
+        'virsh',
+        'list',
+        params=ExecuteParams(shell=True, run_as_root=True, raise_on_error=True),  # noqa: S604
+    )
     vms = {}
-    rows = res.split('\n')[2:-2]
+    rows = exec_res.stdout.split('\n')[2:-2]
     for row in rows:
         _, vm_name, power_state = row.split()
         vms.update({vm_name: power_state})
