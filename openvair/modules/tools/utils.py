@@ -386,7 +386,12 @@ def lip_scan() -> None:
         # Execute the command to issue LIP scan for all Fibre Channel
         # host adapters
         execute(
-            'for i in /sys/class/fc_host/*; do sudo sh -c "echo 1 > $i/issue_lip"; done',  # noqa: E501 because need one line command for better readability            params=ExecuteParams(shell=True, run_as_root=True),  # noqa: S604
+            'for i in /sys/class/fc_host/*; do sudo sh -c "echo 1 > $i/issue_lip"; done',  # noqa: E501 because need one line command for better readability
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+                raise_on_error=True,
+            ),
         )
     except (OSError, ExecuteError) as e:
         # Handle any errors accessing or writing to the file
