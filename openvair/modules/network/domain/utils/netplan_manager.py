@@ -17,6 +17,8 @@ import yaml
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools import utils
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.modules.network.config import NETPLAN_DIR
 from openvair.modules.tools.jinja_tools import yaml_collector
 from openvair.modules.network.domain.exceptions import (
@@ -51,7 +53,12 @@ class NetplanManager:
     @staticmethod
     def apply() -> None:
         """Apply the current Netplan configuration."""
-        utils.execute('netplan apply', run_as_root=True)
+        execute(
+            'netplan apply',
+            params=ExecuteParams(  # noqa: S604
+                shell=True, run_as_root=True, raise_on_error=True
+            ),
+        )
 
     def create_ovs_bridge_yaml_file(self, data: Dict) -> None:
         """Create a YAML configuration file for an OVS bridge.
