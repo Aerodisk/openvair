@@ -389,7 +389,7 @@ def lip_scan() -> None:
                 raise_on_error=True,
             ),
         )
-    except (OSError, ExecuteError) as e:
+    except (ExecuteError, OSError) as e:
         # Handle any errors accessing or writing to the file
         msg = (
             f'Error accessing or writing to /sys/class/fc_host/*/issue_lip: {e}'
