@@ -21,7 +21,7 @@ from xml.etree import ElementTree
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.libvirt_utils import LibvirtConnection
+from openvair.libs.libvirt.connection import LibvirtConnection
 from openvair.modules.virtual_machines.config import TEMPLATES_PATH
 from openvair.modules.virtual_machines.domain.exceptions import (
     GraphicPortNotFoundInXmlException,

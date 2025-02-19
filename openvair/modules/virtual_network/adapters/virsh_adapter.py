@@ -12,7 +12,7 @@ from typing import List, Optional, cast
 from libvirt import libvirtError
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.libvirt_utils import LibvirtConnection
+from openvair.libs.libvirt.connection import LibvirtConnection
 
 LOG = get_logger(__name__)
 
