@@ -248,7 +248,7 @@ def get_block_devices_info() -> List[Dict[str, str]]:
         List[Dict[str, str]]: A dictionary containing information about block
             devices.
     """
-    exec_result = execute(
+    res = execute(
         'lsblk',
         '-bp',
         '-io',
@@ -256,13 +256,9 @@ def get_block_devices_info() -> List[Dict[str, str]]:
         '--json',
         params=ExecuteParams(  # noqa: S604
             shell=True,
-            run_as_root=True,
-            raise_on_error=True,
-        ),
+        )
     )
-    result: List[Dict[str, str]] = json.loads(exec_result.stdout)[
-        'blockdevices'
-    ]
+    result: List[Dict[str, str]] = json.loads(res.stdout)['blockdevices']
     return result
 
 
@@ -530,13 +526,16 @@ def get_virsh_list() -> Dict:
     Returns:
         Dict: A dictionary containing the names and power states of running VMs.
     """
-    exec_res = execute(
+    res = execute(
         'virsh',
         'list',
-        params=ExecuteParams(shell=True, run_as_root=True, raise_on_error=True),  # noqa: S604
+        params=ExecuteParams(  # noqa: S604
+            shell=True,
+            run_as_root=True,
+        )
     )
     vms = {}
-    rows = exec_res.stdout.split('\n')[2:-2]
+    rows = res.stdout.split('\n')[2:-2]
     for row in rows:
         _, vm_name, power_state = row.split()
         vms.update({vm_name: power_state})
