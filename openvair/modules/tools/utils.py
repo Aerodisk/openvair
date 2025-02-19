@@ -440,6 +440,7 @@ def lip_scan() -> None:
             params=ExecuteParams(  # noqa: S604
                 shell=True,
                 run_as_root=True,
+                raise_on_error=True,
             )
         )
     except (ExecuteError, OSError) as e:
@@ -582,7 +583,8 @@ def get_virsh_list() -> Dict:
         'virsh',
         'list',
         params=ExecuteParams(  # noqa: S604
-            shell=True
+            shell=True,
+            run_as_root=True,
         )
     )
     vms = {}
