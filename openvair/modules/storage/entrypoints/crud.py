@@ -12,8 +12,8 @@ Classes:
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import validate_objects
 from openvair.modules.storage.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.validation.validators import validate_objects
 from openvair.modules.storage.entrypoints import schemas
 from openvair.modules.storage.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient

@@ -12,7 +12,7 @@ Classes:
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import validate_objects
+from openvair.libs.validation.validators import validate_objects
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.config import (
     API_SERVICE_LAYER_QUEUE_NAME,

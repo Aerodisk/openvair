@@ -24,8 +24,9 @@ from fastapi import Path, Depends, APIRouter, status
 from fastapi.security import HTTPBearer
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
 from openvair.modules.user.entrypoints import schemas
+from openvair.libs.validation.validators import regex_matcher
 from openvair.modules.user.entrypoints.crud import UserCrud
 
 LOG = get_logger(__name__)

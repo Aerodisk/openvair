@@ -40,7 +40,8 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
+from openvair.libs.validation.validators import regex_matcher
 from openvair.modules.virtual_network.entrypoints import schemas
 from openvair.modules.virtual_network.entrypoints.crud import VirtualNetworkCrud
 

@@ -26,7 +26,8 @@ from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
+from openvair.libs.validation.validators import regex_matcher
 from openvair.modules.storage.entrypoints import schemas
 from openvair.modules.storage.entrypoints.crud import StorageCrud
 

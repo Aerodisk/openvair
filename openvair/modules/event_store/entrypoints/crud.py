@@ -15,7 +15,7 @@ from typing import List
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import validate_objects
+from openvair.libs.validation.validators import validate_objects
 from openvair.modules.event_store.entrypoints import schemas, unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 

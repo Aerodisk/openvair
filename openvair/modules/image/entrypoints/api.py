@@ -36,9 +36,10 @@ from starlette.concurrency import run_in_threadpool
 
 from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
 from openvair.modules.image.config import CHUNK_SIZE
 from openvair.modules.image.entrypoints import schemas, exceptions
+from openvair.libs.validation.validators import regex_matcher
 from openvair.modules.image.entrypoints.crud import ImageCrud
 
 LOG = get_logger(__name__)
