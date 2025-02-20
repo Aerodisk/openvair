@@ -96,32 +96,6 @@ def uuid_validate(value: str) -> str:
     return str(value)
 
 
-def path_validate(value: str) -> str:
-    """Validates a file path string.
-
-    Ensures that the path length is within the allowed range.
-
-    Args:
-        value (str): The file path to validate.
-
-    Returns:
-        str: The validated file path.
-
-    Raises:
-        ValueError: If the path length is not within the allowed range.
-    """
-    min_path_length = 1
-    max_path_length = 256
-    if max_path_length < len(value) or len(value) < min_path_length:
-        msg = (
-            'Length of path must be bigger or equal '
-            f'{min_path_length} and must be lower then '
-            f'{max_path_length}.'
-        )
-        raise ValueError(msg)
-    return value
-
-
 def special_characters_validate(value: str) -> str:
     """Ensures a string does not contain special characters.
 

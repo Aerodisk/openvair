@@ -12,12 +12,12 @@ from typing import List, Optional, cast
 from libvirt import libvirtError
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.libvirt_utils import LibvirtConnection
+from openvair.libs.libvirt.connection import LibvirtConnection
 
 LOG = get_logger(__name__)
 
 
-class VirshNetworkAdapter:
+class LibvirtNetworkAdapter:
     """Adapter class for interacting with virtual networks using virsh utility.
 
     Attributes:
@@ -303,8 +303,3 @@ class VirshNetworkAdapter:
 
             LOG.info('Bridge name retrieved')
             return bridge_name
-
-
-if __name__ == '__main__':
-    v = VirshNetworkAdapter()
-    s = v.get_virt_network_names()
