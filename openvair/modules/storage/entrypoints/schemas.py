@@ -24,7 +24,7 @@ from typing import List, Union, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from openvair.modules.tools import validators
+from openvair.libs.validation import validators
 
 
 class NfsStorageExtraSpecsCreate(BaseModel):

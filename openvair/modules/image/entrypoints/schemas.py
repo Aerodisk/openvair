@@ -20,7 +20,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
 
-from openvair.modules.tools import validators
+from openvair.libs.validation import validators
 
 
 class Attachment(BaseModel):

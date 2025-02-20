@@ -18,7 +18,7 @@ from typing import List, Literal, Optional
 
 from pydantic import Field, BaseModel, field_validator
 
-from openvair.modules.tools import validators
+from openvair.libs.validation import validators
 
 
 class Attachment(BaseModel):

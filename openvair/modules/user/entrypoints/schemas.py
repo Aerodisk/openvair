@@ -19,7 +19,7 @@ from typing import List, Optional
 
 from pydantic import EmailStr, BaseModel, ConfigDict, field_validator
 
-from openvair.modules.tools.validators import uuid_validate
+from openvair.libs.validation.validators import uuid_validate
 
 
 class BaseUser(BaseModel):
