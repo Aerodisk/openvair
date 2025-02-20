@@ -12,9 +12,7 @@ Classes:
 import abc
 from typing import Any, Dict, List
 
-from openvair.modules.virtual_network.adapters.virsh_adapter import (
-    VirshNetworkAdapter,
-)
+from openvair.libs.libvirt.network import LibvirtNetworkAdapter
 
 
 class BasePortGroup(metaclass=abc.ABCMeta):
@@ -92,7 +90,7 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
             kwargs.pop('port_groups', [])
         )
         self.virsh_xml = str(kwargs.pop('virsh_xml', ''))
-        self.virsh = VirshNetworkAdapter()
+        self.virsh = LibvirtNetworkAdapter()
 
     @abc.abstractmethod
     def add_port_group(self, port_group: Dict) -> Dict[str, Any]:

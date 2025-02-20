@@ -19,6 +19,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import xml_to_jsonable
+from openvair.libs.libvirt.network import LibvirtNetworkAdapter
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.virtual_network.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
@@ -34,9 +35,6 @@ from openvair.modules.virtual_network.adapters.orm import (
 )
 from openvair.modules.virtual_network.service_layer import unit_of_work
 from openvair.modules.virtual_network.adapters.serializer import DataSerializer
-from openvair.modules.virtual_network.adapters.virsh_adapter import (
-    VirshNetworkAdapter,
-)
 from openvair.modules.virtual_network.service_layer.exceptions import (
     PortGroupException,
     VirtualNetworkAlreadyExist,
@@ -77,7 +75,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         )
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
         self.event_store = EventCrud('virtual_networks')
-        self.virsh_net_adapter = VirshNetworkAdapter()
+        self.virsh_net_adapter = LibvirtNetworkAdapter()
 
     def get_all_virtual_networks(self) -> Dict:
         """Retrieve all virtual networks from the database.
