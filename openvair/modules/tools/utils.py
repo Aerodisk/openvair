@@ -535,7 +535,7 @@ def get_virsh_list() -> Dict:
         )
     )
     vms = {}
-    rows = res.stdout.split('\n')[2:-2]
+    rows = res.stdout.split('\n')[2:]
     for row in rows:
         _, vm_name, power_state = row.split()
         vms.update({vm_name: power_state})
