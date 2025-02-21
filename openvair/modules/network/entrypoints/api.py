@@ -14,21 +14,20 @@ Routes:
     - PUT /interfaces/{name}/turn_off: Turn off a specific interface.
 """
 
+from uuid import UUID
 from typing import Dict, List, cast
 
-from fastapi import Path, Query, Depends, APIRouter, status
+from fastapi import Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import get_current_user
-from openvair.libs.validation.validators import regex_matcher
 from openvair.modules.network.entrypoints import schemas
 from openvair.modules.network.entrypoints.crud import InterfaceCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/interfaces',
@@ -106,11 +105,7 @@ async def get_bridges_list(
     dependencies=[Depends(get_current_user)],
 )
 async def get_interface(
-    iface_id: str = Path(
-        ...,
-        description='Interface ID (UUID4)',
-        regex=UUID_REGEX,
-    ),
+    iface_id: UUID,
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> schemas.Interface:
     """API endpoint for retrieving current network interface data.
