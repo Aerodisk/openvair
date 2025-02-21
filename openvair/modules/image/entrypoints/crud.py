@@ -9,6 +9,7 @@ Classes:
     ImageCrud: Class for handling image-related CRUD operations.
 """
 
+from uuid import UUID
 from typing import Dict, List, Optional, cast
 
 from openvair.libs.log import get_logger
@@ -70,7 +71,7 @@ class ImageCrud:
             LOG.error(message)
             raise NotSupportedExtensionError(message)
 
-    def get_image(self, image_id: str) -> Dict:
+    def get_image(self, image_id: UUID) -> Dict:
         """Retrieve metadata of a specific image by its ID.
 
         This method sends a request to the service layer to fetch metadata
@@ -85,12 +86,12 @@ class ImageCrud:
         LOG.info('Call service layer on get image.')
         result: Dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.get_image.__name__,
-            data_for_method={'image_id': image_id},
+            data_for_method={'image_id': str(image_id)},
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_all_images(self, storage_id: Optional[str]) -> List:
+    def get_all_images(self, storage_id: Optional[UUID]) -> List:
         """Retrieve a list of all images, optionally filtered by storage ID.
 
         This method sends a request to the service layer to fetch a list
@@ -107,7 +108,9 @@ class ImageCrud:
             List,
             self.service_layer_rpc.call(
                 services.ImageServiceLayerManager.get_all_images.__name__,
-                data_for_method={'storage_id': storage_id},
+                data_for_method={
+                    'storage_id': str(storage_id) if storage_id else None
+                },
             ),
         )
         LOG.debug('Response from service layer: %s.' % result)
@@ -116,7 +119,7 @@ class ImageCrud:
     def upload_image(
         self,
         name: str,
-        storage_id: str,
+        storage_id: UUID,
         description: str,
         user_info: Dict,
     ) -> Dict:
@@ -145,7 +148,7 @@ class ImageCrud:
             services.ImageServiceLayerManager.upload_image.__name__,
             data_for_method={
                 'name': name,
-                'storage_id': storage_id,
+                'storage_id': str(storage_id),
                 'description': description,
                 'user_info': user_info,
             },
@@ -155,7 +158,7 @@ class ImageCrud:
 
     def delete_image(
         self,
-        image_id: str,
+        image_id: UUID,
         user_info: Dict,
     ) -> Dict:
         """Delete an image by its ID.
@@ -174,14 +177,14 @@ class ImageCrud:
         LOG.info('Call service layer on delete image.')
         result: Dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.delete_image.__name__,
-            data_for_method={'image_id': image_id, 'user_info': user_info},
+            data_for_method={'image_id': str(image_id), 'user_info': user_info},
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
     def attach_image(
         self,
-        image_id: str,
+        image_id: UUID,
         data: Dict,
         user_info: Dict,
     ) -> Dict:
@@ -199,7 +202,7 @@ class ImageCrud:
             Dict: Response from the service layer indicating the result of the
                 attachment.
         """
-        data.update({'image_id': image_id, 'user_info': user_info})
+        data.update({'image_id': str(image_id), 'user_info': user_info})
         LOG.info('Call service layer on attach image.')
         result: Dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.attach_image.__name__,
@@ -210,7 +213,7 @@ class ImageCrud:
 
     def detach_image(
         self,
-        image_id: str,
+        image_id: UUID,
         detach_info: Dict,
         user_info: Dict,
     ) -> Dict:
@@ -229,7 +232,7 @@ class ImageCrud:
                 detachment.
         """
         LOG.info('Call service layer on attach image.')
-        detach_info.update({'image_id': image_id, 'user_info': user_info})
+        detach_info.update({'image_id': str(image_id), 'user_info': user_info})
         result: Dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.detach_image.__name__,
             data_for_method=detach_info,
