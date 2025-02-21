@@ -9,6 +9,7 @@ Classes:
         and partitions.
 """
 
+from uuid import UUID
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
@@ -34,7 +35,7 @@ class StorageCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_storage(self, storage_id: str) -> Dict:
+    def get_storage(self, storage_id: UUID) -> Dict:
         """Retrieve a storage by its ID.
 
         Args:
@@ -46,7 +47,7 @@ class StorageCrud:
         LOG.info('Call service layer on getting storage.')
         result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.get_storage.__name__,
-            data_for_method={'storage_id': storage_id},
+            data_for_method={'storage_id': str(storage_id)},
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
@@ -85,7 +86,7 @@ class StorageCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def delete_storage(self, storage_id: str, user_data: Dict) -> Dict:
+    def delete_storage(self, storage_id: UUID, user_data: Dict) -> Dict:
         """Delete a storage by its ID.
 
         Args:
@@ -98,7 +99,10 @@ class StorageCrud:
         LOG.info('Call service layer on delete storage.')
         result: Dict = self.service_layer_rpc.call(
             services.StorageServiceLayerManager.delete_storage.__name__,
-            data_for_method={'storage_id': storage_id, 'user_data': user_data},
+            data_for_method={
+                'storage_id': str(storage_id),
+                'user_data': user_data,
+            },
             priority=8,
         )
         LOG.debug('Response from service layer: %s.' % result)

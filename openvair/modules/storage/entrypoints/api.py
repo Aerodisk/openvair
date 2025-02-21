@@ -18,21 +18,20 @@ Entrypoints:
     DELETE /storages/{storage_id}/delete/ - Delete a storage by its ID.
 """
 
+from uuid import UUID
 from typing import Dict, Optional, cast
 
-from fastapi import Path, Depends, APIRouter, status
+from fastapi import Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import get_current_user
-from openvair.libs.validation.validators import regex_matcher
 from openvair.modules.storage.entrypoints import schemas
 from openvair.modules.storage.entrypoints.crud import StorageCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/storages',
@@ -192,7 +191,7 @@ async def delete_local_partition(
     dependencies=[Depends(get_current_user)],
 )
 async def get_storage(
-    storage_id: str = Path(..., description='Storage id', regex=UUID_REGEX),
+    storage_id: UUID,
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.Storage:
     """It gets a storage by id
@@ -246,7 +245,7 @@ async def create_storage(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def delete_storage(
-    storage_id: str = Path(..., description='Storage id', regex=UUID_REGEX),
+    storage_id: UUID,
     user_data: Dict = Depends(get_current_user),
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.Storage:
