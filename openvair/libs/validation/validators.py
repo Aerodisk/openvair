@@ -244,20 +244,3 @@ def validate_objects(
                 LOG.error(message)
                 raise
     return result
-
-
-def regex_matcher(value: str) -> str:
-    """Returns regex patterns for various types of values.
-
-    Args:
-        value (str): The type of value to match (e.g., 'mac_address', 'uuid4').
-
-    Returns:
-        str: The regex pattern for the specified value type.
-    """
-    regex_dict = {
-        'mac_address': r'^([0-9A-F]{2}:){5}[0-9A-F]{2}',
-        'uuid4': r'[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$',  # noqa: E501 because its regex pattern
-        'special_characters': r'(?=.*[ -\/:-@\[-\`{-~]{1,})',
-    }
-    return regex_dict[value]
