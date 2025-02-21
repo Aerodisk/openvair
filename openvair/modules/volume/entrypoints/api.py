@@ -19,22 +19,21 @@ Endpoints:
         machine.
 """
 
+from uuid import UUID
 from typing import Dict, Optional, cast
 
-from fastapi import Path, Query, Depends, APIRouter, status
+from fastapi import Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import get_current_user
-from openvair.libs.validation.validators import regex_matcher, validate_objects
+from openvair.libs.validation.validators import validate_objects
 from openvair.modules.volume.entrypoints import schemas
 from openvair.modules.volume.entrypoints.crud import VolumeCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
-
 router = APIRouter(
     prefix='/volumes',
     tags=['volume'],
@@ -49,9 +48,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volumes(
-    storage_id: Optional[str] = Query(
-        default=None, description='Storage id (UUID4)', regex=UUID_REGEX
-    ),
+    storage_id: Optional[UUID],
     *,
     free_volumes: bool = Query(
         default=False,
@@ -87,9 +84,7 @@ async def get_volumes(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volume(
-    volume_id: str = Path(
-        ..., description='Volume id (UUID4)', regex=UUID_REGEX
-    ),
+    volume_id: UUID,
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Retrieve a specific volume by its ID.
@@ -141,9 +136,7 @@ async def create_volume(
     dependencies=[Depends(get_current_user)],
 )
 async def delete_volume(
-    volume_id: str = Path(
-        ..., description='Volume id (UUID4)', regex=UUID_REGEX
-    ),
+    volume_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
@@ -170,9 +163,7 @@ async def delete_volume(
 )
 async def extend_volume(
     data: schemas.ExtendVolume,
-    volume_id: str = Path(
-        ..., description='Volume id (UUID4)', regex=UUID_REGEX
-    ),
+    volume_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
@@ -189,7 +180,7 @@ async def extend_volume(
     """
     LOG.info('Api handle response on extend volume: %s' % volume_id)
     volume = await run_in_threadpool(
-        crud.extend_volume, volume_id, data.dict(), user_info
+        crud.extend_volume, volume_id, data.model_dump(), user_info
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(volume)
@@ -202,9 +193,7 @@ async def extend_volume(
 )
 async def edit_volume(
     data: schemas.EditVolume,
-    volume_id: str = Path(
-        ..., description='Volume id (UUID4)', regex=UUID_REGEX
-    ),
+    volume_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
@@ -224,7 +213,7 @@ async def edit_volume(
         data.dict(),
     )
     volume = await run_in_threadpool(
-        crud.edit_volume, volume_id, data.dict(), user_info
+        crud.edit_volume, volume_id, data.model_dump(), user_info
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(volume)
@@ -237,9 +226,7 @@ async def edit_volume(
 )
 async def attach_volume(
     data: schemas.AttachVolume,
-    volume_id: str = Path(
-        ..., description='Volume id (UUID4)', regex=UUID_REGEX
-    ),
+    volume_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
@@ -259,7 +246,7 @@ async def attach_volume(
         data.dict(),
     )
     attached_volume = await run_in_threadpool(
-        crud.attach_volume, volume_id, data.dict(), user_info
+        crud.attach_volume, volume_id, data.model_dump(), user_info
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(attached_volume)
@@ -272,9 +259,7 @@ async def attach_volume(
 )
 async def detach_volume(
     detach_info: schemas.DetachVolume,
-    volume_id: str = Path(
-        ..., description='Volume id (UUID4)', regex=UUID_REGEX
-    ),
+    volume_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
@@ -293,7 +278,7 @@ async def detach_volume(
         'Api handle response on detach ' 'volume: %s with data:' % volume_id
     )
     detached_volume = await run_in_threadpool(
-        crud.detach_volume, volume_id, detach_info.dict(), user_info
+        crud.detach_volume, volume_id, detach_info.model_dump(), user_info
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(detached_volume)
