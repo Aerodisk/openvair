@@ -29,7 +29,7 @@ from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.modules.tools.utils import get_current_user
-from openvair.libs.validation.validators import validate_objects
+from openvair.libs.validation.validators import Validator
 from openvair.modules.volume.entrypoints import schemas
 from openvair.modules.volume.entrypoints.crud import VolumeCrud
 
@@ -71,7 +71,7 @@ async def get_volumes(
     result = await run_in_threadpool(
         crud.get_all_volumes, storage_id, free_volumes=free_volumes
     )
-    volumes = validate_objects(result, schemas.Volume)
+    volumes = Validator.validate_objects(result, schemas.Volume)
 
     LOG.info('Api request was successfully processed.')
     return cast(Page, paginate(volumes))

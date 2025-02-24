@@ -18,9 +18,9 @@ Classes:
 from uuid import UUID
 from typing import List, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import Field, BaseModel, field_validator
 
-from openvair.libs.validation import validators
+from openvair.libs.validation.validators import Validator
 
 
 class Attachment(BaseModel):
@@ -91,16 +91,11 @@ class AttachImage(BaseModel):
     """
 
     vm_id: UUID
-    target: Optional[str] = None
+    target: Optional[str] = Field(default=None, min_length=1)
 
-    @field_validator('target')
-    @classmethod
-    def path_validator(cls, value: str) -> str:  # noqa: D102
-        if len(value) < 1:
-            message = 'Length of target must be bigger then 0.'
-            raise ValueError(message)
-        validators.special_characters_path_validate(value)
-        return value
+    validate_target = field_validator('target')(
+        Validator.special_characters_validate
+    )
 
 
 class DetachImage(BaseModel):

@@ -18,7 +18,7 @@ from openvair.modules.image.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
 )
 from openvair.modules.image.entrypoints import schemas
-from openvair.libs.validation.validators import validate_objects
+from openvair.libs.validation.validators import Validator
 from openvair.modules.image.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.image.entrypoints.exceptions import (
@@ -114,7 +114,7 @@ class ImageCrud:
             ),
         )
         LOG.debug('Response from service layer: %s.' % result)
-        return validate_objects(result, schemas.Image)
+        return Validator.validate_objects(result, schemas.Image)
 
     def upload_image(
         self,

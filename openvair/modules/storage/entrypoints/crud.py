@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.storage.config import API_SERVICE_LAYER_QUEUE_NAME
-from openvair.libs.validation.validators import validate_objects
+from openvair.libs.validation.validators import Validator
 from openvair.modules.storage.entrypoints import schemas
 from openvair.modules.storage.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -64,7 +64,7 @@ class StorageCrud:
             data_for_method={},
         )
         LOG.debug('Response from service layer: %s.' % result)
-        return validate_objects(result, schemas.Storage)
+        return Validator.validate_objects(result, schemas.Storage)
 
     def create_storage(self, data: Dict, user_data: Dict) -> Dict:
         """Create a new storage.
@@ -128,7 +128,7 @@ class StorageCrud:
             },
         )
         LOG.debug('Response from service layer: %s.' % result)
-        local_disks = validate_objects(result, schemas.LocalDisk)
+        local_disks = Validator.validate_objects(result, schemas.LocalDisk)
         return schemas.ListOfLocalDisks.model_validate({'disks': local_disks})
 
     def create_local_partition(self, data: Dict, user_data: Dict) -> Dict:

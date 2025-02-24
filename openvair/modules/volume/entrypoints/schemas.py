@@ -19,7 +19,7 @@ from typing import List, Literal, Optional
 
 from pydantic import Field, BaseModel, field_validator
 
-from openvair.libs.validation import validators
+from openvair.libs.validation.validators import Validator
 
 
 class Attachment(BaseModel):
@@ -82,34 +82,19 @@ class CreateVolume(BaseModel):
         read_only (Optional[bool]): Whether the volume is read-only.
     """
 
-    name: str
-    description: str
+    name: str = Field(min_length=1, max_length=40)
+    description: str = Field(max_length=255)
     storage_id: UUID
     format: Literal['qcow2', 'raw']
     size: int = Field(0, ge=1)
     read_only: Optional[bool] = False
 
-    @field_validator('name')
-    @classmethod
-    def name_validator(cls, value: str) -> str:
-        """Validate the name field."""
-        min_length = 1
-        max_length = 40
-        if len(value) < min_length or len(value) > max_length:
-            msg = "Length of name mustn't be 0 and " 'must be lower then 40.'
-            raise ValueError(msg)
-        validators.special_characters_validate(value)
-        return value
-
-    @field_validator('description')
-    @classmethod
-    def description_validator(cls, value: str) -> str:
-        """Validate the description field."""
-        max_length = 255
-        if len(value) > max_length:
-            msg = 'Length of description must be lower then 255.'
-            raise ValueError(msg)
-        return value
+    validate_name = field_validator('name')(
+        Validator.special_characters_validate
+    )
+    validate_description = field_validator('description')(
+        Validator.special_characters_validate
+    )
 
 
 class ExtendVolume(BaseModel):
@@ -131,31 +116,17 @@ class EditVolume(BaseModel):
         read_only (Optional[bool]): Whether the volume is read-only.
     """
 
-    name: str
-    description: str
+    name: str = Field(min_length=1, max_length=40)
+    description: str = Field(max_length=255)
     read_only: Optional[bool] = False
 
-    @field_validator('name')
-    @classmethod
-    def name_validator(cls, value: str) -> str:
-        """Validate the name field."""
-        min_length = 1
-        max_length = 40
-        if len(value) < min_length or len(value) > max_length:
-            msg = "Length of name mustn't be 0 and " 'must be lower then 40.'
-            raise ValueError(msg)
-        validators.special_characters_validate(value)
-        return value
+    validate_name = field_validator('name')(
+        Validator.special_characters_validate
+    )
 
-    @field_validator('description')
-    @classmethod
-    def description_validator(cls, value: str) -> str:
-        """Validate the description field."""
-        max_length = 255
-        if len(value) > max_length:
-            msg = 'Length of description must be lower then 255.'
-            raise ValueError(msg)
-        return value
+    validate_description = field_validator('description')(
+        Validator.special_characters_validate
+    )
 
 
 class AttachVolume(BaseModel):
@@ -167,17 +138,11 @@ class AttachVolume(BaseModel):
     """
 
     vm_id: UUID
-    target: Optional[str] = None
+    target: Optional[str] = Field(default=None, min_length=1)
 
-    @field_validator('target')
-    @classmethod
-    def path_validator(cls, value: str) -> str:
-        """Validate the target path field."""
-        if len(value) < 1:
-            msg = 'Length of target must be bigger then 0.'
-            raise ValueError(msg)
-        validators.special_characters_path_validate(value)
-        return value
+    validate_target = field_validator('target')(
+        Validator.special_characters_validate
+    )
 
 
 class DetachVolume(BaseModel):
