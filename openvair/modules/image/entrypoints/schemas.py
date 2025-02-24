@@ -32,13 +32,13 @@ class Attachment(BaseModel):
 
     Attributes:
         id (int): The ID of the attachment.
-        vm_id (str): The ID of the virtual machine to which the image is
+        vm_id (UUID): The ID of the virtual machine to which the image is
             attached.
         target (Optional[str]): The target path for the attachment.
     """
 
     id: int
-    vm_id: str
+    vm_id: UUID
     target: Optional[str] = None
 
 
@@ -80,7 +80,7 @@ class AttachImage(BaseModel):
     including the VM ID and an optional target path.
 
     Attributes:
-        vm_id (str): The ID of the virtual machine to which the image will be
+        vm_id (UUID): The ID of the virtual machine to which the image will be
             attached.
         target (Optional[str]): The optional target path for the attachment.
 
@@ -90,13 +90,8 @@ class AttachImage(BaseModel):
         conditions (e.g., length, special character validation).
     """
 
-    vm_id: str
+    vm_id: UUID
     target: Optional[str] = None
-
-    @field_validator('vm_id', mode='before')
-    @classmethod
-    def _normalize_id(cls, value: str) -> str:
-        return validators.uuid_validate(value)
 
     @field_validator('target')
     @classmethod
@@ -114,19 +109,14 @@ class DetachImage(BaseModel):
     This schema validates the data provided for detaching an image from a VM.
 
     Attributes:
-        vm_id (str): The ID of the virtual machine from which the image will be
+        vm_id (UUID): The ID of the virtual machine from which the image will be
             detached.
 
     Methods:
         _normalize_id: Validates and normalizes the VM ID.
     """
 
-    vm_id: str
-
-    @field_validator('vm_id', mode='before')
-    @classmethod
-    def _normalize_id(cls, value: str) -> str:
-        return validators.uuid_validate(value)
+    vm_id: UUID
 
 
 class AttachImageInfo(BaseModel):
