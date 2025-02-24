@@ -16,6 +16,7 @@ Classes:
 
 from uuid import UUID
 from typing import List, Literal, Optional
+from pathlib import Path
 
 from pydantic import Field, BaseModel, field_validator
 
@@ -33,7 +34,7 @@ class Attachment(BaseModel):
 
     id: int
     vm_id: UUID
-    target: Optional[str] = None
+    target: Optional[Path] = None
 
 
 class Volume(BaseModel):
@@ -138,7 +139,7 @@ class AttachVolume(BaseModel):
     """
 
     vm_id: UUID
-    target: Optional[str] = Field(default=None, min_length=1)
+    target: Optional[Path] = Field(default=None, min_length=1)
 
     validate_target = field_validator('target')(
         Validator.special_characters_validate
@@ -164,6 +165,6 @@ class AttachVolumeInfo(BaseModel):
         provisioning (str): The provisioning method of the volume.
     """
 
-    path: Optional[str] = None
+    path: Optional[Path] = None
     size: int
     provisioning: str

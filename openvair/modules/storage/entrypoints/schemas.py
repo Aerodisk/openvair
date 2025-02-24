@@ -205,5 +205,5 @@ class DeleteLocalPartition(BaseModel):
     """
 
     storage_type: Literal['local_partition']
-    local_disk_path: str
+    local_disk_path: Path
     partition_number: str
