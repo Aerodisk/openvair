@@ -48,7 +48,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volumes(
-    storage_id: Optional[UUID],
+    storage_id: Optional[UUID] = Query(None, description='Storage ID'),
     *,
     free_volumes: bool = Query(
         default=False,
@@ -210,7 +210,7 @@ async def edit_volume(
     """
     LOG.info(
         'Api handle response on edit volume: %s with data:' % volume_id,
-        data.dict(),
+        data.model_dump(),
     )
     volume = await run_in_threadpool(
         crud.edit_volume, volume_id, data.model_dump(), user_info
