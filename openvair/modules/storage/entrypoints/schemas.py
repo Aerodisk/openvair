@@ -47,7 +47,7 @@ class NfsStorageExtraSpecsCreate(BaseModel):
     mount_version: Literal['3', '4'] = '4'
 
     validate_path = field_validator('path', mode='before')(
-        Validator.special_characters_validate
+        lambda v: Validator.special_characters_validate(v, allow_slash=True)
     )
 
 
@@ -73,7 +73,7 @@ class LocalFSStorageExtraSpecsCreate(BaseModel):
     fs_type: Literal['xfs', 'ext4']
 
     validate_path = field_validator('path', mode='before')(
-        Validator.special_characters_validate
+        lambda v: Validator.special_characters_validate(v, allow_slash=True)
     )
 
 

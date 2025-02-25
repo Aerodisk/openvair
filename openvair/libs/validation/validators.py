@@ -35,7 +35,11 @@ class Validator:
     SPECIAL_CHARACTERS: ClassVar = set('!@#$%^&*()+?=<>/~{}|\'":;')
 
     @staticmethod
-    def special_characters_validate(value: str) -> str:
+    def special_characters_validate(
+        value: str,
+        *,
+        allow_slash: bool = False,
+    ) -> str:
         """Check if the input string contains any special characters.
 
         This function scans the input string and raises a `ValueError` if any
@@ -43,14 +47,18 @@ class Validator:
 
         Args:
             value (str): The string to be validated.
-
+            allow_slash (bool): Paramether for exclude slash character for
+                validate path
         Returns:
             str: The original string if no special characters are present.
 
         Raises:
             ValueError: If the input contains any special characters.
         """
-        if any(c in Validator.SPECIAL_CHARACTERS for c in value):
+        forbidden_chars = Validator.SPECIAL_CHARACTERS
+        if allow_slash:
+            forbidden_chars = forbidden_chars - {'/'}
+        if any(c in forbidden_chars for c in value):
             msg = 'There should be no special characters.'
             raise ValueError(msg)
         return value

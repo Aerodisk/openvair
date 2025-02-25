@@ -142,7 +142,7 @@ class AttachVolume(BaseModel):
     target: Optional[Path] = Field(default=None, min_length=1)
 
     validate_target = field_validator('target')(
-        Validator.special_characters_validate
+        lambda v: Validator.special_characters_validate(v, allow_slash=True)
     )
 
 
