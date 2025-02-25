@@ -15,7 +15,7 @@ from typing import List
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import validate_objects
+from openvair.libs.validation.validators import Validator
 from openvair.modules.event_store.entrypoints import schemas, unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 
@@ -54,7 +54,7 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_all()
             ]
-            return validate_objects(web_events, schemas.Event)
+            return Validator.validate_objects(web_events, schemas.Event)
 
     def get_all_events_by_module(self) -> List:
         """Retrieve all events by module from the database.
@@ -71,7 +71,7 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_all_by_module(self.module_name)
             ]
-            return validate_objects(web_events, schemas.Event)
+            return Validator.validate_objects(web_events, schemas.Event)
 
     def get_last_events(self, limit: int = 25) -> List:
         """Retrieve the last N events from the database.
@@ -91,7 +91,7 @@ class EventCrud:
                 DataSerializer.to_web(event)
                 for event in self.uow.events.get_last_events(limit)
             ]
-            return validate_objects(web_events, schemas.Event)
+            return Validator.validate_objects(web_events, schemas.Event)
 
     def add_event(
         self,

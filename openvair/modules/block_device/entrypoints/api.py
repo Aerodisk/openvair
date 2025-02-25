@@ -31,12 +31,11 @@ from fastapi import Depends, APIRouter, status
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
 from openvair.modules.block_device.entrypoints import schemas
 from openvair.modules.block_device.entrypoints.crud import InterfaceCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/block-devices',

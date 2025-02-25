@@ -38,7 +38,8 @@ from typing import Dict, List, Optional, cast
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_virsh_list, synchronized_session
+from openvair.libs.libvirt.domain import get_vms_state
+from openvair.modules.tools.utils import synchronized_session
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.virtual_machines import config
 from openvair.libs.messaging.exceptions import (
@@ -1348,7 +1349,7 @@ class VMServiceLayerManager(BackgroundTasks):
         This method runs as a periodic task every 10 seconds.
         """
         LOG.info('Start monitoring.')
-        virsh_list = get_virsh_list()
+        virsh_list = get_vms_state()
         with self.uow:
             with synchronized_session(self.uow.session):
                 for db_vm in self.uow.virtual_machines.get_all():

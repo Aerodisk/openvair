@@ -17,10 +17,11 @@ Classes:
 
 from uuid import UUID
 from typing import List, Optional
+from pathlib import Path
 
-from pydantic import BaseModel, field_validator
+from pydantic import Field, BaseModel, field_validator
 
-from openvair.modules.tools import validators
+from openvair.libs.validation.validators import Validator
 
 
 class Attachment(BaseModel):
@@ -32,14 +33,14 @@ class Attachment(BaseModel):
 
     Attributes:
         id (int): The ID of the attachment.
-        vm_id (str): The ID of the virtual machine to which the image is
+        vm_id (UUID): The ID of the virtual machine to which the image is
             attached.
         target (Optional[str]): The target path for the attachment.
     """
 
     id: int
-    vm_id: str
-    target: Optional[str] = None
+    vm_id: UUID
+    target: Optional[Path] = None
 
 
 class Image(BaseModel):
@@ -64,7 +65,7 @@ class Image(BaseModel):
     id: UUID
     name: str
     size: Optional[int] = None
-    path: str
+    path: Path
     status: str
     information: Optional[str] = None
     description: Optional[str] = None
@@ -80,7 +81,7 @@ class AttachImage(BaseModel):
     including the VM ID and an optional target path.
 
     Attributes:
-        vm_id (str): The ID of the virtual machine to which the image will be
+        vm_id (UUID): The ID of the virtual machine to which the image will be
             attached.
         target (Optional[str]): The optional target path for the attachment.
 
@@ -90,22 +91,12 @@ class AttachImage(BaseModel):
         conditions (e.g., length, special character validation).
     """
 
-    vm_id: str
-    target: Optional[str] = None
+    vm_id: UUID
+    target: Optional[Path] = Field(default=None, min_length=1)
 
-    @field_validator('vm_id', mode='before')
-    @classmethod
-    def _normalize_id(cls, value: str) -> str:
-        return validators.uuid_validate(value)
-
-    @field_validator('target')
-    @classmethod
-    def path_validator(cls, value: str) -> str:  # noqa: D102
-        if len(value) < 1:
-            message = 'Length of target must be bigger then 0.'
-            raise ValueError(message)
-        validators.special_characters_path_validate(value)
-        return value
+    validate_target = field_validator('target')(
+        lambda v: Validator.special_characters_validate(v, allow_slash=True)
+    )
 
 
 class DetachImage(BaseModel):
@@ -114,19 +105,14 @@ class DetachImage(BaseModel):
     This schema validates the data provided for detaching an image from a VM.
 
     Attributes:
-        vm_id (str): The ID of the virtual machine from which the image will be
+        vm_id (UUID): The ID of the virtual machine from which the image will be
             detached.
 
     Methods:
         _normalize_id: Validates and normalizes the VM ID.
     """
 
-    vm_id: str
-
-    @field_validator('vm_id', mode='before')
-    @classmethod
-    def _normalize_id(cls, value: str) -> str:
-        return validators.uuid_validate(value)
+    vm_id: UUID
 
 
 class AttachImageInfo(BaseModel):
@@ -142,6 +128,6 @@ class AttachImageInfo(BaseModel):
         for the attached image.
     """
 
-    path: str
+    path: Path
     size: int
     provisioning: Optional[str] = None

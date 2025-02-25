@@ -9,6 +9,7 @@ Classes:
         operations.
 """
 
+from uuid import UUID
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
@@ -72,7 +73,7 @@ class InterfaceCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_interface(self, iface_id: str) -> Dict:
+    def get_interface(self, iface_id: UUID) -> Dict:
         """Retrieve a specific network interface.
 
         This method calls the service layer to retrieve data for a specific
@@ -87,7 +88,7 @@ class InterfaceCrud:
         LOG.info('Call service layer on getting interface.')
         result: Dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_interface.__name__,
-            data_for_method={'iface_id': iface_id},
+            data_for_method={'iface_id': str(iface_id)},
             priority=8,
         )
         LOG.debug('Response from service layer: %s.' % result)

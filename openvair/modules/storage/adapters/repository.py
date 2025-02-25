@@ -11,6 +11,7 @@ Classes:
 """
 
 import abc
+from uuid import UUID
 from typing import TYPE_CHECKING, Any, List, Union, Optional, cast
 
 from sqlalchemy.exc import OperationalError
@@ -48,7 +49,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         self._add(storage)
 
-    def get(self, storage_id: str) -> Storage:
+    def get(self, storage_id: UUID) -> Storage:
         """Retrieve a storage record by its ID.
 
         Args:
@@ -78,11 +79,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_storage_by_name(storage_name)
 
-    def delete(self, storage_id: str) -> None:
+    def delete(self, storage_id: UUID) -> None:
         """Delete a storage record by its ID.
 
         Args:
-            storage_id (str): The ID of the storage to delete.
+            storage_id (UUID): The ID of the storage to delete.
         """
         return self._delete(storage_id)
 
@@ -107,7 +108,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get(self, storage_id: str) -> Storage:
+    def _get(self, storage_id: UUID) -> Storage:
         """Retrieve a storage record by its ID.
 
         Args:
@@ -149,11 +150,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _delete(self, storage_id: str) -> None:
+    def _delete(self, storage_id: UUID) -> None:
         """Delete a storage record by its ID.
 
         Args:
-            storage_id (str): The ID of the storage to delete.
+            storage_id (UUID): The ID of the storage to delete.
 
         Raises:
             NotImplementedError: If the method is not implemented.
@@ -208,7 +209,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         return self._get_spec_by_key_value(key, value)
 
     def update_spec_by_key_for_storage(
-        self, key: str, value: str, storage_id: str
+        self, key: str, value: str, storage_id: UUID
     ) -> None:
         """Update a storage extra spec by key for a specific storage.
 
@@ -262,7 +263,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _update_spec_by_key_for_storage(
-        self, key: str, value: str, storage_id: str
+        self, key: str, value: str, storage_id: UUID
     ) -> None:
         """Update a storage extra spec by key for a specific storage.
 
@@ -317,11 +318,11 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         self.session.add(storage)
 
-    def _get(self, storage_id: str) -> Storage:
+    def _get(self, storage_id: UUID) -> Storage:
         """Retrieve a storage record by its ID.
 
         Args:
-            storage_id (str): The ID of the storage to retrieve.
+            storage_id (UUID): The ID of the storage to retrieve.
 
         Returns:
             Storage: The retrieved storage record.
@@ -356,7 +357,7 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return self.session.query(Storage).filter_by(name=storage_name).first()
 
-    def _delete(self, storage_id: str) -> None:
+    def _delete(self, storage_id: UUID) -> None:
         """Delete a storage record by its ID.
 
         Args:
@@ -411,14 +412,14 @@ class SqlAlchemyRepository(AbstractRepository):
         )
 
     def _update_spec_by_key_for_storage(
-        self, key: str, value: str, storage_id: str
+        self, key: str, value: str, storage_id: UUID
     ) -> None:
         """Update a storage extra spec by key for a specific storage.
 
         Args:
             key (str): The key of the extra spec to update.
             value (str): The new value for the extra spec.
-            storage_id (str): The ID of the storage to update.
+            storage_id (UUID): The ID of the storage to update.
         """
         (
             self.session.query(StorageExtraSpecs)

@@ -6,7 +6,6 @@ authentication dependencies.
 
 Attributes:
     LOG (Logger): Logger instance for logging events in the module.
-    UUID_REGEX (Pattern): Compiled regex pattern for UUID validation.
     router (APIRouter): FastAPI router for event-related endpoints.
 """
 
@@ -19,12 +18,11 @@ from fastapi.responses import StreamingResponse
 from fastapi_pagination import Page, Params, paginate
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
 from openvair.modules.event_store.entrypoints import schemas
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/event',
