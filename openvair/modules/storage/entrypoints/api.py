@@ -115,7 +115,7 @@ async def create_local_partition(
     """
     LOG.info('Api start create partition on local disk')
     result = await run_in_threadpool(
-        crud.create_local_partition, data.dict(), user_data
+        crud.create_local_partition, data.model_dump(mode='json'), user_data
     )
     LOG.info('Api request was successfully processed.')
     return schemas.LocalDisk(**result)
@@ -178,7 +178,7 @@ async def delete_local_partition(
     """
     LOG.info('Api start delete partition on local disk')
     result = await run_in_threadpool(
-        crud.delete_local_partition, data.dict(), user_data
+        crud.delete_local_partition, data.model_dump(mode='json'), user_data
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(result)
@@ -231,9 +231,12 @@ async def create_storage(
     Returns:
         The storage object is being returned.
     """
-    LOG.info('Api start creating storage with data: %s.' % data.dict())
+    LOG.info(
+        'Api start creating storage with data: %s.'
+        % data.model_dump(mode='json')
+    )
     storage = await run_in_threadpool(
-        crud.create_storage, data.dict(), user_data
+        crud.create_storage, data.model_dump(mode='json'), user_data
     )
     LOG.info('Api request was successfully processed.')
     return schemas.Storage(**storage)

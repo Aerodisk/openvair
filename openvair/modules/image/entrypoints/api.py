@@ -254,7 +254,7 @@ async def attach_image(
     """
     LOG.info('Api handle response on attach image: %s to vm:' % image_id)
     attached_image = await run_in_threadpool(
-        crud.attach_image, image_id, data.model_dump(), user_info
+        crud.attach_image, image_id, data.model_dump(mode='json'), user_info
     )
     LOG.info('Api request was successfully processed.')
     return schemas.AttachImageInfo(**attached_image)
@@ -294,7 +294,10 @@ async def detach_image(
         'image: %s from vm: %s' % (image_id, detach_info)
     )
     detached_image = await run_in_threadpool(
-        crud.detach_image, image_id, detach_info.model_dump(), user_info
+        crud.detach_image,
+        image_id,
+        detach_info.model_dump(mode='json'),
+        user_info,
     )
     LOG.info('Api request was successfully processed.')
     return schemas.Image(**detached_image)

@@ -89,7 +89,9 @@ def create_user(
         schemas.User: The created user's credentials.
     """
     LOG.info('Api start creating user.')
-    user: Dict = crud.create_user(data.model_dump(), user_id, user_data)
+    user: Dict = crud.create_user(
+        data.model_dump(mode='json'), user_id, user_data
+    )
     LOG.info('Api request was successfully processed.')
     return schemas.User(**user)
 
@@ -145,6 +147,6 @@ def change_password(
             password.
     """
     LOG.info('Api start changing user password.')
-    result: Dict = crud.change_password(user_id, data.model_dump())
+    result: Dict = crud.change_password(user_id, data.model_dump(mode='json'))
     LOG.info('Api request was successfully processed.')
     return schemas.User(**result)
