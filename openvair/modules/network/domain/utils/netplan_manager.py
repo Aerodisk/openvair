@@ -18,9 +18,9 @@ import yaml
 from openvair.libs.log import get_logger
 from openvair.modules.tools import utils
 from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.templating import yaml_collector
 from openvair.libs.cli.executor import execute
 from openvair.modules.network.config import NETPLAN_DIR
-from openvair.modules.tools.jinja_tools import yaml_collector
 from openvair.modules.network.domain.exceptions import (
     NetplanFileNotFoundException,
 )
