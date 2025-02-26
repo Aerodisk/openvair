@@ -18,11 +18,13 @@ import yaml
 from openvair.libs.log import get_logger
 from openvair.modules.tools import utils
 from openvair.libs.cli.models import ExecuteParams
-from openvair.libs.templating import yaml_collector
 from openvair.libs.cli.executor import execute
 from openvair.modules.network.config import NETPLAN_DIR
 from openvair.modules.network.domain.exceptions import (
     NetplanFileNotFoundException,
+)
+from openvair.modules.network.libs.template_rendering.network_renderer import (
+    NetworkRenderer,
 )
 
 LOG = get_logger(__name__)
@@ -49,6 +51,7 @@ class NetplanManager:
         self.netplan_dir = Path(NETPLAN_DIR)
         self.bkp_netplan_dir = self.netplan_dir / 'bkp'
         self.bkp_netplan_dir.mkdir(exist_ok=True)
+        self.network_renderer = NetworkRenderer()
 
     @staticmethod
     def apply() -> None:
@@ -69,7 +72,9 @@ class NetplanManager:
         """
         bridge_name = data['name']
         LOG.info(f'Creating config file for bridge: {bridge_name}')
-        bridge_yaml: str = yaml_collector.create_ovs_bridge_netplan_yaml(data)
+        bridge_yaml: str = self.network_renderer.create_ovs_bridge_netplan_yaml(
+            data
+        )
         bridge_data: Dict = yaml.safe_load(bridge_yaml)
 
         bridge_file = self._generate_iface_yaml_path(bridge_name)
@@ -95,11 +100,10 @@ class NetplanManager:
             Path: The path to the newly created configuration file.
         """
         LOG.info(f'Creating config file for main port: {iface_name}')
-        iface_data = {
-            'name': iface_name,
-        }
-        iface_data.update(data) if data else iface_data
-        iface_yaml: str = yaml_collector.create_iface_yaml(iface_data)
+        iface_data = {'name': iface_name}
+        if data:
+            iface_data.update(data)
+        iface_yaml: str = self.network_renderer.create_iface_yaml(iface_data)
 
         iface_file = Path(self._generate_iface_yaml_path(iface_name))
         utils.write_yaml_file(str(iface_file), yaml.safe_load(iface_yaml))
