@@ -27,6 +27,9 @@ from openvair.modules.virtual_machines.domain.exceptions import (
     GraphicPortNotFoundInXmlException,
     GraphicTypeNotFoundInXmlException,
 )
+from openvair.modules.virtual_machines.libs.template_rendering.vm_renderer import (  # noqa: E501
+    VMRenderer,
+)
 
 LOG = get_logger(__name__)
 
@@ -94,6 +97,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             loader=FileSystemLoader(TEMPLATES_PATH),
             autoescape=select_autoescape(['xml']),
         )
+        self.renderer = VMRenderer()
         self.domain_template = self.env.get_template('domain.xml')
         self.connection = LibvirtConnection()
         self.vm_info: Dict = {}
@@ -108,7 +112,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         Returns:
             str: The rendered domain XML as a string.
         """
-        return self.domain_template.render(domain=vm_info)
+        return self.renderer.render_domain(vm_info)
 
     def start(self) -> Dict:
         """Start the virtual machine.
