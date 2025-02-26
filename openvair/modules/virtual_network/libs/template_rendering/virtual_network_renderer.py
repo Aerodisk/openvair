@@ -59,3 +59,16 @@ class VirtualNetworkRenderer(BaseTemplateRenderer):
             f"{raw_data.get('network_name')}"
         )
         return xml_result
+
+    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            'uuid': data.get('id'),
+            'network_name': data.get('network_name'),
+            'forward_mode': data.get('forward_mode'),
+            'bridge_name': data.get('bridge'),
+            'virtual_port_type': data.get('virtual_port_type'),
+            'port_groups': data.get('port_groups', []),
+        }
+
+    def _postprocess_result(self, rendered_str: str) -> str:
+        return rendered_str  # No post-processing needed

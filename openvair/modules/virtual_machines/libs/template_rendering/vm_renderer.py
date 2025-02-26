@@ -45,3 +45,10 @@ class VMRenderer(BaseTemplateRenderer):
             f"Finished rendering domain XML for VM: {raw_data.get('name')}"
         )
         return xml_result
+
+    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return data
+
+    def _postprocess_result(self, rendered_str: str) -> str:
+        return rendered_str
+

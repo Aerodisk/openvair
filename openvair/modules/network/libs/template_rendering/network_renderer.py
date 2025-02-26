@@ -85,3 +85,9 @@ class NetworkRenderer(BaseTemplateRenderer):
             f"Finished rendering interface YAML for: {raw_data.get('name')}"
         )
         return yaml_result
+
+    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return data
+
+    def _postprocess_result(self, rendered_str: str) -> str:
+        return rendered_str
