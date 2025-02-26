@@ -14,7 +14,7 @@ from pathlib import Path
 from jinja2 import Template
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.jinja_tools.config import TEMPLATES_DIR
+from openvair.libs.templating.config import TEMPLATES_DIR
 
 LOG = get_logger(__name__)
 

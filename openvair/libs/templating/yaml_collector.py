@@ -11,7 +11,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from openvair.modules.tools.jinja_tools.config import TEMPLATES_DIR
+from openvair.libs.templating.config import TEMPLATES_DIR
 
 JINJA_ENV = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
