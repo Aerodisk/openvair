@@ -18,11 +18,8 @@ import abc
 from typing import Dict, Optional
 from xml.etree import ElementTree
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.connection import LibvirtConnection
-from openvair.modules.virtual_machines.config import TEMPLATES_PATH
 from openvair.modules.virtual_machines.domain.exceptions import (
     GraphicPortNotFoundInXmlException,
     GraphicTypeNotFoundInXmlException,
@@ -80,8 +77,6 @@ class BaseLibvirtDriver(BaseVMDriver):
     XML templates, and extracting graphics information from domain XML.
 
     Attributes:
-        env (Environment): Jinja2 environment for loading templates.
-        domain_template (Template): Jinja2 template for domain XML.
         connection (LibvirtConnection): Connection to the Libvirt API.
         vm_info (Dict): Dictionary containing the virtual machine
             configuration.
@@ -93,12 +88,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         Sets up the Jinja2 environment for template rendering and
         initializes the connection to Libvirt.
         """
-        self.env = Environment(
-            loader=FileSystemLoader(TEMPLATES_PATH),
-            autoescape=select_autoescape(['xml']),
-        )
         self.renderer = VMRenderer()
-        self.domain_template = self.env.get_template('domain.xml')
         self.connection = LibvirtConnection()
         self.vm_info: Dict = {}
 
@@ -112,7 +102,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         Returns:
             str: The rendered domain XML as a string.
         """
-        return self.renderer.render_domain(vm_info)
+        return self.renderer.render_domain({'domain': vm_info})
 
     def start(self) -> Dict:
         """Start the virtual machine.
