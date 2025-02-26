@@ -1,9 +1,8 @@
 """Virtual Network rendering module.
 
 This module provides classes and functions to generate XML
-configurations related to virtual networks. It includes data validation
-via Pydantic and uses the Template Method approach to keep a consistent
-rendering workflow.
+configurations related to virtual networks. It uses the Template Method
+approach to keep a consistent rendering workflow.
 
 Classes:
     VirtualNetworkRenderer: A renderer specialized for virtual network
@@ -32,10 +31,7 @@ class VirtualNetworkRenderer(BaseTemplateRenderer):
 
     def __init__(self) -> None:
         """Initialize with the virtual network package templates."""
-        super().__init__(
-            package_name='openvair.modules.virtual_network.libs.templating',
-            package_path='templates',
-        )
+        super().__init__(module_path=__file__)
 
     def create_virtual_network_xml(self, raw_data: Dict[str, Any]) -> str:
         """Create an XML configuration for a virtual network.

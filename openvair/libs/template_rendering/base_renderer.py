@@ -8,16 +8,17 @@ steps:
     4) postprocess_result
     5) _log_render_end
 
-Child classes should provide their own package and template directory
-configuration and may override prepare_data or postprocess_result.
+Child classes should provide their own template directory path and
+may override prepare_data or postprocess_result.
 
 Attributes:
     env (Environment): Jinja2 environment used for template rendering.
 """
 
 from typing import Any, Dict
+from pathlib import Path
 
-from jinja2 import Environment, PackageLoader, TemplateNotFound
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
 from openvair.libs.log import get_logger
 
@@ -27,31 +28,32 @@ LOG = get_logger(__name__)
 class BaseTemplateRenderer:
     """Abstract base class for Jinja2 template rendering.
 
-    This class implements a 'Template Method' that defines the following
-    steps:
+    This class implements a 'Template Method' that defines the following steps:
         1) _log_render_start
         2) prepare_data
         3) _render_template
         4) postprocess_result
         5) _log_render_end
 
-    Child classes should provide their own package and template directory
-    configuration and may override prepare_data or postprocess_result.
+    Child classes should define `TEMPLATE_SUBDIR` to specify where templates
+    are located relative to the module.
 
     Attributes:
         env (Environment): Jinja2 environment used for template rendering.
     """
 
-    def __init__(self, package_name: str, package_path: str) -> None:
-        """Initialize the renderer with package and template directory.
+    TEMPLATE_SUBDIR: str = 'templates'
+
+    def __init__(self, module_path: str) -> None:
+        """Initialize the renderer with the computed template directory.
 
         Args:
-            package_name (str): The package containing the templates.
-            package_path (str): The subdirectory in the package where
-                templates are located.
+            module_path (str): The `__file__` path of the module using this
+                renderer.
         """
+        template_dir = Path(module_path).parent / self.TEMPLATE_SUBDIR
         self.env = Environment(
-            loader=PackageLoader(package_name, package_path),
+            loader=FileSystemLoader(template_dir),
             autoescape=True,
             trim_blocks=True,
             lstrip_blocks=True,
@@ -59,13 +61,6 @@ class BaseTemplateRenderer:
 
     def render(self, template_name: str, data: Dict[str, Any]) -> str:
         """Render the given template with the provided data.
-
-        This method calls self.render following these steps:
-            1) _log_render_start
-            2) prepare_data
-            3) _render_template
-            4) postprocess_result
-            5) _log_render_end
 
         Args:
             template_name (str): Name of the Jinja2 template file.

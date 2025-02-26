@@ -1,8 +1,8 @@
 """Network rendering module.
 
 This module provides classes and functions to generate YAML configurations
-for network components. It uses the Template Method approach with Jinja2 and
-PackageLoader to render templates.
+for network components. It uses the Template Method approach with Jinja2
+and dynamically resolves template paths.
 
 Classes:
     NetworkRenderer: A renderer specialized for network YAML configurations.
@@ -23,9 +23,9 @@ class NetworkRenderer(BaseTemplateRenderer):
     pattern.
 
     Attributes:
-        OVS_YAML_TEMPLATE (str): Filename for the OVS bridge netplan YAML
+        OVS_YAML_TEMPLATE (str): Filename for the OVS bridge Netplan YAML
             template.
-        PORT_YAML_TEMPLATE (str): Filename for the interface (port) netplan YAML
+        PORT_YAML_TEMPLATE (str): Filename for the interface (port) Netplan YAML
             template.
     """
 
@@ -34,10 +34,7 @@ class NetworkRenderer(BaseTemplateRenderer):
 
     def __init__(self) -> None:
         """Initialize with the network package templates."""
-        super().__init__(
-            package_name='openvair.modules.network.libs.templating',
-            package_path='templates',
-        )
+        super().__init__(module_path=__file__)
 
     def create_ovs_bridge_netplan_yaml(self, raw_data: Dict[str, Any]) -> str:
         """Create a YAML configuration for an OVS bridge (Netplan).
@@ -56,7 +53,7 @@ class NetworkRenderer(BaseTemplateRenderer):
             str: The rendered YAML configuration.
         """
         LOG.info(
-            f"Start rendering OVS bridge netplan for: "
+            "Start rendering OVS bridge netplan for: "
             f"{raw_data.get('bridge_name')}"
         )
         yaml_result = self.render(self.OVS_YAML_TEMPLATE, raw_data)
@@ -82,11 +79,9 @@ class NetworkRenderer(BaseTemplateRenderer):
         Returns:
             str: The rendered YAML configuration.
         """
-        LOG.info(
-            f"Start rendering interface YAML for: " f"{raw_data.get('name')}"
-        )
+        LOG.info(f"Start rendering interface YAML for: {raw_data.get('name')}")
         yaml_result = self.render(self.PORT_YAML_TEMPLATE, raw_data)
         LOG.info(
-            f"Finished rendering interface YAML for: " f"{raw_data.get('name')}"
+            f"Finished rendering interface YAML for: {raw_data.get('name')}"
         )
         return yaml_result
