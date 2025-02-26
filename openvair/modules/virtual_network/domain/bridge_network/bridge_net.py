@@ -14,7 +14,7 @@ from typing import Any, Dict, List, cast
 from libvirt import libvirtError
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.jinja_tools import xml_collector
+from openvair.libs.templating import xml_collector
 from openvair.modules.virtual_network.domain.base import (
     BasePortGroup,
     BaseVirtualNetwork,
