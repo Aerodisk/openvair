@@ -24,7 +24,6 @@ Functions:
 """
 
 import os
-import json
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -49,6 +48,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -254,7 +254,7 @@ def get_block_devices_info() -> List[Dict[str, str]]:
             shell=True,
         ),
     )
-    result: List[Dict[str, str]] = json.loads(res.stdout)['blockdevices']
+    result: List[Dict[str, str]] = deserialize_json(res.stdout)['blockdevices']
     return result
 
 

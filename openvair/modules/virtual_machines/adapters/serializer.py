@@ -8,7 +8,6 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import json
 from typing import Dict, Type, Union, cast
 
 from sqlalchemy import inspect
@@ -16,6 +15,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.virtual_machines.adapters import orm
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -126,7 +126,7 @@ class DataSerializer(AbstractDataSerializer):
         if data.get('qos', ''):
             data.update(
                 {
-                    'qos': json.loads(data.get('qos', ''))
+                    'qos': deserialize_json(data.get('qos', ''))
                     if isinstance(data.get('qos', ''), str)
                     else data.get('qos', '')
                 }

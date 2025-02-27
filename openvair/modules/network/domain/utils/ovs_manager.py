@@ -10,12 +10,12 @@ Classes:
         interfaces.
 """
 
-import json
 from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 from openvair.modules.network.domain.utils.exceptions import (
     OVSManagerException,
     BridgeNotFoundException,
@@ -202,5 +202,5 @@ class OVSManager:
             message = f'Error retrieving bridge list: {exec_res.stderr}'
             LOG.error(message)
             raise OVSManagerException(message)
-        bridges: Dict = json.loads(exec_res.stdout)
+        bridges: Dict = deserialize_json(exec_res.stdout)
         return bridges
