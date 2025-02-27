@@ -148,7 +148,9 @@ class BaseTemplateRenderer(abc.ABC):
             Exception: For any error during rendering.
         """
         try:
+            LOG.info(f"Rendering template: {template_name} with data: {data}")
             template = self.env.get_template(template_name)
+            LOG.info(f"Successfully rendered '{template_name}'")
             return template.render(**data)
         except TemplateNotFound:
             LOG.error(f"Template '{template_name}' not found")
