@@ -40,14 +40,18 @@ import pika
 from pika.spec import Basic
 from pika.adapters.blocking_connection import BlockingChannel
 
-from openvair.libs.messaging import utils
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
+    RpcDeserializeMessageException,
 )
 from openvair.libs.messaging.rpc.rabbit_base import (
     BaseRabbitRPCClient,
     BaseRabbitRPCServer,
+)
+from openvair.libs.data_handlers.json.serializer import (
+    serialize_json,
+    deserialize_json,
 )
 
 T = TypeVar('T')
@@ -93,7 +97,10 @@ class RabbitRPCClient(BaseRabbitRPCClient):
             body: The body of the message.
         """
         if self.corr_id == props.correlation_id:
-            self.response = utils.deserialize(body)
+            try:
+                self.response = deserialize_json(body.decode('utf-8'))
+            except ValueError as err:
+                raise RpcDeserializeMessageException(str(err))
 
     def call(
         self,
@@ -127,6 +134,17 @@ class RabbitRPCClient(BaseRabbitRPCClient):
         """
         self.response = {}
         self.corr_id = str(uuid.uuid4())
+        try:
+            serialized_data = serialize_json(
+                {
+                    'method_name': method_name,
+                    'data_for_method': data_for_method,
+                    'data_for_manager': data_for_manager,
+                }
+            ).encode()
+        except TypeError as err:
+            msg = f'Error serializing RPC request: {err}'
+            raise RpcCallException(msg)
         self.channel.basic_publish(
             exchange='',
             routing_key=self.queue_name,
@@ -135,13 +153,7 @@ class RabbitRPCClient(BaseRabbitRPCClient):
                 correlation_id=self.corr_id,
                 priority=priority,
             ),
-            body=utils.serialize(
-                {
-                    'method_name': method_name,
-                    'data_for_method': data_for_method,
-                    'data_for_manager': data_for_manager,
-                }
-            ).encode(),
+            body=serialized_data,
         )
         # Wait for a response from the RPC server
         self.connection.process_data_events(time_limit=time_limit)
@@ -175,19 +187,25 @@ class RabbitRPCClient(BaseRabbitRPCClient):
             priority (int): The priority of the message. Defaults to 10.
         """
         self.corr_id = str(uuid.uuid4())
+        try:
+            serialized_data = serialize_json(
+                {
+                    'method_name': method_name,
+                    'data_for_method': data_for_method,
+                    'data_for_manager': data_for_manager,
+                }
+            ).encode()
+        except TypeError as err:
+            msg = f'Error serializing RPC request: {err}'
+            raise RpcCallException(msg)
+
         self.channel.basic_publish(
             exchange='',
             routing_key=self.queue_name,
             properties=pika.BasicProperties(
                 correlation_id=self.corr_id, priority=priority
             ),
-            body=utils.serialize(
-                {
-                    'method_name': method_name,
-                    'data_for_method': data_for_method,
-                    'data_for_manager': data_for_manager,
-                }
-            ).encode(),
+            body=serialized_data,
         )
 
 
@@ -237,7 +255,11 @@ class RabbitRPCServer(BaseRabbitRPCServer):
             props: Message properties.
             body: The body of the message.
         """
-        deserialized_body = utils.deserialize(body)
+        try:
+            deserialized_body = deserialize_json(body.decode('utf-8'))
+        except ValueError as err:
+            msg = f'Error deserializing RPC message: {err}'
+            raise RpcDeserializeMessageException(msg)
         method_name = deserialized_body.get('method_name', None)
         data_for_method = deserialized_body.get('data_for_method', {})
         data_for_manager = deserialized_body.get('data_for_manager', {})
@@ -258,9 +280,9 @@ class RabbitRPCServer(BaseRabbitRPCServer):
         except Exception as err:  # noqa: BLE001 because it's catching all exceptions
             request.update({'err': str(err)})
         try:
-            serialized_request = utils.serialize(request)
+            serialized_request = serialize_json(request)
         except TypeError as err:
-            serialized_request = utils.serialize({'err': str(err)})
+            serialized_request = serialize_json({'err': str(err)})
         if props.reply_to:
             channel.basic_publish(
                 exchange='',
