@@ -3,60 +3,83 @@
 This module provides helper functions for reading and writing XML files.
 
 Functions:
-    read_xml: Reads an XML file and returns its ElementTree.
-    write_xml: Writes an ElementTree to an XML file.
+    read_xml: Reads an XML file and returns its parsed content as a dictionary.
+    write_xml: Writes a dictionary or list to an XML file.
 """
-
-from typing import Union
+from typing import Any
 from pathlib import Path
-from xml.etree import ElementTree
+
+from openvair.libs.data_handlers.xml.exceptions import (
+    XMLReadingError,
+    XMLWritingError,
+    XMLSerializationError,
+    XMLDeserializationError,
+)
+from openvair.libs.data_handlers.xml.serializer import (
+    serialize_xml,
+    deserialize_xml,
+)
 
 
-def read_xml(file_path: Path) -> ElementTree.ElementTree:
-    """Read an XML file and return its ElementTree.
+def read_xml(file_path: Path) -> Any:  # noqa: ANN401 # XML can contain various data types (dict, list, etc.)
+    """Read an XML file and return its parsed content as a dictionary.
+
+    This function loads an XML file from the specified path and converts it
+    into a JSON-compatible structure (usually a dictionary or list).
 
     Args:
         file_path (Path): The path to the XML file.
 
     Returns:
-        ElementTree.ElementTree: Parsed XML tree.
+        Any: Parsed XML data as a dictionary, list, or other primitive types.
 
     Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the XML content is invalid.
+        XMLReadingError: If the file is not found or the XML is invalid.
     """
     if not file_path.exists():
         message = f'XML file not found: {file_path}'
-        raise FileNotFoundError(message)
+        raise XMLReadingError(message)
 
     try:
-        return ElementTree.parse(file_path)  # noqa: S314
-    except ElementTree.ParseError as e:
+        with file_path.open('r', encoding='utf-8') as f:
+            return deserialize_xml(f.read())
+    except (OSError, XMLDeserializationError) as e:
         message = f'Error reading XML file {file_path}: {e}'
-        raise ValueError(message)
+        raise XMLReadingError(message) from e
 
 
 def write_xml(
     file_path: Path,
-    xml_tree: Union[ElementTree.Element, ElementTree.ElementTree],
+    data: Any,  # noqa: ANN401 # XML can contain various data types (dict, list, etc.)
+    *,
+    pretty: bool = False,
 ) -> None:
-    """Write an XML tree to a file.
+    """Write a dictionary or list as an XML file.
+
+    This function serializes a Python dictionary, list, or primitive type into
+    an XML string and saves it to a specified file.
 
     Args:
         file_path (Path): The path of the XML file to write.
-        xml_tree (Union[ElementTree.Element, ElementTree.ElementTree]): XML data
-            to be written.
+        data (Any): The data to serialize into XML. Must be a dictionary, list,
+            or a primitive type (e.g., str, int, float).
+        pretty (bool, optional): Whether to format the XML output for
+            readability. Defaults to False.
 
     Raises:
-        IOError: If writing to the file fails.
+        XMLWritingError: If an error occurs while writing the file.
     """
+    if not isinstance(data, (dict, list)):  # XML need root element
+        message = 'XML data must be a dictionary or list with a root element.'
+        raise XMLWritingError(message)
+
     try:
-        tree = (
-            xml_tree
-            if isinstance(xml_tree, ElementTree.ElementTree)
-            else ElementTree.ElementTree(xml_tree)
-        )
-        tree.write(file_path, encoding='utf-8', xml_declaration=True)
-    except IOError as e:
+        if isinstance(data, list):  # Оборачиваем список в корневой элемент
+            data = {'root': data}
+
+        xml_content = serialize_xml(data, pretty=pretty)
+        with file_path.open('w', encoding='utf-8') as f:
+            f.write(xml_content)
+    except (OSError, XMLSerializationError) as e:
         message = f'Error writing XML file {file_path}: {e}'
-        raise IOError(message)
+        raise XMLWritingError(message) from e
