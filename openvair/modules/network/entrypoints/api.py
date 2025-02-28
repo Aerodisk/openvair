@@ -155,7 +155,9 @@ async def bridge_create(
         Exception: Any error that occurs during the process.
     """
     LOG.info('API: Start creating a network bridge')
-    bridge = await run_in_threadpool(crud.create_bridge, data.dict(), user_info)
+    bridge = await run_in_threadpool(
+        crud.create_bridge, data.model_dump(mode='json'), user_info
+    )
     LOG.info('API: Request processed successfully.')
     return schemas.BridgeCreateResponse(**bridge)
 
@@ -187,7 +189,9 @@ async def bridge_delete(
     """
     LOG.info('API: Start deleting a bridge')
     bridge = await run_in_threadpool(
-        crud.delete_bridge, data.dict().get('data', {}), user_info
+        crud.delete_bridge,
+        data.model_dump(mode='json').get('data', {}),
+        user_info,
     )
     LOG.info('API: Request processed successfully.')
     return bridge

@@ -143,7 +143,9 @@ async def login(
             status code and error message.
     """
     LOG.info('Api request start login to interface of block device.')
-    result = await run_in_threadpool(crud.login, data.dict(), user_data)
+    result = await run_in_threadpool(
+        crud.login, data.model_dump(mode='json'), user_data
+    )
     LOG.info(
         'Api request for login to interface of block device was successfully'
         'processed.'
@@ -178,7 +180,9 @@ async def logout(
         schemas.InterfaceDeleted: The result of the logout operation.
     """
     LOG.info('Api request start logout from interface of block device.')
-    result = await run_in_threadpool(crud.logout, data.dict(), user_data)
+    result = await run_in_threadpool(
+        crud.logout, data.model_dump(mode='json'), user_data
+    )
     LOG.info(
         'Api request for logout from interface of block device was successfully'
         'processed.'

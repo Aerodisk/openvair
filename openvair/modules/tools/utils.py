@@ -381,7 +381,6 @@ def lip_scan() -> None:
             params=ExecuteParams(  # noqa: S604
                 shell=True,
                 run_as_root=True,
-                raise_on_error=True,
             ),
         )
     except (ExecuteError, OSError) as e:

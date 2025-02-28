@@ -48,7 +48,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volumes(
-    storage_id: Optional[UUID] = Query(None, description='Storage ID'),
+    storage_id: Optional[UUID] = Query(default=None, description='Storage ID'),
     *,
     free_volumes: bool = Query(
         default=False,
@@ -124,7 +124,9 @@ async def create_volume(
         JSONResponse: The created volume object.
     """
     LOG.info('Api handle response on create volume with data: %s' % data)
-    volume = await run_in_threadpool(crud.create_volume, data.dict(), user_info)
+    volume = await run_in_threadpool(
+        crud.create_volume, data.model_dump(mode='json'), user_info
+    )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(volume)
 
@@ -243,7 +245,7 @@ async def attach_volume(
     """
     LOG.info(
         'Api handle response on attach volume: %s with data:' % volume_id,
-        data.dict(),
+        data.model_dump(mode='json'),
     )
     attached_volume = await run_in_threadpool(
         crud.attach_volume, volume_id, data.model_dump(), user_info

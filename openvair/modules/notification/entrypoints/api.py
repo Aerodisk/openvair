@@ -63,8 +63,12 @@ async def send_notification(
         JSONResponse: If the notification sending fails, a 500 error response
             is returned with the error details.
     """
-    LOG.info('API start sending notification with data: %s.' % data.dict())
-    result = await run_in_threadpool(crud.send_notification, data.dict())
+    LOG.info(
+        'API start sending notification with data: %s.' % data.model_dump()
+    )
+    result = await run_in_threadpool(
+        crud.send_notification, data.model_dump(mode='json')
+    )
 
     if result.get('status') == 'error':
         LOG.error(result)
