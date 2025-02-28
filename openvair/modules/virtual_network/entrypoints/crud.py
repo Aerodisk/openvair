@@ -111,7 +111,7 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on creating virtual network...')
 
-        service_data = vn_info.dict()
+        service_data = vn_info.model_dump(mode='json')
         service_data['user_info'] = user_info
 
         result: Dict = self.service_layer_rpc.call(
@@ -200,7 +200,7 @@ class VirtualNetworkCrud:
 
         service_data = {
             'vn_id': vn_id,
-            'port_group_info': port_group.dict(),
+            'port_group_info': port_group.model_dump(mode='json'),
         }
         service_data['user_info'] = user_info
         result: Dict = self.service_layer_rpc.call(
