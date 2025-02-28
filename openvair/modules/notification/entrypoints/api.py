@@ -22,12 +22,11 @@ from starlette.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.modules.tools.utils import get_current_user
 from openvair.modules.notification.entrypoints import schemas
 from openvair.modules.notification.entrypoints.crud import NotificationCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/notifications',
@@ -64,8 +63,12 @@ async def send_notification(
         JSONResponse: If the notification sending fails, a 500 error response
             is returned with the error details.
     """
-    LOG.info('API start sending notification with data: %s.' % data.dict())
-    result = await run_in_threadpool(crud.send_notification, data.dict())
+    LOG.info(
+        'API start sending notification with data: %s.' % data.model_dump()
+    )
+    result = await run_in_threadpool(
+        crud.send_notification, data.model_dump(mode='json')
+    )
 
     if result.get('status') == 'error':
         LOG.error(result)

@@ -10,6 +10,7 @@ Classes:
         their associated port groups.
 """
 
+from uuid import UUID
 from typing import Dict
 
 from openvair.libs.log import get_logger
@@ -54,11 +55,11 @@ class VirtualNetworkCrud:
         LOG.info('Call service layer on getting virtual networks complete.')
         return result
 
-    def get_virtual_network_by_id(self, vn_id: str) -> Dict:
+    def get_virtual_network_by_id(self, vn_id: UUID) -> Dict:
         """Retrieves a virtual network by its ID from the service layer.
 
         Args:
-            vn_id (str): The ID of the virtual network to retrieve.
+            vn_id (UUID): The ID of the virtual network to retrieve.
 
         Returns:
             Dict: A dictionary containing information about the virtual network.
@@ -67,7 +68,7 @@ class VirtualNetworkCrud:
 
         result: Dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_virtual_network_by_id.__name__,
-            data_for_method={'id': vn_id},
+            data_for_method={'id': str(vn_id)},
         )
 
         LOG.info('Call service layer on getting virtual network complete.')
@@ -110,7 +111,7 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on creating virtual network...')
 
-        service_data = vn_info.dict()
+        service_data = vn_info.model_dump(mode='json')
         service_data['user_info'] = user_info
 
         result: Dict = self.service_layer_rpc.call(
@@ -124,7 +125,7 @@ class VirtualNetworkCrud:
 
     def delete_virtual_network(
         self,
-        vn_id: str,
+        vn_id: UUID,
         user_info: Dict,
     ) -> None:
         """Deletes a virtual network by its ID in the service layer.
@@ -135,7 +136,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on deleting virtual network: {vn_id}...')
 
-        service_data: Dict = {'virtual_network_id': vn_id}
+        service_data: Dict = {'virtual_network_id': str(vn_id)}
         service_data['user_info'] = user_info
         self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.delete_virtual_network.__name__,
@@ -199,7 +200,7 @@ class VirtualNetworkCrud:
 
         service_data = {
             'vn_id': vn_id,
-            'port_group_info': port_group.dict(),
+            'port_group_info': port_group.model_dump(mode='json'),
         }
         service_data['user_info'] = user_info
         result: Dict = self.service_layer_rpc.call(

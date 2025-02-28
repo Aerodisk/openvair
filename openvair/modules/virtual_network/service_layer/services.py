@@ -13,6 +13,7 @@ Enums:
         network.
 """
 
+from uuid import UUID
 from typing import Dict, List, Literal, Optional, cast
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -622,7 +623,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
     def __change_state(
         self,
-        vn_id: str,
+        vn_id: UUID,
         action: Literal['on', 'off'],
     ) -> None:
         """Change the state of a virtual network.

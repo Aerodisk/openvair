@@ -21,10 +21,16 @@ Classes:
 import ipaddress
 from uuid import UUID
 from typing import List, Union, Literal, Optional
+from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import (
+    Field,
+    BaseModel,
+    ConfigDict,
+    field_validator,
+)
 
-from openvair.modules.tools import validators
+from openvair.libs.validation.validators import Validator
 
 
 class NfsStorageExtraSpecsCreate(BaseModel):
@@ -36,35 +42,13 @@ class NfsStorageExtraSpecsCreate(BaseModel):
         mount_version (Optional[str]): The NFS mount version (default is '4').
     """
 
-    ip: str
-    path: str
-    mount_version: Optional[str] = '4'
+    ip: ipaddress.IPv4Address
+    path: Path = Field(min_length=1)
+    mount_version: Literal['3', '4'] = '4'
 
-    @field_validator('mount_version')
-    @classmethod
-    def mount_version_must_be_3_or_4(cls, value: str) -> str:
-        """Validate that the mount version is either 3 or 4."""
-        if value not in ('3', '4'):
-            msg = 'Mount version must be 3 or 4.'
-            raise ValueError(msg)
-        return value
-
-    @field_validator('ip')
-    @classmethod
-    def ip_validator(cls, value: str) -> str:
-        """Validate that the provided IP address is valid."""
-        ipaddress.ip_address(value)
-        return value
-
-    @field_validator('path')
-    @classmethod
-    def path_validator(cls, value: str) -> str:
-        """Validate that the path is non-empty and has no special characters."""
-        if len(value) < 1:
-            msg = 'Length of target must be greater than 0.'
-            raise ValueError(msg)
-        validators.special_characters_path_validate(value)
-        return value
+    validate_path = field_validator('path', mode='before')(
+        lambda v: Validator.special_characters_validate(v, allow_slash=True)
+    )
 
 
 class NfsStorageExtraSpecsInfo(NfsStorageExtraSpecsCreate):
@@ -85,18 +69,12 @@ class LocalFSStorageExtraSpecsCreate(BaseModel):
         fs_type (Literal['xfs', 'ext4']): The file system type.
     """
 
-    path: str
+    path: Path = Field(min_length=1)
     fs_type: Literal['xfs', 'ext4']
 
-    @field_validator('path')
-    @classmethod
-    def path_validator(cls, value: str) -> str:
-        """Validate that the path is non-empty and has no special characters."""
-        if len(value) < 1:
-            msg = 'Length of target must be greater than 0.'
-            raise ValueError(msg)
-        validators.special_characters_path_validate(value)
-        return value
+    validate_path = field_validator('path', mode='before')(
+        lambda v: Validator.special_characters_validate(v, allow_slash=True)
+    )
 
 
 class LocalFSStorageExtraSpecsInfo(LocalFSStorageExtraSpecsCreate):
@@ -120,7 +98,7 @@ class Storage(BaseModel):
         status (str): The current status of the storage.
         size (int): The total size of the storage in bytes.
         available (int): The available size of the storage in bytes.
-        user_id (Optional[str]): The ID of the user who owns the storage.
+        user_id (Optional[UUID]): The ID of the user who owns the storage.
         information (Optional[str]): Additional information about the storage.
         storage_extra_specs (Union[NfsStorageExtraSpecsInfo,
             LocalFSStorageExtraSpecsInfo]): Additional specifications for the
@@ -134,7 +112,7 @@ class Storage(BaseModel):
     status: str
     size: int
     available: int
-    user_id: Optional[str] = None
+    user_id: Optional[UUID] = None
     information: Optional[str] = None
     storage_extra_specs: Union[
         NfsStorageExtraSpecsInfo, LocalFSStorageExtraSpecsInfo
@@ -154,34 +132,18 @@ class CreateStorage(BaseModel):
                     storage.
     """
 
-    name: str
-    description: str
+    name: str = Field(min_length=1, max_length=60)
+    description: str = Field(max_length=255)
     storage_type: Literal['nfs', 'localfs']
     specs: Union[NfsStorageExtraSpecsCreate, LocalFSStorageExtraSpecsCreate]
     model_config = ConfigDict(extra='forbid')
 
-    @field_validator('name')
-    @classmethod
-    def name_validator(cls, value: str) -> str:
-        """Validate that the name length and its has no special characters."""
-        min_length = 1
-        max_length = 60
-        if len(value) < min_length or len(value) > max_length:
-            msg = "Length of name mustn't be 0 and must be lower than 40."
-            raise ValueError(msg)
-        validators.special_characters_validate(value)
-        return value
-
-    @field_validator('description')
-    @classmethod
-    def description_validator(cls, value: str) -> str:
-        """Validate that the description length is appropriate."""
-        max_length = 255
-        if len(value) > max_length:
-            msg = 'Length of description must be lower than 255.'
-            raise ValueError(msg)
-        validators.special_characters_validate(value)
-        return value
+    validate_name = field_validator('name')(
+        Validator.special_characters_validate
+    )
+    validate_description = field_validator('description')(
+        Validator.special_characters_validate
+    )
 
 
 class LocalDisk(BaseModel):
@@ -197,7 +159,7 @@ class LocalDisk(BaseModel):
         parent (Optional[str]): The parent disk, if applicable.
     """
 
-    path: str
+    path: Path
     size: int
     mountpoint: Optional[str] = None
     fs_uuid: Optional[str] = None
@@ -227,7 +189,7 @@ class CreateLocalPartition(BaseModel):
             (default is 'B').
     """
 
-    local_disk_path: str
+    local_disk_path: Path
     storage_type: Literal['local_partition']
     size_value: int
     size_unit: Literal['B']
@@ -243,5 +205,5 @@ class DeleteLocalPartition(BaseModel):
     """
 
     storage_type: Literal['local_partition']
-    local_disk_path: str
+    local_disk_path: Path
     partition_number: str

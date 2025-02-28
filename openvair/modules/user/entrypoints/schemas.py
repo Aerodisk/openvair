@@ -15,11 +15,10 @@ Schemas:
     - Token: Schema for authentication tokens.
 """
 
+from uuid import UUID
 from typing import List, Optional
 
-from pydantic import EmailStr, BaseModel, ConfigDict, field_validator
-
-from openvair.modules.tools.validators import uuid_validate
+from pydantic import EmailStr, BaseModel, ConfigDict
 
 
 class BaseUser(BaseModel):
@@ -36,31 +35,18 @@ class BaseUser(BaseModel):
     is_superuser: bool
 
 
-class UserId(BaseModel):
-    """Schema for representing a user ID.
-
-    Attributes:
-        id (str): The unique identifier for the user.
-    """
-
-    id: str
-
-    _normalize_id = field_validator('id')(uuid_validate)
-
-
 class User(BaseUser):
     """Schema for user information including user ID.
 
     Attributes:
-        id (str): The unique identifier for the user.
+        id (UUID): The unique identifier for the user.
 
     Config:
         orm_mode (bool): Enable ORM mode for compatibility with ORMs.
     """
 
-    id: str
+    id: UUID
 
-    _normalize_id = field_validator('id')(uuid_validate)
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -99,14 +85,12 @@ class UserDelete(BaseModel):
     """Schema for user deletion response.
 
     Attributes:
-        id (str): The unique identifier of the deleted user.
+        id (UUID): The unique identifier of the deleted user.
         message (str): A message indicating the result of the deletion.
     """
 
-    id: str
+    id: UUID
     message: str
-
-    _normalize_id = field_validator('id')(uuid_validate)
 
 
 class Token(BaseModel):

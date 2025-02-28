@@ -230,7 +230,7 @@ class UserManager(BackgroundTasks):
             UnexpectedData: If the user ID or new password is not provided.
             UserDoesNotExist: If the user does not exist.
         """
-        user_id: str = data.pop('user_id', '')
+        user_id = data.pop('user_id', '')
         new_password: str = data.pop('new_password', '')
         if not user_id:
             message = 'Got empty user_id.'
@@ -266,7 +266,7 @@ class UserManager(BackgroundTasks):
         """
         LOG.info('Start deleting user from db.')
         self._verificate_user_id(data)
-        user_id: str = data.get('user_id', '')
+        user_id = data.get('user_id', '')
         with self.uow:
             try:
                 self.uow.users.get(user_id)
