@@ -16,10 +16,11 @@ Classes:
 
 import abc
 from typing import Dict, Optional
-from xml.etree import ElementTree
 
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.connection import LibvirtConnection
+from openvair.libs.data_handlers.xml.exceptions import XMLDeserializationError
+from openvair.libs.data_handlers.xml.serializer import deserialize_xml
 from openvair.modules.virtual_machines.domain.exceptions import (
     GraphicPortNotFoundInXmlException,
     GraphicTypeNotFoundInXmlException,
@@ -147,46 +148,61 @@ class BaseLibvirtDriver(BaseVMDriver):
 
     @staticmethod
     def _get_graphic_port_from_xml(domain_xml: str) -> Optional[str]:
-        """Extract the graphic port from the domain XML.
+        """Extract the port number of the graphics device from the domain XML.
+
+        This method parses the provided domain XML and retrieves the `port`
+        attribute from the `<graphics>` element inside `<devices>`.
 
         Args:
             domain_xml (str): The domain XML as a string.
 
         Returns:
-            Optional[int]: The graphic port number, or None if not found.
+            Optional[str]: The port number as a string, or None if not found.
+
+        Raises:
+            GraphicPortNotFoundInXmlException: If the graphics port is missing
+                or the XML is invalid.
         """
+        port: Optional[str]
         try:
-            root = ElementTree.fromstring(domain_xml)  # noqa: S314 because for fix it need oiter library
-            grafics_device = root.find('./devices/graphics')
-            if grafics_device:
-                return grafics_device.get('port')
-        except ElementTree.ParseError:
+            parsed_xml = deserialize_xml(domain_xml)
+            graphics_device = parsed_xml['domain']['devices']['graphics']
+            port = graphics_device.get('@port')
+        except (KeyError, AttributeError, TypeError, XMLDeserializationError):
             err = GraphicPortNotFoundInXmlException(domain_xml)
             LOG.error(err)
             raise err
         else:
-            return grafics_device.get('port') if grafics_device else None
+            return str(port) if port is not None else None
 
     @staticmethod
     def _get_graphic_type_from_xml(domain_xml: str) -> Optional[str]:
-        """Extract the graphic type from the domain XML.
+        """Extract the type of the graphics device from the domain XML.
+
+        This method parses the provided domain XML and retrieves the `type`
+        attribute from the `<graphics>` element inside `<devices>`.
 
         Args:
             domain_xml (str): The domain XML as a string.
 
         Returns:
-            Optional[str]: The graphic type, or an empty string if not
-            found.
+            Optional[str]: The graphics type as a string, or None if not found.
+
+        Raises:
+            GraphicTypeNotFoundInXmlException: If the graphics type is missing
+                or the XML is invalid.
         """
+        graphics_type: Optional[str]
         try:
-            root = ElementTree.fromstring(domain_xml)  # noqa: S314 because for fix it need oiter library
-            grafics_device = root.find('./devices/graphics')
-        except ElementTree.ParseError:
+            parsed_xml = deserialize_xml(domain_xml)
+            graphics_device = parsed_xml['domain']['devices']['graphics']
+            graphics_type = graphics_device.get('@type')
+        except (KeyError, AttributeError, TypeError, XMLDeserializationError):
             err = GraphicTypeNotFoundInXmlException(domain_xml)
             LOG.error(err)
             raise err
         else:
-            return grafics_device.get('type') if grafics_device else None
+            return graphics_type
 
     def _get_graphic_url(self, domain_xml: str) -> Optional[str]:
         """Generate the graphic URL from the domain XML.
