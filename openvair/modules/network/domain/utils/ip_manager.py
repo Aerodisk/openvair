@@ -8,12 +8,12 @@ Classes:
         standard IP commands to manage network interfaces.
 """
 
-import json
 from typing import Any, Dict, List, Tuple
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 from openvair.modules.network.domain.utils.exceptions import (
     IPManagerException,
     InvalidAddressException,
@@ -41,7 +41,7 @@ class IPManager:
             message = f'Failure while getting addresses info: {exec_res.stderr}'
             LOG.error(message)
             raise IPManagerException(message)
-        addresses: List[Dict] = json.loads(exec_res.stdout)
+        addresses: List[Dict] = deserialize_json(exec_res.stdout)
         return {iface['ifname']: iface for iface in addresses}
 
     def _get_interfaces_data(self) -> Dict[str, Dict[str, Any]]:
@@ -57,7 +57,7 @@ class IPManager:
             message = f'Failure while gettin interfaces info: {exec_res.stderr}'
             LOG.error(message)
             raise IPManagerException(message)
-        interfaces: List[Dict] = json.loads(exec_res.stdout)
+        interfaces: List[Dict] = deserialize_json(exec_res.stdout)
         return {iface['ifname']: iface for iface in interfaces}
 
     def _get_routes_data(self) -> List[Dict]:
@@ -69,7 +69,7 @@ class IPManager:
         if exec_res.stderr:
             msg = f'Failure while getting main port name: {exec_res.stderr}'
             raise IPManagerException(msg)
-        routes_info: List[Dict] = json.loads(exec_res.stdout)
+        routes_info: List[Dict] = deserialize_json(exec_res.stdout)
         return routes_info
 
     def get_iface_data(self, iface_name: str) -> Dict:
@@ -484,7 +484,7 @@ class IPManager:
             raise IPManagerException(message)
 
         # Convert results of commands into dict
-        ifaces: Dict = json.loads(exec_res.stdout.strip())
+        ifaces: Dict = deserialize_json(exec_res.stdout)
         return ifaces
 
     def _check_defaoult_gateways(self, addresses: Tuple) -> None:

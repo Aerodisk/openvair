@@ -15,12 +15,12 @@ Classes:
 """
 
 import re
-import json
 from typing import Any, Dict, List, Optional
 
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.abstracts.base_exception import BaseCustomException
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 
 class GettingSystemInfoError(BaseCustomException):
@@ -92,7 +92,7 @@ class InterfacesFromSystem(list):
             )
             raise GettingSystemInfoError(message)
 
-        sys_output_infs: List[Dict] = json.loads(exec_res.stdout)
+        sys_output_infs: List[Dict] = deserialize_json(exec_res.stdout)
 
         for sys_inf in sys_output_infs:
             inf_data = {}

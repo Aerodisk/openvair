@@ -10,7 +10,6 @@ Classes:
 
 import re
 import abc
-import json
 from typing import Any, Dict, cast
 from pathlib import Path
 
@@ -21,6 +20,7 @@ from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.volume.domain.exceptions import (
     VolumeDoesNotExistOnStorage,
 )
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 LOG = get_logger(__name__)
 
@@ -106,7 +106,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         """
         volume_path = Path(self.path, f'volume-{self.id}')
         try:
-            exec_result: ExecutionResult  = execute(
+            exec_result: ExecutionResult = execute(
                 'qemu-img',
                 'info',
                 '--output=json',
@@ -115,7 +115,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
                     shell=True,
                     raise_on_error=True,
                     timeout=1,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             write_lock_warning_pattern = re.compile(
@@ -128,8 +128,8 @@ class BaseVolume(metaclass=abc.ABCMeta):
             return {}
 
         try:
-            return cast(Dict, json.loads(exec_result.stdout))
-        except json.JSONDecodeError as err:
+            return cast(Dict, deserialize_json(exec_result.stdout))
+        except ValueError as err:
             LOG.error(f'Failed to parse JSON output: {err}')
             return {}
 

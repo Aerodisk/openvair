@@ -24,7 +24,6 @@ Functions:
 """
 
 import os
-import json
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,7 +38,6 @@ from datetime import datetime, timezone, timedelta
 from contextlib import contextmanager
 
 import jwt
-import yaml
 import xmltodict
 from fastapi import Depends, HTTPException, security
 from sqlalchemy.exc import OperationalError
@@ -49,6 +47,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -254,7 +253,7 @@ def get_block_devices_info() -> List[Dict[str, str]]:
             shell=True,
         ),
     )
-    result: List[Dict[str, str]] = json.loads(res.stdout)['blockdevices']
+    result: List[Dict[str, str]] = deserialize_json(res.stdout)['blockdevices']
     return result
 
 
@@ -403,31 +402,6 @@ def get_size(file_path: str) -> int:
         int: The size of the file in bytes.
     """
     return Path(file_path).stat().st_size
-
-
-def write_yaml_file(file_path: str, data: Dict) -> None:
-    """Writes data to a YAML file.
-
-    Args:
-        file_path (str): The path of the YAML file to write to.
-        data (Dict): The data to write to the file.
-    """
-    with Path(file_path).open('w') as file:
-        yaml.dump(data, file, sort_keys=False)
-
-
-def read_yaml_file(file_path: str) -> Dict:
-    """Reads data from a YAML file.
-
-    Args:
-        file_path (str): The path of the YAML file to read from.
-
-    Returns:
-        Dict: The data read from the YAML file.
-    """
-    with Path(file_path).open('r') as file:
-        result: Dict = yaml.safe_load(file)
-        return result
 
 
 @contextmanager
