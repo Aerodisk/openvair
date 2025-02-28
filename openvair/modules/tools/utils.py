@@ -5,12 +5,10 @@ OpenVair application, including command execution, token generation, validation,
 and disk information retrieval.
 
 Functions:
-    execute: Runs a shell command and returns the output.
     create_access_token: Creates a JWT access token.
     create_refresh_token: Creates a JWT refresh token.
     create_tokens: Generates both access and refresh tokens.
     get_current_user: Retrieves the user from a JWT token.
-    is_superuser: Validates if the current user is a superuser.
     get_block_devices_info: Retrieves information about block devices.
     get_system_disks: Retrieves information about local disks.
     is_system_disk: Checks if a disk is a system disk.
@@ -25,15 +23,6 @@ Functions:
     read_yaml_file: Reads data from a YAML file.
     synchronized_session: Context manager for safely executing database
         session operations.
-
-Classes:
-    UnknownArgumentError: Raised when an unknown argument is passed to a
-        function.
-    NoRootWrapSpecifiedError: Raised when a command requests root but no
-        root helper is specified.
-    ExecuteTimeoutExpiredError: Raised when a command execution reaches
-        its timeout.
-    ExecuteError: General exception for command execution errors.
 """
 
 import os
@@ -61,7 +50,7 @@ from sqlalchemy.exc import OperationalError
 
 from openvair import config
 from openvair.libs.log import get_logger
-from openvair.libs.cli.models import ExecuteParams, ExecutionResult
+from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
 
@@ -121,32 +110,6 @@ SYSTEM_MOUNTPOINTS = [
     '/var/tmp',  # noqa: S108 because its system directory
     '/var/www',
 ]
-
-
-class UnknownArgumentError(Exception):
-    """Raised when an unknown argument is passed to a function."""
-
-    def __init__(self, message: Optional[str] = None):
-        """Initialize the UnknownArgumentError.
-
-        Args:
-            message (Optional[str]): An optional error message to provide
-                context for the exception.
-        """
-        super(UnknownArgumentError, self).__init__(message)
-
-
-class NoRootWrapSpecifiedError(Exception):
-    """Raised when a command requests root but no root helper is specified."""
-
-    def __init__(self, message: Optional[str] = None):
-        """Initialize the NoRootWrapSpecifiedError.
-
-        Args:
-            message (Optional[str]): An optional error message to provide
-                context for the exception.
-        """
-        super(NoRootWrapSpecifiedError, self).__init__(message)
 
 
 def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
@@ -276,23 +239,6 @@ def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
         return payload
 
 
-def is_superuser(user: Dict = Depends(get_current_user)) -> Dict:
-    """Checks if the current user is a superuser.
-
-    Args:
-        user (Dict): The user object retrieved from the JWT token.
-
-    Returns:
-        Dict: The user object if the user is a superuser.
-
-    Raises:
-        HTTPException: If the user is not a superuser.
-    """
-    if not user.get('is_superuser'):
-        raise HTTPException(status_code=403, detail='Not enough permissions')
-    return user
-
-
 def get_block_devices_info() -> List[Dict[str, str]]:
     """Retrieves information about block devices on the system.
 
@@ -302,7 +248,7 @@ def get_block_devices_info() -> List[Dict[str, str]]:
         List[Dict[str, str]]: A dictionary containing information about block
             devices.
     """
-    res: ExecutionResult = execute(
+    res = execute(
         'lsblk',
         '-bp',
         '-io',
@@ -440,14 +386,16 @@ def lip_scan() -> None:
             params=ExecuteParams(  # noqa: S604
                 shell=True,
                 run_as_root=True,
-            )
+                raise_on_error=True,
+            ),
         )
     except (ExecuteError, OSError) as e:
         # Handle any errors accessing or writing to the file
         msg = (
             f'Error accessing or writing to /sys/class/fc_host/*/issue_lip: {e}'
         )
-        raise OSError(msg)
+        LOG.error(msg)
+        raise
 
 
 def get_size(file_path: str) -> int:
@@ -578,7 +526,7 @@ def get_virsh_list() -> Dict:
     Returns:
         Dict: A dictionary containing the names and power states of running VMs.
     """
-    res: ExecutionResult = execute(
+    res = execute(
         'virsh',
         'list',
         params=ExecuteParams(  # noqa: S604
@@ -587,7 +535,7 @@ def get_virsh_list() -> Dict:
         )
     )
     vms = {}
-    rows = res.split('\n')[2:-2]
+    rows = res.stdout.split('\n')[2:-2]
     for row in rows:
         _, vm_name, power_state = row.split()
         vms.update({vm_name: power_state})
