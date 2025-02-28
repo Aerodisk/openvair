@@ -17,7 +17,6 @@ Functions:
     lip_scan: Performs LIP (Loop Initialization Protocol) scan.
     get_size: Returns the size of a file.
     validate_objects: Validates a list of objects against a Pydantic schema.
-    get_virsh_list: Retrieves a list of virtual machines from virsh.
     regex_matcher: Returns regex patterns for various types of values.
     write_yaml_file: Writes data to a YAML file.
     read_yaml_file: Reads data from a YAML file.
@@ -516,31 +515,6 @@ def validate_objects(
                 LOG.error(message)
                 raise
     return result
-
-
-def get_virsh_list() -> Dict:
-    """Retrieves a list of virtual machines from virsh.
-
-    Uses the 'virsh list' command to gather details about running VMs.
-
-    Returns:
-        Dict: A dictionary containing the names and power states of running VMs.
-    """
-    res = execute(
-        'virsh',
-        'list',
-        params=ExecuteParams(  # noqa: S604
-            shell=True,
-            run_as_root=True,
-        )
-    )
-    vms = {}
-    rows = res.stdout.split('\n')[2:-2]
-    for row in rows:
-        _, vm_name, power_state = row.split()
-        vms.update({vm_name: power_state})
-    return vms
-
 
 def regex_matcher(value: str) -> str:
     """Returns regex patterns for various types of values.
