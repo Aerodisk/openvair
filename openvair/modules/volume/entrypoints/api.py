@@ -48,7 +48,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volumes(
-    storage_id: Optional[UUID] = Query(None, description='Storage ID'),
+    storage_id: Optional[UUID] = Query(default=None, description='Storage ID'),
     *,
     free_volumes: bool = Query(
         default=False,
