@@ -127,7 +127,7 @@ class DataSerializer(AbstractDataSerializer):
         LOG.info('Converting data to web json serializable object...')
 
         pydantic_model = web_class.model_validate(orm_object)
-        result_web_info: Dict = pydantic_model.model_dump()
+        result_web_info: Dict = pydantic_model.model_dump(mode='json')
 
         LOG.info('Data success converted to web json serializable object.')
         return result_web_info
