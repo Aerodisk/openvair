@@ -7,13 +7,13 @@ Classes:
     ResticAdapter: Adapter class for managing backups.
 """
 
-import json
 from typing import Dict, List, Union
 from pathlib import Path
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecutionResult
 from openvair.modules.tools.utils import change_directory
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 from openvair.modules.backup.adapters.restic.exceptions import (
     ResticError,
     ResticBackupError,
@@ -125,7 +125,9 @@ class ResticAdapter:
             LOG.error(actual_error)
             raise actual_error from err
 
-        backup_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
+        backup_info: Dict[str, Union[str, int]] = deserialize_json(
+            result.stdout
+        )
         return backup_info
 
     def snapshots(self) -> List[Dict[str, Union[str, int]]]:
@@ -157,9 +159,10 @@ class ResticAdapter:
             result,
         )
 
-        snapshots_info: List[Dict[str, Union[str, int]]] = json.loads(
+        snapshots_info: List[Dict[str, Union[str, int]]] = deserialize_json(
             result.stdout
         )
+
         return snapshots_info
 
     def restore(
@@ -202,7 +205,9 @@ class ResticAdapter:
             LOG.error(actual_error)
             raise actual_error from err
 
-        restore_info: Dict[str, Union[str, int]] = json.loads(result.stdout)
+        restore_info: Dict[str, Union[str, int]] = deserialize_json(
+            result.stdout
+        )
         return restore_info
 
     def forget(self, snapshot_id: str) -> Dict[str, Union[str, int]]:

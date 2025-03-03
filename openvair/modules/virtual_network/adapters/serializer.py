@@ -8,7 +8,6 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-import json
 from typing import Dict, Type, Union, cast
 
 from pydantic import BaseModel
@@ -128,7 +127,7 @@ class DataSerializer(AbstractDataSerializer):
         LOG.info('Converting data to web json serializable object...')
 
         pydantic_model = web_class.model_validate(orm_object)
-        result_web_info: Dict = json.loads(pydantic_model.model_dump_json())
+        result_web_info: Dict = pydantic_model.model_dump(mode='json')
 
         LOG.info('Data success converted to web json serializable object.')
         return result_web_info
