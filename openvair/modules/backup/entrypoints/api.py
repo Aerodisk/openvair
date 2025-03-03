@@ -19,7 +19,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.common.schemas import BaseResponse
-from openvair.modules.tools.utils import get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.backup.schemas import (
     ResticSnapshot,
     ResticBackupResult,

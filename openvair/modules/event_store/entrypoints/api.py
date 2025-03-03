@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse
 from fastapi_pagination import Page, Params, paginate
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.event_store.entrypoints import schemas
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 

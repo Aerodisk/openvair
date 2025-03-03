@@ -22,7 +22,7 @@ Functions:
 from fastapi import Depends, APIRouter, status
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.dashboard.entrypoints.crud import DashboardCrud
 from openvair.modules.dashboard.entrypoints.schemas import NodeInfo
 
