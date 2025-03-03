@@ -1,4 +1,14 @@
-"""Need to write"""
+"""Utility functions for handling JWT-based authentication.
+
+This module provides functions for generating and verifying JSON Web Tokens
+(JWT) for authentication and authorization purposes within the application.
+
+Functions:
+    - get_current_user: Retrieves the current user from a JWT token.
+    - create_access_token: Generates an access token for authentication.
+    - create_refresh_token: Generates a refresh token for token renewal.
+    - create_tokens: Generates both access and refresh tokens.
+"""
 
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
@@ -38,9 +48,7 @@ def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
         payload: Dict = jwt.decode(
             token,
             JWT_SECRET,
-            algorithms=[
-                ALGORITHM,
-            ],
+            algorithms=[ALGORITHM],
         )
 
         if payload['type'] != 'access':
@@ -76,16 +84,13 @@ def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
         payload = user.copy()
         LOG.info(f'Start creating access token with payload: {payload}')
 
-        # Use timedelta to add the TTL to the current time
         expire = datetime.now(timezone.utc) + timedelta(
             minutes=ttl_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
         )
-
         payload.update({'exp': expire, 'type': 'access'})
 
         token = jwt.encode(payload=payload, key=JWT_SECRET, algorithm=ALGORITHM)
         LOG.info(f'Created access token data: {token}')
-
     except jwt.PyJWTError as error:
         LOG.error(f'Access token creation failed: {error}')
         raise HTTPException(
@@ -113,11 +118,9 @@ def create_refresh_token(user: Dict, ttl_days: Optional[int] = None) -> str:
         payload = user.copy()
         LOG.info(f'Start creating refresh token with payload: {payload}')
 
-        # Use timedelta to add the TTL to the current time
         expire = datetime.now(timezone.utc) + timedelta(
             days=ttl_days or REFRESH_TOKEN_EXPIRATION_DAYS
         )
-
         payload.update({'exp': expire, 'type': 'refresh'})
 
         token = jwt.encode(payload=payload, key=JWT_SECRET, algorithm=ALGORITHM)
