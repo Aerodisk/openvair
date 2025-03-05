@@ -45,12 +45,12 @@ from collections import namedtuple
 
 from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_size
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.image.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
+from openvair.modules.image.libs.utils import get_size
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
