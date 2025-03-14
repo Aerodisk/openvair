@@ -1,12 +1,4 @@
-"""Custom exceptions for the template domain.
+"""Domain-specific exceptions for the template module.
 
-This module defines exceptions related to template domain operations.
+This module defines exceptions that occur in the domain layer.
 """
-
-from openvair.abstracts.base_exception import BaseCustomException
-
-
-class TemplateDomainException(BaseCustomException):
-    """Base exception for errors occurring in the template domain."""
-
-    ...
