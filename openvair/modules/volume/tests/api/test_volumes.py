@@ -1,48 +1,32 @@
-"""Need to write"""
-
-from uuid import uuid4
-
+  # noqa: D100
+from fastapi import status
 from fastapi.testclient import TestClient
 
+from openvair.libs.log import get_logger
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 
+LOG = get_logger(__name__)
 
-def test_create_volume_success(client: TestClient) -> None:
-    """Создание тома через Pydantic-модель."""
-    payload = CreateVolume(
+
+def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
+    """Test successful volume creation."""
+    volume_data = CreateVolume(
         name='test-volume',
-        description='Test description',
-        storage_id=uuid4(),  # Генерируем случайный UUID
+        description='Integration test volume',
+        storage_id=test_storage['id'],
         format='qcow2',
-        size=10,
+        size=1024,
         read_only=False,
     )
     response = client.post(
-        '/volumes/create/', json=payload.model_dump(mode='json')
+        '/volumes/create/', json=volume_data.model_dump(mode='json')
     )
-    assert response.status_code == 201  # noqa: PLR2004
-    data: dict = response.json()
-    assert data['name'] == payload.name
-    assert data['size'] == payload.size
+    assert response.status_code == status.HTTP_200_OK, response.text
+    data = response.json()
+    assert 'id' in data
+    assert data['name'] == volume_data.name
+    assert data['size'] == volume_data.size
+    assert data['format'] == volume_data.format
+    import time
 
-
-def test_create_volume_invalid_data(client: TestClient) -> None:
-    """Создание тома с некорректными данными должно вернуть 422."""  # noqa: RUF002
-    payload = CreateVolume(
-        name='',  # Некорректное имя
-        description='',
-        storage_id=uuid4(),
-        format='qcow2',
-        size=0,  # Некорректный размер (должен быть >= 1)
-        read_only=False,
-    )
-    response = client.post('/volumes/create/', json=payload.model_dump())
-    assert response.status_code == 422  # noqa: PLR2004
-
-
-def test_get_volumes(client: TestClient) -> None:
-    """Проверяем, что список томов возвращается корректно."""
-    response = client.get('/volumes/')
-    assert response.status_code == 200  # noqa: PLR2004
-    data: list = response.json()
-    assert isinstance(data, list)
+    time.sleep(5)

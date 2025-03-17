@@ -73,7 +73,9 @@ class LocalFSStorageExtraSpecsCreate(BaseModel):
     fs_type: Literal['xfs', 'ext4']
 
     validate_path = field_validator('path', mode='before')(
-        lambda v: Validator.special_characters_validate(v, allow_slash=True)
+        lambda v: Validator.special_characters_validate(
+            str(v), allow_slash=True
+        )
     )
 
 

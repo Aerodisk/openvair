@@ -128,7 +128,7 @@ class LocalFSVolume(BaseLocalFSVolume):
                 '-f',
                 str(volume_path),
                 params=ExecuteParams(  # noqa: S604
-                    run_as_root=self._execute_as_root,
+                    run_as_root=True,
                     shell=True,
                     raise_on_error=True,
                 )
