@@ -1,10 +1,10 @@
-"""Adapter for interacting with virtual networks using libvirt's virsh utility.
+"""Adapter for interacting with virtual networks using libvirt utility.
 
-This module provides the `VirshAdapter` class, which is used to manage
+This module provides the `LibvirtNetworkAdapter` class, which is used to manage
 virtual networks through the libvirt API.
 
 Classes:
-    - VirshAdapter: Adapter class for managing virtual networks.
+    - LibvirtNetworkAdapter: Adapter class for managing virtual networks.
 """
 
 from typing import List, Optional, cast
@@ -18,19 +18,19 @@ LOG = get_logger(__name__)
 
 
 class LibvirtNetworkAdapter:
-    """Adapter class for interacting with virtual networks using virsh utility.
+    """Adapter class for interacting with virtual networks by libvirt utility.
 
     Attributes:
         connection (LibvirtConnection): The libvirt connection object.
     """
 
     def __init__(self) -> None:
-        """Initialize the VirshAdapter."""
+        """Initialize the LibvirtNetworkAdapter."""
         self.connection = LibvirtConnection()
 
     def get_virt_network_names(self) -> List[str]:
         """Retrieves list of names virtual networks."""
-        LOG.info('Getting virtual_networks from virsh...')
+        LOG.info('Getting virtual_networks from libvirt...')
         with self.connection as connection:
             return list(connection.listNetworks())
 
@@ -110,12 +110,12 @@ class LibvirtNetworkAdapter:
         Returns:
             str: The XML configuration of the virtual network.
         """
-        LOG.info('Getting virtual network XML from virsh...')
+        LOG.info('Getting virtual network XML from libvirt...')
 
         with self.connection as connection:
             network = connection.networkLookupByName(vn_name)
 
-        LOG.info('Getting virtual network XML from virsh complete')
+        LOG.info('Getting virtual network XML from libvirt complete')
         return cast(str, network.XMLDesc())
 
     def get_network_xml_by_uuid(self, network_uuid: str) -> str:
@@ -127,12 +127,12 @@ class LibvirtNetworkAdapter:
         Returns:
             str: The XML configuration of the virtual network.
         """
-        LOG.info('Getting virtual network XML from virsh...')
+        LOG.info('Getting virtual network XML from libvirt...')
 
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(network_uuid)
 
-        LOG.info('Getting virtual network XML from virsh complete')
+        LOG.info('Getting virtual network XML from libvirt complete')
         return cast(str, network.XMLDesc())
 
     def is_network_exist_by_name(self, network_name: str) -> bool:
@@ -144,7 +144,7 @@ class LibvirtNetworkAdapter:
         Returns:
             bool: True if the virtual network exists, False otherwise.
         """
-        LOG.info('Checking virtual network in virsh...')
+        LOG.info('Checking virtual network in libvirt...')
         with self.connection as connection:
             try:
                 connection.networkLookupByName(network_name)
@@ -162,7 +162,7 @@ class LibvirtNetworkAdapter:
         Returns:
             bool: True if the virtual network exists, False otherwise.
         """
-        LOG.info('Checking virtual network in virsh...')
+        LOG.info('Checking virtual network in libvirt...')
         with self.connection as connection:
             try:
                 connection.networkLookupByUUIDString(network_id)
@@ -180,7 +180,7 @@ class LibvirtNetworkAdapter:
         Returns:
             str: The state of the virtual network ('active' or 'inactive').
         """
-        LOG.info('Retrieving state of virtual network in virsh...')
+        LOG.info('Retrieving state of virtual network in libvirt...')
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(vn_id)
             if network.isActive():
@@ -200,7 +200,9 @@ class LibvirtNetworkAdapter:
             str: The persistence status of the virtual network ('yes' if
                 persistent, 'no' otherwise).
         """
-        LOG.info('Retrieving persistence status of virtual network in virsh...')
+        LOG.info(
+            'Retrieving persistence status of virtual network in libvirt...'
+        )
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(vn_id)
             if network.isPersistent():
@@ -220,7 +222,7 @@ class LibvirtNetworkAdapter:
             str: The autostart status of the virtual network ('yes' if autostart
                 is enabled, 'no' otherwise).
         """
-        LOG.info('Retrieving autostart status of virtual network in virsh...')
+        LOG.info('Retrieving autostart status of virtual network in libvirt...')
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(vn_id)
             if network.isPersistent():
@@ -239,7 +241,7 @@ class LibvirtNetworkAdapter:
         Returns:
             str: The UUID of the virtual network.
         """
-        LOG.info('Retrieving UUID string of virtual network in virsh...')
+        LOG.info('Retrieving UUID string of virtual network in libvirt...')
         with self.connection as connection:
             network = connection.networkLookupByName(network_name)
             uuid_str: str = network.UUIDString()
@@ -256,7 +258,7 @@ class LibvirtNetworkAdapter:
         Returns:
             str: The name of the virtual network.
         """
-        LOG.info('Retrieving network name of virtual network in virsh...')
+        LOG.info('Retrieving network name of virtual network in libvirt...')
         with self.connection as connection:
             network = connection.networkLookupByUUIDString(vn_id)
             network_name: str = network.name()
@@ -274,7 +276,7 @@ class LibvirtNetworkAdapter:
             str: The bridge name associated with the virtual network.
         """
         LOG.info(
-            f'Retrieving bridge name of virtual {network_id} network in virsh'
+            f'Retrieving bridge name of virtual {network_id} network in libvirt'
         )
 
         with self.connection as connection:
@@ -294,7 +296,8 @@ class LibvirtNetworkAdapter:
             str: The bridge name associated with the virtual network.
         """
         LOG.info(
-            f'Retrieving bridge name of virtual {network_name} network in virsh'
+            f'Retrieving bridge name of virtual {network_name} network in '
+            'libvirt'
         )
 
         with self.connection as connection:
