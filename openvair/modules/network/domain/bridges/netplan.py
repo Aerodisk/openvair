@@ -180,13 +180,7 @@ class NetplanInterface(BaseOVSBridge):
         routes, DNS settings) from the main network interface to the bridge.
 
         Args:
-            bridge_data (Dict): The br
-                iface_file,
-                iface_data,
-            )
-        except NetplanFileNotFoundException:
-            LOG.info(f'File for {iface_name} not found and will be create')
-            iface_file = self.netpidge configuration data.
+            bridge_data (Dict): The bridge configuration data.
             main_iface_data (Dict): The main interface configuration data.
         """
         LOG.info('Start moving params into bridge config...')
@@ -201,6 +195,7 @@ class NetplanInterface(BaseOVSBridge):
                     + main_iface_data.pop('addresses', [])
                 )
             )
+            bridge_data['gateway4'] = main_iface_data.pop('gateway4', None)
             main_iface_data['dhcp4'] = False
         except Exception as err:
             LOG.error(err)
