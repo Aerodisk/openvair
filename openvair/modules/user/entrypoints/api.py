@@ -25,7 +25,7 @@ from fastapi import Depends, APIRouter, status
 from fastapi.security import HTTPBearer
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.user.entrypoints import schemas
 from openvair.modules.user.entrypoints.crud import UserCrud
 

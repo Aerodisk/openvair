@@ -22,7 +22,7 @@ from starlette.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.notification.entrypoints import schemas
 from openvair.modules.notification.entrypoints.crud import NotificationCrud
 
