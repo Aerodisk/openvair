@@ -17,7 +17,9 @@ from pydantic import (
     ValidationError,
 )
 
-from openvair.modules.tools.utils import LOG
+from openvair.libs.log import get_logger
+
+LOG = get_logger(__name__)
 
 
 class Validator:

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecutionResult
-from openvair.modules.tools.utils import change_directory
+from openvair.libs.context_managers import change_directory
 from openvair.libs.data_handlers.json.serializer import deserialize_json
 from openvair.modules.backup.adapters.restic.exceptions import (
     ResticError,
