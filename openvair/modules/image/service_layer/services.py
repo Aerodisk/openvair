@@ -50,7 +50,6 @@ from openvair.modules.image.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
-from openvair.modules.image.libs.utils import get_size
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
@@ -457,7 +456,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Start preparing information for creating image in db.')
         image = ImageInfo(
-            size=get_size(f'{TMP_DIR}/{image_info["name"]}'),
+            size=Path(f'{TMP_DIR}/{image_info["name"]}').stat().st_size,
             name=image_info.pop('name', ''),
             description=image_info.pop('description', ''),
             storage_id=image_info.pop('storage_id', ''),
