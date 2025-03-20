@@ -37,6 +37,7 @@ class BaseSqlAlchemyUnitOfWork(AbstractUnitOfWork):
         """
         self.session_factory = session_factory
         self.session: Session
+        self._init_repositories()
 
     def __enter__(self) -> Self:
         """Begins a new database session and initializes repositories.
@@ -45,7 +46,6 @@ class BaseSqlAlchemyUnitOfWork(AbstractUnitOfWork):
             Self: The instance of the Unit of Work.
         """
         self.session = self.session_factory()
-        self._init_repositories()
         return self
 
     def __exit__(
