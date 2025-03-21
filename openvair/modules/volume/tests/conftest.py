@@ -12,6 +12,7 @@ from openvair.main import app
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.modules.volume.domain.model import VolumeFactory
+from openvair.modules.volume.tests.config import settings
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -92,13 +93,13 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
         'Authorization': 'Bearer mocked_token'
     }  # 🔹 Передаём тестовый токен
 
+    storage_disk = Path(settings.storage_path)
+
     storage_data = CreateStorage(
         name='test-storage',
         description='Test storage for integration tests',
         storage_type='localfs',
-        specs=LocalFSStorageExtraSpecsCreate(
-            path=Path('/dev/vdb'), fs_type='ext4'
-        ),
+        specs=LocalFSStorageExtraSpecsCreate(path=storage_disk, fs_type='ext4'),
     )
     response = client.post(
         '/storages/create/',
