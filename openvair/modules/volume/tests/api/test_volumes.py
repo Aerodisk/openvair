@@ -1,4 +1,6 @@
-  # noqa: D100
+# noqa: D100
+import time
+
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -27,6 +29,21 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     assert data['name'] == volume_data.name
     assert data['size'] == volume_data.size
     assert data['format'] == volume_data.format
-    import time
 
     time.sleep(5)
+
+
+def test_create_volume_invalid_size(
+    client: TestClient, test_storage: dict
+) -> None:
+    """Test creation failure with invalid size (zero)."""
+    volume_data = {
+        'name': 'volume-invalid-size',
+        'description': 'Invalid size test',
+        'storage_id': test_storage['id'],
+        'format': 'qcow2',
+        'size': 0,  # Invalid
+        'read_only': False,
+    }
+    response = client.post('/volumes/create/', json=volume_data)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
