@@ -27,10 +27,11 @@ class Template(Base):
         id: Unique identifier of the template.
         name: Unique name of the template.
         description: Optional description.
-        disk_path: Filesystem path to the qcow2 file stored in storage.
+        path: Filesystem path to the qcow2 file stored in storage.
         storage_id: Identifier of the storage where the template is located.
-        created_at: Timestamp when the template was created.
         is_backing: Flag indicating whether the template is a backing file.
+        created_at: Timestamp when the template was created.
+
     """
 
     __tablename__ = 'templates'
@@ -49,7 +50,7 @@ class Template(Base):
         Text,
         nullable=True,
     )
-    disk_path: Mapped[str] = mapped_column(
+    path: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
