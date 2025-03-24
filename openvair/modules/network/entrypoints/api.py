@@ -169,9 +169,9 @@ async def bridge_create(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def bridge_delete(
-        data: schemas.BridgeDelete,
-        user_info: Dict = Depends(get_current_user),
-        crud: InterfaceCrud = Depends(InterfaceCrud),
+    data: schemas.BridgeDelete,
+    user_info: Dict = Depends(get_current_user),
+    crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> List[Dict]:
     """API endpoint for deleting a bridge.
 

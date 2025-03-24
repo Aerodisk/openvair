@@ -145,14 +145,14 @@ class InterfaceCrud:
         LOG.debug('Response from service layer : %s.' % result)
         return result
 
-    def delete_bridge(self, data: Dict, user_info: Dict) -> List:
+    def delete_bridge(self, data: List, user_info: Dict) -> List:
         """Delete a network bridge by ID.
 
         This method calls the service layer to delete a network bridge based
         on the provided data and user information.
 
         Args:
-            data (Dict): A dictionary with list containing IDs of bridges to be deleted.
+            data (List): A list containing IDs of bridges to be deleted.
             user_info (Dict): A dictionary containing user information.
 
         Returns:
@@ -162,7 +162,8 @@ class InterfaceCrud:
         LOG.info('Call service layer on delete network bridge.')
         os_type_interface = get_os_type()
         result = []
-        for iface_id in data['interface_ids']:
+
+        for iface_id in data:
             iface = {'id': iface_id}
             iface.update(
                 {
