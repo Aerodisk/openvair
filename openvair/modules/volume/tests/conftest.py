@@ -1,5 +1,5 @@
 # noqa: D100
-from uuid import uuid4
+from uuid import UUID, uuid4
 from typing import Generator
 from pathlib import Path
 
@@ -11,12 +11,16 @@ from fastapi_pagination import add_pagination
 from openvair.main import app
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
+from openvair.modules.volume.adapters.orm import VolumeAttachVM
 from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.tests.config import settings
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
     LocalFSStorageExtraSpecsCreate,
+)
+from openvair.modules.volume.service_layer.unit_of_work import (
+    SqlAlchemyUnitOfWork,
 )
 
 LOG = get_logger(__name__)
@@ -134,7 +138,7 @@ def test_volume(
 ) -> Generator[dict, None, None]:
     """Creates a test volume via API call and removes it after tests."""
     volume_data = CreateVolume(
-        name='test-volume',
+        name=f'test-volume-{uuid4().hex[:6]}',
         description='Volume for integration tests',
         storage_id=test_storage['id'],
         format='qcow2',
@@ -163,3 +167,31 @@ def test_volume(
                 f'{delete_response.text}'
             )
         )
+
+
+@pytest.fixture(scope='function')
+def attached_volume(test_volume: dict) -> Generator[dict, None, None]:
+    """Creates an attachment between volume and VM (mocked) via DB."""
+    volume_id = UUID(test_volume['id'])
+    vm_id = uuid4()
+
+    with SqlAlchemyUnitOfWork() as uow:
+        db_volume = uow.volumes.get(volume_id)
+        attachment = VolumeAttachVM(vm_id=vm_id, volume_id=volume_id)
+        db_volume.attachments.append(attachment)
+        uow.session.add(attachment)
+        uow.commit()
+
+    yield {
+        'volume_id': volume_id,
+        'vm_id': vm_id,
+    }
+
+    # Очистка после теста
+    with SqlAlchemyUnitOfWork() as uow:
+        db_volume = uow.volumes.get(volume_id)
+        db_volume.attachments.clear()
+        uow.session.query(VolumeAttachVM).filter_by(
+            volume_id=volume_id
+        ).delete()
+        uow.commit()
