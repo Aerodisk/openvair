@@ -189,8 +189,8 @@ async def bridge_delete(
     """
     LOG.info('API: Start deleting a bridge')
     bridge = await run_in_threadpool(
-        crud.delete_bridge, 
-        data, 
+        crud.delete_bridge,
+        data,
         user_info
     )
     LOG.info('API: Request processed successfully.')
