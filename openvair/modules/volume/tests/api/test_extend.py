@@ -1,4 +1,11 @@
-# noqa: D100
+"""Integration tests for extending volumes.
+
+Covers:
+- Successful size extension of a volume.
+- Input validation (invalid UUID, invalid size).
+- Logical constraints (volume not in `available` status).
+"""
+
 from typing import TYPE_CHECKING
 
 from fastapi import status
@@ -16,7 +23,12 @@ LOG = get_logger(__name__)
 
 
 def test_extend_volume_success(client: TestClient, test_volume: dict) -> None:
-    """Test successful extension of volume size."""
+    """Test successful extension of volume size.
+
+    Asserts:
+    - Status is updated to 'extending', then 'available'.
+    - Final size matches expected.
+    """
     volume_id = test_volume['id']
     new_size = 2048
 
@@ -40,7 +52,11 @@ def test_extend_volume_success(client: TestClient, test_volume: dict) -> None:
 
 
 def test_extend_volume_invalid_uuid(client: TestClient) -> None:
-    """Test extending a volume with invalid UUID."""
+    """Test failure on extending with invalid UUID format.
+
+    Asserts:
+    - HTTP 422.
+    """
     response = client.post(
         '/volumes/not-a-uuid/extend/',
         json={'new_size': 2048},
@@ -51,7 +67,11 @@ def test_extend_volume_invalid_uuid(client: TestClient) -> None:
 def test_extend_volume_smaller_than_current(
     client: TestClient, test_volume: dict
 ) -> None:
-    """Test extending volume with new size <= current size."""
+    """Test failure when new size is not greater than current size.
+
+    Asserts:
+    - HTTP 500 with 'ValidateArgumentsError'.
+    """
     volume_id = test_volume['id']
     new_size = test_volume['size']  # same size
 
@@ -66,7 +86,11 @@ def test_extend_volume_smaller_than_current(
 def test_extend_volume_status_not_available(
     client: TestClient, test_volume: dict
 ) -> None:
-    """Test extending a volume with invalid status (not available)."""
+    """Test failure when volume status is not 'available'.
+
+    Asserts:
+    - HTTP 500 with 'VolumeStatusException'.
+    """
     volume_id = test_volume['id']
     with SqlAlchemyUnitOfWork() as uow:
         db_volume: ORMVolume = uow.volumes.get(volume_id)

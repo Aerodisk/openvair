@@ -1,4 +1,16 @@
-# noqa: D100
+"""Shared fixtures for volume integration tests.
+
+Provides:
+- `client`: FastAPI test client.
+- `mock_auth_dependency`: Replaces JWT auth with mock user.
+- `configure_pagination`: Enables pagination globally in tests.
+- `test_storage`: Creates and removes a test storage.
+- `test_volume`: Creates and deletes a volume for each test.
+- `attached_volume`: Mocks a volume-to-VM attachment in the DB.
+
+Includes:
+- `cleanup_all_volumes`: Utility to delete all volumes from DB + filesystem.
+"""
 from uuid import UUID, uuid4
 from typing import Generator
 from pathlib import Path
@@ -15,6 +27,7 @@ from openvair.modules.volume.adapters.orm import VolumeAttachVM
 from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.tests.config import settings
 from openvair.modules.volume.tests.helpers import generate_volume_name
+from openvair.modules.volume.adapters.serializer import DataSerializer
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -29,7 +42,7 @@ LOG = get_logger(__name__)
 
 @pytest.fixture(scope='session')
 def client() -> Generator[TestClient, None, None]:
-    """Test API client fixture."""
+    """Creates FastAPI TestClient with app instance for API testing."""
     with TestClient(app=app) as client:
         LOG.info('CLIENT WAS STARTS')
         yield client
@@ -39,7 +52,7 @@ def client() -> Generator[TestClient, None, None]:
 
 @pytest.fixture(autouse=True, scope='session')
 def mock_auth_dependency() -> None:
-    """Overrides JWT dependency for tests."""
+    """Overrides real JWT authentication with a mocked test user."""
     LOG.info('Mocking authentication dependencies')
     app.dependency_overrides[oauth2schema] = lambda: 'mocked_token'
     app.dependency_overrides[get_current_user] = lambda token='mocked_token': {
@@ -52,18 +65,12 @@ def mock_auth_dependency() -> None:
 
 @pytest.fixture(scope='session', autouse=True)
 def configure_pagination() -> None:
-    """Настраиваем пагинацию для тестов."""
-    add_pagination(app)  # Добавляет параметры пагинации по умолчанию
+    """Registers pagination support in the test app (FastAPI-pagination)."""
+    add_pagination(app)
 
 
-def cleanup_all_volumes() -> None:  # noqa: D103
-    from openvair.modules.volume.adapters.serializer import DataSerializer
-    from openvair.modules.volume.service_layer.unit_of_work import (
-        SqlAlchemyUnitOfWork,
-    )
-
-    LOG.info('START DELETE VOLUMES')
-
+def cleanup_all_volumes() -> None:
+    """Removes all volumes from DB and filesystem (used after storage tests)."""
     unit_of_work = SqlAlchemyUnitOfWork()
     try:
         with unit_of_work as uow:
@@ -83,10 +90,10 @@ def cleanup_all_volumes() -> None:  # noqa: D103
 
 @pytest.fixture(scope='session')
 def test_storage(client: TestClient) -> Generator[dict, None, None]:
-    """Creates a test storage via API call and removes it after tests."""
+    """Creates a test storage and deletes it after session ends."""
     headers = {
         'Authorization': 'Bearer mocked_token'
-    }  # 🔹 Передаём тестовый токен
+    }
 
     storage_disk = Path(settings.storage_path)
 
@@ -111,7 +118,6 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
     yield storage
     cleanup_all_volumes()
 
-    # 🧹 2. Теперь удаляем хранилище
     delete_response = client.delete(f"/storages/{storage['id']}/delete")
     if delete_response.status_code != status.HTTP_202_ACCEPTED:
         LOG.warning(
@@ -127,7 +133,7 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
 def test_volume(
     client: TestClient, test_storage: dict
 ) -> Generator[dict, None, None]:
-    """Creates a test volume via API call and removes it after tests."""
+    """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
         name=generate_volume_name(),
         description='Volume for integration tests',
@@ -162,7 +168,7 @@ def test_volume(
 
 @pytest.fixture(scope='function')
 def attached_volume(test_volume: dict) -> Generator[dict, None, None]:
-    """Creates an attachment between volume and VM (mocked) via DB."""
+    """Creates volume-to-VM attachment (directly in DB) and removes it after test."""  # noqa: E501
     volume_id = UUID(test_volume['id'])
     vm_id = uuid4()
 

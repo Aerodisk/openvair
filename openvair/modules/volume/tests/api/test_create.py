@@ -1,4 +1,11 @@
-# noqa: D100
+"""Integration tests for volume creation.
+
+Covers:
+- Successful volume creation.
+- Validation errors (e.g. missing fields, invalid size, format, name).
+- Logical errors (duplicate name, nonexistent storage, oversized request).
+"""
+
 import uuid
 
 from fastapi import status
@@ -15,7 +22,13 @@ LOG = get_logger(__name__)
 
 
 def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
-    """Test successful volume creation."""
+    """Test successful volume creation.
+
+    Asserts:
+    - Response is 200 OK.
+    - Returned fields match request.
+    - Volume reaches 'available' status.
+    """
     volume_data = CreateVolume(
         name=generate_volume_name(),
         description='Integration test volume',
@@ -44,7 +57,11 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
 def test_create_volume_invalid_size(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test creation failure with invalid size (zero)."""
+    """Test creation failure with invalid size (0 bytes).
+
+    Asserts:
+    - HTTP 422 due to failed validation.
+    """
     volume_data = {
         'name': 'volume-invalid-size',
         'description': 'Invalid size test',
@@ -60,7 +77,11 @@ def test_create_volume_invalid_size(
 def test_create_volume_without_name(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test volume creation fails when 'name' is missing."""
+    """Test volume creation fails if 'name' is missing.
+
+    Asserts:
+    - HTTP 422 due to required field missing.
+    """
     volume_data = {
         # 'name' is omitted
         'description': 'Missing name',
@@ -76,7 +97,11 @@ def test_create_volume_without_name(
 def test_create_volume_with_special_chars_in_name(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test volume creation fails with special characters in name."""
+    """Test failure on invalid characters in volume name.
+
+    Asserts:
+    - HTTP 422 due to invalid format.
+    """
     volume_data = {
         'name': 'invalid!name',
         'description': 'Invalid chars',
@@ -92,7 +117,11 @@ def test_create_volume_with_special_chars_in_name(
 def test_create_volume_with_invalid_format(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test volume creation fails with unsupported format."""
+    """Test failure when volume format is not allowed.
+
+    Asserts:
+    - HTTP 422 due to unsupported format.
+    """
     volume_data = {
         'name': 'volume-invalid-format',
         'description': 'Unsupported format',
@@ -108,7 +137,11 @@ def test_create_volume_with_invalid_format(
 def test_create_volume_with_duplicate_name(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test volume creation fails with duplicate name on the same storage."""
+    """Test failure when creating a volume with duplicate name in same storage.
+
+    Asserts:
+    - Second request returns HTTP 500.
+    """
     volume_data = {
         'name': 'duplicate-volume',
         'description': 'First volume',
@@ -129,7 +162,11 @@ def test_create_volume_with_duplicate_name(
 def test_create_volume_with_too_large_size(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test creation fails if requested size exceeds available storage."""
+    """Test failure when requested size exceeds storage capacity.
+
+    Asserts:
+    - HTTP 500 due to internal size check failure.
+    """
     volume_data = {
         'name': 'too-big-volume',
         'description': 'Should fail due to size',
@@ -143,7 +180,11 @@ def test_create_volume_with_too_large_size(
 
 
 def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
-    """Test volume creation fails if storage_id does not exist."""
+    """Test failure when storage_id is not found in database.
+
+    Asserts:
+    - HTTP 500 with 'storage' mentioned in response.
+    """
     volume_data = {
         'name': 'nonexistent-storage-volume',
         'description': 'Attempt to use bad storage_id',

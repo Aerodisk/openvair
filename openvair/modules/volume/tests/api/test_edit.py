@@ -1,4 +1,10 @@
-# noqa: D100
+"""Integration tests for editing volumes.
+
+Covers:
+- Successful update of volume metadata (name, description, read-only).
+- Validation errors (invalid UUID, invalid input data).
+- Logical constraints (invalid status, duplicate name).
+"""
 
 from typing import TYPE_CHECKING
 
@@ -17,7 +23,7 @@ LOG = get_logger(__name__)
 
 
 def test_edit_volume_success(client: TestClient, test_volume: dict) -> None:
-    """Test successful update of volume metadata."""
+    """Test successful metadata update for a volume."""
     volume_id = test_volume['id']
     payload = {
         'name': 'updated-volume',
@@ -33,7 +39,11 @@ def test_edit_volume_success(client: TestClient, test_volume: dict) -> None:
 
 
 def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
-    """Test edit attempt with invalid UUID format."""
+    """Test failure when editing volume with invalid UUID.
+
+    Asserts:
+    - HTTP 422 Unprocessable Entity.
+    """
     payload = {
         'name': 'something',
         'description': 'test',
@@ -46,7 +56,11 @@ def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
 def test_edit_volume_with_invalid_data(
     client: TestClient, test_volume: dict
 ) -> None:
-    """Test edit attempt with invalid payload (name too short)."""
+    """Test failure when name field is empty.
+
+    Asserts:
+    - HTTP 422 validation error.
+    """
     volume_id = test_volume['id']
     payload = {
         'name': '',  # Invalid
@@ -60,10 +74,16 @@ def test_edit_volume_with_invalid_data(
 def test_edit_volume_when_status_not_available(
     client: TestClient, test_volume: dict
 ) -> None:
-    """Test editing a volume with invalid status (not available)."""
+    """Test failure when editing a volume with non-available status.
+
+    Status is set manually to 'extending'.
+
+    Asserts:
+    - HTTP 500 with 'VolumeStatusException'.
+    """
     volume_id = test_volume['id']
 
-    # 🛠 Меняем статус вручную в БД
+    # Change manual DB status
     with SqlAlchemyUnitOfWork() as uow:
         db_volume: ORMVolume = uow.volumes.get(volume_id)
         db_volume.status = 'extending'
@@ -82,8 +102,12 @@ def test_edit_volume_when_status_not_available(
 def test_edit_volume_duplicate_name(
     client: TestClient, test_storage: dict
 ) -> None:
-    """Test editing volume to use duplicate name in same storage."""
-    # 1. Создаём 2 тома
+    """Test failure when renaming volume to name that already exists in storage.
+
+    Asserts:
+    - HTTP 500 with 'VolumeExistsOnStorageException'.
+    """
+    # 1. creates 2 volumes
     v1 = client.post(  # noqa: F841
         '/volumes/create/',
         json={
@@ -108,7 +132,7 @@ def test_edit_volume_duplicate_name(
         },
     ).json()
 
-    # 2. Пытаемся дать v2 имя v1
+    # 2. try to set the name for v2 as for v1.
     response = client.put(
         f"/volumes/{v2['id']}/edit/",
         json={

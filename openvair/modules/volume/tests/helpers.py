@@ -1,4 +1,10 @@
-  # noqa: D100
+"""Helper functions for volume integration tests.
+
+Includes:
+- `generate_volume_name`: Generates a unique name for testing.
+- `wait_for_status`: Waits until a volume reaches the expected status.
+"""
+
 import time
 import uuid
 
@@ -7,7 +13,7 @@ from fastapi.testclient import TestClient
 
 
 def generate_volume_name(prefix: str = 'test-volume') -> str:
-    """Генерирует уникальное имя тома с указанным префиксом."""  # noqa: RUF002
+    """Generates a unique volume name using UUID suffix."""
     return f'{prefix}-{uuid.uuid4().hex[:6]}'
 
 
@@ -18,9 +24,10 @@ def wait_for_status(
     timeout: int = 30,
     interval: float = 0.5,
 ) -> None:
-    """Ожидает, пока статус тома не станет равным expected_status.
+    """Waits until a volume reaches a specific status via polling.
 
-    Если за timeout секунд статус не изменится, выбрасывается TimeoutError.
+    Raises:
+        TimeoutError: If expected status is not reached within timeout.
     """
     start_time = time.time()
     while time.time() - start_time < timeout:

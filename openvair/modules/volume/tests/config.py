@@ -1,10 +1,23 @@
+"""Configuration for volume integration tests.
+
+Defines:
+- `VolumeTestSettings`: Environment-based settings (e.g. storage path, fs type).
+- Loads `.env.test` for overrides.
+"""
+
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class VolumeTestSettings(BaseSettings):  # noqa: D101
+class VolumeTestSettings(BaseSettings):
+    """Pydantic settings for test storage environment.
+
+    Attributes:
+        storage_path (Path): Filesystem path to use for test storage.
+        storage_fs_type (str): Filesystem type (e.g. ext4, xfs).
+    """
     storage_path: Path = Field(default=None, alias='TEST_STORAGE_PATH')
     storage_fs_type: str = Field(default='ext4', alias='TEST_STORAGE_FS_TYPE')
 
