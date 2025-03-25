@@ -14,6 +14,7 @@ from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.modules.volume.adapters.orm import VolumeAttachVM
 from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.tests.config import settings
+from openvair.modules.volume.tests.helpers import generate_volume_name
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -34,16 +35,6 @@ def client() -> Generator[TestClient, None, None]:
         yield client
         LOG.info('CLIENT WAS CLOSED')
 
-
-# @pytest.fixture(scope='function', autouse=True)
-# def cleanup_db() -> Generator[None, None, None]:
-#     """Database cleanup fixture executed before each test."""
-#     db_session: Session = DEFAULT_SESSION_FACTORY()
-#     for table in reversed(Base.metadata.sorted_tables):
-#         db_session.execute(table.delete())
-#     db_session.commit()
-#     yield
-#     db_session.close()
 
 
 @pytest.fixture(autouse=True, scope='session')
@@ -138,7 +129,7 @@ def test_volume(
 ) -> Generator[dict, None, None]:
     """Creates a test volume via API call and removes it after tests."""
     volume_data = CreateVolume(
-        name=f'test-volume-{uuid4().hex[:6]}',
+        name=generate_volume_name(),
         description='Volume for integration tests',
         storage_id=test_storage['id'],
         format='qcow2',

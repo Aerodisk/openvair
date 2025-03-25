@@ -1,11 +1,11 @@
 # noqa: D100
-import time
 from typing import TYPE_CHECKING
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.modules.volume.tests.helpers import wait_for_status
 from openvair.modules.volume.service_layer.unit_of_work import (
     SqlAlchemyUnitOfWork,
 )
@@ -28,7 +28,11 @@ def test_extend_volume_success(client: TestClient, test_volume: dict) -> None:
     assert data['id'] == volume_id
     assert data['status'] == 'extending'
 
-    time.sleep(5)
+    wait_for_status(
+        client,
+        test_volume['id'],
+        'available',
+    )
     response = client.get(f'/volumes/{volume_id}/')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()

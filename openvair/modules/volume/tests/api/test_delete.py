@@ -1,11 +1,11 @@
 # noqa: D100
-import time
 from typing import TYPE_CHECKING
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.modules.volume.tests.helpers import wait_for_status
 from openvair.modules.volume.service_layer.unit_of_work import (
     SqlAlchemyUnitOfWork,
 )
@@ -36,7 +36,11 @@ def test_delete_volume_invalid_status(
     client: TestClient, test_volume: dict
 ) -> None:
     """Test deletion fails when volume is not in deletable status."""
-    time.sleep(3)
+    wait_for_status(
+        client,
+        test_volume['id'],
+        'available',
+    )
     with SqlAlchemyUnitOfWork() as uow:
         volume: ORMVolume = uow.volumes.get(test_volume['id'])
         volume.status = 'extending'

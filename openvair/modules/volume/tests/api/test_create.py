@@ -1,11 +1,14 @@
 # noqa: D100
-import time
 import uuid
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.modules.volume.tests.helpers import (
+    wait_for_status,
+    generate_volume_name,
+)
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 
 LOG = get_logger(__name__)
@@ -14,7 +17,7 @@ LOG = get_logger(__name__)
 def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     """Test successful volume creation."""
     volume_data = CreateVolume(
-        name=f'test-volume-{uuid.uuid4().hex[:6]}',
+        name=generate_volume_name(),
         description='Integration test volume',
         storage_id=test_storage['id'],
         format='qcow2',
@@ -31,7 +34,11 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     assert data['size'] == volume_data.size
     assert data['format'] == volume_data.format
 
-    time.sleep(5)
+    wait_for_status(
+        client,
+        data['id'],
+        'available',
+    )
 
 
 def test_create_volume_invalid_size(
@@ -133,7 +140,6 @@ def test_create_volume_with_too_large_size(
     }
     response = client.post('/volumes/create/', json=volume_data)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-
 
 
 def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
