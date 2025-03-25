@@ -1,4 +1,4 @@
-  # noqa: D100
+# noqa: D100
 from uuid import uuid4
 from typing import Generator
 from pathlib import Path
@@ -141,8 +141,10 @@ def test_volume(
         size=1024,
         read_only=False,
     )
-    response = client.post('/volumes/create/', json=volume_data.model_dump())
-    if response.status_code != status.HTTP_201_CREATED:
+    response = client.post(
+        '/volumes/create/', json=volume_data.model_dump(mode='json')
+    )
+    if response.status_code != status.HTTP_200_OK:
         message = (
             f'Failed to create volume: {response.status_code}, '
             f'{response.text}'
