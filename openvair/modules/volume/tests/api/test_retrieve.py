@@ -106,7 +106,6 @@ def test_get_nonexistent_volume_by_id(client: TestClient) -> None:
     """Test requesting nonexistent UUID returns HTTP 500."""
     fake_volume_id = str(uuid.uuid4())
     response = client.get(f'/volumes/{fake_volume_id}/')
-    # API возвращает 200 с пустым dict — поведение зависит от реализации  # noqa: E501, RUF003, W505
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 

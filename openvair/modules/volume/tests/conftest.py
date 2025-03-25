@@ -24,10 +24,11 @@ from openvair.main import app
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.modules.volume.adapters.orm import VolumeAttachVM
-from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.tests.config import settings
-from openvair.modules.volume.tests.helpers import generate_volume_name
-from openvair.modules.volume.adapters.serializer import DataSerializer
+from openvair.modules.volume.tests.helpers import (
+    cleanup_all_volumes,
+    generate_volume_name,
+)
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -67,25 +68,6 @@ def mock_auth_dependency() -> None:
 def configure_pagination() -> None:
     """Registers pagination support in the test app (FastAPI-pagination)."""
     add_pagination(app)
-
-
-def cleanup_all_volumes() -> None:
-    """Removes all volumes from DB and filesystem (used after storage tests)."""
-    unit_of_work = SqlAlchemyUnitOfWork()
-    try:
-        with unit_of_work as uow:
-            s = uow.volumes.get_all()
-            for volume_data in s:
-                volume_instance = VolumeFactory().get_volume(
-                    DataSerializer.to_domain(volume_data)
-                )
-                uow.volumes.delete(volume_data.id)
-                volume_instance.delete()
-                uow.commit()
-                LOG.info('SUCCESS COMMIT')
-        LOG.info('FINISH DELETE VOLUMES')
-    except Exception as err:  # noqa: BLE001
-        LOG.warning(f'Error while cleaning up volumes: {err}')
 
 
 @pytest.fixture(scope='session')
@@ -184,7 +166,6 @@ def attached_volume(test_volume: dict) -> Generator[dict, None, None]:
         'vm_id': vm_id,
     }
 
-    # Очистка после теста
     with SqlAlchemyUnitOfWork() as uow:
         db_volume = uow.volumes.get(volume_id)
         db_volume.attachments.clear()
