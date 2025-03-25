@@ -60,16 +60,6 @@ class Interface(BaseModel):
     interface_extra_specs: Optional[InterfaceExtraSpecs] = None
 
 
-class BridgeDelete(BaseModel):
-    """Schema for deleting a bridge by interface IDs.
-
-    Attributes:
-        data (List[str]): The list of IDs of interfaces to delete.
-    """
-
-    data: List[str]
-
-
 class BridgeCreate(BaseModel):
     """Schema for creating a new bridge.
 

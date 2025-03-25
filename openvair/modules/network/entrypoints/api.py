@@ -169,14 +169,14 @@ async def bridge_create(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def bridge_delete(
-    data: schemas.BridgeDelete,
+    data: List[str],
     user_info: Dict = Depends(get_current_user),
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> List[Dict]:
     """API endpoint for deleting a bridge.
 
     Args:
-        data (schemas.BridgeDelete): IDs of bridges to delete.
+        data (List[str]): IDs of bridges to delete.
         user_info (Dict): User information retrieved from the authentication
             token.
         crud (InterfaceCrud, optional): Dependency injection for CRUD operations
@@ -191,7 +191,7 @@ async def bridge_delete(
     """
     LOG.info('API: Start deleting a bridge')
     bridge = await run_in_threadpool(
-        crud.delete_bridge, data.dict().get('data', {}), user_info
+        crud.delete_bridge, data, user_info
     )
     LOG.info('API: Request processed successfully.')
     return bridge
