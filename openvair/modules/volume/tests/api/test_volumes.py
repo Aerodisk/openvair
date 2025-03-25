@@ -1,12 +1,19 @@
 # noqa: D100
 import time
 import uuid
+from typing import TYPE_CHECKING
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
+from openvair.modules.volume.service_layer.unit_of_work import (
+    SqlAlchemyUnitOfWork,
+)
+
+if TYPE_CHECKING:
+    from openvair.modules.volume.adapters.orm import Volume as ORMVolume
 
 LOG = get_logger(__name__)
 
@@ -191,7 +198,8 @@ def test_get_all_volumes_no_results(client: TestClient) -> None:
 
 
 def test_get_volumes_with_pagination(
-    client: TestClient, test_volume: dict  # noqa: ARG001
+    client: TestClient,
+    test_volume: dict,  # noqa: ARG001
 ) -> None:
     """Test pagination metadata in volumes list."""
     response = client.get('/volumes/?page=1&size=1')
@@ -225,3 +233,201 @@ def test_get_volumes_with_invalid_free_volumes_param(
     """Test invalid free_volumes query param returns 422."""
     response = client.get('/volumes/?free_volumes=maybe')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_get_existing_volume_by_id(
+    client: TestClient, test_volume: dict
+) -> None:
+    """Test retrieving an existing volume by its ID."""
+    volume_id = test_volume['id']
+    response = client.get(f'/volumes/{volume_id}/')
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data['id'] == volume_id
+    assert data['name'] == test_volume['name']
+    assert data['storage_id'] == test_volume['storage_id']
+
+
+def test_get_nonexistent_volume_by_id(client: TestClient) -> None:
+    """Test retrieving a volume with a valid UUID that does not exist."""
+    fake_volume_id = str(uuid.uuid4())
+    response = client.get(f'/volumes/{fake_volume_id}/')
+    # API возвращает 200 с пустым dict — поведение зависит от реализации  # noqa: E501, RUF003, W505
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data == {} or data.get('id') == fake_volume_id  # Допустимо пусто
+
+
+def test_get_volume_with_invalid_uuid(client: TestClient) -> None:
+    """Test retrieving a volume with an invalid UUID string."""
+    response = client.get('/volumes/invalid-uuid/')
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_edit_volume_success(client: TestClient, test_volume: dict) -> None:
+    """Test successful update of volume metadata."""
+    volume_id = test_volume['id']
+    payload = {
+        'name': 'updated-volume',
+        'description': 'Updated description',
+        'read_only': True,
+    }
+    response = client.put(f'/volumes/{volume_id}/edit/', json=payload)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data['name'] == payload['name']
+    assert data['description'] == payload['description']
+    assert data['read_only'] is True
+
+
+def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
+    """Test edit attempt with invalid UUID format."""
+    payload = {
+        'name': 'something',
+        'description': 'test',
+        'read_only': False,
+    }
+    response = client.put('/volumes/invalid-uuid/edit/', json=payload)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_edit_volume_with_invalid_data(
+    client: TestClient, test_volume: dict
+) -> None:
+    """Test edit attempt with invalid payload (name too short)."""
+    volume_id = test_volume['id']
+    payload = {
+        'name': '',  # Invalid
+        'description': 'Still valid',
+        'read_only': False,
+    }
+    response = client.put(f'/volumes/{volume_id}/edit/', json=payload)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_edit_volume_when_status_not_available(
+    client: TestClient, test_volume: dict
+) -> None:
+    """Test editing a volume with invalid status (not available)."""
+    volume_id = test_volume['id']
+
+    # 🛠 Меняем статус вручную в БД
+    with SqlAlchemyUnitOfWork() as uow:
+        db_volume: ORMVolume = uow.volumes.get(volume_id)
+        db_volume.status = 'extending'
+        uow.commit()
+
+    payload = {
+        'name': 'should-fail',
+        'description': 'Trying to update',
+        'read_only': False,
+    }
+    response = client.put(f'/volumes/{volume_id}/edit/', json=payload)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'VolumeStatusException' in response.text
+
+
+def test_edit_volume_duplicate_name(
+    client: TestClient, test_storage: dict
+) -> None:
+    """Test editing volume to use duplicate name in same storage."""
+    # 1. Создаём 2 тома
+    v1 = client.post(  # noqa: F841
+        '/volumes/create/',
+        json={
+            'name': 'original-volume',
+            'description': 'v1',
+            'storage_id': test_storage['id'],
+            'format': 'qcow2',
+            'size': 1024,
+            'read_only': False,
+        },
+    ).json()
+
+    v2 = client.post(
+        '/volumes/create/',
+        json={
+            'name': 'conflict-name',
+            'description': 'v2',
+            'storage_id': test_storage['id'],
+            'format': 'qcow2',
+            'size': 1024,
+            'read_only': False,
+        },
+    ).json()
+
+    # 2. Пытаемся дать v2 имя v1
+    response = client.put(
+        f"/volumes/{v2['id']}/edit/",
+        json={
+            'name': 'original-volume',
+            'description': 'Try to rename',
+            'read_only': False,
+        },
+    )
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'VolumeExistsOnStorageException' in response.text
+
+
+def test_extend_volume_success(client: TestClient, test_volume: dict) -> None:
+    """Test successful extension of volume size."""
+    volume_id = test_volume['id']
+    new_size = 2048
+
+    response = client.post(
+        f'/volumes/{volume_id}/extend/', json={'new_size': new_size}
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data['id'] == volume_id
+    assert data['status'] == 'extending'
+
+    time.sleep(5)
+    response = client.get(f'/volumes/{volume_id}/')
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data['size'] == new_size
+
+
+def test_extend_volume_invalid_uuid(client: TestClient) -> None:
+    """Test extending a volume with invalid UUID."""
+    response = client.post(
+        '/volumes/not-a-uuid/extend/',
+        json={'new_size': 2048},
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_extend_volume_smaller_than_current(
+    client: TestClient, test_volume: dict
+) -> None:
+    """Test extending volume with new size <= current size."""
+    volume_id = test_volume['id']
+    new_size = test_volume['size']  # same size
+
+    response = client.post(
+        f'/volumes/{volume_id}/extend/',
+        json={'new_size': new_size},
+    )
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'ValidateArgumentsError' in response.text
+
+
+def test_extend_volume_status_not_available(
+    client: TestClient, test_volume: dict
+) -> None:
+    """Test extending a volume with invalid status (not available)."""
+    volume_id = test_volume['id']
+    with SqlAlchemyUnitOfWork() as uow:
+        db_volume: ORMVolume = uow.volumes.get(volume_id)
+        db_volume.status = 'extending'
+        uow.commit()
+
+    response = client.post(
+        f'/volumes/{volume_id}/extend/',
+        json={'new_size': db_volume.size + 1024},
+    )
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'VolumeStatusException' in response.text
