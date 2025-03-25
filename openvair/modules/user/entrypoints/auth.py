@@ -23,7 +23,7 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import (
+from openvair.libs.auth.jwt_utils import (
     create_tokens,
     create_access_token,
     create_refresh_token,

@@ -11,7 +11,8 @@ Classes:
 from typing import Any
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.modules.network.domain.base import BaseInterface
 
 LOG = get_logger(__name__)
@@ -38,7 +39,14 @@ class VirtualInterface(BaseInterface):
         """
         LOG.info(f'Domain layer start enabling virtual interface {self.name}')
         # It may not enable on the first attempt.
-        execute('ip', 'link', 'set', self.name, 'up', run_as_root=True)
+        execute(
+            f'ip link set {self.name} up',
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+                raise_on_error=True,
+            ),
+        )
         LOG.info(
             f'Domain layer successfully enabled virtual interface {self.name}'
         )
@@ -50,7 +58,14 @@ class VirtualInterface(BaseInterface):
         """
         LOG.info(f'Domain layer start disabling virtual interface {self.name}')
         # It may not disable on the first attempt.
-        execute('ip', 'link', 'set', self.name, 'down', run_as_root=True)
+        execute(
+            f'ip link set {self.name} down',
+            params=ExecuteParams(  # noqa: S604
+                shell=True,
+                run_as_root=True,
+                raise_on_error=True,
+            ),
+        )
         LOG.info(
             f'Domain layer successfully disabled virtual interface {self.name}'
         )

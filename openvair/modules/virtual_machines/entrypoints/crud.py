@@ -12,7 +12,7 @@ Classes:
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import validate_objects
+from openvair.libs.validation.validators import Validator
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
@@ -69,8 +69,7 @@ class VMCrud:
             data_for_method={},
         )
         LOG.debug('Response from service layer: %s.', result)
-        vms: List = validate_objects(result, schemas.VirtualMachineInfo)
-        return vms
+        return Validator.validate_objects(result, schemas.VirtualMachineInfo)
 
     def create_vm(self, data: Dict, user_info: Dict) -> Dict:
         """Create a new virtual machine.

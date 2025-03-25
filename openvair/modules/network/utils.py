@@ -15,11 +15,12 @@ Classes:
 """
 
 import re
-import json
 from typing import Any, Dict, List, Optional
 
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.abstracts.base_exception import BaseCustomException
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 
 class GettingSystemInfoError(BaseCustomException):
@@ -68,20 +69,30 @@ class InterfacesFromSystem(list):
         """
         all_interfaces_data = []
 
-        stdout, stderr = execute('ip', '-json', 'a')
+        exec_res = execute(
+            'ip',
+            '-json',
+            'a',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
 
-        if stderr == '/bin/sh: ip: command not found\n':
+        if exec_res.stderr == '/bin/sh: ip: command not found\n':
             message = (
                 "Error in getting interfaces from system, cause util 'ip' not "
                 'found.'
             )
             raise MissingRequiredComponentError(message)
 
-        if stderr != '':
-            message = f'Error in getting interfaces from system: {stderr}'
+        if exec_res.stderr != '':
+            message = (
+                f'Error in getting interfaces from system: {exec_res.stderr}'
+            )
             raise GettingSystemInfoError(message)
 
-        sys_output_infs: List[Dict] = json.loads(stdout)
+        sys_output_infs: List[Dict] = deserialize_json(exec_res.stdout)
 
         for sys_inf in sys_output_infs:
             inf_data = {}
@@ -135,13 +146,29 @@ class InterfacesFromSystem(list):
             None, if there is no duplex for specified interface.
 
         """
-        duplex = execute('cat', f'/sys/class/net/{interface_name}/duplex')
-        return duplex[0].strip() if duplex[0] else None
+        exec_res = execute(
+            'cat',
+            f'/sys/class/net/{interface_name}/duplex',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        duplex = exec_res.stdout
+        return duplex.strip() if duplex else None
 
     @staticmethod
     def _get_speed_by_name(interface_name: str) -> Optional[str]:
-        speed = execute('cat', f'/sys/class/net/{interface_name}/speed')
-        return speed[0].strip() if speed[0] else None
+        exec_res = execute(
+            'cat',
+            f'/sys/class/net/{interface_name}/speed',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        speed = exec_res.stdout
+        return speed.strip() if speed else None
 
     @staticmethod
     def _get_slot_port_by_name(interface_name: str) -> Optional[str]:
@@ -158,13 +185,18 @@ class InterfacesFromSystem(list):
             None, if there is no slot_port for specified interface.
 
         """
-        result = execute(
+        exec_res = execute(
             'grep',
             'PCI_SLOT_NAME',
             f'/sys/class/net/{interface_name}/device/uevent',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
         )
-        if result[0]:
-            slot_port_match = re.search(r'=(.+)', result[0])
+        result = exec_res.stdout
+        if result:
+            slot_port_match = re.search(r'=(.+)', result)
             if slot_port_match:
                 return slot_port_match.group(1)
 
@@ -178,9 +210,20 @@ class InterfacesFromSystem(list):
             List of physical interfaces names (List[str]).
 
         """
-        result = execute(
-            'ls', '-l', '/sys/class/net/', '|', 'grep', '-v', 'virtual'
-        )[0]
+        exec_res = execute(
+            'ls',
+            '-l',
+            '/sys/class/net/',
+            '|',
+            'grep',
+            '-v',
+            'virtual',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        result = exec_res.stdout
         return re.findall(r'/net/(.+)(?:\s|$)', result)
 
     def get_all(self) -> List:  # noqa: D102

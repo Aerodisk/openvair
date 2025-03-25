@@ -86,6 +86,29 @@ class BackupServiceLayerManager(BackgroundTasks):
         LOG.info('Backup successfull created')
         return result
 
+    def delete_snapshot(
+        self, data: Dict[str, str]
+    ) -> Dict[str, Union[str, int, None]]:
+        """Delete a specific snapshot.
+
+        This method invokes the domain layer to remove a snapshot from the
+        backup repository.
+
+        Args:
+            data (Dict[str, str]): Dictionary containing snapshot information.
+                Must include the key `snapshot_id`.
+
+        Returns:
+            Dict[str, Union[str, int, None]]: Information about the deletion
+                result.
+        """
+        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
+            FSBackuper.delete_snapshot.__name__,
+            data_for_manager=self.__create_data_for_domain_manager(),
+            data_for_method={'snapshot_id': data.get('snapshot_id')},
+        )
+        return result
+
     def restore_backup(
         self,
         data: Dict[

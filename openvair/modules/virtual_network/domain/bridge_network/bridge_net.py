@@ -14,7 +14,6 @@ from typing import Any, Dict, List, cast
 from libvirt import libvirtError
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.jinja_tools import xml_collector
 from openvair.modules.virtual_network.domain.base import (
     BasePortGroup,
     BaseVirtualNetwork,
@@ -22,6 +21,9 @@ from openvair.modules.virtual_network.domain.base import (
 from openvair.modules.virtual_network.domain.exception import (
     PortGroupException,
     VirshDefineNetworkException,
+)
+from openvair.modules.virtual_network.libs.template_rendering.virtual_network_renderer import (  # noqa: E501
+    VirtualNetworkRenderer,
 )
 
 LOG = get_logger(__name__)
@@ -53,6 +55,7 @@ class BridgeNetwork(BaseVirtualNetwork):
         self.port_groups: List[BasePortGroup] = [
             BridgePortGroup(**pg) for pg in kwargs.pop('port_groups', [])
         ]
+        self.renderer = VirtualNetworkRenderer()
 
     def add_port_group(self, port_group: Dict) -> Dict[str, Any]:
         """Adds a port group to the bridge network.
@@ -192,7 +195,7 @@ class BridgeNetwork(BaseVirtualNetwork):
 
     def _define_network(self) -> None:
         """Defines the virtual network in virsh."""
-        xml_file = xml_collector.create_virtual_network_xml(self.as_dict())
+        xml_file = self.renderer.create_virtual_network_xml(self.as_dict())
         try:
             self.virsh.define_network(xml_file)
             self.virsh_xml = self.virsh.get_network_xml_by_name(

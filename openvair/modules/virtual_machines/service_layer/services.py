@@ -30,7 +30,6 @@ Functions:
 from __future__ import annotations
 
 import enum
-import json
 import time
 import string
 from uuid import UUID, uuid4
@@ -38,8 +37,9 @@ from typing import Dict, List, Optional, cast
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_virsh_list, synchronized_session
+from openvair.libs.libvirt.vm import get_vms_state
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
+from openvair.libs.context_managers import synchronized_session
 from openvair.modules.virtual_machines import config
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
@@ -47,6 +47,7 @@ from openvair.libs.messaging.exceptions import (
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.adapters import orm
+from openvair.libs.data_handlers.json.serializer import serialize_json
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.virtual_machines.domain.base import BaseVMDriver
 from openvair.modules.virtual_machines.service_layer import (
@@ -256,7 +257,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         disks = vm_info.pop('disks', {})
         for attach_disk in disks.pop('attach_disks', []):
-            attach_disk.update({'qos': json.dumps(attach_disk.get('qos'))})
+            attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
             if attach_disk.get('volume_id', ''):
                 attach_disk.update(
                     {
@@ -1077,7 +1078,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         disks = vm_data.pop('disks', {})
         for attach_disk in disks.pop('attach_disks', []):
-            attach_disk.update({'qos': json.dumps(attach_disk.get('qos'))})
+            attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
             if attach_disk.get('volume_id', ''):
                 attach_disk.update(
                     {
@@ -1348,7 +1349,7 @@ class VMServiceLayerManager(BackgroundTasks):
         This method runs as a periodic task every 10 seconds.
         """
         LOG.info('Start monitoring.')
-        virsh_list = get_virsh_list()
+        virsh_list = get_vms_state()
         with self.uow:
             with synchronized_session(self.uow.session):
                 for db_vm in self.uow.virtual_machines.get_all():

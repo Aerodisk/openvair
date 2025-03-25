@@ -16,13 +16,13 @@ Endpoints:
         machine.
 """
 
+from uuid import UUID
 from typing import Dict, Optional, cast
 from pathlib import Path as Path_lib
 
 import aiofiles
 from fastapi import (
     File,
-    Path,
     Query,
     Depends,
     APIRouter,
@@ -36,13 +36,12 @@ from starlette.concurrency import run_in_threadpool
 
 from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.image.config import CHUNK_SIZE
 from openvair.modules.image.entrypoints import schemas, exceptions
 from openvair.modules.image.entrypoints.crud import ImageCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/images',
@@ -58,10 +57,9 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_images(
-    storage_id: Optional[str] = Query(
+    storage_id: Optional[UUID] = Query(
         default=None,
         description='Storage id (UUID4)',
-        regex=UUID_REGEX,
     ),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> Page[schemas.Image]:
@@ -95,7 +93,7 @@ async def get_images(
     dependencies=[Depends(get_current_user)],
 )
 async def get_image(
-    image_id: str = Path(description='Image id (UUID4)', regex=UUID_REGEX),
+    image_id: UUID,
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
     """Retrieve metadata of a specific image by its ID.
@@ -125,15 +123,12 @@ async def get_image(
     status_code=status.HTTP_200_OK,
 )
 async def upload_image(  # noqa: PLR0913 need create a schema for arguments
+    storage_id: UUID,
     description: str = Query(
         default='',
         description='Image description',
     ),
-    storage_id: str = Query(
-        default='', description='Storage id (UUID4)', regex=UUID_REGEX
-    ),
     name: str = Query(
-        default='',
         description='Image name',
     ),
     image: UploadFile = File(..., description='Upload image.'),
@@ -201,7 +196,7 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
     status_code=status.HTTP_200_OK,
 )
 async def delete_image(
-    image_id: str = Path(..., description='Image id (UUID4)', regex=UUID_REGEX),
+    image_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> JSONResponse:
@@ -235,7 +230,7 @@ async def delete_image(
 )
 async def attach_image(
     data: schemas.AttachImage,
-    image_id: str = Path(..., description='Image id (UUID4)', regex=UUID_REGEX),
+    image_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.AttachImageInfo:
@@ -259,7 +254,7 @@ async def attach_image(
     """
     LOG.info('Api handle response on attach image: %s to vm:' % image_id)
     attached_image = await run_in_threadpool(
-        crud.attach_image, image_id, data.dict(), user_info
+        crud.attach_image, image_id, data.model_dump(mode='json'), user_info
     )
     LOG.info('Api request was successfully processed.')
     return schemas.AttachImageInfo(**attached_image)
@@ -272,7 +267,7 @@ async def attach_image(
 )
 async def detach_image(
     detach_info: schemas.DetachImage,
-    image_id: str = Path(..., description='Image id (UUID4)', regex=UUID_REGEX),
+    image_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
@@ -299,7 +294,10 @@ async def detach_image(
         'image: %s from vm: %s' % (image_id, detach_info)
     )
     detached_image = await run_in_threadpool(
-        crud.detach_image, image_id, detach_info.dict(), user_info
+        crud.detach_image,
+        image_id,
+        detach_info.model_dump(mode='json'),
+        user_info,
     )
     LOG.info('Api request was successfully processed.')
     return schemas.Image(**detached_image)

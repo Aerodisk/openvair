@@ -13,6 +13,7 @@ from openvair.libs.log import get_logger
 from openvair.modules.backup.schemas import (
     ResticSnapshot,
     ResticBackupResult,
+    ResticDeleteResult,
     ResticRestoreResult,
 )
 from openvair.modules.backup.domain.base import FSBackuper
@@ -167,3 +168,35 @@ class ResticBackuper(FSBackuper):
             message = f'Error while getting snapshots: {err!s}'
             LOG.error(message)
             raise SnapshotGettingResticBackuperError(message)
+
+    def delete_snapshot(
+        self, data: Dict[str, str]
+    ) -> Dict[str, Union[str, int, None]]:
+        """Delete a specific snapshot from the Restic repository.
+
+        This method removes a snapshot from the Restic repository using
+        the `forget --prune` command.
+
+        Args:
+            data (Dict[str, str]): Dictionary containing snapshot information.
+                Must include the key `snapshot_id`.
+
+        Returns:
+            Dict[str, Union[str, int, None]]: Information about the deletion
+                result, corresponding to the `ResticDeleteResult` model.
+
+        Raises:
+            RestoreResticBackuperError: If the deletion operation fails.
+        """
+        snapshot_id = data['snapshot_id']
+        try:
+            LOG.info(f'Deleting snapshot: `{snapshot_id}`...')
+            deleting_data = self.restic.forget(snapshot_id)
+            LOG.info(f'Deleting snapshot `{snapshot_id}` complete')
+            return ResticDeleteResult.model_validate(
+                deleting_data
+            ).model_dump()
+        except ResticError as err:
+            message = f'Error while deleting snapshot {snapshot_id}: {err!s}'
+            LOG.error(message)
+            raise RestoreResticBackuperError(message)
