@@ -37,7 +37,7 @@ from typing import Dict, List, Optional, cast
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
-from openvair.libs.libvirt.domain import get_vms_state
+from openvair.libs.libvirt.vm import get_vms_state
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.libs.context_managers import synchronized_session
 from openvair.modules.virtual_machines import config

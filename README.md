@@ -88,7 +88,7 @@ recommended to use **Ubuntu 20.04**, which is the most tested version.
 4. Configure the configuration file:
 
     ```shell
-    vi ~/openvair/project_config.toml
+    nano ~/openvair/project_config.toml
     ```
 
 ### ⚙️ Project Configuration
