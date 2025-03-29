@@ -267,6 +267,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
         with self.uow:
             db_iface = self.uow.interfaces.get(iface_id)
+            data['name'] = db_iface.name
             try:
                 db_iface.status = InterfaceStatus.deleting.name
                 self.uow.commit()
