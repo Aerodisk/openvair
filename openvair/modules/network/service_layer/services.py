@@ -267,6 +267,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
         with self.uow:
             db_iface = self.uow.interfaces.get(iface_id)
+            data['name'] = db_iface.name
             try:
                 db_iface.status = InterfaceStatus.deleting.name
                 self.uow.commit()
@@ -430,8 +431,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
             exceptions.InterfaceDeletingError: If an error occurs during the
                 RPC call to the domain layer.
         """
-        user_info = data.get('user_data', {})
-        user_id = user_info.get('user_id', '')
+        user_info = data.get('user_info', {})
+        user_id = user_info.get('id', '')
         iface_id = data.get('id', '')
 
         with self.uow:
