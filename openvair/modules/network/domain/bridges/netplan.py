@@ -192,16 +192,22 @@ class NetplanInterface(BaseOVSBridge):
         LOG.info('Start moving params into bridge config...')
         try:
             bridge_data['nameservers'] = main_iface_data.pop('nameservers', [])
-            if main_iface_data.get('dhcp4'):
-                bridge_data['dhcp4'] = 'yes'
-            bridge_data['routes'] = main_iface_data.pop('routes', None)
+            bridge_data['dhcp4'] = main_iface_data.get('dhcp4', False)
+            bridge_data['routes'] = main_iface_data.pop('routes', [])
+            gateway4 = main_iface_data.pop('gateway4', None)
+            if gateway4:
+                bridge_data['routes'].append({
+                    'to': 'default',
+                    'via': gateway4
+                })
+
             bridge_data['addresses'] = list(
                 set(
                     bridge_data.pop('addresses', [])
                     + main_iface_data.pop('addresses', [])
                 )
             )
-            bridge_data['gateway4'] = main_iface_data.pop('gateway4', None)
+
             main_iface_data['dhcp4'] = False
         except Exception as err:
             LOG.error(err)
