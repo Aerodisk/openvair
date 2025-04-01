@@ -283,9 +283,8 @@ class NetplanInterface(BaseOVSBridge):
         if not dhcp4:
             iface_info['addresses'] = [f'{ip}/24'] if ip else None
             if iface_name == self.main_port:
-                iface_info['routes'] = [
-                    {'to': 'default', 'via': self.default_route}
-                ]
+                # добавляем gateway4 явно
+                iface_info['gateway4'] = self.default_route
                 iface_info['nameservers'] = {'addresses': [self.default_route]}
 
         LOG.info(f'Info from {iface_name}: {iface_info}')
