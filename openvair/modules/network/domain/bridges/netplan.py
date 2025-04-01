@@ -201,6 +201,7 @@ class NetplanInterface(BaseOVSBridge):
                     + main_iface_data.pop('addresses', [])
                 )
             )
+            bridge_data['gateway4'] = main_iface_data.pop('gateway4', None)
             main_iface_data['dhcp4'] = False
         except Exception as err:
             LOG.error(err)
