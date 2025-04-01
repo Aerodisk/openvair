@@ -101,29 +101,36 @@ class NetplanInterface(BaseOVSBridge):
         Args:
             bridge_data (Dict): The data of the bridge.
         """
-        LOG.info('Prepairing interfaces...')
+        LOG.info('Preparing interfaces...')
         for interface in self.interfaces:
             iface_name: str = interface['name']
             try:
                 iface_file = self.netplan_manager.get_path_yaml(iface_name)
+                iface_data = self.netplan_manager.get_iface_data_from_yaml(
+                    iface_name, iface_file
+                )
+
+                if iface_name == (self.main_port and 'routes' not in iface_data
+                    and 'gateway4' not in iface_data):
+                    LOG.info(f'Adding missing gateway info to {iface_name}')
+                    additional_info = self._collect_iface_info(iface_name)
+                    iface_data.update(additional_info)
+
             except NetplanFileNotFoundException as err:
                 LOG.info(err)
                 iface_file = self._create_iface_file(iface_name)
+                iface_data = self.netplan_manager.get_iface_data_from_yaml(
+                    iface_name, iface_file
+                )
 
-            iface_data = self.netplan_manager.get_iface_data_from_yaml(
-                iface_name,
-                iface_file,
-            )
             if self.main_port == iface_name:
-                LOG.info(f'Bridge containing main inetrface: {iface_name}')
+                LOG.info(f'Bridge containing main interface: {iface_name}')
                 self._move_main_port_params_into_bridge(bridge_data, iface_data)
 
             self.netplan_manager.change_iface_yaml_file(
-                iface_name,
-                iface_file,
-                iface_data,
+                iface_name, iface_file, iface_data
             )
-        LOG.info('Interfaces prepaired!')
+        LOG.info('Interfaces prepared!')
 
     def _prepare_ifaces_for_deleting(self, bridge_data: Dict) -> None:
         """Restore the network interfaces before bridge deletion.
