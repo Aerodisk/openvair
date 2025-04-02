@@ -106,30 +106,40 @@ class NetplanInterface(BaseOVSBridge):
             iface_name: str = interface['name']
             try:
                 iface_file = self.netplan_manager.get_path_yaml(iface_name)
-                iface_data = self.netplan_manager.get_iface_data_from_yaml(
-                    iface_name, iface_file
-                )
-
-                if iface_name == (self.main_port and 'routes' not in iface_data
-                    and 'gateway4' not in iface_data):
-                    LOG.info(f'Adding missing gateway info to {iface_name}')
-                    additional_info = self._collect_iface_info(iface_name)
-                    iface_data.update(additional_info)
-
             except NetplanFileNotFoundException as err:
                 LOG.info(err)
                 iface_file = self._create_iface_file(iface_name)
-                iface_data = self.netplan_manager.get_iface_data_from_yaml(
-                    iface_name, iface_file
-                )
 
-            if self.main_port == iface_name:
-                LOG.info(f'Bridge containing main interface: {iface_name}')
+            iface_data = self.netplan_manager.get_iface_data_from_yaml(
+                iface_name,
+                iface_file,
+            )
+
+            if iface_name == self.main_port:
+                LOG.info(f'Configuring static IP explicitly for main interface: {iface_name}')
+
+                # Принудительно получаем текущий IP интерфейса и Gateway
+                current_ip = self.ip_manager.get_iface_ip(iface_name)
+                default_gateway = self.ip_manager.get_default_gateway_ip()
+
+                # Явно устанавливаем IP и маршруты статично
+                iface_data.update({
+                    'dhcp4': False,
+                    'addresses': [f'{current_ip}/24'],
+                    'routes': [{'to': 'default', 'via': default_gateway}],
+                    'nameservers': {'addresses': [default_gateway]}
+                })
+
+                # Переносим параметры в мост
                 self._move_main_port_params_into_bridge(bridge_data, iface_data)
 
+            # Сохраняем обновлённый конфиг интерфейса
             self.netplan_manager.change_iface_yaml_file(
-                iface_name, iface_file, iface_data
+                iface_name,
+                iface_file,
+                iface_data,
             )
+
         LOG.info('Interfaces prepared!')
 
     def _prepare_ifaces_for_deleting(self, bridge_data: Dict) -> None:
