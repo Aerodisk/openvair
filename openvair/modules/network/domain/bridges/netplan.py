@@ -95,8 +95,9 @@ class NetplanInterface(BaseOVSBridge):
         """Prepare interfaces for bridge configuration.
 
         This method retrieves and updates the configuration of network
-        interfaces that will be attached to the bridge. It also backs up
-        existing YAML configuration files or creates new ones if necessary.
+        interfaces that will be attached to the bridge. It ensures that
+        the main network interface is configured with a static IP and
+        moves its parameters into the bridge configuration.
 
         Args:
             bridge_data (Dict): The data of the bridge.
@@ -116,13 +117,14 @@ class NetplanInterface(BaseOVSBridge):
             )
 
             if iface_name == self.main_port:
-                LOG.info(f'Configuring static IP explicitly for main interface: {iface_name}')
+                LOG.info(
+                    'Configuring static IP explicitly for '
+                    f'main interface: {iface_name}'
+                )
 
-                # Принудительно получаем текущий IP интерфейса и Gateway
                 current_ip = self.ip_manager.get_iface_ip(iface_name)
                 default_gateway = self.ip_manager.get_default_gateway_ip()
 
-                # Явно устанавливаем IP и маршруты статично
                 iface_data.update({
                     'dhcp4': False,
                     'addresses': [f'{current_ip}/24'],
@@ -130,10 +132,8 @@ class NetplanInterface(BaseOVSBridge):
                     'nameservers': {'addresses': [default_gateway]}
                 })
 
-                # Переносим параметры в мост
                 self._move_main_port_params_into_bridge(bridge_data, iface_data)
 
-            # Сохраняем обновлённый конфиг интерфейса
             self.netplan_manager.change_iface_yaml_file(
                 iface_name,
                 iface_file,
