@@ -153,9 +153,6 @@ class NetplanInterface(BaseOVSBridge):
         """
         for iface_name in bridge_data['interfaces']:
             try:
-                # I think it will be necessary to work on stability in this bloc
-                # May be need to check if file have another ifaces and check
-                # configuration for this iface in antoher files
                 LOG.info(f'Restoring backup file for {iface_name}')
                 iface_file = self.netplan_manager.get_path_yaml(iface_name)
             except NetplanFileNotFoundException as err:
