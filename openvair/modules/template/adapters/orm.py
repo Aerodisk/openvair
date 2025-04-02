@@ -60,7 +60,7 @@ class Template(Base):
     )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime,
-        default=datetime.datetime.utcnow,
+        default=datetime.datetime.now(),
     )
     is_backing: Mapped[bool] = mapped_column(
         Boolean,
