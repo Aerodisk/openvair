@@ -71,7 +71,7 @@ class TemplateCreateCommandDTO(BaseModel):
     """
 
     base_volume_id: UUID
-    template: TemplateDTO
+    template: BaseTemplateDTO
 
     model_config = ConfigDict(**DTOConfig.model_config)
 
@@ -97,3 +97,42 @@ class TemplateDataPayloadDTO(BaseTemplateDTO):
     """
     name: str
     template: TemplateDTO
+
+class VolumeQuery(BaseModel):
+    """DTO for querying a volume by its ID.
+
+    This model is used to create a JSON-serializable payload for RPC calls
+    that require a volume identifier. It leverages the JSON encoders defined
+    in DTOConfig to automatically convert UUID values to strings.
+
+    Attributes:
+        volume_id (UUID): Unique identifier of the volume.
+
+    Example:
+        >>> from uuid import UUID
+        >>> query = VolumeQuery(volume_id=UUID("123e4567-e89b-12d3-a456-426614174000"))
+        >>> payload = query.model_dump(mode='json')
+        >>> print(payload)  # {'volume_id': '123e4567-e89b-12d3-a456-426614174000'}
+    """  # noqa: E501
+    volume_id: UUID
+    model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
+
+class StorageQuery(BaseModel):
+    """DTO for querying a storage by its ID.
+
+    This model is used to create a JSON-serializable payload for RPC calls
+    that require a storage identifier. It leverages the JSON encoders defined
+    in DTOConfig to automatically convert UUID values to strings.
+
+    Attributes:
+        storage_id (UUID): Unique identifier of the volume.
+
+    Example:
+        >>> from uuid import UUID
+        >>> query = VolumeQuery(storage_id=UUID('123e4567-e89b-12d3-a456-426614174000'))
+        >>> payload = query.model_dump(mode='json')
+        >>> print(payload)  # {'storage_id': '123e4567-e89b-12d3-a456-426614174000'}
+    """  # noqa: E501
+
+    storage_id: UUID
+    model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
