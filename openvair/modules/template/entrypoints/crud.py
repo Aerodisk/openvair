@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.template.adapters.dto import (
-    TemplateDTO,
+    BaseTemplateDTO,
     TemplateCreateCommandDTO,
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -106,10 +106,13 @@ class TemplateCrud:
 
         command = TemplateCreateCommandDTO(
             base_volume_id=data.base_volume_id,
-            template=TemplateDTO.model_validate(data.model_dump())
+            template=BaseTemplateDTO.model_validate(
+                data.model_dump(exclude={'base_volume_id'})
+            ),
         )
         result = self.service_layer_rpc.call(
-            'create_template', data_for_method=command.model_dump()
+            TemplateServiceLayerManager.create_template.__name__,
+            data_for_method=command.model_dump(mode='json'),
         )
 
         LOG.info(f"Finished creation of template '{result.name}'.")
