@@ -4,12 +4,16 @@ This module defines data validation and serialization models used in the
 template API and service layer.
 
 Schemas:
-    - BaseTemplate: Shared fields for template data.
+    - APITemplateBase: Common base schema with API config.
     - CreateTemplate: Schema for creating a new template.
     - Template: Full representation of a template, including metadata.
-    - EditTemplate: Schema for partial template updates.
-    - CreateVolumeFromTemplate: Payload for creating a volume from a template.
-    - Volume: Representation of a volume created from a template.
+    - EditTemplate: Schema for updating template name or description.
+    - CreateVolumeFromTemplate: Input for creating a volume from a template.
+    - Volume: Volume created from a template.
+    - TemplateData: Minimal template name representation.
+
+Dependencies:
+    - Used in FastAPI endpoints and integrated with shared base schemas.
 """
 
 from uuid import UUID
@@ -19,70 +23,82 @@ from datetime import datetime
 
 from pydantic import Field, BaseModel, ConfigDict
 
-
-class BaseTemplate(BaseModel):
-    """Base schema for template data.
-
-    Shared fields used for both input and output operations.
-
-    Attributes:
-        name (str): Template name.
-        description (Optional[str]): Optional description.
-        path (Path): Filesystem path to the template.
-        storage_id (UUID): Associated storage identifier.
-        is_backing (bool): Indicates whether the template is a backing image.
-    """
-    name: str = Field(..., min_length=1, max_length=40)
-    description: Optional[str] = Field(None, max_length=255)
-    path: Path
-    storage_id: UUID
-    is_backing: bool
+from openvair.common.configs.pydantic import APIConfig
 
 
-class CreateTemplate(BaseTemplate):
-    """Schema for creating a new template.
+class Template(BaseModel):
+    """Schema representing a template returned from the API.
 
-    Attributes:
-        base_volume_id (UUID): ID of the base volume to use for the template.
-    """
-    base_volume_id: UUID = Field(
-        ..., description='Идентификатор базового volume для создания шаблона'
-    )
-
-
-class Template(BaseTemplate):
-    """Schema representing a template with metadata.
+    Extends APITemplateBase with additional metadata fields.
 
     Attributes:
         id (UUID): Unique identifier of the template.
-        created_at (datetime): Timestamp of template creation.
+        created_at (datetime): Timestamp of when the template was created.
+
+    Example:
+        >>> Template(
+        ...     id=UUID('...'),
+        ...     name='ubuntu-template',
+        ...     path=Path('/mnt/ubuntu.qcow2'),
+        ...     storage_id=UUID('...'),
+        ...     is_backing=True,
+        ...     created_at=datetime.utcnow(),
+        ... )
     """
+
     id: UUID
+    name: str
+    description: Optional[str]
+    path: Path
+    storage_id: UUID
+    is_backing: bool
     created_at: datetime
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
+    model_config: ClassVar[ConfigDict] = ConfigDict(**APIConfig.model_config)
 
 
+class CreateTemplate(Template):
+    """Schema for creating a new template.
+
+    Inherits common fields from APITemplateBase and adds the field
+    for selecting a base volume from which to create the template.
+
+    Attributes:
+        base_volume_id (UUID): ID of the base volume to use for the template.
+
+    Example:
+        >>> CreateTemplate(
+        ...     name='ubuntu-template',
+        ...     path=Path('/mnt/ubuntu.qcow2'),
+        ...     storage_id=UUID('...'),
+        ...     is_backing=True,
+        ...     base_volume_id=UUID('...'),
+        ... )
+    """
+
+    base_volume_id: UUID
 
 
-class EditTemplate(BaseModel):
+class EditTemplate(Template):
     """Schema for updating a template.
 
     Attributes:
         name (Optional[str]): New name of the template.
         description (Optional[str]): New description of the template.
     """
-    name: Optional[str] = Field(None, min_length=1, max_length=40)
+
+    name: str = Field(None, min_length=1, max_length=40)
     description: Optional[str] = Field(None, max_length=255)
 
 
-class CreateVolumeFromTemplate(BaseModel):
+class CreateVolumeFromTemplate(Template):
     """Schema for creating a volume from a template.
 
     Attributes:
         name (str): Name of the new volume.
         size (int): Size of the volume in bytes.
     """
+
     name: str = Field(
         ..., min_length=1, max_length=40, description='Имя нового volume'
     )
@@ -100,6 +116,7 @@ class Volume(BaseModel):
         path (str): Filesystem path to the volume.
         template_id (Optional[str]): Associated template ID, if any.
     """
+
     id: UUID
     name: str
     size: int
@@ -109,7 +126,12 @@ class Volume(BaseModel):
 
     model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
-class TemplateData(BaseTemplate):
-    """Schema representing template metadata."""
+
+class TemplateData(Template):
+    """Schema representing template metadata.
+
+    Attributes:
+        name (str): Template name only.
+    """
 
     name: str

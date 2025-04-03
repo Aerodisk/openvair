@@ -5,6 +5,9 @@ and validate data between the ORM and external layers.
 
 Classes:
     - TemplateDTO: DTO for Template ORM model.
+    - TemplateCreateDTO: DTO for creating templates.
+    - TemplateEditDTO: DTO for editing templates.
+    - TemplateDataDTO: Lightweight DTO with only name field.
 
 Example:
     orm = Template(...)
@@ -12,24 +15,21 @@ Example:
 """
 
 from uuid import UUID
-from typing import Optional
+from typing import ClassVar, Optional
 from pathlib import Path
 from datetime import datetime
 
-from openvair.common.serialization.base_dto import BaseDTO
+from pydantic import BaseModel, ConfigDict
+
+from openvair.common.configs.pydantic import DTOConfig
 
 
-class TemplateDTO(BaseDTO):
+class TemplateDTO(BaseModel):
     """DTO representing a template object.
 
     Attributes:
         id (UUID): Template ID.
-        name (str): Template name.
-        description (Optional[str]): Description.
-        path (Path): Filesystem path.
-        storage_id (UUID): ID of associated storage.
         created_at (datetime): Creation timestamp.
-        is_backing (bool): Whether it's a backing image.
 
     Example:
         TemplateDTO(
@@ -47,5 +47,35 @@ class TemplateDTO(BaseDTO):
     description: Optional[str]
     path: Path
     storage_id: UUID
-    created_at: datetime
     is_backing: bool
+    created_at: datetime
+    model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
+
+
+class TemplateCreateDTO(TemplateDTO):
+    """DTO for creating a new template.
+
+    Attributes:
+        base_volume_id (UUID): ID of the base volume to use.
+    """
+
+    base_volume_id: UUID
+
+
+class TemplateEditDTO(TemplateDTO):
+    """DTO for editing a template.
+
+    All fields are optional to support partial updates.
+    """
+
+    description: Optional[str] = None
+
+
+class TemplateDataDTO(TemplateDTO):
+    """DTO containing only name of the template (e.g., for referencing).
+
+    Example:
+        TemplateDataDTO(name="template-name")
+    """
+
+    name: str
