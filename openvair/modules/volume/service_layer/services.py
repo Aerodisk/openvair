@@ -437,6 +437,18 @@ class VolumeServiceLayerManager(BackgroundTasks):
         user_info = volume_info.pop('user_info', {})
         volume_info.update({'user_id': user_info.get('id', '')})
         volume = self._prepare_volume_data(volume_info)
+
+        storage_info = self.storage_service_client.get_storage(
+            {'storage_id': volume.storage_id}
+        )
+        if not storage_info or storage_info.get('status') != 'available':
+            message = (
+                f'Storage with ID {volume.storage_id} does not '
+                'exist or is not available.'
+            )
+            raise exceptions.CreateVolumeDataException(message)
+
+
         with self.uow:
             self._check_volume_exists_on_storage(volume.name, volume.storage_id)
             db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
