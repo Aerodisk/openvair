@@ -22,6 +22,8 @@ from openvair.modules.template.config import (
 )
 from openvair.libs.messaging.exceptions import RpcException
 from openvair.modules.template.adapters.dto import (
+    VolumeQuery,
+    StorageQuery,
     TemplateCreateCommandDTO,
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -83,16 +85,20 @@ class TemplateServiceLayerManager(BackgroundTasks):
         # Перед запись инфо о шаблоне, получаем базовый том и хранилище, если их нет, то поднимается ошибка  # noqa: E501, RUF003, W505
         ## проверка наличия базового тома
         try:
-            _ = self.volume_service_client.get_volume({'volume_id': volume_id})
+            volume_query_payload = VolumeQuery(volume_id=volume_id).model_dump(
+                mode='json'
+            )
+            _ = self.volume_service_client.get_volume(volume_query_payload)
         except RpcException:
             LOG.error(f'Error while getting base volume with id: {volume_id}')
             raise Exception  # noqa: TRY002
 
         ## проверка существования storage
         try:
-            _ = self.storage_service_client.get_storage(
-                {'storage_id': template_data.storage_id}
-            )
+            storage_query_payload = StorageQuery(
+                storage_id=template_data.storage_id
+            ).model_dump(mode='json')
+            _ = self.storage_service_client.get_storage(storage_query_payload)
         except RpcException:
             LOG.error(
                 'Error while getting base storage with id: '
@@ -128,3 +134,31 @@ class TemplateServiceLayerManager(BackgroundTasks):
         ...
     def create_volume_from_template(self) -> None:  # noqa: D102
         ...
+
+
+# if __name__ == '__main__':
+#     import uuid
+#     from pathlib import Path
+
+#     from openvair.modules.template.adapters.dto import BaseTemplateDTO
+#     from openvair.modules.template.entrypoints.schemas import CreateTemplate
+
+#     data = CreateTemplate(
+#         name='tmp_name',
+#         path=Path('/'),
+#         storage_id=uuid.UUID('86e255fb-e82c-44db-93ab-cff0804c562b'),
+#         is_backing=False,
+#         base_volume_id=uuid.UUID('3723125e-2338-470f-997d-a7b4f758addd'),
+#         description=None,
+#     )
+
+#     command = TemplateCreateCommandDTO(
+#         base_volume_id=data.base_volume_id,
+#         template=BaseTemplateDTO.model_validate(
+#             data.model_dump(exclude={'base_volume_id'})
+#         ),
+#     )
+
+#     serv = TemplateServiceLayerManager()
+
+#     serv.create_template(command.model_dump(mode='json'))
