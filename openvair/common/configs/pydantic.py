@@ -12,7 +12,9 @@ Classes:
     - ApiModelConfig: Lenient config used for FastAPI request/response models.
 """
 
-from typing import Any, Dict, ClassVar
+from typing import ClassVar
+
+from pydantic import ConfigDict
 
 
 class DTOConfig:
@@ -32,14 +34,14 @@ class DTOConfig:
             model_config = BaseDTOConfig.model_config
     """
 
-    model_config: ClassVar[Dict[str, Any]] = {
-        'from_attributes': True,
-        'str_strip_whitespace': True,
-        'str_to_lower': False,
-        'extra': 'forbid',
-        'populate_by_name': True,
-        'use_enum_values': True,
-    }
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        from_attributes=True,
+        str_strip_whitespace=True,
+        str_to_lower=False,
+        extra='forbid',
+        populate_by_name=True,
+        use_enum_values=True,
+    )
 
 
 class APIConfig:
@@ -57,8 +59,8 @@ class APIConfig:
             model_config = ApiModelConfig.model_config
     """
 
-    model_config: ClassVar[Dict[str, Any]] = {
-        'from_attributes': True,
-        'extra': 'ignore',
-        'use_enum_values': True,
-    }
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        from_attributes=True,
+        extra='ignore',
+        use_enum_values=True,
+    )
