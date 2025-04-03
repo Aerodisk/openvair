@@ -13,6 +13,8 @@ import datetime
 from sqlalchemy import Text, String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
 
+from openvair.common.orm_types import PathType
+
 
 class Base(DeclarativeBase):
     """Base class for ORM mappings in the template module."""
@@ -51,7 +53,7 @@ class Template(Base):
         nullable=True,
     )
     path: Mapped[str] = mapped_column(
-        String(255),
+        PathType,
         nullable=False,
     )
     storage_id: Mapped[str] = mapped_column(
