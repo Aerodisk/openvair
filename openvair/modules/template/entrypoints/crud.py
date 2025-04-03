@@ -19,8 +19,17 @@ from pydantic import BaseModel
 
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.modules.template.adapters.dto import (
+    TemplateDTO,
+    TemplateCreateCommandDTO,
+)
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.template.entrypoints.schemas import Volume, BaseTemplate
+from openvair.modules.template.entrypoints.schemas import (
+    Volume,
+    Template,
+    BaseTemplate,
+    CreateTemplate,
+)
 from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
 )
@@ -84,7 +93,7 @@ class TemplateCrud:
         LOG.info(f'Finished retrieval of template with ID: {template_id}.')
         return template
 
-    def create_template(self, data: BaseModel) -> BaseTemplate:
+    def create_template(self, data: CreateTemplate) -> Template:
         """Create a new template using provided data via RPC.
 
         Args:
@@ -94,13 +103,17 @@ class TemplateCrud:
             Template: The created template object.
         """
         LOG.info('Starting creation of a new template.')
-        result = self.service_layer_rpc.call(
-            TemplateServiceLayerManager.create_template.__name__,
-            data_for_method=data.model_dump(mode='json'),
+
+        command = TemplateCreateCommandDTO(
+            base_volume_id=data.base_volume_id,
+            template=TemplateDTO.model_validate(data.model_dump())
         )
-        template = BaseTemplate.model_validate(result)
-        LOG.info(f"Finished creation of template '{template.name}'.")
-        return template
+        result = self.service_layer_rpc.call(
+            'create_template', data_for_method=command.model_dump()
+        )
+
+        LOG.info(f"Finished creation of template '{result.name}'.")
+        return Template.model_validate(result)
 
     def update_template(
         self,
