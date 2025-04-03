@@ -64,16 +64,19 @@ class TemplateDTO(BaseTemplateDTO):
     created_at: datetime
 
 
-class TemplateCreateDTO(BaseTemplateDTO):
-    """DTO used for creating a new template.
+class TemplateCreateCommandDTO(BaseModel):
+    """DTO representing a creation command payload for a template.
 
-    Attributes:
-        base_volume_id (UUID): ID of the base volume to clone.
+    Combines template metadata and volume reference needed for logic.
     """
+
     base_volume_id: UUID
+    template: TemplateDTO
+
+    model_config = ConfigDict(**DTOConfig.model_config)
 
 
-class TemplateEditDTO(BaseTemplateDTO):
+class TemplateEditPayloadDTO(BaseTemplateDTO):
     """DTO used for partial updates to a template.
 
     Attributes:
@@ -81,9 +84,10 @@ class TemplateEditDTO(BaseTemplateDTO):
     """
 
     description: Optional[str] = None
+    template: TemplateDTO
 
 
-class TemplateDataDTO(BaseTemplateDTO):
+class TemplateDataPayloadDTO(BaseTemplateDTO):
     """DTO used for referencing a template by name.
 
     Includes only the name field. Useful for lightweight links.
@@ -92,3 +96,4 @@ class TemplateDataDTO(BaseTemplateDTO):
         name (str): Name of the template.
     """
     name: str
+    template: TemplateDTO
