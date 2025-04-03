@@ -7,7 +7,7 @@ Classes:
     - TemplateSerializer: Converts Template <-> TemplateDTO
 """
 
-from openvair.modules.template.shared.dto import TemplateDTO
+from openvair.modules.template.adapters.dto import TemplateDTO
 from openvair.modules.template.adapters.orm import Template as TemplateORM
 from openvair.common.serialization.base_serializer import BaseSerializer
 
