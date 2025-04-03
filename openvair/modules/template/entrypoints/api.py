@@ -25,14 +25,14 @@ from starlette.concurrency import run_in_threadpool
 from openvair.libs.log import get_logger
 from openvair.common.schemas import BaseResponse
 from openvair.libs.auth.jwt_utils import get_current_user
-from openvair.modules.template.models.schemas import (
+from openvair.modules.template.entrypoints.crud import TemplateCrud
+from openvair.modules.template.entrypoints.schemas import (
     Volume,
     Template,
     EditTemplate,
     CreateTemplate,
     CreateVolumeFromTemplate,
 )
-from openvair.modules.template.entrypoints.crud import TemplateCrud
 
 LOG = get_logger(__name__)
 router = APIRouter(

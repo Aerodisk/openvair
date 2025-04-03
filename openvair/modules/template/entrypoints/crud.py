@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.template.models.schemas import Volume, Template
+from openvair.modules.template.entrypoints.schemas import Volume, Template
 from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
 )
