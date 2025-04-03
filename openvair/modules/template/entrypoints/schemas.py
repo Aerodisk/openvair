@@ -26,38 +26,54 @@ from pydantic import Field, BaseModel, ConfigDict
 from openvair.common.configs.pydantic import APIConfig
 
 
-class Template(BaseModel):
-    """Schema representing a template returned from the API.
+class BaseTemplate(BaseModel):
+    """Base schema for template-related API operations.
 
-    Extends APITemplateBase with additional metadata fields.
+    Contains fields shared by multiple API models (create, edit, etc).
 
     Attributes:
-        id (UUID): Unique identifier of the template.
-        created_at (datetime): Timestamp of when the template was created.
-
-    Example:
-        >>> Template(
-        ...     id=UUID('...'),
-        ...     name='ubuntu-template',
-        ...     path=Path('/mnt/ubuntu.qcow2'),
-        ...     storage_id=UUID('...'),
-        ...     is_backing=True,
-        ...     created_at=datetime.utcnow(),
-        ... )
+        name (str): Name of the template.
+        description (Optional[str]): Optional description of the template.
+        path (Path): Filesystem path to the template image.
+        storage_id (UUID): ID of the associated storage.
+        is_backing (bool): Whether the template is a backing image.
     """
 
-    id: UUID
     name: str
     description: Optional[str]
     path: Path
     storage_id: UUID
     is_backing: bool
-    created_at: datetime
 
     model_config: ClassVar[ConfigDict] = ConfigDict(**APIConfig.model_config)
 
 
-class CreateTemplate(Template):
+class Template(BaseTemplate):
+    """Schema representing a full template object for API responses.
+
+    Extends `BaseTemplate` with metadata fields typically present in
+    a persisted template entity.
+
+    Attributes:
+        id (UUID): Unique identifier of the template.
+        created_at (datetime): Creation timestamp of the template.
+
+    Example:
+        >>> Template(
+        ...     id=UUID("..."),
+        ...     name="base-template",
+        ...     description="Ubuntu 22.04 image",
+        ...     path=Path("/mnt/ubuntu.qcow2"),
+        ...     storage_id=UUID("..."),
+        ...     is_backing=True,
+        ...     created_at=datetime.utcnow(),
+        ... )
+    """
+    id: UUID
+    created_at: datetime
+
+
+class CreateTemplate(BaseTemplate):
     """Schema for creating a new template.
 
     Inherits common fields from APITemplateBase and adds the field
@@ -79,32 +95,29 @@ class CreateTemplate(Template):
     base_volume_id: UUID
 
 
-class EditTemplate(Template):
+class EditTemplate(BaseTemplate):
     """Schema for updating a template.
 
-    Attributes:
-        name (Optional[str]): New name of the template.
-        description (Optional[str]): New description of the template.
-    """
+    Inherits common fields from BaseTemplate and makes name and description
+    optional.
 
+    Attributes:
+        name (Optional[str]): New name for the template.
+        description (Optional[str]): New description.
+    """
     name: str = Field(None, min_length=1, max_length=40)
     description: Optional[str] = Field(None, max_length=255)
 
 
-class CreateVolumeFromTemplate(Template):
+class CreateVolumeFromTemplate(BaseTemplate):
     """Schema for creating a volume from a template.
 
+    Includes fields required to define the new volume.
+
     Attributes:
-        name (str): Name of the new volume.
+        name (str): Desired name for the volume.
         size (int): Size of the volume in bytes.
     """
-
-    name: str = Field(
-        ..., min_length=1, max_length=40, description='Имя нового volume'
-    )
-    size: int = Field(..., gt=0, description='Размер volume в байтах')
-
-
 class Volume(BaseModel):
     """Schema representing a volume created from a template.
 
@@ -127,11 +140,13 @@ class Volume(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
 
-class TemplateData(Template):
-    """Schema representing template metadata.
+class TemplateData(BaseTemplate):
+    """Schema for simplified template reference.
+
+    Contains only the name field to identify or link templates.
 
     Attributes:
-        name (str): Template name only.
+        name (str): Template name.
     """
 
     name: str

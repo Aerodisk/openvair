@@ -28,7 +28,7 @@ from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.template.entrypoints.crud import TemplateCrud
 from openvair.modules.template.entrypoints.schemas import (
     Volume,
-    Template,
+    BaseTemplate,
     EditTemplate,
     CreateTemplate,
     CreateVolumeFromTemplate,
@@ -47,7 +47,7 @@ router = APIRouter(
 
 @router.get(
     '/',
-    response_model=BaseResponse[Page[Template]],
+    response_model=BaseResponse[Page[BaseTemplate]],
     status_code=status.HTTP_200_OK,
 )
 async def get_templates(
@@ -71,7 +71,7 @@ async def get_templates(
 
 @router.get(
     '/{template_id}',
-    response_model=BaseResponse[Template],
+    response_model=BaseResponse[BaseTemplate],
     status_code=status.HTTP_200_OK,
 )
 async def get_template(
@@ -96,7 +96,7 @@ async def get_template(
 
 @router.post(
     '/',
-    response_model=BaseResponse[Template],
+    response_model=BaseResponse[BaseTemplate],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_template(
@@ -121,7 +121,7 @@ async def create_template(
 
 @router.patch(
     '/{template_id}',
-    response_model=BaseResponse[Template],
+    response_model=BaseResponse[BaseTemplate],
     status_code=status.HTTP_200_OK,
 )
 async def update_template(
@@ -148,7 +148,7 @@ async def update_template(
 
 @router.delete(
     '/{template_id}',
-    response_model=BaseResponse[Template],
+    response_model=BaseResponse[BaseTemplate],
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def delete_template(

@@ -24,58 +24,71 @@ from pydantic import BaseModel, ConfigDict
 from openvair.common.configs.pydantic import DTOConfig
 
 
-class TemplateDTO(BaseModel):
-    """DTO representing a template object.
+class BaseTemplateDTO(BaseModel):
+    """Base DTO for the template entity.
+
+    Contains core fields used across Template-related DTOs.
 
     Attributes:
-        id (UUID): Template ID.
-        created_at (datetime): Creation timestamp.
+        name (str): Name of the template.
+        description (Optional[str]): Description of the template.
+        path (Path): Filesystem path to the template.
+        storage_id (UUID): ID of the associated storage backend.
+        is_backing (bool): Whether it's a backing image.
 
     Example:
-        TemplateDTO(
-            id=UUID("..."),
-            name="base-template",
-            path=Path("/path.qcow2"),
-            storage_id=UUID("..."),
-            created_at=datetime.utcnow(),
-            is_backing=True
-        )
+        >>> BaseTemplateDTO(
+        ...     name='base-template',
+        ...     path=Path('/mnt/template.qcow2'),
+        ...     storage_id=UUID('...'),
+        ...     is_backing=True,
+        ... )
     """
-
-    id: UUID
     name: str
     description: Optional[str]
     path: Path
     storage_id: UUID
     is_backing: bool
-    created_at: datetime
     model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
 
+class TemplateDTO(BaseTemplateDTO):
+    """DTO representing a complete template record.
 
-class TemplateCreateDTO(TemplateDTO):
-    """DTO for creating a new template.
+    Includes metadata fields such as ID and creation time.
 
     Attributes:
-        base_volume_id (UUID): ID of the base volume to use.
+        id (UUID): Unique ID of the template.
+        created_at (datetime): Timestamp of creation.
     """
+    id: UUID
+    created_at: datetime
 
+
+class TemplateCreateDTO(BaseTemplateDTO):
+    """DTO used for creating a new template.
+
+    Attributes:
+        base_volume_id (UUID): ID of the base volume to clone.
+    """
     base_volume_id: UUID
 
 
-class TemplateEditDTO(TemplateDTO):
-    """DTO for editing a template.
+class TemplateEditDTO(BaseTemplateDTO):
+    """DTO used for partial updates to a template.
 
-    All fields are optional to support partial updates.
+    Attributes:
+        description (Optional[str]): New description, if applicable.
     """
 
     description: Optional[str] = None
 
 
-class TemplateDataDTO(TemplateDTO):
-    """DTO containing only name of the template (e.g., for referencing).
+class TemplateDataDTO(BaseTemplateDTO):
+    """DTO used for referencing a template by name.
 
-    Example:
-        TemplateDataDTO(name="template-name")
+    Includes only the name field. Useful for lightweight links.
+
+    Attributes:
+        name (str): Name of the template.
     """
-
     name: str
