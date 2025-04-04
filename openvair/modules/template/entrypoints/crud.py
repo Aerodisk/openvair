@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.template.adapters.dto import (
-    BaseTemplateDTO,
+    TemplateDTO,
     TemplateCreateCommandDTO,
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -106,7 +106,7 @@ class TemplateCrud:
 
         command = TemplateCreateCommandDTO(
             base_volume_id=data.base_volume_id,
-            template=BaseTemplateDTO.model_validate(
+            template=TemplateDTO.model_validate(
                 data.model_dump(exclude={'base_volume_id'})
             ),
         )

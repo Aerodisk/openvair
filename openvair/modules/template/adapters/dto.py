@@ -22,6 +22,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from openvair.common.configs.pydantic import DTOConfig
+from openvair.modules.template.shared.enums import TemplateStatus
 
 
 class BaseTemplateDTO(BaseModel):
@@ -44,6 +45,7 @@ class BaseTemplateDTO(BaseModel):
         ...     is_backing=True,
         ... )
     """
+
     name: str
     description: Optional[str]
     path: Path
@@ -60,8 +62,11 @@ class TemplateDTO(BaseTemplateDTO):
         id (UUID): Unique ID of the template.
         created_at (datetime): Timestamp of creation.
     """
+
     id: UUID
     created_at: datetime
+    status: TemplateStatus
+    information: Optional[str]
 
 
 class TemplateCreateCommandDTO(BaseModel):
@@ -71,12 +76,12 @@ class TemplateCreateCommandDTO(BaseModel):
     """
 
     base_volume_id: UUID
-    template: BaseTemplateDTO
+    template: TemplateDTO
 
     model_config = ConfigDict(**DTOConfig.model_config)
 
 
-class TemplateEditPayloadDTO(BaseTemplateDTO):
+class TemplateEditPayloadDTO(TemplateDTO):
     """DTO used for partial updates to a template.
 
     Attributes:
@@ -87,7 +92,7 @@ class TemplateEditPayloadDTO(BaseTemplateDTO):
     template: TemplateDTO
 
 
-class TemplateDataPayloadDTO(BaseTemplateDTO):
+class TemplateDataPayloadDTO(TemplateDTO):
     """DTO used for referencing a template by name.
 
     Includes only the name field. Useful for lightweight links.
@@ -95,8 +100,10 @@ class TemplateDataPayloadDTO(BaseTemplateDTO):
     Attributes:
         name (str): Name of the template.
     """
+
     name: str
     template: TemplateDTO
+
 
 class VolumeQuery(BaseModel):
     """DTO for querying a volume by its ID.
@@ -110,12 +117,14 @@ class VolumeQuery(BaseModel):
 
     Example:
         >>> from uuid import UUID
-        >>> query = VolumeQuery(volume_id=UUID("123e4567-e89b-12d3-a456-426614174000"))
+        >>> query = VolumeQuery(volume_id=UUID('123e4567-e89b-12d3-a456-426614174000'))
         >>> payload = query.model_dump(mode='json')
         >>> print(payload)  # {'volume_id': '123e4567-e89b-12d3-a456-426614174000'}
     """  # noqa: E501
+
     volume_id: UUID
     model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
+
 
 class StorageQuery(BaseModel):
     """DTO for querying a storage by its ID.

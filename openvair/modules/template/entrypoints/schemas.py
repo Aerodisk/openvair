@@ -24,6 +24,7 @@ from datetime import datetime
 from pydantic import Field, BaseModel, ConfigDict
 
 from openvair.common.configs.pydantic import APIConfig
+from openvair.modules.template.shared.enums import TemplateStatus
 
 
 class BaseTemplate(BaseModel):
@@ -71,6 +72,7 @@ class Template(BaseTemplate):
     """
     id: UUID
     created_at: datetime
+    status: TemplateStatus
 
 
 class CreateTemplate(BaseTemplate):

@@ -10,10 +10,11 @@ Classes:
 import uuid
 import datetime
 
-from sqlalchemy import Text, String, Boolean, DateTime
+from sqlalchemy import Enum as SAEnum, Text, String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
 
 from openvair.common.orm_types import PathType
+from openvair.modules.template.shared.enums import TemplateStatus
 
 
 class Base(DeclarativeBase):
@@ -60,12 +61,21 @@ class Template(Base):
         String(36),
         nullable=False,
     )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(),
+    status: Mapped[TemplateStatus] = mapped_column(
+        SAEnum(TemplateStatus, name='template_status'),
+        nullable=False,
+        default=TemplateStatus.NEW,
+    )
+    information: Mapped[str] = mapped_column(
+        Text,
+        nullable=True,
     )
     is_backing: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
         nullable=False,
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime,
+        default=datetime.datetime.now(),
     )
