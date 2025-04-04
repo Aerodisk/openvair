@@ -76,7 +76,7 @@ class TemplateCreateCommandDTO(BaseModel):
     """
 
     base_volume_id: UUID
-    template: TemplateDTO
+    template: BaseTemplateDTO
 
     model_config = ConfigDict(**DTOConfig.model_config)
 

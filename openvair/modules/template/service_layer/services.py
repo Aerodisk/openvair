@@ -12,6 +12,7 @@ Dependencies:
     - EventCrud: Manages event store interactions.
 """
 
+from uuid import UUID
 from typing import Dict
 
 from openvair.libs.log import get_logger
@@ -26,9 +27,15 @@ from openvair.modules.template.adapters.dto import (
     StorageQuery,
     TemplateCreateCommandDTO,
 )
+from openvair.modules.template.adapters.orm import Template
+from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.template.adapters.serializer import TemplateSerializer
+from openvair.modules.template.service_layer.exceptions import (
+    VolumeRetrievalException,
+    StorageRetrievalException,
+)
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
 )
@@ -81,51 +88,26 @@ class TemplateServiceLayerManager(BackgroundTasks):
         dto = TemplateCreateCommandDTO.model_validate(data)
         volume_id = dto.base_volume_id
         template_data = dto.template
-
-        # Перед запись инфо о шаблоне, получаем базовый том и хранилище, если их нет, то поднимается ошибка  # noqa: E501, RUF003, W505
-        ## проверка наличия базового тома
-        try:
-            volume_query_payload = VolumeQuery(volume_id=volume_id).model_dump(
-                mode='json'
-            )
-            _ = self.volume_service_client.get_volume(volume_query_payload)
-        except RpcException:
-            LOG.error(f'Error while getting base volume with id: {volume_id}')
-            raise Exception  # noqa: TRY002
-
-        ## проверка существования storage
-        try:
-            storage_query_payload = StorageQuery(
-                storage_id=template_data.storage_id
-            ).model_dump(mode='json')
-            _ = self.storage_service_client.get_storage(storage_query_payload)
-        except RpcException:
-            LOG.error(
-                'Error while getting base storage with id: '
-                f'{template_data.storage_id}'
-            )
-            raise Exception  # noqa: TRY002
+        self._check_volume_exist(volume_id)
+        self._check_storage_exist(template_data.storage_id)
 
         orm_template = TemplateSerializer.to_orm(template_data)
-
         with self.uow as uow:
-            # TODO нужно сделать статус
             uow.templates.add(orm_template)
             uow.commit()
 
-        result = self.domain_rpc.call(
-            'create',
-            data_for_manager=TemplateSerializer.to_dto(
-                orm_template
-            ).model_dump(),
+        self._update_and_log_event(
+            orm_template, TemplateStatus.NEW, 'TemplateCreationPrepared'
         )
-
-        orm_template = TemplateSerializer.from_dict(result)
-        with self.uow as uow:
-            # TODO нужно сделать статус
-            uow.templates.update(orm_template)
-            uow.commit()
-
+        self._create_template(
+            TemplateSerializer.to_dto(orm_template).model_dump(mode='json'),
+        )
+        # self.service_layer_rpc.cast(
+        #     self._create_template.__name__,
+        #     data_for_method=TemplateSerializer.to_dto(
+        #         orm_template
+        #     ).model_dump(mode='json'),
+        # )
         return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
 
     def update_template(self) -> None:  # noqa: D102
@@ -135,30 +117,107 @@ class TemplateServiceLayerManager(BackgroundTasks):
     def create_volume_from_template(self) -> None:  # noqa: D102
         ...
 
+    def _create_template(self, data: Dict) -> None:
+        LOG.info('2')
+        orm_template = TemplateSerializer.from_dict(data)
+        self._update_and_log_event(
+            orm_template, TemplateStatus.CREATING, 'TemplateCreationStarted'
+        )
+        LOG.info('1')
+        try:
+            result = self.domain_rpc.call('create', data_for_manager=data)
+            LOG.info('2')
+        except RpcException as err:
+            self._update_and_log_event(
+                orm_template,
+                TemplateStatus.ERROR,
+                'TemplateCreationFailed',
+                str(err),
+            )
+            LOG.error('Error while creating template', exc_info=True)
+            return
 
-# if __name__ == '__main__':
-#     import uuid
-#     from pathlib import Path
+        # TODO согласовать сериализацию и возвращаемый результат, когда будет известен  # noqa: E501, W505
+        orm_template = TemplateSerializer.from_dict(result)
+        self._update_and_log_event(
+            orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
+        )
 
-#     from openvair.modules.template.adapters.dto import BaseTemplateDTO
-#     from openvair.modules.template.entrypoints.schemas import CreateTemplate
+    def _update_and_log_event(
+        self,
+        orm_template: Template,
+        status: TemplateStatus,
+        event_type: str,
+        message: str = '',
+    ) -> None:
+        orm_template.status = status
+        orm_template.information = message
+        with self.uow as uow:
+            uow.templates.update(orm_template)
+            uow.commit()
 
-#     data = CreateTemplate(
-#         name='tmp_name',
-#         path=Path('/'),
-#         storage_id=uuid.UUID('86e255fb-e82c-44db-93ab-cff0804c562b'),
-#         is_backing=False,
-#         base_volume_id=uuid.UUID('3723125e-2338-470f-997d-a7b4f758addd'),
-#         description=None,
-#     )
+        # TODO типизировать event
+        event = {
+            'object_id': str(orm_template.id),
+            'user_id': str(uuid.uuid4()),  # TODO предавать user_id
+            'event': event_type,
+            'information': f'Status: {status.value}. message: {message}',
+            # 'status': status.value, # TODO передавать статус и убрать его из сообщения  # noqa: E501, RUF003, W505
+        }
+        self.event_store.add_event(**event)
 
-#     command = TemplateCreateCommandDTO(
-#         base_volume_id=data.base_volume_id,
-#         template=BaseTemplateDTO.model_validate(
-#             data.model_dump(exclude={'base_volume_id'})
-#         ),
-#     )
+    def _check_volume_exist(self, volume_id: UUID) -> None:
+        volume_query_payload = VolumeQuery(volume_id=volume_id).model_dump(
+            mode='json'
+        )
+        try:
+            self.volume_service_client.get_volume(volume_query_payload)
+        except RpcException as rpc_volume_err:
+            LOG.error(
+                f'Error while getting base volume with id: {volume_id}',
+                exc_info=True,
+            )
+            message = f'Failed to get volume with id {volume_id}'
+            raise VolumeRetrievalException(message) from rpc_volume_err
 
-#     serv = TemplateServiceLayerManager()
+    def _check_storage_exist(self, storage_id: UUID) -> None:
+        storage_query_payload = StorageQuery(storage_id=storage_id).model_dump(
+            mode='json'
+        )
+        try:
+            self.storage_service_client.get_storage(storage_query_payload)
+        except RpcException as rpc_storage_err:
+            LOG.error(
+                f'Error while getting base storage with id: ' f'{storage_id}',
+                exc_info=True,
+            )
+            message = f'Failed to get storage with id {storage_id}'
+            raise StorageRetrievalException(message) from rpc_storage_err
 
-#     serv.create_template(command.model_dump(mode='json'))
+
+if __name__ == '__main__':
+    import uuid
+    from pathlib import Path
+
+    from openvair.modules.template.adapters.dto import BaseTemplateDTO
+    from openvair.modules.template.entrypoints.schemas import CreateTemplate
+
+    data = CreateTemplate(
+        name='tmp_name5',
+        path=Path('/'),
+        storage_id=uuid.UUID('0e08ef60-f09f-4ddd-90ba-4e556edd34b3'),
+        is_backing=False,
+        base_volume_id=uuid.UUID('b2e06ed2-179d-4470-a100-10332e7e7cfa'),
+        description=None,
+    )
+
+    command = TemplateCreateCommandDTO(
+        base_volume_id=data.base_volume_id,
+        template=BaseTemplateDTO.model_validate(
+            data.model_dump(exclude={'base_volume_id'})
+        ),
+    )
+
+    serv = TemplateServiceLayerManager()
+
+    serv.create_template(command.model_dump(mode='json'))
