@@ -11,6 +11,7 @@ Classes:
 
 Methods:
     - get_user(user_id: str) -> Dict: Retrieves user information by user ID.
+    - get_users() -> Dict: Retrieve list of all users.
     - create_user(data: Dict, user_id: str, user_data: Dict) -> Dict: Creates
         a new user.
     - change_password(user_id: str, data: Dict) -> Dict: Changes the password
@@ -21,7 +22,7 @@ Methods:
 """
 
 from uuid import UUID
-from typing import Dict
+from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.user.config import USER_SERVICE_LAYER_QUEUE_NAME
@@ -40,6 +41,7 @@ class UserCrud:
 
     Methods:
         get_user(user_id: str) -> Dict: Retrieves user information by user ID.
+        get_users() -> Dict: Retrieve list of all users.
         create_user(data: Dict, user_id: str, user_data: Dict) -> Dict: Creates
             a new user.
         change_password(user_id: str, data: Dict) -> Dict: Changes the password
@@ -73,6 +75,18 @@ class UserCrud:
             data_for_method={'user_id': user_id},
         )
         return result
+
+    def get_users(self) -> List:
+        """Retrieve list of all users.
+
+        Returns:
+            List: Information about all users.
+        """
+        LOG.info('Call service layer to get information about all users')
+        return self.service_layer_rpc.call(
+            services.UserManager.get_all_users.__name__,
+            data_for_method={}
+        )
 
     def create_user(
         self,
