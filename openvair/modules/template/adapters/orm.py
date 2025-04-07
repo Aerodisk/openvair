@@ -9,6 +9,7 @@ Classes:
 
 import uuid
 import datetime
+from typing import Optional
 
 from sqlalchemy import UUID, Enum as SAEnum, Text, String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
@@ -49,7 +50,7 @@ class Template(Base):
         unique=True,
         nullable=False,
     )
-    description: Mapped[str] = mapped_column(
+    description: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
@@ -66,7 +67,7 @@ class Template(Base):
         nullable=False,
         default=TemplateStatus.NEW,
     )
-    information: Mapped[str] = mapped_column(
+    information: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
