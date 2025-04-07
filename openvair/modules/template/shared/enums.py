@@ -21,6 +21,7 @@ class TemplateStatus(str, Enum):
     """
     NEW = 'new'
     CREATING = 'creating'
+    EDITING = 'editing'
     AVAILABLE = 'available'
     ERROR = 'error'
     DELETING = 'deleting'
