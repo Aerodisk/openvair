@@ -29,6 +29,7 @@ from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.template.entrypoints.crud import TemplateCrud
 from openvair.modules.template.entrypoints.schemas import (
     Volume,
+    Template,
     BaseTemplate,
     EditTemplate,
     CreateTemplate,
@@ -97,7 +98,7 @@ async def get_template(
 
 @router.post(
     '/',
-    response_model=BaseResponse[BaseTemplate],
+    response_model=BaseResponse[Template],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_template(

@@ -121,10 +121,11 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         volume = self._get_volume_info(dto.base_volume_id)
 
-        self._get_storage_info(dto.template.storage_id)
+        storage = self._get_storage_info(dto.template.storage_id)
 
         template_data = dto.template
         template_data.format = volume.format
+        template_data.path = storage.mount_point
 
         orm_template = TemplateSerializer.to_orm(template_data)
         with self.uow as uow:

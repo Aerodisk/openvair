@@ -20,9 +20,8 @@ from pydantic import BaseModel
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.template.adapters.dto import (
-    TemplateDTO,
+    TemplateGetCommandDTO,
     TemplateEditCommandDTO,
-    TemplateCreateCommandDTO,
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.template.entrypoints.schemas import (
@@ -86,9 +85,10 @@ class TemplateCrud:
             Template: The retrieved template object.
         """
         LOG.info(f'Starting retrieval of template with ID: {template_id}.')
+        getting_data = TemplateGetCommandDTO(id=template_id)
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_template.__name__,
-            data_for_method={'template_id': str(template_id)},
+            data_for_method=getting_data.model_dump(mode='json'),
         )
         template = BaseTemplate.model_validate(result)
         LOG.info(f'Finished retrieval of template with ID: {template_id}.')
@@ -105,18 +105,12 @@ class TemplateCrud:
         """
         LOG.info('Starting creation of a new template.')
 
-        command = TemplateCreateCommandDTO(
-            base_volume_id=data.base_volume_id,
-            template=TemplateDTO.model_validate(
-                data.model_dump(exclude={'base_volume_id'})
-            ),
-        )
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.create_template.__name__,
-            data_for_method=command.model_dump(mode='json'),
+            data_for_method=data.model_dump(mode='json'),
         )
-
-        LOG.info(f"Finished creation of template '{result.name}'.")
+        template = Template.model_validate(result)
+        LOG.info(f"Finished creation of template '{template.name}'.")
         return Template.model_validate(result)
 
     def edit_template(

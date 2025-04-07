@@ -18,7 +18,6 @@ Dependencies:
 
 from uuid import UUID
 from typing import ClassVar, Optional
-from pathlib import Path
 from datetime import datetime
 
 from pydantic import Field, BaseModel, ConfigDict
@@ -43,7 +42,6 @@ class BaseTemplate(BaseModel):
 
     name: str
     description: Optional[str]
-    path: Path
     storage_id: UUID
     is_backing: bool
 
@@ -76,7 +74,7 @@ class Template(BaseTemplate):
     status: TemplateStatus
 
 
-class CreateTemplate(BaseTemplate):
+class CreateTemplate(BaseModel):
     """Schema for creating a new template.
 
     Inherits common fields from APITemplateBase and adds the field
@@ -94,9 +92,8 @@ class CreateTemplate(BaseTemplate):
         ...     base_volume_id=UUID('...'),
         ... )
     """
-
     base_volume_id: UUID
-
+    template: BaseTemplate
 
 class EditTemplate(BaseModel):
     """Schema for updating a template.
@@ -112,7 +109,7 @@ class EditTemplate(BaseModel):
     description: Optional[str] = Field(None, max_length=255)
 
 
-class CreateVolumeFromTemplate(CreateVolume):
+class CreateVolumeFromTemplate(BaseModel):
     """Schema for creating a volume from a template.
 
     Includes fields required to define the new volume.
@@ -121,7 +118,7 @@ class CreateVolumeFromTemplate(CreateVolume):
         name (str): Desired name for the volume.
         size (int): Size of the volume in bytes.
     """
-    ...
+    volume_data: CreateVolume
 
 class Volume(BaseModel):
     """Schema representing a volume created from a template.

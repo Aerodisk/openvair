@@ -15,11 +15,17 @@ Example:
 """
 
 from uuid import UUID
-from typing import Dict, Literal, ClassVar, Optional
+from typing import Any, Dict, Literal, ClassVar, Optional
 from pathlib import Path
 from datetime import datetime
 
-from pydantic import Field, BaseModel, ConfigDict, field_validator
+from pydantic import (
+    Field,
+    BaseModel,
+    ConfigDict,
+    field_validator,
+    model_validator,
+)
 
 from openvair.common.configs.pydantic import DTOConfig
 from openvair.libs.validation.validators import Validator
@@ -65,7 +71,6 @@ class BaseTemplateDTO(BaseDTO):
 
     name: str
     description: Optional[str] = None
-    path: Path
     storage_id: UUID
     is_backing: bool
 
@@ -81,6 +86,7 @@ class TemplateDTO(BaseTemplateDTO):
     """
 
     id: Optional[UUID] = None
+    path: Optional[Path] = None
     created_at: Optional[datetime] = None
     status: Optional[TemplateStatus] = None
     information: Optional[str] = None
@@ -196,7 +202,37 @@ class Storage(BaseModel):
     available: int
     user_id: Optional[UUID] = None
     information: Optional[str] = None
+    mount_point: Path
 
+    @model_validator(mode='before')
+    @classmethod
+    def extract_mount_point(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # noqa: C901
+        """Pre-validation:
+
+        Extracts the 'mount_point' from the 'storage_extra_specs'
+        field if present and sets it as the 'mount_point' field.
+
+        Args:
+            values (Dict[str, Any]): The input data dictionary.
+
+        Returns:
+            Dict[str, Any]: The modified data dictionary with 'mount_point' set.
+        """
+        specs = values.get('storage_extra_specs')
+        if specs:
+            mount = None
+            if isinstance(specs, dict):
+                mount = specs.get('mount_point')
+            elif isinstance(specs, list):
+                for spec in specs:
+                    if isinstance(spec, dict) and spec.get('mount_point'):
+                        mount = spec.get('mount_point')
+                        break
+            if mount is not None:
+                values['mount_point'] = (
+                    mount if isinstance(mount, Path) else Path(mount)
+                )
+        return values
 
 
 class Volume(BaseModel):
