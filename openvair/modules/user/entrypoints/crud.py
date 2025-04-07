@@ -11,7 +11,7 @@ Classes:
 
 Methods:
     - get_user(user_id: str) -> Dict: Retrieves user information by user ID.
-    - get_users() -> Dict: Retrieve list of all users.
+    - get_users() -> List: Retrieve list of all users.
     - create_user(data: Dict, user_id: str, user_data: Dict) -> Dict: Creates
         a new user.
     - change_password(user_id: str, data: Dict) -> Dict: Changes the password
@@ -41,7 +41,7 @@ class UserCrud:
 
     Methods:
         get_user(user_id: str) -> Dict: Retrieves user information by user ID.
-        get_users() -> Dict: Retrieve list of all users.
+        get_users() -> List: Retrieve list of all users.
         create_user(data: Dict, user_id: str, user_data: Dict) -> Dict: Creates
             a new user.
         change_password(user_id: str, data: Dict) -> Dict: Changes the password

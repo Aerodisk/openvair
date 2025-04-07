@@ -28,7 +28,7 @@ Methods:
 
 import abc
 from uuid import UUID
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy.exc import OperationalError
 
@@ -95,11 +95,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_by_name(username)
 
-    def get_all(self) -> list[User]:
+    def get_all(self) -> List[User]:
         """Retrieve a list of users from the database.
 
         Returns:
-            list[User]: List of all user entities in the database.
+            List[User]: List of all user entities in the database.
         """
         return self._get_all()
 
@@ -145,11 +145,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_all(self) -> list[User]:
+    def _get_all(self) -> List[User]:
         """Retrieve a list of users from the database.
 
         Returns:
-            list[User]: List of all user entities in the database.
+            List[User]: List of all user entities in the database.
         """
         raise NotImplementedError
 
@@ -234,11 +234,11 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return self.session.query(User).filter_by(username=username).one()
 
-    def _get_all(self) -> list[User]:
+    def _get_all(self) -> List[User]:
         """Retrieve a list of users from the database.
 
         Returns:
-            list[User]: List of all user entities in the database.
+            List[User]: List of all user entities in the database.
         """
         return self.session.query(User).all()
 
