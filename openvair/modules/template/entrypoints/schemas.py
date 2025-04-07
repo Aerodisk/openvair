@@ -112,7 +112,7 @@ class EditTemplate(BaseModel):
     description: Optional[str] = Field(None, max_length=255)
 
 
-class CreateVolumeFromTemplate(BaseTemplate):
+class CreateVolumeFromTemplate(CreateVolume):
     """Schema for creating a volume from a template.
 
     Includes fields required to define the new volume.
@@ -121,8 +121,7 @@ class CreateVolumeFromTemplate(BaseTemplate):
         name (str): Desired name for the volume.
         size (int): Size of the volume in bytes.
     """
-    template_id: UUID
-    volume_info: CreateVolume
+    ...
 
 class Volume(BaseModel):
     """Schema representing a volume created from a template.

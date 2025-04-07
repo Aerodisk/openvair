@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import List
+from typing import Dict, List
 
 from pydantic import BaseModel
 
@@ -165,10 +165,8 @@ class TemplateCrud:
         LOG.info(f'Finished deletion of template with ID: {template_id}.')
         return template
 
-    def create_volume_from_template(
-        self,
-        template_id: UUID,
-        data: BaseModel,
+    def create_volume_from_template(  # noqa: D417
+        self, template_id: UUID, data: BaseModel, user_info: Dict,
     ) -> None:
         """Create a volume based on the specified template via RPC.
 
@@ -182,8 +180,10 @@ class TemplateCrud:
         LOG.info(
             f'Starting creation of volume from template with ID: {template_id}.'
         )
-        params = {'template_id': str(template_id)}
-        params.update(data.model_dump(mode='json'))
+        params: Dict = {'template_id': str(template_id)}
+        params['volume_info'] = data.model_dump(mode='json')
+        params['user_info'] = user_info
+
         self.service_layer_rpc.cast(
             TemplateServiceLayerManager.create_volume_from_template.__name__,
             data_for_method=params,

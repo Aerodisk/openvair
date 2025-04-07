@@ -17,6 +17,7 @@ Dependencies:
 """
 
 from uuid import UUID
+from typing import Dict
 
 from fastapi import Depends, APIRouter, status
 from fastapi_pagination import Page, paginate
@@ -179,6 +180,7 @@ async def delete_template(
 async def create_volume_from_template(
     template_id: UUID,
     data: CreateVolumeFromTemplate,
+    user_info: Dict = Depends(get_current_user),
     crud: TemplateCrud = Depends(TemplateCrud),
 ) -> BaseResponse:
     """Create a volume from a specific template.
@@ -188,13 +190,14 @@ async def create_volume_from_template(
         data (CreateVolumeFromTemplate): Volume creation details.
         crud (TemplateCrud): Dependency-injected service for handling template
             logic.
+        user_info (Dict): Information about the authenticated user.
 
     Returns:
         BaseResponse[Volume]: The created volume.
     """
     LOG.info(f'API: Creating volume from template {template_id}')
     await run_in_threadpool(
-        crud.create_volume_from_template, template_id, data
+        crud.create_volume_from_template, template_id, data, user_info
     )
     LOG.info(f'API: Finished creating volume from template {template_id}')
     return BaseResponse(status='success')

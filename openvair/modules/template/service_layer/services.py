@@ -192,6 +192,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             format=orm_template.format,
             size=orm_template.size,
             read_only=volume.read_only,
+            user_info=dto.user_info,
         )
         self.volume_service_client.create_volume(
             create_volume_data.model_dump(mode='json')
@@ -267,6 +268,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         with self.uow as uow:
             uow.templates.delete(orm_template)
+            uow.commit()
 
     def _update_and_log_event(
         self,

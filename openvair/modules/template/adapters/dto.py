@@ -15,7 +15,7 @@ Example:
 """
 
 from uuid import UUID
-from typing import Literal, ClassVar, Optional
+from typing import Dict, Literal, ClassVar, Optional
 from pathlib import Path
 from datetime import datetime
 
@@ -84,9 +84,8 @@ class TemplateDTO(BaseTemplateDTO):
     created_at: Optional[datetime] = None
     status: Optional[TemplateStatus] = None
     information: Optional[str] = None
-    format: Literal['qcow2', 'raw']
-    size: int = Field(0, ge=1)
-    used: int
+    format: Optional[Literal['qcow2', 'raw']] = 'qcow2'
+    size: int = Field(1, ge=1)
 
 
 class TemplateCreateCommandDTO(BaseDTO):
@@ -132,7 +131,7 @@ class TemplateDeleteCommandDTO(BaseDTO):  # noqa: D101
 
 class CreateVolumeInfo(BaseDTO):  # noqa: D101
     name: str = Field(min_length=1, max_length=40)
-    description: str = Field(max_length=255)
+    description: str = Field(default='', max_length=255)
     storage_id: UUID
     read_only: Optional[bool] = False
 
@@ -140,6 +139,7 @@ class CreateVolumeInfo(BaseDTO):  # noqa: D101
 class CreateVolumeFromTemplateCommandDTO(BaseDTO):  # noqa: D101
     template_id: UUID
     volume_info: CreateVolumeInfo
+    user_info: Dict
 
 
 class CreateVolume(BaseDTO):
@@ -160,6 +160,7 @@ class CreateVolume(BaseDTO):
     format: Literal['qcow2', 'raw']
     size: int = Field(0, ge=1)
     read_only: Optional[bool] = False
+    user_info: Dict
 
     validate_name = field_validator('name')(
         Validator.special_characters_validate
