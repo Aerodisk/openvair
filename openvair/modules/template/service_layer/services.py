@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID, uuid4
-from typing import Dict
+from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -25,6 +25,7 @@ from openvair.libs.messaging.exceptions import RpcException
 from openvair.modules.template.adapters.dto import (
     VolumeQuery,
     StorageQuery,
+    TemplateGetCommandDTO,
     TemplateCreateCommandDTO,
 )
 from openvair.modules.template.adapters.orm import Template
@@ -80,12 +81,37 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
-    def get_all_templates(self) -> None:  # noqa: D102
-        ...
-    def get_template(self) -> None:  # noqa: D102
-        ...
-    def create_template(self, data: Dict) -> Dict:  # noqa: D102
-        dto = TemplateCreateCommandDTO.model_validate(data)
+    def get_all_templates(self) -> List:
+        """Retrieves all template records from the database.
+
+        Returns:
+            List: A list of serialized templates in JSON-compatible format.
+        """
+        with self.uow as uow:
+            orm_templates = uow.templates.get_all()
+        return [
+            TemplateSerializer.to_dto(template).model_dump(mode='json')
+            for template in orm_templates
+        ]
+
+    def get_template(self, getting_data: Dict) -> Dict:
+        """Retrieves a single template by its ID.
+
+        Args:
+            getting_data (Dict): A dictionary containing the 'id' of the
+                template.
+
+        Returns:
+            Dict: A JSON-serializable representation of the template.
+        """
+        dto = TemplateGetCommandDTO.model_validate(getting_data)
+        LOG.info(dto.id)
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(dto.id)
+        return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
+
+    def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
+        dto = TemplateCreateCommandDTO.model_validate(creating_data)
         volume_id = dto.base_volume_id
         template_data = dto.template
         self._check_volume_exist(volume_id)
@@ -101,9 +127,9 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         self.service_layer_rpc.cast(
             self._create_template.__name__,
-            data_for_method=TemplateSerializer.to_dto(
-                orm_template
-            ).model_dump(mode='json'),
+            data_for_method=TemplateSerializer.to_dto(orm_template).model_dump(
+                mode='json'
+            ),
         )
         return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
 
@@ -114,9 +140,9 @@ class TemplateServiceLayerManager(BackgroundTasks):
     def create_volume_from_template(self) -> None:  # noqa: D102
         ...
 
-    def _create_template(self, data: Dict) -> None:
+    def _create_template(self, creatong_data: Dict) -> None:
         LOG.info('2')
-        orm_template = TemplateSerializer.from_dict(data)
+        orm_template = TemplateSerializer.from_dict(creatong_data)
         self._update_and_log_event(
             orm_template, TemplateStatus.CREATING, 'TemplateCreationStarted'
         )
@@ -193,29 +219,36 @@ class TemplateServiceLayerManager(BackgroundTasks):
             raise StorageRetrievalException(message) from rpc_storage_err
 
 
-if __name__ == '__main__':
-    import uuid
-    from pathlib import Path
+# if __name__ == '__main__':
+#     import uuid
+#     from pathlib import Path
 
-    from openvair.modules.template.adapters.dto import TemplateDTO
-    from openvair.modules.template.entrypoints.schemas import CreateTemplate
+#     from openvair.modules.template.adapters.dto import TemplateDTO
+#     from openvair.modules.template.entrypoints.schemas import CreateTemplate
 
-    data = CreateTemplate(
-        name='tmp_name3',
-        path=Path('/'),
-        storage_id=uuid.UUID('e51d3fcb-b63a-46f9-80d7-9976449b0f79'),
-        is_backing=False,
-        base_volume_id=uuid.UUID('1ff49d13-d779-4bc8-b365-f450059b36e4'),
-        description=None,
-    )
+#     serv = TemplateServiceLayerManager()
 
-    command = TemplateCreateCommandDTO(
-        base_volume_id=data.base_volume_id,
-        template=TemplateDTO.model_validate(
-            data.model_dump(exclude={'base_volume_id'})
-        ),
-    )
+#     get_data = {'id': '4eafb5da-8ccd-41e4-b95c-77a6a1ead390'}
 
-    serv = TemplateServiceLayerManager()
+#     r = serv.service_layer_rpc.call(
+#         serv.get_all_templates.__name__,
+#         # data_for_method=get_data
+#     )
+#     LOG.info(r)
+# data = CreateTemplate(
+#     name='tmp_name3',
+#     path=Path('/'),
+#     storage_id=uuid.UUID('e51d3fcb-b63a-46f9-80d7-9976449b0f79'),
+#     is_backing=False,
+#     base_volume_id=uuid.UUID('1ff49d13-d779-4bc8-b365-f450059b36e4'),
+#     description=None,
+# )
 
-    serv.create_template(command.model_dump(mode='json'))
+# command = TemplateCreateCommandDTO(
+#     base_volume_id=data.base_volume_id,
+#     template=TemplateDTO.model_validate(
+#         data.model_dump(exclude={'base_volume_id'})
+#     ),
+# )
+
+# serv.create_template(command.model_dump(mode='json'))
