@@ -51,6 +51,7 @@ class BaseTemplateDTO(BaseModel):
     path: Path
     storage_id: UUID
     is_backing: bool
+
     model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
 
 class TemplateDTO(BaseTemplateDTO):
@@ -63,10 +64,10 @@ class TemplateDTO(BaseTemplateDTO):
         created_at (datetime): Timestamp of creation.
     """
 
-    id: UUID
-    created_at: datetime
-    status: TemplateStatus
-    information: Optional[str]
+    id: Optional[UUID] = None
+    created_at: Optional[datetime] = None
+    status: Optional[TemplateStatus] = None
+    information: Optional[str] = None
 
 
 class TemplateCreateCommandDTO(BaseModel):
@@ -76,7 +77,7 @@ class TemplateCreateCommandDTO(BaseModel):
     """
 
     base_volume_id: UUID
-    template: BaseTemplateDTO
+    template: TemplateDTO
 
     model_config = ConfigDict(**DTOConfig.model_config)
 

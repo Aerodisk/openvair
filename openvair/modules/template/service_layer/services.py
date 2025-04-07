@@ -12,7 +12,7 @@ Dependencies:
     - EventCrud: Manages event store interactions.
 """
 
-from uuid import UUID
+from uuid import UUID, uuid4
 from typing import Dict
 
 from openvair.libs.log import get_logger
@@ -99,15 +99,12 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self._update_and_log_event(
             orm_template, TemplateStatus.NEW, 'TemplateCreationPrepared'
         )
-        self._create_template(
-            TemplateSerializer.to_dto(orm_template).model_dump(mode='json'),
+        self.service_layer_rpc.cast(
+            self._create_template.__name__,
+            data_for_method=TemplateSerializer.to_dto(
+                orm_template
+            ).model_dump(mode='json'),
         )
-        # self.service_layer_rpc.cast(
-        #     self._create_template.__name__,
-        #     data_for_method=TemplateSerializer.to_dto(
-        #         orm_template
-        #     ).model_dump(mode='json'),
-        # )
         return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
 
     def update_template(self) -> None:  # noqa: D102
@@ -125,7 +122,8 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         LOG.info('1')
         try:
-            result = self.domain_rpc.call('create', data_for_manager=data)
+            # TODO после реализации домена оформить правильно вызов
+            # result = self.domain_rpc.call('create', data_for_manager=data)
             LOG.info('2')
         except RpcException as err:
             self._update_and_log_event(
@@ -138,7 +136,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             return
 
         # TODO согласовать сериализацию и возвращаемый результат, когда будет известен  # noqa: E501, W505
-        orm_template = TemplateSerializer.from_dict(result)
+        # orm_template = TemplateSerializer.from_dict(result)
         self._update_and_log_event(
             orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
         )
@@ -159,7 +157,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         # TODO типизировать event
         event = {
             'object_id': str(orm_template.id),
-            'user_id': str(uuid.uuid4()),  # TODO предавать user_id
+            'user_id': str(uuid4()),  # TODO предавать user_id
             'event': event_type,
             'information': f'Status: {status.value}. message: {message}',
             # 'status': status.value, # TODO передавать статус и убрать его из сообщения  # noqa: E501, RUF003, W505
@@ -199,21 +197,21 @@ if __name__ == '__main__':
     import uuid
     from pathlib import Path
 
-    from openvair.modules.template.adapters.dto import BaseTemplateDTO
+    from openvair.modules.template.adapters.dto import TemplateDTO
     from openvair.modules.template.entrypoints.schemas import CreateTemplate
 
     data = CreateTemplate(
-        name='tmp_name5',
+        name='tmp_name3',
         path=Path('/'),
-        storage_id=uuid.UUID('0e08ef60-f09f-4ddd-90ba-4e556edd34b3'),
+        storage_id=uuid.UUID('e51d3fcb-b63a-46f9-80d7-9976449b0f79'),
         is_backing=False,
-        base_volume_id=uuid.UUID('b2e06ed2-179d-4470-a100-10332e7e7cfa'),
+        base_volume_id=uuid.UUID('1ff49d13-d779-4bc8-b365-f450059b36e4'),
         description=None,
     )
 
     command = TemplateCreateCommandDTO(
         base_volume_id=data.base_volume_id,
-        template=BaseTemplateDTO.model_validate(
+        template=TemplateDTO.model_validate(
             data.model_dump(exclude={'base_volume_id'})
         ),
     )
