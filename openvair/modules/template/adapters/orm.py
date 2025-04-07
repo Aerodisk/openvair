@@ -9,9 +9,17 @@ Classes:
 
 import uuid
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from sqlalchemy import UUID, Enum as SAEnum, Text, String, Boolean, DateTime
+from sqlalchemy import (
+    UUID,
+    Enum as SAEnum,
+    Text,
+    String,
+    Boolean,
+    DateTime,
+    BigInteger,
+)
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
 
 from openvair.common.orm_types import PathType
@@ -57,6 +65,15 @@ class Template(Base):
     path: Mapped[str] = mapped_column(
         PathType,
         nullable=False,
+    )
+    format: Mapped[Literal['qcow2', 'raw']] = mapped_column(
+        String(10),
+        nullable=False,
+    )
+    size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        default=0
     )
     storage_id: Mapped[str] = mapped_column(
         String(36),

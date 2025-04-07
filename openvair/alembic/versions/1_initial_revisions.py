@@ -2,13 +2,14 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-04-07 08:49:05.058157
+Create Date: 2025-04-07 16:40:32.636063
 
 """
 
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
 from openvair.common.orm_types import PathType
 
 # revision identifiers, used by Alembic.
@@ -309,12 +310,15 @@ def upgrade() -> None:
         sa.Column('name', sa.String(length=40), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('path', PathType(), nullable=False),
+        sa.Column('format', sa.String(length=10), nullable=False),
+        sa.Column('size', sa.BigInteger(), nullable=False),
         sa.Column('storage_id', sa.String(length=36), nullable=False),
         sa.Column(
             'status',
             sa.Enum(
                 'NEW',
                 'CREATING',
+                'EDITING',
                 'AVAILABLE',
                 'ERROR',
                 'DELETING',
