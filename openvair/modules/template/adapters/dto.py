@@ -25,7 +25,23 @@ from openvair.common.configs.pydantic import DTOConfig
 from openvair.modules.template.shared.enums import TemplateStatus
 
 
-class BaseTemplateDTO(BaseModel):
+class BaseDTO(BaseModel):
+    """Base class for all DTO models in the template module.
+
+    Applies global Pydantic configuration via `DTOConfig`.
+
+    Purpose:
+        - Provides shared model settings for validation and serialization.
+        - Inherited by all specific DTOs used in the service layer.
+
+    Note:
+        This class should not be instantiated directly.
+    """
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
+
+
+class BaseTemplateDTO(BaseDTO):
     """Base DTO for the template entity.
 
     Contains core fields used across Template-related DTOs.
@@ -52,7 +68,6 @@ class BaseTemplateDTO(BaseModel):
     storage_id: UUID
     is_backing: bool
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
 
 class TemplateDTO(BaseTemplateDTO):
     """DTO representing a complete template record.
@@ -70,7 +85,7 @@ class TemplateDTO(BaseTemplateDTO):
     information: Optional[str] = None
 
 
-class TemplateCreateCommandDTO(BaseModel):
+class TemplateCreateCommandDTO(BaseDTO):
     """DTO representing a creation command payload for a template.
 
     Combines template metadata and volume reference needed for logic.
@@ -79,7 +94,20 @@ class TemplateCreateCommandDTO(BaseModel):
     base_volume_id: UUID
     template: TemplateDTO
 
-    model_config = ConfigDict(**DTOConfig.model_config)
+
+class TemplateGetCommandDTO(BaseDTO):
+    """DTO for retrieving a template by its ID.
+
+    Used as input for service-layer logic that fetches a single template.
+
+    Attributes:
+        id (UUID): Unique identifier of the template to retrieve.
+
+    Example:
+        >>> TemplateGetCommandDTO(id=UUID('...'))
+    """
+
+    id: UUID
 
 
 class TemplateEditPayloadDTO(TemplateDTO):
