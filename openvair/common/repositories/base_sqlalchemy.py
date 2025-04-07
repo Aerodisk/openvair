@@ -131,6 +131,7 @@ class BaseSqlAlchemyRepository(AbstractRepository[T], Generic[T]):
             - Calls `session.delete(entity)`, marking it for deletion.
             - Changes are applied on `session.commit()`.
         """
+        entity = self.session.merge(entity)
         self.session.delete(entity)
 
     def delete_by_id(self, entity_id: UUID) -> None:
