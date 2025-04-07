@@ -23,11 +23,16 @@ from openvair.modules.template.config import (
 )
 from openvair.libs.messaging.exceptions import RpcException
 from openvair.modules.template.adapters.dto import (
+    Volume,
+    Storage,
     VolumeQuery,
+    CreateVolume,
     StorageQuery,
     TemplateGetCommandDTO,
     TemplateEditCommandDTO,
     TemplateCreateCommandDTO,
+    TemplateDeleteCommandDTO,
+    CreateVolumeFromTemplateCommandDTO,
 )
 from openvair.modules.template.adapters.orm import Template
 from openvair.modules.template.shared.enums import TemplateStatus
@@ -113,10 +118,13 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
     def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
         dto = TemplateCreateCommandDTO.model_validate(creating_data)
-        volume_id = dto.base_volume_id
+
+        volume = self._get_volume_info(dto.base_volume_id)
+
+        self._get_storage_info(dto.template.storage_id)
+
         template_data = dto.template
-        self._check_volume_exist(volume_id)
-        self._check_storage_exist(template_data.storage_id)
+        template_data.format = volume.format
 
         orm_template = TemplateSerializer.to_orm(template_data)
         with self.uow as uow:
@@ -151,10 +159,43 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         return editing_dto_data
 
-    def delete_template(self) -> None:  # noqa: D102
-        ...
-    def create_volume_from_template(self) -> None:  # noqa: D102
-        ...
+    def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
+        dto = TemplateDeleteCommandDTO.model_validate(deleting_data)
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(dto.id)
+
+        self._update_and_log_event(
+            orm_template, TemplateStatus.DELETING, 'TemplateDeletingStarted'
+        )
+
+        delete_dto_data = TemplateSerializer.to_dict(orm_template)
+        self.service_layer_rpc.cast(
+            self._delete_template.__name__,
+            data_for_method=delete_dto_data,
+        )
+
+        return TemplateSerializer.to_dict(orm_template)
+
+    def create_volume_from_template(  # noqa: D102
+        self, volume_from_template_data: Dict
+    ) -> None:
+        dto = CreateVolumeFromTemplateCommandDTO.model_validate(
+            volume_from_template_data
+        )
+        volume = dto.volume_info
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(dto.template_id)
+        create_volume_data = CreateVolume(
+            name=volume.name,
+            description=volume.description,
+            storage_id=volume.storage_id,
+            format=orm_template.format,
+            size=orm_template.size,
+            read_only=volume.read_only,
+        )
+        self.volume_service_client.create_volume(
+            create_volume_data.model_dump(mode='json')
+        )
 
     def _create_template(self, template_dto_data: Dict) -> None:
         orm_template = TemplateSerializer.from_dict(template_dto_data)
@@ -209,6 +250,24 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
         )
 
+    def _delete_template(self, template_dto_data: Dict) -> None:
+        orm_template = TemplateSerializer.from_dict(template_dto_data)
+        try:
+            LOG.info('')
+            # result = self.domain_rpc.call('delete', template_dto_data)
+        except RpcException as err:
+            self._update_and_log_event(
+                orm_template,
+                TemplateStatus.ERROR,
+                'TemplateDeletingFaild',
+                str(err),
+            )
+            LOG.error('Error while deleting template', exc_info=True)
+            return
+
+        with self.uow as uow:
+            uow.templates.delete(orm_template)
+
     def _update_and_log_event(
         self,
         orm_template: Template,
@@ -232,12 +291,16 @@ class TemplateServiceLayerManager(BackgroundTasks):
         }
         self.event_store.add_event(**event)
 
-    def _check_volume_exist(self, volume_id: UUID) -> None:
+    def _get_volume_info(self, volume_id: UUID) -> Volume:
         volume_query_payload = VolumeQuery(volume_id=volume_id).model_dump(
             mode='json'
         )
         try:
-            self.volume_service_client.get_volume(volume_query_payload)
+            volume_data = self.volume_service_client.get_volume(
+                volume_query_payload
+            )
+            return Volume.model_validate(volume_data)
+
         except RpcException as rpc_volume_err:
             LOG.error(
                 f'Error while getting base volume with id: {volume_id}',
@@ -246,12 +309,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
             message = f'Failed to get volume with id {volume_id}'
             raise VolumeRetrievalException(message) from rpc_volume_err
 
-    def _check_storage_exist(self, storage_id: UUID) -> None:
+    def _get_storage_info(self, storage_id: UUID) -> Storage:
         storage_query_payload = StorageQuery(storage_id=storage_id).model_dump(
             mode='json'
         )
         try:
-            self.storage_service_client.get_storage(storage_query_payload)
+            storage_data = self.storage_service_client.get_storage(
+                storage_query_payload
+            )
+            return Storage.model_validate(storage_data)
         except RpcException as rpc_storage_err:
             LOG.error(
                 f'Error while getting base storage with id: ' f'{storage_id}',
@@ -261,36 +327,3 @@ class TemplateServiceLayerManager(BackgroundTasks):
             raise StorageRetrievalException(message) from rpc_storage_err
 
 
-# if __name__ == '__main__':
-#     import uuid
-#     from pathlib import Path
-
-#     from openvair.modules.template.adapters.dto import TemplateDTO
-#     from openvair.modules.template.entrypoints.schemas import CreateTemplate
-
-#     serv = TemplateServiceLayerManager()
-
-#     get_data = {'id': '4eafb5da-8ccd-41e4-b95c-77a6a1ead390'}
-
-#     r = serv.service_layer_rpc.call(
-#         serv.get_all_templates.__name__,
-#         # data_for_method=get_data
-#     )
-#     LOG.info(r)
-# data = CreateTemplate(
-#     name='tmp_name3',
-#     path=Path('/'),
-#     storage_id=uuid.UUID('e51d3fcb-b63a-46f9-80d7-9976449b0f79'),
-#     is_backing=False,
-#     base_volume_id=uuid.UUID('1ff49d13-d779-4bc8-b365-f450059b36e4'),
-#     description=None,
-# )
-
-# command = TemplateCreateCommandDTO(
-#     base_volume_id=data.base_volume_id,
-#     template=TemplateDTO.model_validate(
-#         data.model_dump(exclude={'base_volume_id'})
-#     ),
-# )
-
-# serv.create_template(command.model_dump(mode='json'))
