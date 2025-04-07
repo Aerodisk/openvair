@@ -97,7 +97,7 @@ class CreateTemplate(BaseTemplate):
     base_volume_id: UUID
 
 
-class EditTemplate(BaseTemplate):
+class EditTemplate(BaseModel):
     """Schema for updating a template.
 
     Inherits common fields from BaseTemplate and makes name and description

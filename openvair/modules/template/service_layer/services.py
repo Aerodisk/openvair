@@ -26,6 +26,7 @@ from openvair.modules.template.adapters.dto import (
     VolumeQuery,
     StorageQuery,
     TemplateGetCommandDTO,
+    TemplateEditCommandDTO,
     TemplateCreateCommandDTO,
 )
 from openvair.modules.template.adapters.orm import Template
@@ -125,32 +126,47 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self._update_and_log_event(
             orm_template, TemplateStatus.NEW, 'TemplateCreationPrepared'
         )
+
+        creating_dto_data = TemplateSerializer.to_dict(orm_template)
         self.service_layer_rpc.cast(
             self._create_template.__name__,
-            data_for_method=TemplateSerializer.to_dto(orm_template).model_dump(
-                mode='json'
-            ),
+            data_for_method=creating_dto_data,
         )
-        return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
+        return creating_dto_data
 
-    def update_template(self) -> None:  # noqa: D102
-        ...
+    def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
+        dto = TemplateEditCommandDTO.model_validate(updating_data)
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(dto.id)
+
+        self._update_and_log_event(
+            orm_template, TemplateStatus.EDITING, 'TemplateEditingStarted'
+        )
+
+        editing_dto_data = TemplateSerializer.to_dict(orm_template)
+        self.service_layer_rpc.cast(
+            self._edit_template.__name__,
+            data_for_method=editing_dto_data,
+        )
+
+        return editing_dto_data
+
     def delete_template(self) -> None:  # noqa: D102
         ...
     def create_volume_from_template(self) -> None:  # noqa: D102
         ...
 
-    def _create_template(self, creatong_data: Dict) -> None:
-        LOG.info('2')
-        orm_template = TemplateSerializer.from_dict(creatong_data)
+    def _create_template(self, template_dto_data: Dict) -> None:
+        orm_template = TemplateSerializer.from_dict(template_dto_data)
+
         self._update_and_log_event(
             orm_template, TemplateStatus.CREATING, 'TemplateCreationStarted'
         )
-        LOG.info('1')
+
         try:
+            LOG.info('')
             # TODO после реализации домена оформить правильно вызов
             # result = self.domain_rpc.call('create', data_for_manager=data)
-            LOG.info('2')
         except RpcException as err:
             self._update_and_log_event(
                 orm_template,
@@ -165,6 +181,32 @@ class TemplateServiceLayerManager(BackgroundTasks):
         # orm_template = TemplateSerializer.from_dict(result)
         self._update_and_log_event(
             orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
+        )
+
+    def _edit_template(self, template_dto_data: Dict) -> None:
+        orm_template = TemplateSerializer.from_dict(template_dto_data)
+        try:
+            LOG.info('')
+            # result = self.domain_rpc.call('edit', template_dto_data)
+            # with self.uow as uow:
+            #     orm_template.description = result.description
+            #     orm_template.name = (
+            #         orm_template.name if result.name else result.name
+            #     )
+            #     uow.templates.update(orm_template)
+            #     uow.commit()
+        except RpcException as err:
+            self._update_and_log_event(
+                orm_template,
+                TemplateStatus.ERROR,
+                'TemplateEditingFaild',
+                str(err),
+            )
+            LOG.error('Error while editing template', exc_info=True)
+            return
+
+        self._update_and_log_event(
+            orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
         )
 
     def _update_and_log_event(

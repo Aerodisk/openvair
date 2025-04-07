@@ -110,15 +110,16 @@ class TemplateGetCommandDTO(BaseDTO):
     id: UUID
 
 
-class TemplateEditPayloadDTO(TemplateDTO):
+class TemplateEditCommandDTO(BaseDTO):
     """DTO used for partial updates to a template.
 
     Attributes:
         description (Optional[str]): New description, if applicable.
     """
 
+    id: UUID
+    name: Optional[str] = None
     description: Optional[str] = None
-    template: TemplateDTO
 
 
 class TemplateDataPayloadDTO(TemplateDTO):

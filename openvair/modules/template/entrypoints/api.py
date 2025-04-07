@@ -141,7 +141,7 @@ async def update_template(
         BaseResponse[Template]: The updated template.
     """
     LOG.info(f'API: Updating template {template_id}')
-    template = await run_in_threadpool(crud.update_template, template_id, data)
+    template = await run_in_threadpool(crud.edit_template, template_id, data)
     LOG.info(f'API: Finished updating template {template_id}')
     return BaseResponse(status='success', data=template)
 
