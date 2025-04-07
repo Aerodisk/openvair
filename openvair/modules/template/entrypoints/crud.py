@@ -26,7 +26,6 @@ from openvair.modules.template.adapters.dto import (
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.template.entrypoints.schemas import (
-    Volume,
     Template,
     BaseTemplate,
     EditTemplate,
@@ -170,7 +169,7 @@ class TemplateCrud:
         self,
         template_id: UUID,
         data: BaseModel,
-    ) -> Volume:
+    ) -> None:
         """Create a volume based on the specified template via RPC.
 
         Args:
@@ -185,13 +184,11 @@ class TemplateCrud:
         )
         params = {'template_id': str(template_id)}
         params.update(data.model_dump(mode='json'))
-        result = self.service_layer_rpc.call(
+        self.service_layer_rpc.cast(
             TemplateServiceLayerManager.create_volume_from_template.__name__,
             data_for_method=params,
         )
-        volume = Volume.model_validate(result)
-        LOG.info(
-            f"Finished creation of volume '{volume.name}' from template "
-            f'with ID: {template_id}.'
-        )
-        return volume
+        # LOG.info(
+        #     f"Finished creation of volume '{volume.name}' from template "
+        #     f'with ID: {template_id}.'
+        # )

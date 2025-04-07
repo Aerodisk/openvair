@@ -193,8 +193,8 @@ async def create_volume_from_template(
         BaseResponse[Volume]: The created volume.
     """
     LOG.info(f'API: Creating volume from template {template_id}')
-    volume = await run_in_threadpool(
+    await run_in_threadpool(
         crud.create_volume_from_template, template_id, data
     )
     LOG.info(f'API: Finished creating volume from template {template_id}')
-    return BaseResponse(status='success', data=volume)
+    return BaseResponse(status='success')

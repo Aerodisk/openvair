@@ -25,7 +25,7 @@ class DTOConfig:
     Behavior:
         - `from_attributes`: Enables ORM-to-Pydantic conversion.
         - `str_strip_whitespace`: Cleans input strings automatically.
-        - `extra = "forbid"`: Rejects unexpected fields to avoid silent bugs.
+        - `extra = "ignore"`: Ignore unexpected fields to avoid unused data.
         - `populate_by_name`: Allows aliasing support when using field names.
         - `use_enum_values`: Automatically converts Enums to values.
 
@@ -38,7 +38,7 @@ class DTOConfig:
         from_attributes=True,
         str_strip_whitespace=True,
         str_to_lower=False,
-        extra='forbid',
+        extra='ignore',
         populate_by_name=True,
         use_enum_values=True,
     )

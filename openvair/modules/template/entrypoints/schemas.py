@@ -24,6 +24,7 @@ from datetime import datetime
 from pydantic import Field, BaseModel, ConfigDict
 
 from openvair.common.configs.pydantic import APIConfig
+from openvair.modules.template.adapters.dto import CreateVolume
 from openvair.modules.template.shared.enums import TemplateStatus
 
 
@@ -120,6 +121,9 @@ class CreateVolumeFromTemplate(BaseTemplate):
         name (str): Desired name for the volume.
         size (int): Size of the volume in bytes.
     """
+    template_id: UUID
+    volume_info: CreateVolume
+
 class Volume(BaseModel):
     """Schema representing a volume created from a template.
 

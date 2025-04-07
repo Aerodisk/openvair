@@ -15,13 +15,14 @@ Example:
 """
 
 from uuid import UUID
-from typing import ClassVar, Optional
+from typing import Literal, ClassVar, Optional
 from pathlib import Path
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import Field, BaseModel, ConfigDict, field_validator
 
 from openvair.common.configs.pydantic import DTOConfig
+from openvair.libs.validation.validators import Validator
 from openvair.modules.template.shared.enums import TemplateStatus
 
 
@@ -63,7 +64,7 @@ class BaseTemplateDTO(BaseDTO):
     """
 
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     path: Path
     storage_id: UUID
     is_backing: bool
@@ -83,6 +84,9 @@ class TemplateDTO(BaseTemplateDTO):
     created_at: Optional[datetime] = None
     status: Optional[TemplateStatus] = None
     information: Optional[str] = None
+    format: Literal['qcow2', 'raw']
+    size: int = Field(0, ge=1)
+    used: int
 
 
 class TemplateCreateCommandDTO(BaseDTO):
@@ -122,18 +126,109 @@ class TemplateEditCommandDTO(BaseDTO):
     description: Optional[str] = None
 
 
-class TemplateDataPayloadDTO(TemplateDTO):
-    """DTO used for referencing a template by name.
+class TemplateDeleteCommandDTO(BaseDTO):  # noqa: D101
+    id: UUID
 
-    Includes only the name field. Useful for lightweight links.
+
+class CreateVolumeInfo(BaseDTO):  # noqa: D101
+    name: str = Field(min_length=1, max_length=40)
+    description: str = Field(max_length=255)
+    storage_id: UUID
+    read_only: Optional[bool] = False
+
+
+class CreateVolumeFromTemplateCommandDTO(BaseDTO):  # noqa: D101
+    template_id: UUID
+    volume_info: CreateVolumeInfo
+
+
+class CreateVolume(BaseDTO):
+    """Schema for creating a new volume.
 
     Attributes:
-        name (str): Name of the template.
+        name (str): The name of the volume.
+        description (str): A description of the volume.
+        storage_id (UUID): The ID of the storage to create the volume in.
+        format (Literal['qcow2', 'raw']): The format of the volume.
+        size (int): The size of the volume in bytes.
+        read_only (Optional[bool]): Whether the volume is read-only.
     """
 
-    name: str
-    template: TemplateDTO
+    name: str = Field(min_length=1, max_length=40)
+    description: str = Field(max_length=255)
+    storage_id: UUID
+    format: Literal['qcow2', 'raw']
+    size: int = Field(0, ge=1)
+    read_only: Optional[bool] = False
 
+    validate_name = field_validator('name')(
+        Validator.special_characters_validate
+    )
+    validate_description = field_validator('description')(
+        Validator.special_characters_validate
+    )
+
+class Storage(BaseModel):
+    """Schema representing a storage entity.
+
+    Attributes:
+        id (UUID): The unique identifier of the storage.
+        name (str): The name of the storage.
+        description (Optional[str]): A brief description of the storage.
+        storage_type (str): The type of storage (e.g., 'nfs', 'localfs').
+        status (str): The current status of the storage.
+        size (int): The total size of the storage in bytes.
+        available (int): The available size of the storage in bytes.
+        user_id (Optional[UUID]): The ID of the user who owns the storage.
+        information (Optional[str]): Additional information about the storage.
+        storage_extra_specs (Union[NfsStorageExtraSpecsInfo,
+            LocalFSStorageExtraSpecsInfo]): Additional specifications for the
+            storage.
+    """
+
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    storage_type: str
+    status: str
+    size: int
+    available: int
+    user_id: Optional[UUID] = None
+    information: Optional[str] = None
+
+
+
+class Volume(BaseModel):
+    """Schema representing a volume.
+
+    Attributes:
+        id (UUID): The ID of the volume.
+        name (str): The name of the volume.
+        description (Optional[str]): A description of the volume.
+        storage_id (Optional[UUID]): The ID of the storage the volume belongs
+            to.
+        user_id (Optional[UUID]): The ID of the user who owns the volume.
+        format (str): The format of the volume (e.g., qcow2, raw).
+        size (int): The size of the volume in bytes.
+        used (Optional[int]): The amount of space used in the volume.
+        status (Optional[str]): The status of the volume.
+        information (Optional[str]): Additional information about the volume.
+        attachments (List[Optional[Attachment]]): A list of attachments for the
+            volume.
+        read_only (Optional[bool]): Whether the volume is read-only.
+    """
+
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    storage_id: Optional[UUID] = None
+    user_id: Optional[UUID] = None
+    format: Literal['qcow2', 'raw']
+    size: int
+    used: Optional[int] = None
+    status: Optional[str] = None
+    information: Optional[str] = None
+    read_only: Optional[bool] = False
 
 class VolumeQuery(BaseModel):
     """DTO for querying a volume by its ID.
@@ -154,6 +249,12 @@ class VolumeQuery(BaseModel):
 
     volume_id: UUID
     model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
+
+
+class VolumeGettingDTO(BaseDTO):  # noqa: D101
+    format: Literal['qcow2', 'raw']
+    size: int = Field(0, ge=1)
+    used: int
 
 
 class StorageQuery(BaseModel):
