@@ -10,7 +10,7 @@ Classes:
 import uuid
 import datetime
 
-from sqlalchemy import Enum as SAEnum, Text, String, Boolean, DateTime
+from sqlalchemy import UUID, Enum as SAEnum, Text, String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
 
 from openvair.common.orm_types import PathType
@@ -40,9 +40,9 @@ class Template(Base):
     __tablename__ = 'templates'
 
     id: Mapped[uuid.UUID] = mapped_column(
-        String(36),
+        UUID(),
         primary_key=True,
-        default=lambda: str(uuid.uuid4()),
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(
         String(40),

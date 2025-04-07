@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-04-04 18:46:12.781853
+Create Date: 2025-04-07 08:49:05.058157
 
 """
 
@@ -10,6 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 from openvair.common.orm_types import PathType
+
 # revision identifiers, used by Alembic.
 revision = '1'
 down_revision = None
@@ -304,10 +305,10 @@ def upgrade() -> None:
     )
     op.create_table(
         'templates',
-        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('name', sa.String(length=40), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('path', PathType(), nullable=False), # type: ignore
+        sa.Column('path', PathType(), nullable=False),
         sa.Column('storage_id', sa.String(length=36), nullable=False),
         sa.Column(
             'status',
