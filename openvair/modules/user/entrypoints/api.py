@@ -7,6 +7,7 @@ and integrates with the UserCrud class to perform the necessary operations.
 
 Endpoints:
     - GET /user/ - Retrieve information for the current authenticated user.
+    - GET /user/all - Retrieve list of all users.
     - POST /user/{user_id}/create/ - Create a new user.
     - DELETE /user/{user_id}/ - Delete a user by ID.
     - POST /user/{user_id}/change-password/ - Change the password for a user.
@@ -19,9 +20,11 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import Dict
+from typing import Dict, List, cast
 
 from fastapi import Depends, APIRouter, status
+from fastapi.responses import JSONResponse
+from fastapi_pagination import Page, paginate
 from fastapi.security import HTTPBearer
 
 from openvair.libs.log import get_logger
@@ -63,6 +66,30 @@ def get_user(
     user: Dict = crud.get_user(user_dict.get('id', ''))
     LOG.info('Api request was successfully processed.')
     return schemas.User(**user)
+
+
+@router.get(
+    '/all/',
+    response_model=Page[schemas.User],
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_user)],
+)
+def get_users(
+        crud: UserCrud = Depends(UserCrud)
+) -> Page[schemas.User]:
+    """Retrieve list of all users.
+
+    Args:
+        crud: UserCrud instance for performing CRUD operations.
+
+    Returns:
+        JSONResponse: A paginated list of information about all users.
+    """
+    LOG.info('Api start getting all users info.')
+    result: List = crud.get_users()
+    LOG.info('Api request was successfully processed.')
+    users: List[schemas.User] = [schemas.User(**user) for user in result]
+    return cast(Page, paginate(users))
 
 
 @router.post(
