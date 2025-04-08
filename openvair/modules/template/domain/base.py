@@ -5,9 +5,21 @@ providing a foundation for different template types.
 """
 
 import abc
+from typing import Dict
 
 
-class BaseTemplate(metaclass=abc.ABCMeta):  # noqa: B024
+class BaseTemplate(metaclass=abc.ABCMeta):
     """Abstract base class for template models."""
 
-    pass
+    @abc.abstractmethod
+    def create(self) -> Dict:  # noqa: D102
+        ...
+
+    @abc.abstractmethod
+    def edit(self) -> Dict:  # noqa: D102
+        ...
+
+    @abc.abstractmethod
+    def delete(self) -> Dict:  # noqa: D102
+        ...
+
