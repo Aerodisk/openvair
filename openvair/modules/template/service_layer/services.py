@@ -33,8 +33,8 @@ from openvair.modules.template.adapters.dto.volumes import (
     DTOExistingVolume,
 )
 from openvair.modules.template.adapters.dto.storages import (
-    DTOStorage,
     DTOGetStorage,
+    DTOExistingStorageStorage,
 )
 from openvair.modules.template.adapters.dto.templates import (
     DTOTemplate,
@@ -316,7 +316,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             message = f'Failed to get volume with id {volume_id}'
             raise VolumeRetrievalException(message) from rpc_volume_err
 
-    def _get_storage_info(self, storage_id: UUID) -> DTOStorage:
+    def _get_storage_info(self, storage_id: UUID) -> DTOExistingStorageStorage:
         storage_query_payload = DTOGetStorage(storage_id=storage_id).model_dump(
             mode='json'
         )
@@ -324,7 +324,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             storage_data = self.storage_service_client.get_storage(
                 storage_query_payload
             )
-            return DTOStorage.model_validate(storage_data)
+            return DTOExistingStorageStorage.model_validate(storage_data)
         except RpcException as rpc_storage_err:
             LOG.error(
                 f'Error while getting base storage with id: ' f'{storage_id}',

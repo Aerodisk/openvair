@@ -35,7 +35,7 @@ class ConfigurationStoragesDTO(BaseModel):
     model_config: ClassVar[ConfigDict] = dto_config
 
 
-class DTOStorage(BaseModel):
+class DTOExistingStorageStorage(BaseModel):
     """Schema representing a storage entity.
 
     Attributes:
