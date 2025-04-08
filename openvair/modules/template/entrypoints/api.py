@@ -17,10 +17,10 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import Dict
+from typing import Dict, List
 
 from fastapi import Depends, APIRouter, status
-from fastapi_pagination import Page, paginate
+from fastapi_pagination import Page, Params, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
@@ -54,19 +54,22 @@ router = APIRouter(
 )
 async def get_templates(
     crud: TemplateCrud = Depends(TemplateCrud),
+    params: Params = Depends(),
 ) -> BaseResponse:
     """Retrieve a paginated list of templates.
 
     Args:
         crud (TemplateCrud): Dependency-injected service for handling template
             logic.
-
+        params (Params): Dependency-injected for pagination params
     Returns:
         BaseResponse[Page[Template]]: Paginated response containing templates.
     """
     LOG.info('API: Getting list of templates')
-    templates = await run_in_threadpool(crud.get_all_templates)
-    paginated_templates = paginate(templates)
+    templates: List[TemplateResponse] = await run_in_threadpool(
+        crud.get_all_templates
+    )
+    paginated_templates = paginate(templates, params)
     LOG.info('API: Finished getting list of templates')
     return BaseResponse(status='success', data=paginated_templates)
 

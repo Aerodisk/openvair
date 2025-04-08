@@ -22,23 +22,28 @@ from openvair.modules.template.config import (
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
 from openvair.libs.messaging.exceptions import RpcException
-from openvair.modules.template.adapters.dto import (
-    Volume,
-    Storage,
-    VolumeQuery,
-    CreateVolume,
-    StorageQuery,
-    TemplateGetCommandDTO,
-    TemplateEditCommandDTO,
-    TemplateCreateCommandDTO,
-    TemplateDeleteCommandDTO,
-    CreateVolumeFromTemplateCommandDTO,
-)
 from openvair.modules.template.adapters.orm import Template
 from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.template.adapters.serializer import TemplateSerializer
+from openvair.modules.template.adapters.dto.volumes import (
+    DTOGetVolume,
+    DTOCreateVolume,
+    DTOExistingVolume,
+)
+from openvair.modules.template.adapters.dto.storages import (
+    DTOStorage,
+    DTOGetStorage,
+)
+from openvair.modules.template.adapters.dto.templates import (
+    DTOTemplate,
+    DTOGetTemplate,
+    DTOEditTemplate,
+    DTOCreateTemplate,
+    DTODeleteTemplate,
+    DTOCreateVolumeFromTemplate,
+)
 from openvair.modules.template.service_layer.exceptions import (
     VolumeRetrievalException,
     StorageRetrievalException,
@@ -110,24 +115,24 @@ class TemplateServiceLayerManager(BackgroundTasks):
         Returns:
             Dict: A JSON-serializable representation of the template.
         """
-        dto = TemplateGetCommandDTO.model_validate(getting_data)
+        dto = DTOGetTemplate.model_validate(getting_data)
         LOG.info(dto.id)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.id)
         return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
 
     def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
-        dto = TemplateCreateCommandDTO.model_validate(creating_data)
+        create_dto = DTOCreateTemplate.model_validate(creating_data)
 
-        volume = self._get_volume_info(dto.base_volume_id)
+        volume = self._get_volume_info(create_dto.base_volume_id)
 
-        storage = self._get_storage_info(dto.template.storage_id)
+        storage = self._get_storage_info(create_dto.storage_id)
 
-        template_data = dto.template
-        template_data.format = volume.format
-        template_data.path = storage.mount_point
+        dto_template = DTOTemplate.model_validate(create_dto)
+        dto_template.format = volume.format
+        dto_template.path = storage.mount_point
 
-        orm_template = TemplateSerializer.to_orm(template_data)
+        orm_template = TemplateSerializer.to_orm(dto_template)
         with self.uow as uow:
             uow.templates.add(orm_template)
             uow.commit()
@@ -144,7 +149,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         return creating_dto_data
 
     def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
-        dto = TemplateEditCommandDTO.model_validate(updating_data)
+        dto = DTOEditTemplate.model_validate(updating_data)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.id)
 
@@ -161,7 +166,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         return editing_dto_data
 
     def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
-        dto = TemplateDeleteCommandDTO.model_validate(deleting_data)
+        dto = DTODeleteTemplate.model_validate(deleting_data)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.id)
 
@@ -180,20 +185,19 @@ class TemplateServiceLayerManager(BackgroundTasks):
     def create_volume_from_template(  # noqa: D102
         self, volume_from_template_data: Dict
     ) -> None:
-        dto = CreateVolumeFromTemplateCommandDTO.model_validate(
+        dto = DTOCreateVolumeFromTemplate.model_validate(
             volume_from_template_data
         )
         volume = dto.volume_info
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.template_id)
-        create_volume_data = CreateVolume(
+        create_volume_data = DTOCreateVolume(
             name=volume.name,
             description=volume.description,
             storage_id=volume.storage_id,
             format=orm_template.format,
             size=orm_template.size,
             read_only=volume.read_only,
-            user_info=dto.user_info,
         )
         self.volume_service_client.create_volume(
             create_volume_data.model_dump(mode='json')
@@ -294,15 +298,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
         }
         self.event_store.add_event(**event)
 
-    def _get_volume_info(self, volume_id: UUID) -> Volume:
-        volume_query_payload = VolumeQuery(volume_id=volume_id).model_dump(
+    def _get_volume_info(self, volume_id: UUID) -> DTOExistingVolume:
+        volume_query_payload = DTOGetVolume(volume_id=volume_id).model_dump(
             mode='json'
         )
         try:
             volume_data = self.volume_service_client.get_volume(
                 volume_query_payload
             )
-            return Volume.model_validate(volume_data)
+            return DTOExistingVolume.model_validate(volume_data)
 
         except RpcException as rpc_volume_err:
             LOG.error(
@@ -312,15 +316,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
             message = f'Failed to get volume with id {volume_id}'
             raise VolumeRetrievalException(message) from rpc_volume_err
 
-    def _get_storage_info(self, storage_id: UUID) -> Storage:
-        storage_query_payload = StorageQuery(storage_id=storage_id).model_dump(
+    def _get_storage_info(self, storage_id: UUID) -> DTOStorage:
+        storage_query_payload = DTOGetStorage(storage_id=storage_id).model_dump(
             mode='json'
         )
         try:
             storage_data = self.storage_service_client.get_storage(
                 storage_query_payload
             )
-            return Storage.model_validate(storage_data)
+            return DTOStorage.model_validate(storage_data)
         except RpcException as rpc_storage_err:
             LOG.error(
                 f'Error while getting base storage with id: ' f'{storage_id}',
@@ -328,5 +332,3 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             message = f'Failed to get storage with id {storage_id}'
             raise StorageRetrievalException(message) from rpc_storage_err
-
-

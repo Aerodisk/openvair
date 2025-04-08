@@ -5,12 +5,11 @@ creating volumes from templates.
 """
 
 from uuid import UUID
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 
 # from openvair.modules.template.adapters.dto import CreateVolume
-from openvair.modules.template.adapters.dto import CreateVolume
 from openvair.modules.template.entrypoints.schemas.base import (
     APIConfigRequestModel,
 )
@@ -64,4 +63,23 @@ class RequetsCreateVolumeFromTemplate(APIConfigRequestModel):
         volume_data (CreateVolume): Parameters for the new volume.
     """
 
-    volume_data: CreateVolume
+    volume_data: 'CreateVolume'
+
+class CreateVolume(APIConfigRequestModel):
+    """Schema for creating a new volume.
+
+    Attributes:
+        name (str): The name of the volume.
+        description (str): A description of the volume.
+        storage_id (UUID): The ID of the storage to create the volume in.
+        format (Literal['qcow2', 'raw']): The format of the volume.
+        size (int): The size of the volume in bytes.
+        read_only (Optional[bool]): Whether the volume is read-only.
+    """
+
+    name: str = Field(min_length=1, max_length=40)
+    description: str = Field(max_length=255)
+    storage_id: UUID
+    format: Literal['qcow2', 'raw']
+    size: int = Field(0, ge=1)
+    read_only: Optional[bool] = False

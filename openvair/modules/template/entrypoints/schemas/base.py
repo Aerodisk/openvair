@@ -4,9 +4,12 @@ Defines shared request and response configuration models used across
 multiple template-related API schemas.
 """
 
-from typing import ClassVar
+from pydantic import BaseModel
 
-from pydantic import BaseModel, ConfigDict
+from openvair.common.configs.pydantic import (
+    api_request_config,
+    api_response_config,
+)
 
 
 class APIConfigRequestModel(BaseModel):
@@ -21,11 +24,7 @@ class APIConfigRequestModel(BaseModel):
         use_enum_values: Serializes enums as values.
     """
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        from_attributes=True,
-        extra='forbid',
-        use_enum_values=True,
-    )
+    model_config = api_request_config
 
 
 class APIConfigResponseModel(BaseModel):
@@ -39,8 +38,4 @@ class APIConfigResponseModel(BaseModel):
         use_enum_values: Serializes enums as values.
     """
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        from_attributes=True,
-        extra='ignore',
-        use_enum_values=True,
-    )
+    model_config = api_response_config

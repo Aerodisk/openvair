@@ -12,55 +12,32 @@ Classes:
     - ApiModelConfig: Lenient config used for FastAPI request/response models.
 """
 
-from typing import ClassVar
-
 from pydantic import ConfigDict
 
+api_request_config = ConfigDict(
+    from_attributes=True,
+    extra='forbid',  # более строгая проверка для входящих данных
+    use_enum_values=True,
+)
 
-class DTOConfig:
-    """Pydantic config preset for internal DTO models.
+api_response_config = ConfigDict(
+    from_attributes=True,
+    extra='ignore',  # более мягкая — для отдачи наружу
+    use_enum_values=True,
+)
 
-    Designed for internal use between service, ORM, and domain layers.
+dto_config = ConfigDict(
+    from_attributes=True,
+    extra='forbid',
+    populate_by_name=True,
+    use_enum_values=True,
+    str_strip_whitespace=True,
+)
 
-    Behavior:
-        - `from_attributes`: Enables ORM-to-Pydantic conversion.
-        - `str_strip_whitespace`: Cleans input strings automatically.
-        - `extra = "ignore"`: Ignore unexpected fields to avoid unused data.
-        - `populate_by_name`: Allows aliasing support when using field names.
-        - `use_enum_values`: Automatically converts Enums to values.
-
-    Example:
-        class MyDTO(BaseModel):
-            model_config = BaseDTOConfig.model_config
-    """
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        from_attributes=True,
-        str_strip_whitespace=True,
-        str_to_lower=False,
-        extra='ignore',
-        populate_by_name=True,
-        use_enum_values=True,
-    )
-
-
-class APIConfig:
-    """Pydantic config preset for public API models.
-
-    Intended for FastAPI request and response schemas.
-
-    Behavior:
-        - `from_attributes`: Enables ORM serialization.
-        - `extra = "ignore"`: Ignores unknown fields in input (tolerant).
-        - `use_enum_values`: Ensures enum fields return readable values.
-
-    Example:
-        class CreateRequest(BaseModel):
-            model_config = ApiModelConfig.model_config
-    """
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        from_attributes=True,
-        extra='ignore',
-        use_enum_values=True,
-    )
+lenient_dto_config = ConfigDict(
+    from_attributes=True,
+    extra='ignore',
+    populate_by_name=True,
+    use_enum_values=True,
+    str_strip_whitespace=True,
+)
