@@ -313,3 +313,6 @@ class StorageQuery(BaseModel):
 
     storage_id: UUID
     model_config: ClassVar[ConfigDict] = ConfigDict(**DTOConfig.model_config)
+
+class TemplateDomain(BaseModel):  # noqa: D101
+    ...

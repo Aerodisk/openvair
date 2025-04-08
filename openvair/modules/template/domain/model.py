@@ -11,17 +11,17 @@ Classes:
 import abc
 
 from openvair.modules.template.domain.base import BaseTemplate
-from openvair.modules.template.entrypoints.schemas import TemplateData
+from openvair.modules.template.adapters.dto import TemplateDomain
 
 
 class AbstractTemplateFactory(metaclass=abc.ABCMeta):
     """Abstract factory for creating template instances."""
 
-    def __call__(self, template_data: TemplateData) -> BaseTemplate:
+    def __call__(self, template_data: TemplateDomain) -> BaseTemplate:
         """Creates a template instance from provided data.
 
         Args:
-            template_data (TemplateData): Data for creating a template.
+            template_data (TemplateDomain): Data for creating a template.
 
         Returns:
             BaseTemplate: The created template instance.
@@ -29,11 +29,11 @@ class AbstractTemplateFactory(metaclass=abc.ABCMeta):
         return self.get_template(template_data)
 
     @abc.abstractmethod
-    def get_template(self, template_data: TemplateData) -> BaseTemplate:
+    def get_template(self, template_data: TemplateDomain) -> BaseTemplate:
         """Returns a template instance based on the provided data.
 
         Args:
-            template_data (TemplateData): Data for creating a template.
+            template_data (TemplateDomain): Data for creating a template.
 
         Returns:
             BaseTemplate: The created template instance.
@@ -44,13 +44,13 @@ class AbstractTemplateFactory(metaclass=abc.ABCMeta):
 class TemplateFactory(AbstractTemplateFactory):
     """Concrete factory for template creation."""
 
-    def get_template(self, template_data: TemplateData) -> BaseTemplate:
+    def get_template(self, template_data: TemplateDomain) -> BaseTemplate:
         """Creates a template instance.
 
         This method should be implemented to return a specific template type.
 
         Args:
-            template_data (TemplateData): Data for creating a template.
+            template_data (TemplateDomain): Data for creating a template.
 
         Raises:
             NotImplementedError: If not implemented in a subclass.
