@@ -29,11 +29,10 @@ class QemuImgAdapter:
         executor (QemuImgCommandExecutor): Command executor for qemu-img.
     """
 
-    INFO_SUBCOMMAND = 'get_info'
-    CHECK_SUBCOMMAND = 'check_valid'
-    CREATE_BACKING_SUBCOMMAND = 'create_backing_volume'
-    CONVERT_SUBCOMMAND = 'create_copy'
-    DELETE_SUBCOMMAND = 'delete'
+    INFO_SUBCOMMAND = 'info --output=json'
+    CHECK_SUBCOMMAND = 'check'
+    CREATE_BACKING_SUBCOMMAND = 'create -f qcow2 -b'
+    CONVERT_SUBCOMMAND = 'convert -O '
 
     def __init__(self) -> None:
         """Initialize a QemuImgAdapter instance.
@@ -55,7 +54,7 @@ class QemuImgAdapter:
         Raises:
             QemuImgError: If command fails.
         """
-        result = self.executor.execute(f'info --output=json {image_path}')
+        result = self.executor.execute(f'{self.INFO_SUBCOMMAND} {image_path}')
         self._check_result(self.INFO_SUBCOMMAND, result)
         info: Dict = deserialize_json(result.stdout)
         return info
@@ -69,7 +68,7 @@ class QemuImgAdapter:
         Returns:
             bool: True if valid, False if invalid.
         """
-        result = self.executor.execute(f'check {image_path}')
+        result = self.executor.execute(f'{self.CHECK_SUBCOMMAND} {image_path}')
         return result.returncode == 0
 
     def create_backing_volume(
@@ -87,7 +86,7 @@ class QemuImgAdapter:
             QemuImgError: If creation fails.
         """
         result = self.executor.execute(
-            f'create -f qcow2 -b {backing_path} {target_path}'
+            f'{self.CREATE_BACKING_SUBCOMMAND} {backing_path} {target_path}'
         )
         self._check_result(self.CREATE_BACKING_SUBCOMMAND, result)
 
@@ -108,24 +107,9 @@ class QemuImgAdapter:
             QemuImgError: If convert fails.
         """
         result = self.executor.execute(
-            f'convert -O {fmt} {source_path} {target_path}'
+            f'{self.CONVERT_SUBCOMMAND} {fmt} {source_path} {target_path}'
         )
         self._check_result(self.CONVERT_SUBCOMMAND, result)
-
-    def delete(self, image_path: Path) -> None:
-        """Deletes an image file from disk.
-
-        Args:
-            image_path (Path): Path to the image file.
-
-        Raises:
-            QemuImgError: If deletion fails.
-        """
-        try:
-            Path(image_path).unlink()
-        except OSError as e:
-            message: str = f'Failed to delete image: {e}'
-            raise QemuImgError(message) from e
 
     def _check_result(
         self,
