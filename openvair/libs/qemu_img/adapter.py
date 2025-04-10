@@ -12,7 +12,9 @@ from typing import Dict
 from pathlib import Path
 
 from openvair.libs.log import get_logger
+from openvair.libs.cli.models import ExecutionResult
 from openvair.libs.qemu_img.executor import QemuImgCommandExecutor
+from openvair.libs.qemu_img.exceptions import QemuImgError
 from openvair.libs.data_handlers.json.serializer import deserialize_json
 
 LOG = get_logger(__name__)
@@ -26,6 +28,12 @@ class QemuImgAdapter:
     Attributes:
         executor (QemuImgCommandExecutor): Command executor for qemu-img.
     """
+
+    INFO_SUBCOMMAND = 'get_info'
+    CHECK_SUBCOMMAND = 'check_valid'
+    CREATE_BACKING_SUBCOMMAND = 'create_backing_volume'
+    CONVERT_SUBCOMMAND = 'create_copy'
+    DELETE_SUBCOMMAND = 'delete'
 
     def __init__(self) -> None:
         """Initialize a QemuImgAdapter instance.
@@ -45,12 +53,10 @@ class QemuImgAdapter:
             Dict: Parsed output of `qemu-img info --output=json`
 
         Raises:
-            RuntimeError: If command fails.
+            QemuImgError: If command fails.
         """
         result = self.executor.execute(f'info --output=json {image_path}')
-        if result.returncode != 0:
-            message = f'Failed to get info: {result.stderr}'
-            raise RuntimeError(message)
+        self._check_result(self.INFO_SUBCOMMAND, result)
         info: Dict = deserialize_json(result.stdout)
         return info
 
@@ -67,7 +73,9 @@ class QemuImgAdapter:
         return result.returncode == 0
 
     def create_backing_volume(
-        self, backing_path: Path, target_path: Path
+        self,
+        backing_path: Path,
+        target_path: Path,
     ) -> None:
         """Creates a new qcow2 volume using a backing file.
 
@@ -76,17 +84,18 @@ class QemuImgAdapter:
             target_path (Path): Path for the new image file.
 
         Raises:
-            RuntimeError: If creation fails.
+            QemuImgError: If creation fails.
         """
         result = self.executor.execute(
             f'create -f qcow2 -b {backing_path} {target_path}'
         )
-        if result.returncode != 0:
-            message: str = f'Failed to create backing volume: {result.stderr}'
-            raise RuntimeError(message)
+        self._check_result(self.CREATE_BACKING_SUBCOMMAND, result)
 
     def create_copy(
-        self, source_path: Path, target_path: Path, fmt: str = 'qcow2'
+        self,
+        source_path: Path,
+        target_path: Path,
+        fmt: str = 'qcow2',
     ) -> None:
         """Creates a full copy of an image file.
 
@@ -96,14 +105,12 @@ class QemuImgAdapter:
             fmt (str): Output format, default is 'qcow2'.
 
         Raises:
-            RuntimeError: If convert fails.
+            QemuImgError: If convert fails.
         """
         result = self.executor.execute(
             f'convert -O {fmt} {source_path} {target_path}'
         )
-        if result.returncode != 0:
-            message: str = f'Failed to create copy: {result.stderr}'
-            raise RuntimeError(message)
+        self._check_result(self.CONVERT_SUBCOMMAND, result)
 
     def delete(self, image_path: Path) -> None:
         """Deletes an image file from disk.
@@ -112,10 +119,32 @@ class QemuImgAdapter:
             image_path (Path): Path to the image file.
 
         Raises:
-            RuntimeError: If deletion fails.
+            QemuImgError: If deletion fails.
         """
         try:
             Path(image_path).unlink()
         except OSError as e:
             message: str = f'Failed to delete image: {e}'
-            raise RuntimeError(message) from e
+            raise QemuImgError(message) from e
+
+    def _check_result(
+        self,
+        subcommand: str,
+        result: ExecutionResult,
+    ) -> None:
+        """Check command result and raise an error if it failed.
+
+        Args:
+            subcommand (str): Subcommand being performed.
+            result (ExecutionResult): Result object of the executed command.
+
+        Raises:
+            QemuImgError: If the command failed.
+        """
+        if result.returncode != 0:
+            message: str = (
+                f'Operation "{subcommand}" failed with code '
+                f'{result.returncode}.'
+                f'\n\tstderr: {result.stderr}'
+            )
+            raise QemuImgError(message)

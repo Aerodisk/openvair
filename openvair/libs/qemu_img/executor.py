@@ -32,7 +32,7 @@ class QemuImgCommandExecutor:
 
     def __init__(self) -> None:
         """Initialize the QemuImgCommandExecutor."""
-        pass  # Пока не нужны параметры, но можно добавить (например, user env)
+        ...
 
     def _build_command(self, subcommand: str) -> str:
         """Constructs the full qemu-img command.
