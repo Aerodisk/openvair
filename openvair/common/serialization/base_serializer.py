@@ -6,7 +6,6 @@ and DTOs. It supports nested serializers and automatic registration in
 
 Example:
     class TemplateSerializer(BaseSerializer[TemplateDTO, TemplateORM]):
-        name = "template"
         dto_class = TemplateDTO
         orm_class = TemplateORM
 
@@ -26,8 +25,6 @@ from pydantic import BaseModel
 from sqlalchemy import inspect
 from sqlalchemy.orm import DeclarativeBase
 
-from openvair.common.serialization.serializer_hub import SerializerHub
-
 DTO = TypeVar('DTO', bound=BaseModel)
 ORM = TypeVar('ORM', bound=DeclarativeBase)
 
@@ -41,29 +38,13 @@ class BaseSerializer(Generic[DTO, ORM]):
     Attributes:
         dto_class (Type[DTO]): DTO model class.
         orm_class (Type[ORM]): ORM SQLAlchemy model class.
-        name (str): Unique name for registration.
         nested_serializers (Dict[str, Type["BaseSerializer"]]):
             Field-to-serializer mapping.
     """
 
     dto_class: Type[DTO]
     orm_class: Type[ORM]
-    name: str
     nested_serializers: ClassVar[Dict[str, Type['BaseSerializer']]] = {}
-
-    def __init_subclass__(cls) -> None:
-        """Automatically registers the serializer in SerializerHub."""
-        if (
-            hasattr(cls, 'name')
-            and hasattr(cls, 'dto_class')
-            and hasattr(cls, 'orm_class')
-        ):
-            SerializerHub.register(
-                name=cls.name,
-                serializer=cls,
-                dto_class=cls.dto_class,
-                orm_class=cls.orm_class,
-            )
 
     @classmethod
     def to_dto(cls, orm_obj: ORM) -> DTO:
