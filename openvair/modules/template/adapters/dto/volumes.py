@@ -11,6 +11,7 @@ Classes:
 
 from uuid import UUID
 from typing import Literal, ClassVar, Optional
+from pathlib import Path
 
 from pydantic import (
     Field,
@@ -38,7 +39,6 @@ class ConfigurationVolumeDTO(BaseModel):
     """
 
     model_config: ClassVar[ConfigDict] = dto_config
-
 
 class DTOExistingVolume(BaseModel):
     """Schema representing a volume.
@@ -71,6 +71,7 @@ class DTOExistingVolume(BaseModel):
     status: Optional[str] = None
     information: Optional[str] = None
     read_only: Optional[bool] = False
+    path: Path
     model_config: ClassVar[ConfigDict] = lenient_dto_config
 
 

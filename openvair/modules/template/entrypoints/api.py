@@ -67,7 +67,7 @@ async def get_templates(
     """
     LOG.info('API: Getting list of templates')
     templates: List[TemplateResponse] = await run_in_threadpool(
-        crud.get_all_templates
+        crud.get_all_templates # type: ignore
     )
     paginated_templates = paginate(templates, params)
     LOG.info('API: Finished getting list of templates')
@@ -94,7 +94,7 @@ async def get_template(
         BaseResponse[Template]: The retrieved template.
     """
     LOG.info(f'API: Getting template {template_id}')
-    template = await run_in_threadpool(crud.get_template, template_id)
+    template = await run_in_threadpool(crud.get_template, template_id) # type: ignore
     LOG.info(f'API: Finished getting template {template_id}')
     return BaseResponse(status='success', data=template)
 
@@ -146,7 +146,7 @@ async def update_template(
         BaseResponse[Template]: The updated template.
     """
     LOG.info(f'API: Updating template {template_id}')
-    template = await run_in_threadpool(crud.edit_template, template_id, data)
+    template = await run_in_threadpool(crud.edit_template, template_id, data) # type: ignore
     LOG.info(f'API: Finished updating template {template_id}')
     return BaseResponse(status='success', data=template)
 
@@ -171,7 +171,7 @@ async def delete_template(
         BaseResponse[Template]: The deleted template.
     """
     LOG.info(f'API: Deleting template {template_id}')
-    template = await run_in_threadpool(crud.delete_template, template_id)
+    template = await run_in_threadpool(crud.delete_template, template_id) # type: ignore
     LOG.info(f'API: Finished deleting template {template_id}')
     return BaseResponse(status='success', data=template)
 
