@@ -26,26 +26,10 @@ from openvair.modules.template.domain.base import BaseTemplate
 from openvair.modules.template.adapters.orm import Template
 from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.template.adapters.dto.input import CreateTemplateInputDTO
 from openvair.modules.event_store.entrypoints.crud import EventCrud
-from openvair.modules.template.adapters.dto.domain import (
-    DomainTemplateManagerDTO,
-)
 from openvair.modules.template.adapters.serializer import (
     TemplateViewSerializer,
     TemplateCreateSerializer,
-)
-from openvair.modules.template.adapters.dto.volumes import (
-    DTOGetVolume,
-    DTOExistingVolume,
-)
-from openvair.modules.template.adapters.dto.commands import (
-    CreateDomainTemplateCommandDTO,
-    CreateTemplateServiceCommandDTO,
-)
-from openvair.modules.template.adapters.dto.storages import (
-    DTOGetStorage,
-    DTOExistingStorageStorage,
 )
 from openvair.modules.template.service_layer.exceptions import (
     VolumeRetrievalException,
@@ -53,6 +37,22 @@ from openvair.modules.template.service_layer.exceptions import (
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
+)
+from openvair.modules.template.adapters.dto.external.models import (
+    DTOExistingVolume,
+    DTOExistingStorageStorage,
+)
+from openvair.modules.template.adapters.dto.internal.models import (
+    CreateTemplateInputDTO,
+    DomainTemplateManagerDTO,
+)
+from openvair.modules.template.adapters.dto.external.commands import (
+    GetVolumeCommandDTO,
+    GetStorageCommandDTO,
+)
+from openvair.modules.template.adapters.dto.internal.commands import (
+    CreateTemplateDomainCommandDTO,
+    CreateTemplateServiceCommandDTO,
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
@@ -233,7 +233,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             data_for_manager = DomainTemplateManagerDTO.model_validate(
                 command_dto
             )
-            data_for_method = CreateDomainTemplateCommandDTO.model_validate(
+            data_for_method = CreateTemplateDomainCommandDTO.model_validate(
                 command_dto
             )
             self.domain_rpc.call(
@@ -326,9 +326,9 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.event_store.add_event(**event)
 
     def _get_volume_info(self, volume_id: UUID) -> DTOExistingVolume:
-        volume_query_payload = DTOGetVolume(volume_id=volume_id).model_dump(
-            mode='json'
-        )
+        volume_query_payload = GetVolumeCommandDTO(
+            volume_id=volume_id
+        ).model_dump(mode='json')
         try:
             volume_data = self.volume_service_client.get_volume(
                 volume_query_payload
@@ -344,9 +344,9 @@ class TemplateServiceLayerManager(BackgroundTasks):
             raise VolumeRetrievalException(message) from rpc_volume_err
 
     def _get_storage_info(self, storage_id: UUID) -> DTOExistingStorageStorage:
-        storage_query_payload = DTOGetStorage(storage_id=storage_id).model_dump(
-            mode='json'
-        )
+        storage_query_payload = GetStorageCommandDTO(
+            storage_id=storage_id
+        ).model_dump(mode='json')
         try:
             storage_data = self.storage_service_client.get_storage(
                 storage_query_payload

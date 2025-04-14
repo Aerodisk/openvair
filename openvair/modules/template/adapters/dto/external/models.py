@@ -1,15 +1,6 @@
-"""DTO models for storage-related operations within the template module.
-
-This module provides data transfer objects for describing storage entities
-and for querying storages by ID.
-
-Classes:
-    - DTOStorage: Full schema representing a storage object.
-    - DTOGetStorage: DTO for querying a specific storage by ID.
-"""
-
+# noqa: D100
 from uuid import UUID
-from typing import Any, Dict, ClassVar, Optional
+from typing import Any, Dict, Literal, ClassVar, Optional
 from pathlib import Path
 
 from pydantic import (
@@ -18,21 +9,44 @@ from pydantic import (
     model_validator,
 )
 
-from openvair.common.configs.pydantic import dto_config, lenient_dto_config
+from openvair.common.configs.pydantic import (
+    lenient_dto_config,
+)
 
 
-class ConfigurationStoragesDTO(BaseModel):
-    """Base configuration class for storage DTOs.
-
-    This class defines the shared Pydantic model configuration for all
-    storage-related DTOs. It ensures consistent behavior across DTOs
-    such as field validation, alias handling, and export settings.
+class DTOExistingVolume(BaseModel):
+    """Schema representing a volume.
 
     Attributes:
-        model_config (ConfigDict): Pydantic configuration for storage DTOs.
+        id (UUID): The ID of the volume.
+        name (str): The name of the volume.
+        description (Optional[str]): A description of the volume.
+        storage_id (Optional[UUID]): The ID of the storage the volume belongs
+            to.
+        user_id (Optional[UUID]): The ID of the user who owns the volume.
+        format (str): The format of the volume (e.g., qcow2, raw).
+        size (int): The size of the volume in bytes.
+        used (Optional[int]): The amount of space used in the volume.
+        status (Optional[str]): The status of the volume.
+        information (Optional[str]): Additional information about the volume.
+        attachments (List[Optional[Attachment]]): A list of attachments for the
+            volume.
+        read_only (Optional[bool]): Whether the volume is read-only.
     """
 
-    model_config: ClassVar[ConfigDict] = dto_config
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    storage_id: Optional[UUID] = None
+    user_id: Optional[UUID] = None
+    format: Literal['qcow2', 'raw']
+    size: int
+    used: Optional[int] = None
+    status: Optional[str] = None
+    information: Optional[str] = None
+    read_only: Optional[bool] = False
+    path: Path
+    model_config: ClassVar[ConfigDict] = lenient_dto_config
 
 
 class DTOExistingStorageStorage(BaseModel):
@@ -95,23 +109,3 @@ class DTOExistingStorageStorage(BaseModel):
                     mount if isinstance(mount, Path) else Path(mount)
                 )
         return values
-
-
-class DTOGetStorage(ConfigurationStoragesDTO):
-    """DTO for querying a storage by its ID.
-
-    This model is used to create a JSON-serializable payload for RPC calls
-    that require a storage identifier. It leverages the JSON encoders defined
-    in DTOConfig to automatically convert UUID values to strings.
-
-    Attributes:
-        storage_id (UUID): Unique identifier of the volume.
-
-    Example:
-        >>> from uuid import UUID
-        >>> query = VolumeQuery(storage_id=UUID('123e4567-e89b-12d3-a456-426614174000'))
-        >>> payload = query.model_dump(mode='json')
-        >>> print(payload)  # {'storage_id': '123e4567-e89b-12d3-a456-426614174000'}
-    """  # noqa: E501
-
-    storage_id: UUID

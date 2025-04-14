@@ -15,8 +15,8 @@ from openvair.modules.template.domain.exception import (
     TemplateFileCreatingException,
     TemplateFileDeletingException,
 )
-from openvair.modules.template.adapters.dto.commands import (
-    CreateDomainTemplateCommandDTO,
+from openvair.modules.template.adapters.dto.internal.commands import (
+    CreateTemplateDomainCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -62,7 +62,7 @@ class Qcow2Template(BaseTemplate):
             FileExistsError: If the target template path already exists.
             TemplateFileCreatingException: If creation via qemu-img fails.
         """
-        dto = CreateDomainTemplateCommandDTO.model_validate(creation_data)
+        dto = CreateTemplateDomainCommandDTO.model_validate(creation_data)
         source_disk_path = dto.source_disk_path
 
         if not Path(source_disk_path).exists():

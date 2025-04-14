@@ -15,9 +15,11 @@ Dependencies:
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.template.adapters.dto.input import CreateTemplateInputDTO
 from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
+)
+from openvair.modules.template.adapters.dto.internal.models import (
+    CreateTemplateInputDTO,
 )
 from openvair.modules.template.entrypoints.schemas.requests import (
     RequestCreateTemplate,

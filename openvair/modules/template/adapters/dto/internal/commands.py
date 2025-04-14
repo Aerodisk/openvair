@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict
 from openvair.common.configs.pydantic import lenient_dto_config
 
 
-class CreateDomainTemplateCommandDTO(BaseModel):  # noqa: D101
+class CreateTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     source_disk_path: Path
     model_config: ClassVar[ConfigDict] = lenient_dto_config
 
@@ -22,7 +22,7 @@ class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     source_disk_path: Path
 
 
-class EditTemplateDTO(BaseModel):  # noqa: D101
+class EditTemplateCommandDTO(BaseModel):  # noqa: D101
     class ManagerData(BaseModel):  # noqa: D106
         name: str
         path: Path
