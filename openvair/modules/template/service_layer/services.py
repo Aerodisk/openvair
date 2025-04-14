@@ -28,31 +28,24 @@ from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.template.adapters.dto.input import CreateTemplateInputDTO
 from openvair.modules.event_store.entrypoints.crud import EventCrud
+from openvair.modules.template.adapters.dto.domain import (
+    DomainTemplateManagerDTO,
+)
 from openvair.modules.template.adapters.serializer import (
     TemplateViewSerializer,
     TemplateCreateSerializer,
 )
 from openvair.modules.template.adapters.dto.volumes import (
     DTOGetVolume,
-    DTOCreateVolume,
     DTOExistingVolume,
 )
 from openvair.modules.template.adapters.dto.commands import (
-    CreateTemplateDTO,
-    CreateTemplateMethodData,
-    CreateTemplateManagerData,
+    CreateDomainTemplateCommandDTO,
+    CreateTemplateServiceCommandDTO,
 )
 from openvair.modules.template.adapters.dto.storages import (
     DTOGetStorage,
     DTOExistingStorageStorage,
-)
-from openvair.modules.template.adapters.dto.templates import (
-    # DTOTemplate,
-    # DTOGetTemplate,
-    # DTOEditTemplate,
-    # DTOCreateTemplate,
-    # DTODeleteTemplate,
-    DTOCreateVolumeFromTemplate,
 )
 from openvair.modules.template.service_layer.exceptions import (
     VolumeRetrievalException,
@@ -137,22 +130,19 @@ class TemplateServiceLayerManager(BackgroundTasks):
         # 2. Получаем volume и storage
         volume = self._get_volume_info(input_dto.base_volume_id)
         storage = self._get_storage_info(input_dto.storage_id)
-
-        command_dto = CreateTemplateDTO(
-            manager=CreateTemplateManagerData(
-                name=input_dto.name,
-                description=input_dto.description,
-                path=storage.mount_point / f'{input_dto.name}.{volume.format}',
-                format=volume.format,
-                storage_id=input_dto.storage_id,
-                is_backing=input_dto.is_backing,
+        command_dto = CreateTemplateServiceCommandDTO(
+            name=input_dto.name,
+            description=input_dto.description,
+            path=(
+                storage.mount_point
+                / f'template-{input_dto.name}.{volume.format}'
             ),
-            method=CreateTemplateMethodData(
-                source_disk_path=volume.path,
-            ),
+            tmp_format=volume.format,
+            storage_id=input_dto.storage_id,
+            is_backing=input_dto.is_backing,
+            source_disk_path=volume.path / f'volume-{volume.id}',
         )
-
-        orm = TemplateCreateSerializer.to_orm(command_dto.manager)
+        orm = TemplateCreateSerializer.to_orm(command_dto)
         with self.uow as uow:
             uow.templates.add(orm)
             uow.commit()
@@ -205,30 +195,32 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
     #     return TemplateSerializer.to_dict(orm_template)
 
-    def create_volume_from_template(  # noqa: D102
-        self, volume_from_template_data: Dict
-    ) -> None:
-        dto = DTOCreateVolumeFromTemplate.model_validate(
-            volume_from_template_data
-        )
-        volume = dto.volume_info
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(dto.template_id)
-        create_volume_data = DTOCreateVolume(
-            name=volume.name,
-            description=volume.description,
-            storage_id=volume.storage_id,
-            format=orm_template.format,
-            size=orm_template.size,
-            read_only=volume.read_only,
-        )
-        self.volume_service_client.create_volume(
-            create_volume_data.model_dump(mode='json')
-        )
+    # def create_volume_from_template(
+    #     self, volume_from_template_data: Dict
+    # ) -> None:
+    #     dto = DTOCreateVolumeFromTemplate.model_validate(
+    #         volume_from_template_data
+    #     )
+    #     volume = dto.volume_info
+    #     with self.uow as uow:
+    #         orm_template = uow.templates.get_or_fail(dto.template_id)
+    #     create_volume_data = DTOCreateVolume(
+    #         name=volume.name,
+    #         description=volume.description,
+    #         storage_id=volume.storage_id,
+    #         format=orm_template.tmp_format,
+    #         size=orm_template.size,
+    #         read_only=volume.read_only,
+    #     )
+    #     self.volume_service_client.create_volume(
+    #         create_volume_data.model_dump(mode='json')
+    #     )
 
     def _create_template(self, template_dto_data: Dict) -> None:
         template_id = UUID(template_dto_data.pop('id'))
-        dto = CreateTemplateDTO.model_validate(template_dto_data)
+        command_dto = CreateTemplateServiceCommandDTO.model_validate(
+            template_dto_data
+        )
 
         with self.uow as uow:
             orm = uow.templates.get_or_fail(template_id)
@@ -238,10 +230,16 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
         try:
+            data_for_manager = DomainTemplateManagerDTO.model_validate(
+                command_dto
+            )
+            data_for_method = CreateDomainTemplateCommandDTO.model_validate(
+                command_dto
+            )
             self.domain_rpc.call(
                 BaseTemplate.create.__name__,
-                data_for_manager=dto.for_manager_dict(),
-                data_for_method=dto.for_method_dict(),
+                data_for_manager=data_for_manager.model_dump(mode='json'),
+                data_for_method=data_for_method.model_dump(mode='json'),
             )
         except RpcException as err:
             self._update_and_log_event(

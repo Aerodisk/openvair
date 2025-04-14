@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-04-07 16:40:32.636063
+Create Date: 2025-04-14 10:10:12.493275
 
 """
 
@@ -310,7 +310,7 @@ def upgrade() -> None:
         sa.Column('name', sa.String(length=40), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('path', PathType(), nullable=False),
-        sa.Column('format', sa.String(length=10), nullable=False),
+        sa.Column('tmp_format', sa.String(length=10), nullable=False),
         sa.Column('size', sa.BigInteger(), nullable=False),
         sa.Column('storage_id', sa.String(length=36), nullable=False),
         sa.Column(

@@ -12,28 +12,15 @@ Dependencies:
     - TemplateServiceLayerManager: Contains service layer method names.
 """
 
-from uuid import UUID
-from typing import Dict
-
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.template.adapters.dto.input import CreateTemplateInputDTO
-from openvair.modules.template.adapters.dto.volumes import DTOCreateVolume
-from openvair.modules.template.adapters.dto.templates import (
-    # DTOGetTemplate,
-    # DTOEditTemplate,
-    # DTOCreateTemplate,
-    # DTODeleteTemplate,
-    DTOCreateVolumeFromTemplate,
-)
 from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
 )
 from openvair.modules.template.entrypoints.schemas.requests import (
-    # RequestEditTemplate,
     RequestCreateTemplate,
-    RequetsCreateVolumeFromTemplate,
 )
 from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
@@ -167,41 +154,41 @@ class TemplateCrud:
     #     LOG.info(f'Finished deletion of template with ID: {template_id}.')
     #     return template
 
-    def create_volume_from_template(
-        self,
-        template_id: UUID,
-        volume_data: RequetsCreateVolumeFromTemplate,
-        user_info: Dict,
-    ) -> None:
-        """Create a volume based on the specified template via RPC.
+    # def create_volume_from_template(
+    #     self,
+    #     template_id: UUID,
+    #     volume_data: RequetsCreateVolumeFromTemplate,
+    #     user_info: Dict,
+    # ) -> None:
+    #     """Create a volume based on the specified template via RPC.
 
-        Args:
-            template_id (UUID): The ID of the template to use.
-            volume_data (RequetsCreateVolumeFromTemplate): Parameters for the
-                volume creation.
-            user_info (Dict): Authenticated user information.
+    #     Args:
+    #         template_id (UUID): The ID of the template to use.
+    #         volume_data (RequetsCreateVolumeFromTemplate): Parameters for the
+    #             volume creation.
+    #         user_info (Dict): Authenticated user information.
 
-        Returns:
-            None
-        """
-        LOG.info(
-            f'Starting creation of volume from template with ID: {template_id}.'
-        )
-        # params: Dict = {'template_id': str(template_id)}
-        # params['volume_info'] = volume_data.model_dump(mode='json')
-        # params['user_info'] = user_info
-        create_volume_from_template_data = DTOCreateVolumeFromTemplate(
-            template_id=template_id,
-            volume_info=DTOCreateVolume.model_validate(volume_data.volume_data),
-            user_info=user_info,
-        )
-        self.service_layer_rpc.cast(
-            TemplateServiceLayerManager.create_volume_from_template.__name__,
-            data_for_method=create_volume_from_template_data.model_dump(
-                mode='json'
-            ),
-        )
-        # LOG.info(
-        #     f"Finished creation of volume '{volume.name}' from template "
-        #     f'with ID: {template_id}.'
-        # )
+    #     Returns:
+    #         None
+    #     """
+    #     LOG.info(
+    #         f'Starting creation of volume from template with ID: {template_id}.'  # noqa: E501, W505
+    #     )
+    #     # params: Dict = {'template_id': str(template_id)}
+    #     # params['volume_info'] = volume_data.model_dump(mode='json')
+    #     # params['user_info'] = user_info
+    #     create_volume_from_template_data = DTOCreateVolumeFromTemplate(
+    #         template_id=template_id,
+    #         volume_info=DTOCreateVolume.model_validate(volume_data.volume_data),  # noqa: E501, W505
+    #         user_info=user_info,
+    #     )
+    #     self.service_layer_rpc.cast(
+    #         TemplateServiceLayerManager.create_volume_from_template.__name__,
+    #         data_for_method=create_volume_from_template_data.model_dump(
+    #             mode='json'
+    #         ),
+    #     )
+    #     # LOG.info(
+    #     #     f"Finished creation of volume '{volume.name}' from template "
+    #     #     f'with ID: {template_id}.'
+    #     # )

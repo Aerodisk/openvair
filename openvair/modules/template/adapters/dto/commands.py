@@ -1,29 +1,25 @@
 from uuid import UUID  # noqa: D100
-from typing import Literal, Optional
+from typing import Literal, ClassVar, Optional
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-from openvair.common.base_command_dto import BaseCommandDTO
+from openvair.common.configs.pydantic import lenient_dto_config
 
 
-class CreateTemplateManagerData(BaseModel):  # noqa: D101
+class CreateDomainTemplateCommandDTO(BaseModel):  # noqa: D101
+    source_disk_path: Path
+    model_config: ClassVar[ConfigDict] = lenient_dto_config
+
+
+class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     name: str
     description: Optional[str]
     path: Path
-    format: Literal['qcow2', 'raw']
+    tmp_format: Literal['qcow2', 'raw']
     storage_id: UUID
     is_backing: bool
-
-
-class CreateTemplateMethodData(BaseModel):  # noqa: D101
     source_disk_path: Path
-
-
-class CreateTemplateDTO(  # noqa: D101
-    BaseCommandDTO[CreateTemplateManagerData, CreateTemplateMethodData]
-):
-    pass
 
 
 class EditTemplateDTO(BaseModel):  # noqa: D101

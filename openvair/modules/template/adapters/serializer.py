@@ -14,7 +14,7 @@ from openvair.modules.template.adapters.dto.view import TemplateViewDTO
 from openvair.common.serialization.base_serializer import BaseSerializer
 from openvair.modules.template.adapters.dto.commands import (
     EditTemplateDTO,
-    CreateTemplateManagerData,
+    CreateTemplateServiceCommandDTO,
 )
 
 
@@ -26,11 +26,11 @@ class TemplateViewSerializer(BaseSerializer[TemplateViewDTO, TemplateORM]):
 
 
 class TemplateCreateSerializer(
-    BaseSerializer[CreateTemplateManagerData, TemplateORM]
+    BaseSerializer[CreateTemplateServiceCommandDTO, TemplateORM]
 ):
     """Converts CreateTemplateDTO.ManagerData -> ORM object for creation."""
 
-    dto_class = CreateTemplateManagerData
+    dto_class = CreateTemplateServiceCommandDTO
     orm_class = TemplateORM
 
 

@@ -32,6 +32,7 @@ class TemplateResponse(APIConfigResponseModel):
     id: UUID
     name: str
     description: Optional[str]
+    tmp_format: str
     storage_id: UUID
     is_backing: bool
     created_at: datetime

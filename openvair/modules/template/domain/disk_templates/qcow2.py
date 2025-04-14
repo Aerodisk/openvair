@@ -4,7 +4,7 @@ This module provides the concrete implementation of the `BaseTemplate` for
 QCOW2 disk images. It uses `qemu-img` operations to manage template files.
 """
 
-from typing import Dict
+from typing import Dict, List, Optional
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -14,6 +14,9 @@ from openvair.modules.template.domain.exception import (
     TemplateFileEditingException,
     TemplateFileCreatingException,
     TemplateFileDeletingException,
+)
+from openvair.modules.template.adapters.dto.commands import (
+    CreateDomainTemplateCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -26,12 +29,27 @@ class Qcow2Template(BaseTemplate):
     `qcow2` format using the `qemu-img` utility.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        tmp_format: str,
+        name: str,
+        path: Path,
+        related_volumes: Optional[List],
+        *,
+        is_backing: bool,
+    ) -> None:
         """Initialize a QCOW2 template instance.
 
         Inherits base fields and logic from `BaseTemplate`.
         """
-        super().__init__()
+        super().__init__(
+            tmp_format,
+            name,
+            path,
+            related_volumes,
+            is_backing=is_backing,
+        )
+        self.format: str = 'qcow2'
 
     def create(self, creation_data: Dict) -> None:
         """Create a QCOW2 template file from an existing volume.
@@ -44,7 +62,8 @@ class Qcow2Template(BaseTemplate):
             FileExistsError: If the target template path already exists.
             TemplateFileCreatingException: If creation via qemu-img fails.
         """
-        source_disk_path = creation_data['source_disk_path']
+        dto = CreateDomainTemplateCommandDTO.model_validate(creation_data)
+        source_disk_path = dto.source_disk_path
 
         if not Path(source_disk_path).exists():
             message = f'Source disk not found: {source_disk_path}'

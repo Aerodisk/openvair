@@ -13,7 +13,7 @@ class TemplateViewDTO(BaseModel):  # noqa: D101
     name: str
     description: Optional[str]
     path: Path
-    format: str
+    tmp_format: str
     size: int
     status: TemplateStatus
     is_backing: bool

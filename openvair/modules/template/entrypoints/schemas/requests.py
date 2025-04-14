@@ -80,6 +80,6 @@ class CreateVolume(APIConfigRequestModel):
     name: str = Field(min_length=1, max_length=40)
     description: str = Field(max_length=255)
     storage_id: UUID
-    format: Literal['qcow2', 'raw']
+    tmp_format: Literal['qcow2', 'raw']
     size: int = Field(0, ge=1)
     read_only: Optional[bool] = False

@@ -6,12 +6,10 @@ the required interface and shared fields used for managing templates.
 """
 
 import abc
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict, List, Optional
+from pathlib import Path
 
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 class BaseTemplate(metaclass=abc.ABCMeta):
@@ -31,18 +29,26 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         is_backing (bool): Indicates if the template is a backing image.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        tmp_format: str,
+        name: str,
+        path: Path,
+        related_volumes: Optional[List],
+        *,
+        is_backing: bool,
+    ) -> None:
         """Initialize base attributes for a template.
 
         Sets up the QEMU image adapter and defines default fields to be used
         by subclasses (e.g., template format, name, path, related volumes).
         """
         self.qemu_img_adapter = QemuImgAdapter()
-        self.format: str = 'qcow2'
-        self.name: str
-        self.path: Path
-        self.related_volumes: List
-        self.is_backing: bool
+        self.format = tmp_format
+        self.name = name
+        self.path = 'template' / path
+        self.related_volumes = related_volumes
+        self.is_backing = is_backing
 
     @abc.abstractmethod
     def create(self, creation_data: Dict) -> None:
