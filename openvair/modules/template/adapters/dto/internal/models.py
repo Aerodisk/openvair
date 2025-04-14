@@ -1,12 +1,12 @@
 # noqa: D100
 from uuid import UUID
-from typing import List, ClassVar, Optional
+from typing import List, Literal, ClassVar, Optional
 from pathlib import Path
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from openvair.common.configs.pydantic import dto_config, lenient_dto_config
+from openvair.common.configs.pydantic import lenient_dto_config
 from openvair.modules.template.shared.enums import TemplateStatus
 
 
@@ -33,11 +33,23 @@ class DomainTemplateManagerDTO(BaseModel):  # noqa: D101
     model_config: ClassVar[ConfigDict] = lenient_dto_config
 
 
-class CreateTemplateInputDTO(BaseModel):  # noqa: D101
+class CreateTemplateDTO(BaseModel):  # noqa: D101
     name: str
     description: Optional[str]
+    path: Path
+    tmp_format: Literal['qcow2', 'raw']
     storage_id: UUID
-    base_volume_id: UUID
     is_backing: bool
+    source_disk_path: Path
 
-    model_config: ClassVar[ConfigDict] = dto_config
+
+class EditTemplateDTO(BaseModel):  # noqa: D101
+    class ManagerData(BaseModel):  # noqa: D106
+        name: str
+        path: Path
+        is_backing: bool
+        related_volumes: list
+
+    class MethodData(BaseModel):  # noqa: D106
+        new_name: Optional[str]
+        description: Optional[str]

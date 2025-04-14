@@ -18,14 +18,14 @@ from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
 )
-from openvair.modules.template.adapters.dto.internal.models import (
-    CreateTemplateInputDTO,
-)
 from openvair.modules.template.entrypoints.schemas.requests import (
     RequestCreateTemplate,
 )
 from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
+)
+from openvair.modules.template.adapters.dto.internal.commands import (
+    CreateTemplateServiceCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -100,7 +100,9 @@ class TemplateCrud:
             Template: The created template object.
         """
         LOG.info('Starting creation of a new template.')
-        input_dto = CreateTemplateInputDTO.model_validate(creation_data)
+        input_dto = CreateTemplateServiceCommandDTO.model_validate(
+            creation_data
+        )
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.create_template.__name__,
             data_for_method=input_dto.model_dump(mode='json'),

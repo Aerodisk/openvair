@@ -12,11 +12,9 @@ Classes:
 from openvair.modules.template.adapters.orm import Template as TemplateORM
 from openvair.common.serialization.base_serializer import BaseSerializer
 from openvair.modules.template.adapters.dto.internal.models import (
+    EditTemplateDTO,
+    CreateTemplateDTO,
     ApiTemplateViewDTO,
-)
-from openvair.modules.template.adapters.dto.internal.commands import (
-    EditTemplateCommandDTO,
-    CreateTemplateServiceCommandDTO,
 )
 
 
@@ -27,12 +25,10 @@ class TemplateViewSerializer(BaseSerializer[ApiTemplateViewDTO, TemplateORM]):
     orm_class = TemplateORM
 
 
-class TemplateCreateSerializer(
-    BaseSerializer[CreateTemplateServiceCommandDTO, TemplateORM]
-):
+class TemplateCreateSerializer(BaseSerializer[CreateTemplateDTO, TemplateORM]):
     """Converts CreateTemplateDTO.ManagerData -> ORM object for creation."""
 
-    dto_class = CreateTemplateServiceCommandDTO
+    dto_class = CreateTemplateDTO
     orm_class = TemplateORM
 
 
@@ -42,7 +38,7 @@ class TemplateEditSerializer:
     @staticmethod
     def apply_changes(
         orm_obj: TemplateORM,
-        dto: EditTemplateCommandDTO.MethodData,
+        dto: EditTemplateDTO.MethodData,
     ) -> None:
         """Apply fields from DTO to ORM instance.
 
