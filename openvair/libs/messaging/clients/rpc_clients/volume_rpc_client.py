@@ -167,3 +167,19 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
             data_for_method=data,
         )
         return result
+
+    def clone_volume(self, data: Dict) -> Dict:
+        """Create a clone of an existing volume.
+
+        Args:
+            data (Dict): Data containing the source volume ID, name, and
+                description for the clone.
+
+        Returns:
+            Dict: Serialized volume data for the cloned volume.
+        """
+        result: Dict = self.service_rpc_client.call(
+            VolumeServiceLayerProtocolInterface.clone_volume.__name__,
+            data_for_method=data,
+        )
+        return result

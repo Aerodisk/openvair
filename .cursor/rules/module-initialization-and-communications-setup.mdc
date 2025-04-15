@@ -1,0 +1,77 @@
+---
+description: механизма запуска модуля, а также взаимодействие с RabbitMQ и базой данных
+globs: 
+alwaysApply: true
+---
+
+Для изучения механизма запуска модуля **Storage**, мы рассмотрим файл `manager.py`, который отвечает за инициализацию и запуск сервисного слоя, а также взаимодействие с RabbitMQ и базой данных. 
+
+### Шаг 1: Структура файла `manager.py`
+
+Файл `manager.py` служит точкой входа для управления операциями, связанными с хранилищем, в сервисном слое. Он инициализирует необходимые компоненты, запускает RPC-сервер и начинает обрабатывать запросы, связанные с хранилищем.
+
+#### Основные компоненты:
+
+1. **Импорт необходимых библиотек**:
+   - Импортируются библиотеки для логирования, конфигурации и сервисов.
+   - Используются классы для работы с RabbitMQ и для управления логикой хранилища.
+
+```python
+from openvair.libs.log import get_logger
+from openvair.modules.storage.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.modules.storage.service_layer import services
+from openvair.libs.messaging.messaging_agents import MessagingServer
+```
+
+2. **Настройка логирования**:
+   - Создается логгер для отслеживания событий в сервисном слое.
+
+```python
+LOG = get_logger('service-layer-manager')
+```
+
+3. **Запуск сервера**:
+   - В `if __name__ == '__main__':` блоке происходит инициализация и запуск RPC-сервера.
+
+```python
+if __name__ == '__main__':
+    LOG.info('Starting RPCServer for consuming')
+    service = services.StorageServiceLayerManager
+    service.start(block=False)
+    server = MessagingServer(
+        queue_name=API_SERVICE_LAYER_QUEUE_NAME,
+        manager=service,
+    )
+    server.start()
+```
+
+### Шаг 2: Инициализация компонентов
+
+1. **Инициализация `StorageServiceLayerManager`**:
+   - Этот класс управляет операциями, связанными с хранилищем, и координирует взаимодействие между API, доменным слоем и базой данных.
+   - Он наследует от `BackgroundTasks`, что позволяет выполнять фоновые операции.
+
+2. **Настройка RPC-сервера**:
+   - `MessagingServer` используется для обработки запросов через RabbitMQ. Он связывает очередь сообщений с менеджером, который будет обрабатывать эти запросы.
+
+### Шаг 3: Подключение к базе данных
+
+Подключение к базе данных происходит через класс `unit_of_work.SqlAlchemyUnitOfWork`, который инициализируется в `StorageServiceLayerManager`. Этот класс управляет транзакциями и обеспечивает атомарность операций с базой данных.
+
+### Шаг 4: Взаимодействие с RabbitMQ
+
+- **RPC-клиенты**: В `StorageServiceLayerManager` инициализируются RPC-клиенты для взаимодействия с доменным слоем и API. Это позволяет отправлять запросы и получать ответы через RabbitMQ.
+
+```python
+self.domain_rpc = MessagingClient(
+    queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
+)
+self.service_layer_rpc = MessagingClient(
+    queue_name=API_SERVICE_LAYER_QUEUE_NAME
+)
+```
+
+### Заключение
+
+Файл `manager.py` является ключевым элементом для запуска модуля **Storage**. Он инициализирует необходимые компоненты, настраивает взаимодействие с RabbitMQ и управляет подключением к базе данных. Это позволяет модулю эффективно обрабатывать запросы и управлять операциями, связанными с хранилищем.
+

@@ -1192,6 +1192,89 @@ class VolumeServiceLayerManager(BackgroundTasks):
             'information': '',
         }
 
+    def clone_volume(self, data: Dict) -> Dict:
+        """Create a clone of an existing volume.
+
+        This method creates a new volume with the same characteristics as an existing volume
+        and copies all data from the source volume to the newly created volume.
+
+        Args:
+            data (Dict): A dictionary containing the source volume ID, name, and optional description.
+
+        Returns:
+            Dict: A dictionary representing the serialized newly created volume.
+
+        Raises:
+            UnexpectedDataArguments: If the provided data is invalid or incomplete.
+            VolumeStatusException: If the source volume is not available.
+        """
+        LOG.info('Service layer start handling response on clone volume.')
+        user_info = data.pop('user_info', {})
+        source_volume_id = data.pop('volume_id', '')
+        clone_name = data.pop('name', '')
+        clone_description = data.pop('description', '')
+
+        if not source_volume_id or not clone_name:
+            message = f'Invalid arguments for volume cloning: {data}'
+            LOG.error(message)
+            raise exceptions.UnexpectedDataArguments(message)
+
+        with self.uow:
+            # Get the source volume
+            source_volume = self.uow.volumes.get(source_volume_id)
+
+            # Check the source volume status
+            self._check_volume_status(
+                source_volume.status, [VolumeStatus.available.name]
+            )
+
+            # Check if a volume with this name already exists
+            self._check_volume_exists_on_storage(clone_name, str(source_volume.storage_id))
+
+            # Create a new volume entry with the same characteristics as the source
+            clone_volume = Volume(
+                id=uuid.uuid4(),
+                name=clone_name,
+                description=clone_description or f"Clone of {source_volume.name}",
+                size=source_volume.size,
+                format=source_volume.format,
+                storage_id=source_volume.storage_id,
+                user_id=user_info.get('id') or source_volume.user_id,
+                status=VolumeStatus.creating.name,
+                read_only=source_volume.read_only,
+                provisioning=source_volume.provisioning,
+                storage_type=source_volume.storage_type,
+                path=source_volume.path,
+            )
+
+            # Add the new volume to the database
+            self.uow.volumes.add(clone_volume)
+            self.uow.commit()
+
+            # Prepare serialized volume for response and further processing
+            serialized_clone = DataSerializer.to_web(clone_volume)
+
+            # Add event to event store
+            self.event_store.add_event(
+                str(serialized_clone.get('id')),
+                user_info.get('id', str(source_volume.user_id)),
+                self.clone_volume.__name__,
+                f'Volume clone of {source_volume.name} successfully created in db.',
+            )
+
+        # Cast the async clone operation
+        serialized_clone.update({
+            'user_info': user_info,
+            'source_volume_id': source_volume_id,
+        })
+
+        self.service_layer_rpc.cast(
+            self._clone_volume.__name__, data_for_method=serialized_clone
+        )
+
+        LOG.info('Service layer method clone_volume was successfully processed')
+        return serialized_clone
+
     def _get_monitoring_statuses(self) -> List[str]:
         """Get the list of statuses for monitoring.
 

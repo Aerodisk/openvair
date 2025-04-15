@@ -108,3 +108,14 @@ class VolumeServiceLayerProtocolInterface(Protocol):
             Dict: Result of the detach operation.
         """
         ...
+
+    def clone_volume(self, data: Dict) -> Dict:
+        """Create a clone of an existing volume.
+
+        Args:
+            data (Dict): Data containing the source volume ID, name, and description for the clone.
+
+        Returns:
+            Dict: Serialized volume data for the cloned volume.
+        """
+        ...
