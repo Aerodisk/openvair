@@ -51,6 +51,7 @@ from openvair.modules.template.adapters.dto.external.commands import (
     GetStorageCommandDTO,
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
+    EditTemplateServiceCommandDTO,
     CreateTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
 )
@@ -163,22 +164,21 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         return TemplateViewSerializer.to_dict(orm)
 
-    # def edit_template(self, updating_data: Dict) -> Dict:
-    #     dto = DTOEditTemplate.model_validate(updating_data)
-    #     with self.uow as uow:
-    #         orm_template = uow.templates.get_or_fail(dto.id)
+    def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
+        dto = EditTemplateServiceCommandDTO.model_validate(updating_data)
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(dto.id)
 
-    #     self._update_and_log_event(
-    #         orm_template, TemplateStatus.EDITING, 'TemplateEditingStarted'
-    #     )
+        self._update_and_log_event(
+            orm_template, TemplateStatus.EDITING, 'TemplateEditingStarted'
+        )
 
-    #     editing_dto_data = TemplateSerializer.to_dict(orm_template)
-    #     self.service_layer_rpc.cast(
-    #         self._edit_template.__name__,
-    #         data_for_method=editing_dto_data,
-    #     )
-
-    #     return editing_dto_data
+        editable_data = TemplateViewSerializer.to_dict(orm_template)
+        self.service_layer_rpc.cast(
+            self._edit_template.__name__,
+            data_for_method=dto.model_dump(mode='json'),
+        )
+        return editable_data
 
     # def delete_template(self, deleting_data: Dict) -> Dict:
     #     dto = DTODeleteTemplate.model_validate(deleting_data)
@@ -218,32 +218,36 @@ class TemplateServiceLayerManager(BackgroundTasks):
     #         create_volume_data.model_dump(mode='json')
     #     )
 
-    def _create_template(self, template_dto_data: Dict) -> None:
-        template_id = UUID(template_dto_data.pop('id'))
-        command_dto = CreateTemplateDTO.model_validate(template_dto_data)
+    def _create_template(self, template_create_data: Dict) -> None:
+        template_id = UUID(template_create_data.pop('id'))
+        creation_dto = CreateTemplateDTO.model_validate(template_create_data)
 
         with self.uow as uow:
-            orm = uow.templates.get_or_fail(template_id)
+            orm_template = uow.templates.get_or_fail(template_id)
 
         self._update_and_log_event(
-            orm, TemplateStatus.CREATING, 'TemplateCreationStarted'
+            orm_template, TemplateStatus.CREATING, 'TemplateCreationStarted'
         )
 
         try:
             data_for_manager = DomainTemplateManagerDTO.model_validate(
-                command_dto
+                creation_dto
             )
             data_for_method = CreateTemplateDomainCommandDTO.model_validate(
-                command_dto
+                creation_dto
             )
             self.domain_rpc.call(
                 BaseTemplate.create.__name__,
                 data_for_manager=data_for_manager.model_dump(mode='json'),
                 data_for_method=data_for_method.model_dump(mode='json'),
             )
+            if creation_dto.name is not None:
+                orm_template.name = creation_dto.name
+            if creation_dto.description is not None:
+                orm_template.description = creation_dto.description
         except RpcException as err:
             self._update_and_log_event(
-                orm,
+                orm_template,
                 TemplateStatus.ERROR,
                 'TemplateCreationFailed',
                 str(err),
@@ -251,37 +255,48 @@ class TemplateServiceLayerManager(BackgroundTasks):
             LOG.error('Error while creating template', exc_info=True)
             return
 
-        # TODO согласовать сериализацию и возвращаемый результат, когда будет известен  # noqa: E501, W505
-        # orm_template = TemplateSerializer.from_dict(result)
         self._update_and_log_event(
-            orm, TemplateStatus.AVAILABLE, 'TemplateCreated'
+            orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
         )
 
-    # def _edit_template(self, template_dto_data: Dict) -> None:
-    #     orm_template = TemplateSerializer.from_dict(template_dto_data)
-    #     try:
-    #         LOG.info('')
-    #         # result = self.domain_rpc.call('edit', template_dto_data)
-    #         # with self.uow as uow:
-    #         #     orm_template.description = result.description
-    #         #     orm_template.name = (
-    #         #         orm_template.name if result.name else result.name
-    #         #     )
-    #         #     uow.templates.update(orm_template)
-    #         #     uow.commit()
-    #     except RpcException as err:
-    #         self._update_and_log_event(
-    #             orm_template,
-    #             TemplateStatus.ERROR,
-    #             'TemplateEditingFaild',
-    #             str(err),
-    #         )
-    #         LOG.error('Error while editing template', exc_info=True)
-    #         return
+    def _edit_template(self, template_edit_data: Dict) -> None:
+        template_id = template_edit_data.pop('id')
 
-    #     self._update_and_log_event(
-    #         orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
-    #     )
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(template_id)
+
+        try:
+            data_for_manager = DomainTemplateManagerDTO.model_validate(
+                orm_template
+            )
+            data_for_method = CreateTemplateDomainCommandDTO.model_validate(
+                template_edit_data
+            )
+            result = self.domain_rpc.call(
+                BaseTemplate.edit.__name__,
+                data_for_manager=data_for_manager.model_dump(mode='json'),
+                data_for_method=data_for_method.model_dump(mode='json'),
+            )
+            with self.uow as uow:
+                orm_template.description = result.description
+                orm_template.name = (
+                    orm_template.name if result.name else result.name
+                )
+                uow.templates.update(orm_template)
+                uow.commit()
+        except RpcException as err:
+            self._update_and_log_event(
+                orm_template,
+                TemplateStatus.ERROR,
+                'TemplateEditingFaild',
+                str(err),
+            )
+            LOG.error('Error while editing template', exc_info=True)
+            return
+
+        self._update_and_log_event(
+            orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
+        )
 
     # def _delete_template(self, template_dto_data: Dict) -> None:
     #     orm_template = TemplateSerializer.from_dict(template_dto_data)

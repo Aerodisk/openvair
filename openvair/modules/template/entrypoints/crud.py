@@ -12,6 +12,8 @@ Dependencies:
     - TemplateServiceLayerManager: Contains service layer method names.
 """
 
+from uuid import UUID
+
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -19,12 +21,14 @@ from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
 )
 from openvair.modules.template.entrypoints.schemas.requests import (
+    RequestEditTemplate,
     RequestCreateTemplate,
 )
 from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
+    EditTemplateServiceCommandDTO,
     CreateTemplateServiceCommandDTO,
 )
 
@@ -111,33 +115,33 @@ class TemplateCrud:
         LOG.info(f"Finished creation of template '{template.name}'.")
         return TemplateResponse.model_validate(result)
 
-    # def edit_template(
-    #     self,
-    #     template_id: UUID,
-    #     edit_data: RequestEditTemplate,
-    # ) -> TemplateResponse:
-    #     """Update an existing template using partial data via RPC.
+    def edit_template(
+        self,
+        template_id: UUID,
+        edit_data: RequestEditTemplate,
+    ) -> TemplateResponse:
+        """Update an existing template using partial data via RPC.
 
-    #     Args:
-    #         template_id (UUID): The ID of the template to update.
-    #         edit_data (BaseModel): The updated fields for the template.
+        Args:
+            template_id (UUID): The ID of the template to update.
+            edit_data (BaseModel): The updated fields for the template.
 
-    #     Returns:
-    #         Template: The updated template object.
-    #     """
-    #     LOG.info(f'Starting update of template with ID: {template_id}.')
-    #     edit_dto = DTOEditTemplate(
-    #         id=template_id,
-    #         name=edit_data.name,
-    #         description=edit_data.description,
-    #     )
-    #     result = self.service_layer_rpc.call(
-    #         TemplateServiceLayerManager.edit_template.__name__,
-    #         data_for_method=edit_dto.model_dump(mode='json'),
-    #     )
-    #     template = TemplateResponse.model_validate(result)
-    #     LOG.info(f'Finished update of template with ID: {template_id}.')
-    #     return template
+        Returns:
+            Template: The updated template object.
+        """
+        LOG.info(f'Starting update of template with ID: {template_id}.')
+        edit_dto = EditTemplateServiceCommandDTO(
+            id=template_id,
+            name=edit_data.name,
+            description=edit_data.description,
+        )
+        result = self.service_layer_rpc.call(
+            TemplateServiceLayerManager.edit_template.__name__,
+            data_for_method=edit_dto.model_dump(mode='json'),
+        )
+        template = TemplateResponse.model_validate(result)
+        LOG.info(f'Finished update of template with ID: {template_id}.')
+        return template
 
     # def delete_template(self, template_id: UUID) -> TemplateResponse:
     #     """Delete a template by its ID via RPC.

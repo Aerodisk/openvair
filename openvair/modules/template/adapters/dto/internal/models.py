@@ -44,12 +44,5 @@ class CreateTemplateDTO(BaseModel):  # noqa: D101
 
 
 class EditTemplateDTO(BaseModel):  # noqa: D101
-    class ManagerData(BaseModel):  # noqa: D106
-        name: str
-        path: Path
-        is_backing: bool
-        related_volumes: list
-
-    class MethodData(BaseModel):  # noqa: D106
-        new_name: Optional[str]
-        description: Optional[str]
+    name: Optional[str]
+    description: Optional[str]

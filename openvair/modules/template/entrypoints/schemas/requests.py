@@ -52,7 +52,7 @@ class RequestEditTemplate(APIConfigRequestModel):
         description (Optional[str]): New description.
     """
 
-    name: str = Field(None, min_length=1, max_length=40)
+    name: Optional[str] = Field(None, min_length=1, max_length=40)
     description: Optional[str] = Field(None, max_length=255)
 
 

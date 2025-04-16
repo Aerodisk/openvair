@@ -16,6 +16,7 @@ from openvair.modules.template.domain.exception import (
     TemplateFileDeletingException,
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
+    EditTemplateDomainCommandDTO,
     CreateTemplateDomainCommandDTO,
 )
 
@@ -95,8 +96,10 @@ class Qcow2Template(BaseTemplate):
         if self.is_backing and self.related_volumes:
             message = 'Cannot edit template in use'
             raise TemplateFileEditingException(message)
-
-        new_name = editing_data['new_name']
+        dto: EditTemplateDomainCommandDTO = (
+            EditTemplateDomainCommandDTO.model_validate(editing_data)
+        )
+        new_name = dto.name
         new_path = self.path.parent.absolute() / new_name
         try:
             self.path.rename(new_path)

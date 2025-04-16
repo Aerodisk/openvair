@@ -32,13 +32,13 @@ class TemplateCreateSerializer(BaseSerializer[CreateTemplateDTO, TemplateORM]):
     orm_class = TemplateORM
 
 
-class TemplateEditSerializer:
+class TemplateEditSerializer(BaseSerializer[EditTemplateDTO, TemplateORM]):
     """Applies changes from EditTemplateDTO.MethodData to an existing ORM object."""  # noqa: E501
 
     @staticmethod
     def apply_changes(
         orm_obj: TemplateORM,
-        dto: EditTemplateDTO.MethodData,
+        dto: EditTemplateDTO,
     ) -> None:
         """Apply fields from DTO to ORM instance.
 
@@ -49,3 +49,4 @@ class TemplateEditSerializer:
         update_fields = dto.model_dump(exclude_unset=True)
         for field, value in update_fields.items():
             setattr(orm_obj, field, value)
+
