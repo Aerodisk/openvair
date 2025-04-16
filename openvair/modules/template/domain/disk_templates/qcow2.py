@@ -107,7 +107,8 @@ class Qcow2Template(BaseTemplate):
             self.path = new_path
         except OSError as err:
             LOG.error(f'Error while editing template file: {self.name}')
-            raise TemplateFileEditingException(str(self.name)) from err
+            message = f'{self.name}. Error: f{err}'
+            raise TemplateFileEditingException(message) from err
 
     def delete(self) -> None:
         """Delete the QCOW2 template file.

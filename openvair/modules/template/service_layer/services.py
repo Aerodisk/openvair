@@ -259,29 +259,29 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
         )
 
-    def _edit_template(self, template_edit_data: Dict) -> None:
-        template_id = template_edit_data.pop('id')
+    def _edit_template(self, updating_data: Dict) -> None:
+        dto = EditTemplateServiceCommandDTO.model_validate(updating_data)
 
         with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(template_id)
+            orm_template = uow.templates.get_or_fail(dto.id)
 
         try:
             data_for_manager = DomainTemplateManagerDTO.model_validate(
                 orm_template
             )
-            data_for_method = CreateTemplateDomainCommandDTO.model_validate(
-                template_edit_data
+            data_for_method = EditTemplateServiceCommandDTO.model_validate(
+                updating_data
             )
-            result = self.domain_rpc.call(
+            self.domain_rpc.call(
                 BaseTemplate.edit.__name__,
                 data_for_manager=data_for_manager.model_dump(mode='json'),
                 data_for_method=data_for_method.model_dump(mode='json'),
             )
             with self.uow as uow:
-                orm_template.description = result.description
-                orm_template.name = (
-                    orm_template.name if result.name else result.name
-                )
+                if dto.name is not None:
+                    orm_template.name = dto.name
+                if dto.description is not None:
+                    orm_template.description = dto.description
                 uow.templates.update(orm_template)
                 uow.commit()
         except RpcException as err:
