@@ -133,7 +133,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         # 2. Получаем volume и storage
         volume = self._get_volume_info(input_dto.base_volume_id)
         storage = self._get_storage_info(input_dto.storage_id)
-        command_dto = CreateTemplateDTO(
+        create_command_dto = CreateTemplateDTO(
             name=input_dto.name,
             description=input_dto.description,
             path=(
@@ -145,7 +145,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             is_backing=input_dto.is_backing,
             source_disk_path=volume.path / f'volume-{volume.id}',
         )
-        orm = TemplateCreateSerializer.to_orm(command_dto)
+        orm = TemplateCreateSerializer.to_orm(create_command_dto)
         with self.uow as uow:
             uow.templates.add(orm)
             uow.commit()
@@ -158,27 +158,29 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._create_template.__name__,
             data_for_method={
                 'id': str(orm.id),
-                **command_dto.model_dump(mode='json'),
+                **create_command_dto.model_dump(mode='json'),
             },
         )
 
         return TemplateViewSerializer.to_dict(orm)
 
     def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
-        dto = EditTemplateServiceCommandDTO.model_validate(updating_data)
+        edit_command_dto = EditTemplateServiceCommandDTO.model_validate(
+            updating_data
+        )
         with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(dto.id)
+            orm_template = uow.templates.get_or_fail(edit_command_dto.id)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.EDITING, 'TemplateEditingStarted'
         )
 
-        editable_data = TemplateViewSerializer.to_dict(orm_template)
+        edit_data = TemplateViewSerializer.to_dict(orm_template)
         self.service_layer_rpc.cast(
             self._edit_template.__name__,
-            data_for_method=dto.model_dump(mode='json'),
+            data_for_method=edit_command_dto.model_dump(mode='json'),
         )
-        return editable_data
+        return edit_data
 
     # def delete_template(self, deleting_data: Dict) -> Dict:
     #     dto = DTODeleteTemplate.model_validate(deleting_data)
@@ -218,9 +220,9 @@ class TemplateServiceLayerManager(BackgroundTasks):
     #         create_volume_data.model_dump(mode='json')
     #     )
 
-    def _create_template(self, template_create_data: Dict) -> None:
-        template_id = UUID(template_create_data.pop('id'))
-        creation_dto = CreateTemplateDTO.model_validate(template_create_data)
+    def _create_template(self, create_command_data: Dict) -> None:
+        template_id = UUID(create_command_data.pop('id'))
+        creation_dto = CreateTemplateDTO.model_validate(create_command_data)
 
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(template_id)
@@ -259,18 +261,20 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
         )
 
-    def _edit_template(self, updating_data: Dict) -> None:
-        dto = EditTemplateServiceCommandDTO.model_validate(updating_data)
+    def _edit_template(self, edit_command_data: Dict) -> None:
+        edit_dto = EditTemplateServiceCommandDTO.model_validate(
+            edit_command_data
+        )
 
         with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(dto.id)
+            orm_template = uow.templates.get_or_fail(edit_dto.id)
 
         try:
             data_for_manager = DomainTemplateManagerDTO.model_validate(
                 orm_template
             )
             data_for_method = EditTemplateServiceCommandDTO.model_validate(
-                updating_data
+                edit_command_data
             )
             self.domain_rpc.call(
                 BaseTemplate.edit.__name__,
@@ -278,10 +282,10 @@ class TemplateServiceLayerManager(BackgroundTasks):
                 data_for_method=data_for_method.model_dump(mode='json'),
             )
             with self.uow as uow:
-                if dto.name is not None:
-                    orm_template.name = dto.name
-                if dto.description is not None:
-                    orm_template.description = dto.description
+                if edit_dto.name is not None:
+                    orm_template.name = edit_dto.name
+                if edit_dto.description is not None:
+                    orm_template.description = edit_dto.description
                 uow.templates.update(orm_template)
                 uow.commit()
         except RpcException as err:
