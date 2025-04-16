@@ -42,7 +42,3 @@ class CreateTemplateDTO(BaseModel):  # noqa: D101
     is_backing: bool
     source_disk_path: Path
 
-
-class EditTemplateDTO(BaseModel):  # noqa: D101
-    name: Optional[str]
-    description: Optional[str]
