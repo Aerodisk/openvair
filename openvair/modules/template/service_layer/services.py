@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID, uuid4
-from typing import Dict
+from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -52,6 +52,7 @@ from openvair.modules.template.adapters.dto.external.commands import (
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
     EditTemplateDomainCommandDTO,
+    GetTemplateServiceCommandDTO,
     EditTemplateServiceCommandDTO,
     CreateTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
@@ -97,34 +98,34 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
-    # def get_all_templates(self) -> List:
-    #     """Retrieves all template records from the database.
+    def get_all_templates(self) -> List[Dict]:
+        """Retrieves all template records from the database.
 
-    #     Returns:
-    #         List: A list of serialized templates in JSON-compatible format.
-    #     """
-    #     with self.uow as uow:
-    #         orm_templates = uow.templates.get_all()
-    #     return [
-    #         TemplateSerializer.to_dto(template).model_dump(mode='json')
-    #         for template in orm_templates
-    #     ]
+        Returns:
+            List: A list of serialized templates in JSON-compatible format.
+        """
+        with self.uow as uow:
+            orm_templates = uow.templates.get_all()
+        return [
+            TemplateViewSerializer.to_dict(orm_template)
+            for orm_template in orm_templates
+        ]
 
-    # def get_template(self, getting_data: Dict) -> Dict:
-    #     """Retrieves a single template by its ID.
+    def get_template(self, getting_data: Dict) -> Dict:
+        """Retrieves a single template by its ID.
 
-    #     Args:
-    #         getting_data (Dict): A dictionary containing the 'id' of the
-    #             template.
+        Args:
+            getting_data (Dict): A dictionary containing the 'id' of the
+                template.
 
-    #     Returns:
-    #         Dict: A JSON-serializable representation of the template.
-    #     """
-    #     dto = DTOGetTemplate.model_validate(getting_data)
-    #     LOG.info(dto.id)
-    #     with self.uow as uow:
-    #         orm_template = uow.templates.get_or_fail(dto.id)
-    #     return TemplateSerializer.to_dto(orm_template).model_dump(mode='json')
+        Returns:
+            Dict: A JSON-serializable representation of the template.
+        """
+        dto = GetTemplateServiceCommandDTO.model_validate(getting_data)
+        LOG.info(dto.id)
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(dto.id)
+        return TemplateViewSerializer.to_dict(orm_template)
 
     def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
         input_dto = CreateTemplateServiceCommandDTO.model_validate(

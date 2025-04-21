@@ -66,7 +66,7 @@ async def get_templates(
     """
     LOG.info('API: Getting list of templates')
     templates: List[TemplateResponse] = await run_in_threadpool(
-        crud.get_all_templates # type: ignore
+        crud.get_all_templates
     )
     paginated_templates = paginate(templates, params)
     LOG.info('API: Finished getting list of templates')
@@ -93,7 +93,7 @@ async def get_template(
         BaseResponse[Template]: The retrieved template.
     """
     LOG.info(f'API: Getting template {template_id}')
-    template = await run_in_threadpool(crud.get_template, template_id) # type: ignore
+    template = await run_in_threadpool(crud.get_template, template_id)
     LOG.info(f'API: Finished getting template {template_id}')
     return BaseResponse(status='success', data=template)
 

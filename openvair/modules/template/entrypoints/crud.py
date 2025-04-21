@@ -13,6 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID
+from typing import List
 
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -28,6 +29,7 @@ from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
+    GetTemplateServiceCommandDTO,
     EditTemplateServiceCommandDTO,
     CreateTemplateServiceCommandDTO,
 )
@@ -55,42 +57,42 @@ class TemplateCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    # def get_all_templates(self) -> List[TemplateResponse]:
-    #     """Retrieve a list of all templates via RPC.
+    def get_all_templates(self) -> List[TemplateResponse]:
+        """Retrieve a list of all templates via RPC.
 
-    #     Returns:
-    #         List[Template]: A list of all available templates.
-    #     """
-    #     LOG.info('Starting retrieval of all templates.')
-    #     result = self.service_layer_rpc.call(
-    #         TemplateServiceLayerManager.get_all_templates.__name__,
-    #         data_for_method={},
-    #     )
-    #     templates = [TemplateResponse.model_validate(item) for item in result]
-    #     LOG.info(
-    #         f'Finished retrieval of all templates. Retrieved {len(templates)} '  # noqa: E501, W505
-    #         'templates.'
-    #     )
-    #     return templates
+        Returns:
+            List[Template]: A list of all available templates.
+        """
+        LOG.info('Starting retrieval of all templates.')
+        result = self.service_layer_rpc.call(
+            TemplateServiceLayerManager.get_all_templates.__name__,
+            data_for_method={},
+        )
+        templates = [TemplateResponse.model_validate(item) for item in result]
+        LOG.info(
+            f'Finished retrieval of all templates. Retrieved {len(templates)} '
+            'templates.'
+        )
+        return templates
 
-    # def get_template(self, template_id: UUID) -> TemplateResponse:
-    #     """Retrieve a specific template by its ID via RPC.
+    def get_template(self, template_id: UUID) -> TemplateResponse:
+        """Retrieve a specific template by its ID via RPC.
 
-    #     Args:
-    #         template_id (UUID): The ID of the template to retrieve.
+        Args:
+            template_id (UUID): The ID of the template to retrieve.
 
-    #     Returns:
-    #         Template: The retrieved template object.
-    #     """
-    #     LOG.info(f'Starting retrieval of template with ID: {template_id}.')
-    #     getting_data = DTOGetTemplate(id=template_id)
-    #     result = self.service_layer_rpc.call(
-    #         TemplateServiceLayerManager.get_template.__name__,
-    #         data_for_method=getting_data.model_dump(mode='json'),
-    #     )
-    #     template = TemplateResponse.model_validate(result)
-    #     LOG.info(f'Finished retrieval of template with ID: {template_id}.')
-    #     return template
+        Returns:
+            Template: The retrieved template object.
+        """
+        LOG.info(f'Starting retrieval of template with ID: {template_id}.')
+        getting_data = GetTemplateServiceCommandDTO(id=template_id)
+        result = self.service_layer_rpc.call(
+            TemplateServiceLayerManager.get_template.__name__,
+            data_for_method=getting_data.model_dump(mode='json'),
+        )
+        template = TemplateResponse.model_validate(result)
+        LOG.info(f'Finished retrieval of template with ID: {template_id}.')
+        return template
 
     def create_template(
         self, creation_data: RequestCreateTemplate

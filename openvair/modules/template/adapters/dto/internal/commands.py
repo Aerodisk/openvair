@@ -7,6 +7,10 @@ from pydantic import Field, BaseModel, ConfigDict
 from openvair.common.configs.pydantic import dto_config, lenient_dto_config
 
 
+class GetTemplateServiceCommandDTO(BaseModel):  # noqa: D101
+    id: UUID
+
+
 class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     name: str
     description: Optional[str]
