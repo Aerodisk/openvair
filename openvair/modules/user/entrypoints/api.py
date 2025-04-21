@@ -23,9 +23,8 @@ from uuid import UUID
 from typing import Dict, List, cast
 
 from fastapi import Depends, APIRouter, status
-from fastapi.responses import JSONResponse
-from fastapi_pagination import Page, paginate
 from fastapi.security import HTTPBearer
+from fastapi_pagination import Page, paginate
 
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import get_current_user

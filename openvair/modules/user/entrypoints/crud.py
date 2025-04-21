@@ -83,10 +83,11 @@ class UserCrud:
             List: Information about all users.
         """
         LOG.info('Call service layer to get information about all users')
-        return self.service_layer_rpc.call(
+        users: List = self.service_layer_rpc.call(
             services.UserManager.get_all_users.__name__,
-            data_for_method={}
+            data_for_method={},
         )
+        return users
 
     def create_user(
         self,
