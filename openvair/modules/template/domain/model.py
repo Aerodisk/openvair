@@ -11,7 +11,7 @@ Classes:
 import abc
 
 from openvair.modules.template.domain.base import BaseTemplate
-from openvair.modules.template.models.schemas import TemplateData
+from openvair.modules.template.entrypoints.schemas import TemplateData
 
 
 class AbstractTemplateFactory(metaclass=abc.ABCMeta):
