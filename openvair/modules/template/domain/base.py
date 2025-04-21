@@ -60,7 +60,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def edit(self, editing_data: Dict) -> None:
+    def edit(self, editing_data: Dict) -> Dict:
         """Edit the template metadata or file.
 
         Args:

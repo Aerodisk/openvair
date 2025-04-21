@@ -51,6 +51,7 @@ from openvair.modules.template.adapters.dto.external.commands import (
     GetStorageCommandDTO,
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
+    EditTemplateDomainCommandDTO,
     EditTemplateServiceCommandDTO,
     CreateTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
@@ -234,7 +235,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             data_for_method = CreateTemplateDomainCommandDTO.model_validate(
                 creation_dto
             )
-            result = self.domain_rpc.call(
+            domain_result = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
                 data_for_manager=data_for_manager.model_dump(mode='json'),
                 data_for_method=data_for_method.model_dump(mode='json'),
@@ -250,7 +251,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             return
         orm_template = TemplateDomainSerializer.update_orm_from_dict(
             orm_template,
-            result,
+            domain_result,
         )
         self._update_and_log_event(
             orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
@@ -266,21 +267,14 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         try:
             data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
-            data_for_method = EditTemplateServiceCommandDTO.model_validate(
+            data_for_method = EditTemplateDomainCommandDTO.model_validate(
                 edit_command_data
             )
-            self.domain_rpc.call(
+            domain_result = self.domain_rpc.call(
                 BaseTemplate.edit.__name__,
                 data_for_manager=data_for_manager.model_dump(mode='json'),
                 data_for_method=data_for_method.model_dump(mode='json'),
             )
-            with self.uow as uow:
-                if edit_dto.name is not None:
-                    orm_template.name = edit_dto.name
-                if edit_dto.description is not None:
-                    orm_template.description = edit_dto.description
-                uow.templates.update(orm_template)
-                uow.commit()
         except RpcException as err:
             self._update_and_log_event(
                 orm_template,
@@ -290,7 +284,10 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             LOG.error('Error while editing template', exc_info=True)
             return
-
+        orm_template = TemplateDomainSerializer.update_orm_from_dict(
+            orm_template,
+            domain_result,
+        )
         self._update_and_log_event(
             orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
         )
