@@ -8,6 +8,7 @@ Classes:
 """
 
 import abc
+from uuid import UUID
 from typing import List, Generic, TypeVar, Optional
 
 T = TypeVar('T')
@@ -30,7 +31,7 @@ class AbstractRepository(abc.ABC, Generic[T]):
         ...
 
     @abc.abstractmethod
-    def get(self, entity_id: int) -> Optional[T]:
+    def get(self, entity_id: UUID) -> Optional[T]:
         """Retrieves an entity by its ID.
 
         Args:
@@ -51,11 +52,20 @@ class AbstractRepository(abc.ABC, Generic[T]):
         ...
 
     @abc.abstractmethod
-    def delete(self, entity_id: int) -> None:
-        """Deletes an entity by its ID.
+    def delete(self, entity: T) -> None:
+        """Deletes the given entity from the repository.
 
         Args:
-            entity_id (int): The ID of the entity to delete.
+            entity (T): The entity instance to delete.
+        """
+        ...
+
+    @abc.abstractmethod
+    def delete_by_id(self, entity_id: UUID) -> None:
+        """Deletes an entity by its unique ID.
+
+        Args:
+            entity_id (UUID): The ID of the entity to delete.
         """
         ...
 

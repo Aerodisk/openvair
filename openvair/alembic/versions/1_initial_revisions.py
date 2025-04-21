@@ -2,13 +2,15 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-03-21 14:11:16.433919
+Create Date: 2025-04-07 16:40:32.636063
 
 """
 
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from openvair.common.orm_types import PathType
 
 # revision identifiers, used by Alembic.
 revision = '1'
@@ -304,13 +306,29 @@ def upgrade() -> None:
     )
     op.create_table(
         'templates',
-        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('name', sa.String(length=40), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('path', sa.String(length=255), nullable=False),
+        sa.Column('path', PathType(), nullable=False),
+        sa.Column('format', sa.String(length=10), nullable=False),
+        sa.Column('size', sa.BigInteger(), nullable=False),
         sa.Column('storage_id', sa.String(length=36), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
+        sa.Column(
+            'status',
+            sa.Enum(
+                'NEW',
+                'CREATING',
+                'EDITING',
+                'AVAILABLE',
+                'ERROR',
+                'DELETING',
+                name='template_status',
+            ),
+            nullable=False,
+        ),
+        sa.Column('information', sa.Text(), nullable=True),
         sa.Column('is_backing', sa.Boolean(), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('name'),
     )

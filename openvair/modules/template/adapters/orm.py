@@ -9,9 +9,21 @@ Classes:
 
 import uuid
 import datetime
+from typing import Literal, Optional
 
-from sqlalchemy import Text, String, Boolean, DateTime
+from sqlalchemy import (
+    UUID,
+    Enum as SAEnum,
+    Text,
+    String,
+    Boolean,
+    DateTime,
+    BigInteger,
+)
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
+
+from openvair.common.orm_types import PathType
+from openvair.modules.template.shared.enums import TemplateStatus
 
 
 class Base(DeclarativeBase):
@@ -37,33 +49,51 @@ class Template(Base):
     __tablename__ = 'templates'
 
     id: Mapped[uuid.UUID] = mapped_column(
-        String(36),
+        UUID(),
         primary_key=True,
-        default=lambda: str(uuid.uuid4()),
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(
         String(40),
         unique=True,
         nullable=False,
     )
-    description: Mapped[str] = mapped_column(
+    description: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
     path: Mapped[str] = mapped_column(
-        String(255),
+        PathType,
         nullable=False,
+    )
+    format: Mapped[Literal['qcow2', 'raw']] = mapped_column(
+        String(10),
+        nullable=False,
+    )
+    size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        default=0
     )
     storage_id: Mapped[str] = mapped_column(
         String(36),
         nullable=False,
     )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.utcnow,
+    status: Mapped[TemplateStatus] = mapped_column(
+        SAEnum(TemplateStatus, name='template_status'),
+        nullable=False,
+        default=TemplateStatus.NEW,
+    )
+    information: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
     )
     is_backing: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
         nullable=False,
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime,
+        default=datetime.datetime.now(),
     )

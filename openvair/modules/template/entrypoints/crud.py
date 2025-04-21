@@ -13,14 +13,23 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import List
+from typing import Dict, List
 
 from pydantic import BaseModel
 
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.modules.template.adapters.dto import (
+    TemplateGetCommandDTO,
+    TemplateEditCommandDTO,
+)
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.template.models.schemas import Volume, Template
+from openvair.modules.template.entrypoints.schemas import (
+    Template,
+    BaseTemplate,
+    EditTemplate,
+    CreateTemplate,
+)
 from openvair.modules.template.service_layer.services import (
     TemplateServiceLayerManager,
 )
@@ -48,7 +57,7 @@ class TemplateCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_all_templates(self) -> List[Template]:
+    def get_all_templates(self) -> List[BaseTemplate]:
         """Retrieve a list of all templates via RPC.
 
         Returns:
@@ -59,14 +68,14 @@ class TemplateCrud:
             TemplateServiceLayerManager.get_all_templates.__name__,
             data_for_method={},
         )
-        templates = [Template.model_validate(item) for item in result]
+        templates = [BaseTemplate.model_validate(item) for item in result]
         LOG.info(
             f'Finished retrieval of all templates. Retrieved {len(templates)} '
             'templates.'
         )
         return templates
 
-    def get_template(self, template_id: UUID) -> Template:
+    def get_template(self, template_id: UUID) -> BaseTemplate:
         """Retrieve a specific template by its ID via RPC.
 
         Args:
@@ -76,15 +85,16 @@ class TemplateCrud:
             Template: The retrieved template object.
         """
         LOG.info(f'Starting retrieval of template with ID: {template_id}.')
+        getting_data = TemplateGetCommandDTO(id=template_id)
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_template.__name__,
-            data_for_method={'template_id': str(template_id)},
+            data_for_method=getting_data.model_dump(mode='json'),
         )
-        template = Template.model_validate(result)
+        template = BaseTemplate.model_validate(result)
         LOG.info(f'Finished retrieval of template with ID: {template_id}.')
         return template
 
-    def create_template(self, data: BaseModel) -> Template:
+    def create_template(self, data: CreateTemplate) -> Template:
         """Create a new template using provided data via RPC.
 
         Args:
@@ -94,19 +104,20 @@ class TemplateCrud:
             Template: The created template object.
         """
         LOG.info('Starting creation of a new template.')
+
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.create_template.__name__,
             data_for_method=data.model_dump(mode='json'),
         )
         template = Template.model_validate(result)
         LOG.info(f"Finished creation of template '{template.name}'.")
-        return template
+        return Template.model_validate(result)
 
-    def update_template(
+    def edit_template(
         self,
         template_id: UUID,
-        data: BaseModel,
-    ) -> Template:
+        data: EditTemplate,
+    ) -> BaseTemplate:
         """Update an existing template using partial data via RPC.
 
         Args:
@@ -117,17 +128,20 @@ class TemplateCrud:
             Template: The updated template object.
         """
         LOG.info(f'Starting update of template with ID: {template_id}.')
-        params = {'template_id': str(template_id)}
-        params.update(data.model_dump(exclude_unset=True, mode='json'))
-        result = self.service_layer_rpc.call(
-            TemplateServiceLayerManager.update_template.__name__,
-            data_for_method=params,
+        command = TemplateEditCommandDTO(
+            id=template_id,
+            name=data.name,
+            description=data.description,
         )
-        template = Template.model_validate(result)
+        result = self.service_layer_rpc.call(
+            TemplateServiceLayerManager.edit_template.__name__,
+            data_for_method=command.model_dump(mode='json'),
+        )
+        template = BaseTemplate.model_validate(result)
         LOG.info(f'Finished update of template with ID: {template_id}.')
         return template
 
-    def delete_template(self, template_id: UUID) -> Template:
+    def delete_template(self, template_id: UUID) -> BaseTemplate:
         """Delete a template by its ID via RPC.
 
         Args:
@@ -141,15 +155,13 @@ class TemplateCrud:
             TemplateServiceLayerManager.delete_template.__name__,
             data_for_method={'template_id': str(template_id)},
         )
-        template = Template.model_validate(result)
+        template = BaseTemplate.model_validate(result)
         LOG.info(f'Finished deletion of template with ID: {template_id}.')
         return template
 
-    def create_volume_from_template(
-        self,
-        template_id: UUID,
-        data: BaseModel,
-    ) -> Volume:
+    def create_volume_from_template(  # noqa: D417
+        self, template_id: UUID, data: BaseModel, user_info: Dict,
+    ) -> None:
         """Create a volume based on the specified template via RPC.
 
         Args:
@@ -162,15 +174,15 @@ class TemplateCrud:
         LOG.info(
             f'Starting creation of volume from template with ID: {template_id}.'
         )
-        params = {'template_id': str(template_id)}
-        params.update(data.model_dump(mode='json'))
-        result = self.service_layer_rpc.call(
+        params: Dict = {'template_id': str(template_id)}
+        params['volume_info'] = data.model_dump(mode='json')
+        params['user_info'] = user_info
+
+        self.service_layer_rpc.cast(
             TemplateServiceLayerManager.create_volume_from_template.__name__,
             data_for_method=params,
         )
-        volume = Volume.model_validate(result)
-        LOG.info(
-            f"Finished creation of volume '{volume.name}' from template "
-            f'with ID: {template_id}.'
-        )
-        return volume
+        # LOG.info(
+        #     f"Finished creation of volume '{volume.name}' from template "
+        #     f'with ID: {template_id}.'
+        # )
