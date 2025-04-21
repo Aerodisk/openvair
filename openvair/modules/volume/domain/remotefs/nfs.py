@@ -14,13 +14,13 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.volume.domain.base import RemoteFSVolume
+from openvair.modules.volume.domain.base import BaseRemoteFSVolume
 from openvair.modules.volume.domain.remotefs import exceptions
 
 LOG = get_logger(__name__)
 
 
-class NfsVolume(RemoteFSVolume):
+class NfsVolume(BaseRemoteFSVolume):
     """Class for managing NFS volumes.
 
     This class provides methods for creating, deleting, extending, and
@@ -65,7 +65,7 @@ class NfsVolume(RemoteFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             message = f'Qemu img create raised exception: {err!s}'
@@ -95,7 +95,7 @@ class NfsVolume(RemoteFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             message = f'Delete volume raised exception: {err!s}'
@@ -129,7 +129,7 @@ class NfsVolume(RemoteFSVolume):
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
                     run_as_root=self._execute_as_root,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             message = f'Qemu img extend volume raised exception: {err!s}'
