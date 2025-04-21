@@ -125,3 +125,48 @@ class BaseSerializer(Generic[DTO, ORM]):
         """
         dto = cls.to_dto(orm_obj)
         return dto.model_dump(mode='json')
+
+    @classmethod
+    def update_orm(cls, orm_obj: ORM, dto_obj: DTO) -> ORM:
+        """Update existing ORM object from DTO.
+
+        Args:
+            orm_obj (ORM): Existing ORM instance to update.
+            dto_obj (DTO): DTO with new values.
+
+        Returns:
+            ORM: Updated ORM object (same instance).
+        """
+        dto_data = dto_obj.model_dump()
+        inspected = inspect(cls.orm_class)
+        orm_fields = {col.key for col in inspected.mapper.column_attrs}
+
+        for field, value in dto_data.items():
+            if field in orm_fields:
+                setattr(orm_obj, field, value)
+
+        return orm_obj
+
+    @classmethod
+    def update_orm_from_dict(cls, orm_obj: ORM, data: Dict[str, Any]) -> ORM:
+        """Update an existing ORM object from a dictionary via DTO validation.
+
+        This method converts the input dictionary into a DTO instance and
+        applies its values to the given ORM object. Only ORM-declared column
+        fields are updated. Relationships or nested fields are not handled
+        unless explicitly supported by the DTO.
+
+        Args:
+            orm_obj (ORM): The existing ORM instance to be updated.
+            data (Dict[str, Any]): A dictionary representing new field values.
+
+        Returns:
+            ORM: The updated ORM instance with modified fields.
+
+        Example:
+            updated = TemplateDomainSerializer.update_orm_from_dict(
+                orm_template, incoming_data
+            )
+        """
+        dto = cls.dto_class.model_validate(data)
+        return cls.update_orm(orm_obj, dto)

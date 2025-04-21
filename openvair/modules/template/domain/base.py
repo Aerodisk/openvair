@@ -44,14 +44,14 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         by subclasses (e.g., template format, name, path, related volumes).
         """
         self.qemu_img_adapter = QemuImgAdapter()
-        self.format = tmp_format
+        self.tmp_format = tmp_format
         self.name = name
-        self.path = 'template' / path
+        self.path = path
         self.related_volumes = related_volumes
         self.is_backing = is_backing
 
     @abc.abstractmethod
-    def create(self, creation_data: Dict) -> None:
+    def create(self, creation_data: Dict) -> Dict:
         """Create the template on disk.
 
         Args:

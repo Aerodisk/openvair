@@ -15,6 +15,9 @@ from openvair.modules.template.domain.exception import (
     TemplateFileCreatingException,
     TemplateFileDeletingException,
 )
+from openvair.modules.template.adapters.dto.internal.models import (
+    DomainTemplateManagerDTO,
+)
 from openvair.modules.template.adapters.dto.internal.commands import (
     EditTemplateDomainCommandDTO,
     CreateTemplateDomainCommandDTO,
@@ -50,9 +53,9 @@ class Qcow2Template(BaseTemplate):
             related_volumes,
             is_backing=is_backing,
         )
-        self.format: str = 'qcow2'
+        self.tmp_format: str = 'qcow2'
 
-    def create(self, creation_data: Dict) -> None:
+    def create(self, creation_data: Dict) -> Dict:
         """Create a QCOW2 template file from an existing volume.
 
         Args:
@@ -71,7 +74,7 @@ class Qcow2Template(BaseTemplate):
             raise FileNotFoundError(message)
 
         if self.path.exists():
-            message = f'Template already exists at {self.path}'
+            message = f'Template file already exists at {self.path}'
             raise FileExistsError(message)
 
         try:
@@ -82,6 +85,8 @@ class Qcow2Template(BaseTemplate):
                 f'from {source_disk_path}'
             )
             raise TemplateFileCreatingException(str(self.path)) from err
+        template_info = DomainTemplateManagerDTO.model_validate(self.__dict__)
+        return template_info.model_dump(mode='json')
 
     def edit(self, editing_data: Dict) -> None:
         """Rename the template file if not used as a backing image.
@@ -100,7 +105,7 @@ class Qcow2Template(BaseTemplate):
             EditTemplateDomainCommandDTO.model_validate(editing_data)
         )
         new_name = dto.name
-        new_path = self.path.parent.absolute() / new_name
+        new_path = Path(self.path.parent.absolute() / f'template-{new_name}')
         try:
             self.path.rename(new_path)
             self.name = new_name
