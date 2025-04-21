@@ -16,7 +16,7 @@ Named tuples:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List
 from collections import namedtuple
 
 from passlib import hash
@@ -105,6 +105,17 @@ class UserManager(BackgroundTasks):
         with self.uow:
             user: User = self.uow.users.get(user_id)
             return DataSerializer.to_web(user)
+
+    def get_all_users(self) -> List:
+        """Retrieve all users from the database.
+
+        Returns:
+            List: List of serialized user data for each user.
+        """
+        LOG.info('Start getting all users from DB')
+        with self.uow:
+            users = self.uow.users.get_all()
+            return [DataSerializer.to_web(user) for user in users]
 
     def authenticate_user(self, data: Dict) -> Dict:
         """Authenticate a user based on provided credentials.

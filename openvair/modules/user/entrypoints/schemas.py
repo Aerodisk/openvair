@@ -50,17 +50,6 @@ class User(BaseUser):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UsersList(BaseModel):
-    """Schema for representing a list of users.
-
-    Attributes:
-        users (List[Optional[User]]): A list of user objects, which may
-            include None.
-    """
-
-    users: List[Optional[User]]
-
-
 class UserCreate(BaseUser):
     """Schema for user creation including password.
 
