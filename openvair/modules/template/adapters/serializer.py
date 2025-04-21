@@ -5,7 +5,7 @@ models and various DTOs used in different layers of the system.
 
 Classes:
     - TemplateViewSerializer: ORM <-> ViewDTO
-    - TemplateCreateSerializer: CreateCommandDTO.ManagerData -> ORM
+    - TemplateCreateSerializer: CreateCommandDTO -> ORM
     - TemplateEditSerializer: Applies MethodData to ORM instance
 """
 
@@ -33,7 +33,7 @@ class TemplateDomainSerializer(  # noqa: D101
 
 
 class TemplateCreateSerializer(BaseSerializer[CreateTemplateDTO, TemplateORM]):
-    """Converts CreateTemplateDTO.ManagerData -> ORM object for creation."""
+    """Converts CreateTemplateDTO -> ORM object for creation."""
 
     dto_class = CreateTemplateDTO
     orm_class = TemplateORM

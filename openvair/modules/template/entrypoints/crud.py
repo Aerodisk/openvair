@@ -29,8 +29,8 @@ from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
-    GetTemplateServiceCommandDTO,
     EditTemplateServiceCommandDTO,
+    DeleteTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
 )
 
@@ -85,7 +85,7 @@ class TemplateCrud:
             Template: The retrieved template object.
         """
         LOG.info(f'Starting retrieval of template with ID: {template_id}.')
-        getting_data = GetTemplateServiceCommandDTO(id=template_id)
+        getting_data = DeleteTemplateDomainCommandDTO(id=template_id)
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_template.__name__,
             data_for_method=getting_data.model_dump(mode='json'),
@@ -145,24 +145,24 @@ class TemplateCrud:
         LOG.info(f'Finished update of template with ID: {template_id}.')
         return template
 
-    # def delete_template(self, template_id: UUID) -> TemplateResponse:
-    #     """Delete a template by its ID via RPC.
+    def delete_template(self, template_id: UUID) -> TemplateResponse:
+        """Delete a template by its ID via RPC.
 
-    #     Args:
-    #         template_id (UUID): The ID of the template to delete.
+        Args:
+            template_id (UUID): The ID of the template to delete.
 
-    #     Returns:
-    #         Template: The deleted template object.
-    #     """
-    #     LOG.info(f'Starting deletion of template with ID: {template_id}.')
-    #     deleting_data = DTODeleteTemplate(id=template_id)
-    #     result = self.service_layer_rpc.call(
-    #         TemplateServiceLayerManager.delete_template.__name__,
-    #         data_for_method=deleting_data.model_dump(mode='json'),
-    #     )
-    #     template = TemplateResponse.model_validate(result)
-    #     LOG.info(f'Finished deletion of template with ID: {template_id}.')
-    #     return template
+        Returns:
+            Template: The deleted template object.
+        """
+        LOG.info(f'Starting deletion of template with ID: {template_id}.')
+        deleting_data = DeleteTemplateDomainCommandDTO(id=template_id)
+        result = self.service_layer_rpc.call(
+            TemplateServiceLayerManager.delete_template.__name__,
+            data_for_method=deleting_data.model_dump(mode='json'),
+        )
+        template = TemplateResponse.model_validate(result)
+        LOG.info(f'Finished deletion of template with ID: {template_id}.')
+        return template
 
     # def create_volume_from_template(
     #     self,

@@ -7,10 +7,6 @@ from pydantic import Field, BaseModel, ConfigDict
 from openvair.common.configs.pydantic import dto_config, lenient_dto_config
 
 
-class GetTemplateServiceCommandDTO(BaseModel):  # noqa: D101
-    id: UUID
-
-
 class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     name: str
     description: Optional[str]
@@ -21,9 +17,8 @@ class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     model_config: ClassVar[ConfigDict] = dto_config
 
 
-class CreateTemplateDomainCommandDTO(BaseModel):  # noqa: D101
-    source_disk_path: Path
-    model_config: ClassVar[ConfigDict] = lenient_dto_config
+class GetTemplateServiceCommandDTO(BaseModel):  # noqa: D101
+    id: UUID
 
 
 class EditTemplateServiceCommandDTO(BaseModel):  # noqa: D101
@@ -31,5 +26,18 @@ class EditTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     name: Optional[str] = Field(min_length=1, max_length=40)
     description: Optional[str]
 
+
+class DeleteTemplateServiceCommandDTO(BaseModel):  # noqa: D101
+    id: UUID
+
+
+class CreateTemplateDomainCommandDTO(BaseModel):  # noqa: D101
+    source_disk_path: Path
+    model_config: ClassVar[ConfigDict] = lenient_dto_config
+
+
 class EditTemplateDomainCommandDTO(BaseModel):  # noqa: D101
-    name:str
+    name: str
+
+class DeleteTemplateDomainCommandDTO(BaseModel):  # noqa: D101
+    id: UUID

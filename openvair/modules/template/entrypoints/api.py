@@ -170,7 +170,7 @@ async def delete_template(
         BaseResponse[Template]: The deleted template.
     """
     LOG.info(f'API: Deleting template {template_id}')
-    template = await run_in_threadpool(crud.delete_template, template_id) # type: ignore
+    template = await run_in_threadpool(crud.delete_template, template_id)
     LOG.info(f'API: Finished deleting template {template_id}')
     return BaseResponse(status='success', data=template)
 

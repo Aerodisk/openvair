@@ -52,9 +52,9 @@ from openvair.modules.template.adapters.dto.external.commands import (
 )
 from openvair.modules.template.adapters.dto.internal.commands import (
     EditTemplateDomainCommandDTO,
-    GetTemplateServiceCommandDTO,
     EditTemplateServiceCommandDTO,
     CreateTemplateDomainCommandDTO,
+    DeleteTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
@@ -121,7 +121,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         Returns:
             Dict: A JSON-serializable representation of the template.
         """
-        dto = GetTemplateServiceCommandDTO.model_validate(getting_data)
+        dto = DeleteTemplateDomainCommandDTO.model_validate(getting_data)
         LOG.info(dto.id)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.id)
@@ -183,22 +183,23 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return TemplateViewSerializer.to_dict(orm_template)
 
-    # def delete_template(self, deleting_data: Dict) -> Dict:
-    #     dto = DTODeleteTemplate.model_validate(deleting_data)
-    #     with self.uow as uow:
-    #         orm_template = uow.templates.get_or_fail(dto.id)
+    def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
+        delete_command_dto = DeleteTemplateDomainCommandDTO.model_validate(
+            deleting_data
+        )
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(delete_command_dto.id)
 
-    #     self._update_and_log_event(
-    #         orm_template, TemplateStatus.DELETING, 'TemplateDeletingStarted'
-    #     )
+        self._update_and_log_event(
+            orm_template, TemplateStatus.DELETING, 'TemplateDeletingStarted'
+        )
 
-    #     delete_dto_data = TemplateSerializer.to_dict(orm_template)
-    #     self.service_layer_rpc.cast(
-    #         self._delete_template.__name__,
-    #         data_for_method=delete_dto_data,
-    #     )
+        self.service_layer_rpc.cast(
+            self._delete_template.__name__,
+            data_for_method=delete_command_dto.model_dump(mode='json'),
+        )
 
-    #     return TemplateSerializer.to_dict(orm_template)
+        return TemplateViewSerializer.to_dict(orm_template)
 
     # def create_volume_from_template(
     #     self, volume_from_template_data: Dict
@@ -293,24 +294,31 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
         )
 
-    # def _delete_template(self, template_dto_data: Dict) -> None:
-    #     orm_template = TemplateSerializer.from_dict(template_dto_data)
-    #     try:
-    #         LOG.info('')
-    #         # result = self.domain_rpc.call('delete', template_dto_data)
-    #     except RpcException as err:
-    #         self._update_and_log_event(
-    #             orm_template,
-    #             TemplateStatus.ERROR,
-    #             'TemplateDeletingFaild',
-    #             str(err),
-    #         )
-    #         LOG.error('Error while deleting template', exc_info=True)
-    #         return
+    def _delete_template(self, delete_command_data: Dict) -> None:
+        delete_dto = DeleteTemplateDomainCommandDTO.model_validate(
+            delete_command_data
+        )
+        with self.uow as uow:
+            orm_template = uow.templates.get_or_fail(delete_dto.id)
+        try:
+            data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
+            self.domain_rpc.call(
+                BaseTemplate.delete.__name__,
+                data_for_manager=data_for_manager.model_dump(mode='json'),
+            )
+        except RpcException as err:
+            self._update_and_log_event(
+                orm_template,
+                TemplateStatus.ERROR,
+                'TemplateDeletingFaild',
+                str(err),
+            )
+            LOG.error('Error while deleting template', exc_info=True)
+            return
 
-    #     with self.uow as uow:
-    #         uow.templates.delete(orm_template)
-    #         uow.commit()
+        with self.uow as uow:
+            uow.templates.delete(orm_template)
+            uow.commit()
 
     def _update_and_log_event(
         self,
