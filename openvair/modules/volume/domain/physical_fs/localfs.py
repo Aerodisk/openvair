@@ -15,12 +15,12 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.volume.domain.base import BaseLocalFSVolume
+from openvair.modules.volume.domain.base import BaseVolume
 
 LOG = get_logger(__name__)
 
 
-class LocalFSVolume(BaseLocalFSVolume):
+class LocalFSVolume(BaseVolume):
     """Class for managing local filesystem volumes.
 
     This class provides methods for creating, deleting, and managing local
