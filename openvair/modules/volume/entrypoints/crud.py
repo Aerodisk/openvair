@@ -15,6 +15,10 @@ from openvair.libs.log import get_logger
 from openvair.modules.volume.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.volume.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.modules.volume.entrypoints.schemas import (
+    Volume,
+    CreateVolumeFromTemplate,
+)
 
 LOG = get_logger(__name__)
 
@@ -230,3 +234,8 @@ class VolumeCrud:
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
+
+    def create_from_template(  # noqa: D102
+        self, data: CreateVolumeFromTemplate, user_info: Dict  # noqa: ARG002
+    ) -> Volume:
+        return Volume(**{})
