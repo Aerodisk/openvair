@@ -1021,6 +1021,51 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 self.uow.commit()
         return DataSerializer.to_web(db_volume)
 
+    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        # Перед записью надо собрать инфу из темплейта
+        with self.uow:
+            self._check_volume_exists_on_storage(
+                data['name'], data['storage_id']
+            )
+            db_volume = cast(Volume, DataSerializer.to_db(data))
+            db_volume.status = VolumeStatus.new.name
+            self.uow.volumes.add(db_volume)
+            self.uow.commit()
+        serialized_volume = DataSerializer.to_web(db_volume)
+        self.service_layer_rpc.cast(
+            self._create_from_template.__name__,
+            data_for_method=serialized_volume,
+        )
+        return {}
+
+    def _create_from_template(self, data: Dict) -> None:
+        volume_id = data.get('id', '')
+        storage_id = data.get('storage_id', '')
+        storage_info = self._get_storage_info(storage_id)
+        with self.uow:
+            db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
+            db_volume.status = VolumeStatus.creating.name
+            db_volume.path = storage_info.mount_point
+            db_volume.storage_type = storage_info.storage_type
+            self.uow.commit()
+
+            self._check_storage_on_availability(storage_info)
+            self._check_available_space_on_storage(
+                int(db_volume.size), storage_info
+            )
+
+            domain_volume = DataSerializer.to_domain(db_volume)
+
+            LOG.info(
+                'Serialized volume which will call to domain '
+                'for creating: %s.' % domain_volume
+            )
+            self.domain_rpc.call(
+                BaseVolume.create_from_template.__name__,
+                data_for_manager=domain_volume,
+            )
+            db_volume.status = VolumeStatus.available.name
+
     def _get_all_storages_info(self) -> List[StorageInfo]:
         """Retrieve information about all available storages.
 
