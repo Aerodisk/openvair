@@ -154,3 +154,18 @@ class NfsVolume(BaseVolume):
             'used': qemu_volume_info.get('actual-size', 0),
             'provisioning': self.provisioning,
         }
+
+    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        parent_template = data['template_path']
+        is_backing = data['is_backing']
+        if is_backing:
+            self.qemu_img_adapter.create_backing_volume(
+                parent_template,
+                Path(f'{self.path}/volume-{self.id}.{self.format}'),
+            )
+        else:
+            self.qemu_img_adapter.create_copy(
+                parent_template,
+                Path(f'{self.path}/volume-{self.id}.{self.format}'),
+            )
+        return self.__dict__
