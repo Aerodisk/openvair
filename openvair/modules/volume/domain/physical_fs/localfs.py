@@ -15,7 +15,11 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
+from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.base import BaseVolume
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateDomainCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
@@ -29,7 +33,7 @@ class LocalFSVolume(BaseVolume):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a LocalFSVolume instance."""
-        super(LocalFSVolume, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._execute_as_root = False
         self.provisioning = 'metadata'
 
@@ -64,7 +68,6 @@ class LocalFSVolume(BaseVolume):
         except (ExecuteError, OSError) as err:
             LOG.error(f'Error while creating volume: {err!s}')
             raise
-
         return self.__dict__
 
     def delete(self) -> Dict:
@@ -142,16 +145,19 @@ class LocalFSVolume(BaseVolume):
         }
 
     def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
-        parent_template = data['template_path']
-        is_backing = data['is_backing']
-        if is_backing:
-            self.qemu_img_adapter.create_backing_volume(
-                parent_template,
+        qemu_img_adapter = QemuImgAdapter()
+        creation_data = CreateVolumeFromTemplateDomainCommandDTO.model_validate(
+            data
+        )
+
+        if creation_data.is_backing:
+            qemu_img_adapter.create_backing_volume(
+                creation_data.template_path,
                 Path(f'{self.path}/volume-{self.id}.{self.format}'),
             )
         else:
-            self.qemu_img_adapter.create_copy(
-                parent_template,
+            qemu_img_adapter.create_copy(
+                creation_data.template_path,
                 Path(f'{self.path}/volume-{self.id}.{self.format}'),
             )
         return self.__dict__

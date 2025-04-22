@@ -17,7 +17,6 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
-from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.exceptions import (
     VolumeDoesNotExistOnStorage,
 )
@@ -41,14 +40,12 @@ class BaseVolume(metaclass=abc.ABCMeta):
                 attributes.
         """
         LOG.info('Initialized BaseVolume.')
-        self.qemu_img_adapter = QemuImgAdapter()
         self.id = str(kwargs.get('id', ''))
         self.format = kwargs.get('format', 'raw')
         self.size = kwargs.get('size', 0)
         self.description = kwargs.get('description', '')
         self.storage_type = kwargs.get('storage_type', '')
         self.path = kwargs.get('path', '')
-        self.parent_template = kwargs.get('parent_template')
 
     @abc.abstractmethod
     def create(self) -> Dict:
