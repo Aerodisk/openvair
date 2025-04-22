@@ -47,13 +47,25 @@ from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.adapters.orm import Volume, VolumeAttachVM
 from openvair.modules.volume.service_layer import exceptions, unit_of_work
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.volume.adapters.serializer import DataSerializer
+from openvair.modules.volume.adapters.serializer import (
+    DataSerializer,
+    VolumeDomainSerializer,
+)
 from openvair.modules.event_store.entrypoints.crud import EventCrud
+from openvair.modules.volume.adapters.dto.internal.models import (
+    CreateVolumeFromTemplateDTO,
+)
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateDomainCommandDTO,
+)
 from openvair.libs.messaging.clients.rpc_clients.vm_rpc_client import (
     VMServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
     StorageServiceLayerRPCClient,
+)
+from openvair.libs.messaging.clients.rpc_clients.template_prc_client import (
+    TemplateServiceLayerRPCClient,
 )
 
 LOG = get_logger(__name__)
@@ -162,6 +174,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         )
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.vm_service_client = VMServiceLayerRPCClient()
+        self.template_service_client = TemplateServiceLayerRPCClient()
         self.event_store = EventCrud('volumes')
 
     def get_volume(self, data: Dict) -> Dict:
@@ -1022,49 +1035,76 @@ class VolumeServiceLayerManager(BackgroundTasks):
         return DataSerializer.to_web(db_volume)
 
     def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
-        # Перед записью надо собрать инфу из темплейта
+        template = self.template_service_client.get_template(
+            {'id': data['template_id']}
+        )
+        storage = self._get_storage_info(data['storage_id'])
+        self._check_storage_on_availability(storage)
+        self._check_available_space_on_storage(int(template['size']), storage)
+        volume_info = CreateVolumeFromTemplateDTO(
+            name=data.pop('name', ''),
+            description=data['description'],
+            path=storage.mount_point,
+            format=template['tmp_format'],
+            storage_id=data['storage_id'],
+            size=int(template['size']),
+            user_id=data['user_info']['id'],
+            read_only=data['read_only'],
+            storage_type=storage.storage_type,
+            template_path=template['path'],
+            is_backing=template['is_backing'],
+            template_id=template['id'],
+        )
+
         with self.uow:
             self._check_volume_exists_on_storage(
-                data['name'], data['storage_id']
+                volume_info.name, str(volume_info.storage_id)
             )
-            db_volume = cast(Volume, DataSerializer.to_db(data))
+            db_volume = cast(
+                Volume, DataSerializer.to_db(volume_info.model_dump())
+            )
             db_volume.status = VolumeStatus.new.name
             self.uow.volumes.add(db_volume)
             self.uow.commit()
-        serialized_volume = DataSerializer.to_web(db_volume)
+
         self.service_layer_rpc.cast(
             self._create_from_template.__name__,
-            data_for_method=serialized_volume,
+            data_for_method={
+                'volume_id': str(db_volume.id),
+                **volume_info.model_dump(mode='json'),
+            },
         )
-        return {}
 
-    def _create_from_template(self, data: Dict) -> None:
-        volume_id = data.get('id', '')
-        storage_id = data.get('storage_id', '')
-        storage_info = self._get_storage_info(storage_id)
+        return DataSerializer.to_web(db_volume)
+
+    def _create_from_template(self, creating_from_tmp_data: Dict) -> None:
+        volume_id = creating_from_tmp_data.pop('volume_id')
+        creating_dto = CreateVolumeFromTemplateDTO.model_validate(
+            creating_from_tmp_data
+        )
         with self.uow:
-            db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
+            db_volume = self.uow.volumes.get(volume_id)
             db_volume.status = VolumeStatus.creating.name
-            db_volume.path = storage_info.mount_point
-            db_volume.storage_type = storage_info.storage_type
             self.uow.commit()
-
-            self._check_storage_on_availability(storage_info)
-            self._check_available_space_on_storage(
-                int(db_volume.size), storage_info
-            )
-
             domain_volume = DataSerializer.to_domain(db_volume)
-
             LOG.info(
                 'Serialized volume which will call to domain '
                 'for creating: %s.' % domain_volume
             )
+
+            data_for_manager = VolumeDomainSerializer.to_dto(db_volume)
+            data_for_method = CreateVolumeFromTemplateDomainCommandDTO(
+                template_path=creating_dto.template_path,
+                is_backing=creating_dto.is_backing,
+            )
+
             self.domain_rpc.call(
                 BaseVolume.create_from_template.__name__,
-                data_for_manager=domain_volume,
+                data_for_manager=data_for_manager.model_dump(mode='json'),
+                data_for_method=data_for_method.model_dump(mode='json'),
             )
             db_volume.status = VolumeStatus.available.name
+            self.uow.commit()
 
     def _get_all_storages_info(self) -> List[StorageInfo]:
         """Retrieve information about all available storages.
@@ -1263,3 +1303,19 @@ class VolumeServiceLayerManager(BackgroundTasks):
         with self.uow:
             self.uow.volumes.bulk_update(updated_db_volumes)
             self.uow.commit()
+
+
+if __name__ == '__main__':
+    import uuid
+
+    s = VolumeServiceLayerManager()
+    s.create_from_template(
+        {
+            'name': 'FROM_TMP_BACKING5',
+            'description': 'form tmp descr',
+            'storage_id': '0bcef2f6-ee8c-48df-b8f8-482848503d54',
+            'template_id': '0f027c54-2c50-4401-8d0c-0affb6e203b3',
+            'read_only': True,
+            'user_info': {'id': uuid.uuid4()},
+        }
+    )

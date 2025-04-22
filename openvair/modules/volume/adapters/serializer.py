@@ -15,6 +15,10 @@ from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.volume.adapters.orm import Volume, VolumeAttachVM
+from openvair.common.serialization.base_serializer import BaseSerializer
+from openvair.modules.volume.adapters.dto.internal.models import (
+    DomainVolumeManagerDTO,
+)
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -45,6 +49,7 @@ class DataSerializer(AbstractDataSerializer):
                 'id': str(volume_dict.get('id', '')),
                 'storage_id': str(volume_dict.get('storage_id', '')),
                 'user_id': str(volume_dict.get('user_id', '')),
+                'template_id': str(volume_dict.get('user_id', '')),
             }
         )
         return volume_dict
@@ -74,7 +79,7 @@ class DataSerializer(AbstractDataSerializer):
         inspected_orm_class = cast(Mapper, inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
-            if not data.get(column_name):
+            if data.get(column_name) is None:
                 continue
             orm_dict[column_name] = data.get(column_name)
         return orm_class(**orm_dict)
@@ -115,3 +120,9 @@ class DataSerializer(AbstractDataSerializer):
             }
         )
         return volume_dict
+
+class VolumeDomainSerializer(  # noqa: D101
+    BaseSerializer[DomainVolumeManagerDTO, Volume]
+):
+    dto_class = DomainVolumeManagerDTO
+    orm_class = Volume
