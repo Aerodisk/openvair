@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-04-14 10:10:12.493275
+Create Date: 2025-04-22 12:12:45.756388
 
 """
 
@@ -96,6 +96,7 @@ def upgrade() -> None:
         sa.Column('status', sa.String(length=20), nullable=True),
         sa.Column('information', sa.Text(), nullable=True),
         sa.Column('path', sa.String(length=255), nullable=True),
+        sa.Column('template_id', sa.UUID(), nullable=True),
         sa.Column('description', sa.String(length=255), nullable=True),
         sa.Column('storage_id', sa.UUID(), nullable=True),
         sa.Column('storage_type', sa.String(length=30), nullable=True),
