@@ -297,4 +297,7 @@ async def create_from_template(  # noqa: D103
     user_info: Dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> schemas.Volume:
-    return await run_in_threadpool(crud.create_from_template, data, user_info)
+    LOG.info('Api handle response on create volume from template')
+    volume = await run_in_threadpool(crud.create_from_template, data, user_info)
+    LOG.info('Api request was successfully processed.')
+    return volume

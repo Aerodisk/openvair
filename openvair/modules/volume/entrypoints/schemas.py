@@ -69,7 +69,7 @@ class Volume(BaseModel):
     information: Optional[str] = None
     attachments: List[Optional[Attachment]]
     read_only: Optional[bool] = False
-
+    template_id: Optional[UUID]
 
 class CreateVolume(BaseModel):
     """Schema for creating a new volume.

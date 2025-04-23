@@ -19,6 +19,9 @@ from openvair.modules.volume.entrypoints.schemas import (
     Volume,
     CreateVolumeFromTemplate,
 )
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateServiceCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
@@ -236,6 +239,16 @@ class VolumeCrud:
         return result
 
     def create_from_template(  # noqa: D102
-        self, data: CreateVolumeFromTemplate, user_info: Dict  # noqa: ARG002
+        self,
+        data: CreateVolumeFromTemplate,
+        user_info: Dict,
     ) -> Volume:
-        return Volume(**{})
+        command = CreateVolumeFromTemplateServiceCommandDTO(
+            user_id=user_info['id'],
+            **data.model_dump(),
+        )
+        volume = self.service_layer_rpc.call(
+            services.VolumeServiceLayerManager.create_from_template.__name__,
+            data_for_method=command.model_dump(mode='json')
+        )
+        return Volume.model_validate(volume)
