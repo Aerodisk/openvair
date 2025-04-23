@@ -358,7 +358,7 @@ class VMServiceLayerManager(BackgroundTasks):
         web_vm = self._insert_vm_into_db(create_vm_info)
         self.event_store.add_event(
             str(web_vm.get('id', '')),
-            str(user_info.get('id,', '')),
+            str(user_info.get('id', '')),
             self.create_vm.__name__,
             f"VM {web_vm.get('name')} was successfully inserted into DB.",
         )
