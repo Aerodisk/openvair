@@ -160,7 +160,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._create_template.__name__,
             data_for_method={
                 'id': str(orm.id),
-                # **create_dto.model_dump(mode='json'),
+                **create_dto.model_dump(mode='json'),
             },
         )
 
@@ -234,7 +234,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         try:
             data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
             data_for_method = CreateTemplateDomainCommandDTO.model_validate(
-                orm_template
+                create_command_data
             )
             domain_result = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
