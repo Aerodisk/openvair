@@ -53,6 +53,10 @@ from openvair.modules.volume.adapters.serializer import (
     VolumeDomainSerializer,
 )
 from openvair.modules.event_store.entrypoints.crud import EventCrud
+from openvair.modules.volume.adapters.dto.external.models import (
+    StorageModelDTO,
+    TemplateModelDTO,
+)
 from openvair.modules.volume.adapters.dto.internal.models import (
     CreateVolumeFromTemplateModelDTO,
 )
@@ -1040,21 +1044,31 @@ class VolumeServiceLayerManager(BackgroundTasks):
         creation_dto = CreateVolumeFromTemplateServiceCommandDTO.model_validate(
             data
         )
-        template = self.template_service_client.get_template(
-            {'id': data['template_id']}
-        )
-        storage = self._get_storage_info(data['storage_id'])
+        template = self._get_template(creation_dto.template_id)
+        storage = self._get_storage(creation_dto.storage_id)
 
-        self._check_storage_on_availability(storage)
-        self._check_available_space_on_storage(int(template['size']), storage)
+        if storage.status != 'available':
+            message = (
+                f'Storage {storage.name} status is '
+                f'{storage.status} but must be available'
+            )
+            LOG.error(message)
+            raise exceptions.StorageUnavailableException(message)
+
+        if template.size >= storage.available_space:
+            message = (
+                'Not enough available space on the ' 'storage %s.' % storage.id
+            )
+            LOG.error(message)
+            raise exceptions.ValidateArgumentsError(message)
 
         volume_info = CreateVolumeFromTemplateModelDTO(
             path=storage.mount_point,
-            format=template['tmp_format'],
-            size=int(template['size']),
+            format=template.tmp_format,
+            size=int(template.size),
             storage_type=storage.storage_type,
-            template_path=template['path'],
-            is_backing=template['is_backing'],
+            template_path=template.path,
+            is_backing=template.is_backing,
             **creation_dto.model_dump(),
         )
         with self.uow:
@@ -1100,6 +1114,17 @@ class VolumeServiceLayerManager(BackgroundTasks):
             )
             db_volume.status = VolumeStatus.available.name
             self.uow.commit()
+
+    def _get_template(self, template_id: uuid.UUID) -> TemplateModelDTO:
+        return TemplateModelDTO.model_validate(
+            self.template_service_client.get_template({'id': str(template_id)})
+        )
+
+    def _get_storage(self, storage_id: uuid.UUID) -> StorageModelDTO:
+        storage_info = self.storage_service_client.get_storage(
+            {'storage_id': str(storage_id)}
+        )
+        return StorageModelDTO(**storage_info)
 
     def _get_all_storages_info(self) -> List[StorageInfo]:
         """Retrieve information about all available storages.
