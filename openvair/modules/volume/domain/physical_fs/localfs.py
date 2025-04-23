@@ -153,11 +153,11 @@ class LocalFSVolume(BaseVolume):
         if creation_data.is_backing:
             qemu_img_adapter.create_backing_volume(
                 creation_data.template_path,
-                Path(f'{self.path}/volume-{self.id}.{self.format}'),
+                Path(f'{self.path}/volume-{self.id}'),
             )
         else:
             qemu_img_adapter.create_copy(
                 creation_data.template_path,
-                Path(f'{self.path}/volume-{self.id}.{self.format}'),
+                Path(f'{self.path}/volume-{self.id}'),
             )
         return self.__dict__
