@@ -8,7 +8,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, Union, cast
+from typing import Dict, Type, Union, ClassVar, cast
 
 from sqlalchemy import inspect
 from sqlalchemy.orm.mapper import Mapper
@@ -17,6 +17,8 @@ from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.volume.adapters.orm import Volume, VolumeAttachVM
 from openvair.common.serialization.base_serializer import BaseSerializer
 from openvair.modules.volume.adapters.dto.internal.models import (
+    ApiVolumeModelDTO,
+    ApiAttachmentModelDTO,
     DomainVolumeManagerDTO,
 )
 
@@ -117,12 +119,29 @@ class DataSerializer(AbstractDataSerializer):
                 'storage_id': str((volume_dict.get('storage_id', ''))),
                 'user_id': str((volume_dict.get('user_id', ''))),
                 'attachments': attachments,
+                # 'template_id': str(volume_dict.get('template_id', '')),
             }
         )
         return volume_dict
+
 
 class VolumeDomainSerializer(  # noqa: D101
     BaseSerializer[DomainVolumeManagerDTO, Volume]
 ):
     dto_class = DomainVolumeManagerDTO
     orm_class = Volume
+
+
+class AttachmentWebSerializer(  # noqa: D101
+    BaseSerializer[ApiAttachmentModelDTO, VolumeAttachVM]
+):
+    dto_class = ApiAttachmentModelDTO
+    orm_class = VolumeAttachVM
+
+
+class VolumeWebSerializer(BaseSerializer[ApiVolumeModelDTO, Volume]):  # noqa: D101
+    dto_class = ApiVolumeModelDTO
+    orm_class = Volume
+    nested_serializers: ClassVar[Dict[str, Type[BaseSerializer]]] = {
+        'attachments': AttachmentWebSerializer
+    }

@@ -49,14 +49,16 @@ from openvair.modules.volume.service_layer import exceptions, unit_of_work
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer,
+    VolumeWebSerializer,
     VolumeDomainSerializer,
 )
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.volume.adapters.dto.internal.models import (
-    CreateVolumeFromTemplateDTO,
+    CreateVolumeFromTemplateModelDTO,
 )
 from openvair.modules.volume.adapters.dto.internal.commands import (
     CreateVolumeFromTemplateDomainCommandDTO,
+    CreateVolumeFromTemplateServiceCommandDTO,
 )
 from openvair.libs.messaging.clients.rpc_clients.vm_rpc_client import (
     VMServiceLayerRPCClient,
@@ -1035,27 +1037,26 @@ class VolumeServiceLayerManager(BackgroundTasks):
         return DataSerializer.to_web(db_volume)
 
     def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        creation_dto = CreateVolumeFromTemplateServiceCommandDTO.model_validate(
+            data
+        )
         template = self.template_service_client.get_template(
             {'id': data['template_id']}
         )
         storage = self._get_storage_info(data['storage_id'])
+
         self._check_storage_on_availability(storage)
         self._check_available_space_on_storage(int(template['size']), storage)
-        volume_info = CreateVolumeFromTemplateDTO(
-            name=data.pop('name', ''),
-            description=data['description'],
+
+        volume_info = CreateVolumeFromTemplateModelDTO(
             path=storage.mount_point,
             format=template['tmp_format'],
-            storage_id=data['storage_id'],
             size=int(template['size']),
-            user_id=data['user_info']['id'],
-            read_only=data['read_only'],
             storage_type=storage.storage_type,
             template_path=template['path'],
             is_backing=template['is_backing'],
-            template_id=template['id'],
+            **creation_dto.model_dump(),
         )
-
         with self.uow:
             self._check_volume_exists_on_storage(
                 volume_info.name, str(volume_info.storage_id)
@@ -1066,32 +1067,26 @@ class VolumeServiceLayerManager(BackgroundTasks):
             db_volume.status = VolumeStatus.new.name
             self.uow.volumes.add(db_volume)
             self.uow.commit()
+            web_volume = VolumeWebSerializer.to_dict(db_volume)
+            self.service_layer_rpc.cast(
+                self._create_from_template.__name__,
+                data_for_method={
+                    'volume_id': str(db_volume.id),
+                    **volume_info.model_dump(mode='json'),
+                },
+            )
 
-        self.service_layer_rpc.cast(
-            self._create_from_template.__name__,
-            data_for_method={
-                'volume_id': str(db_volume.id),
-                **volume_info.model_dump(mode='json'),
-            },
-        )
-
-        return DataSerializer.to_web(db_volume)
+        return web_volume
 
     def _create_from_template(self, creating_from_tmp_data: Dict) -> None:
         volume_id = creating_from_tmp_data.pop('volume_id')
-        creating_dto = CreateVolumeFromTemplateDTO.model_validate(
+        creating_dto = CreateVolumeFromTemplateModelDTO.model_validate(
             creating_from_tmp_data
         )
         with self.uow:
             db_volume = self.uow.volumes.get(volume_id)
             db_volume.status = VolumeStatus.creating.name
             self.uow.commit()
-            domain_volume = DataSerializer.to_domain(db_volume)
-            LOG.info(
-                'Serialized volume which will call to domain '
-                'for creating: %s.' % domain_volume
-            )
-
             data_for_manager = VolumeDomainSerializer.to_dto(db_volume)
             data_for_method = CreateVolumeFromTemplateDomainCommandDTO(
                 template_path=creating_dto.template_path,
