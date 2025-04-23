@@ -1324,18 +1324,3 @@ class VolumeServiceLayerManager(BackgroundTasks):
             self.uow.volumes.bulk_update(updated_db_volumes)
             self.uow.commit()
 
-
-if __name__ == '__main__':
-    import uuid
-
-    s = VolumeServiceLayerManager()
-    s.create_from_template(
-        {
-            'name': 'FROM_TMP_BACKING5',
-            'description': 'form tmp descr',
-            'storage_id': '0bcef2f6-ee8c-48df-b8f8-482848503d54',
-            'template_id': '0f027c54-2c50-4401-8d0c-0affb6e203b3',
-            'read_only': True,
-            'user_info': {'id': uuid.uuid4()},
-        }
-    )
