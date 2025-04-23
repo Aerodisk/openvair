@@ -113,13 +113,16 @@ class DataSerializer(AbstractDataSerializer):
                 }
             )
             attachments.append(edited_attachment)
+
         volume_dict.update(
             {
                 'id': str(volume_dict.get('id', '')),
                 'storage_id': str((volume_dict.get('storage_id', ''))),
                 'user_id': str((volume_dict.get('user_id', ''))),
                 'attachments': attachments,
-                # 'template_id': str(volume_dict.get('template_id', '')),
+                'template_id': str(volume_dict.get('template_id'))
+                if volume_dict.get('template_id')
+                else None,
             }
         )
         return volume_dict
