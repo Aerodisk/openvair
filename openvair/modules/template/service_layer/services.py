@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID, uuid4
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -268,6 +268,10 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         try:
             data_for_manager = DomainSerializer.to_dto(orm_template)
+            data_for_manager.related_volumes = self._get_related_volumes(
+                orm_template.id,
+                orm_template.storage_id,
+            )
             data_for_method = EditTemplateDomainCommandDTO.model_validate(
                 edit_command_data
             )
@@ -359,6 +363,34 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             message = f'Failed to get volume with id {volume_id}'
             raise VolumeRetrievalException(message) from rpc_volume_err
+
+    def _get_volumes(
+        self, storage_id: Optional[UUID] = None
+    ) -> List[GetVolumeDTO]:
+        LOG.info('Getting all volumes...')
+        try:
+            volumes_info = self.volume_service_client.get_all_volumes(
+                {'storage_id': str(storage_id)}
+            )
+        except RpcException as rpc_volume_err:
+            LOG.error('Error while getting volumes', exc_info=True)
+            message = 'Failed to get volumes'
+            raise VolumeRetrievalException(message) from rpc_volume_err
+        return [
+            GetVolumeDTO.model_validate(vol_info) for vol_info in volumes_info
+        ]
+
+    def _get_related_volumes(
+        self, template_id: UUID, storage_id: UUID
+    ) -> List[str]:
+        LOG.info(f'Filtering volumes with reff on template {template_id}...')
+        related_volumes = list(
+            filter(
+                lambda x: x.template_id == template_id,
+                self._get_volumes(storage_id),
+            )
+        )
+        return [volume.name for volume in related_volumes]
 
     def _get_storage_info(self, storage_id: UUID) -> GetStorageDTO:
         storage_query_payload = GetStorageCommandDTO(
