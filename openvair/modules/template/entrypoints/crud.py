@@ -28,9 +28,12 @@ from openvair.modules.template.entrypoints.schemas.requests import (
 from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
 )
-from openvair.modules.template.adapters.dto.internal.commands import (
-    EditTemplateServiceCommandDTO,
+from openvair.modules.template.adapters.dto.internal.commands.domain import (
     DeleteTemplateDomainCommandDTO,
+)
+from openvair.modules.template.adapters.dto.internal.commands.service import (
+    GetTemplateServiceCommandDTO,
+    EditTemplateServiceCommandDTO,
     CreateTemplateServiceCommandDTO,
 )
 
@@ -85,7 +88,7 @@ class TemplateCrud:
             Template: The retrieved template object.
         """
         LOG.info(f'Starting retrieval of template with ID: {template_id}.')
-        getting_data = DeleteTemplateDomainCommandDTO(id=template_id)
+        getting_data = GetTemplateServiceCommandDTO(id=template_id)
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_template.__name__,
             data_for_method=getting_data.model_dump(mode='json'),

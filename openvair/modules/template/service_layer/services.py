@@ -50,18 +50,21 @@ from openvair.modules.template.adapters.dto.external.commands import (
     GetVolumeCommandDTO,
     GetStorageCommandDTO,
 )
-from openvair.modules.template.adapters.dto.internal.commands import (
-    EditTemplateDomainCommandDTO,
-    EditTemplateServiceCommandDTO,
-    CreateTemplateDomainCommandDTO,
-    DeleteTemplateDomainCommandDTO,
-    CreateTemplateServiceCommandDTO,
-)
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
     StorageServiceLayerRPCClient,
+)
+from openvair.modules.template.adapters.dto.internal.commands.domain import (
+    EditTemplateDomainCommandDTO,
+    CreateTemplateDomainCommandDTO,
+    DeleteTemplateDomainCommandDTO,
+)
+from openvair.modules.template.adapters.dto.internal.commands.service import (
+    GetTemplateServiceCommandDTO,
+    EditTemplateServiceCommandDTO,
+    CreateTemplateServiceCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -121,7 +124,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         Returns:
             Dict: A JSON-serializable representation of the template.
         """
-        dto = DeleteTemplateDomainCommandDTO.model_validate(getting_data)
+        dto = GetTemplateServiceCommandDTO.model_validate(getting_data)
         LOG.info(dto.id)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.id)
