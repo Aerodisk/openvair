@@ -28,6 +28,7 @@ class DomainTemplateManagerDTO(BaseModel):  # noqa: D101
     path: Path
     related_volumes: Optional[List] = None
     is_backing: bool
+    description: str
 
 
 class CreateTemplateDTO(BaseModel):  # noqa: D101

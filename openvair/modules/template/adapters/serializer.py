@@ -18,21 +18,21 @@ from openvair.modules.template.adapters.dto.internal.models import (
 )
 
 
-class TemplateViewSerializer(BaseSerializer[ApiTemplateViewDTO, TemplateORM]):
+class ApiSerializer(BaseSerializer[ApiTemplateViewDTO, TemplateORM]):
     """Converts Template ORM <-> ViewDTO."""
 
     dto_class = ApiTemplateViewDTO
     orm_class = TemplateORM
 
 
-class TemplateDomainSerializer(  # noqa: D101
+class DomainSerializer(  # noqa: D101
     BaseSerializer[DomainTemplateManagerDTO, TemplateORM]
 ):
     dto_class = DomainTemplateManagerDTO
     orm_class = TemplateORM
 
 
-class TemplateCreateSerializer(BaseSerializer[CreateTemplateDTO, TemplateORM]):
+class CreateSerializer(BaseSerializer[CreateTemplateDTO, TemplateORM]):
     """Converts CreateTemplateDTO -> ORM object for creation."""
 
     dto_class = CreateTemplateDTO

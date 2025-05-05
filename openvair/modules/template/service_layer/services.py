@@ -28,9 +28,9 @@ from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.template.adapters.serializer import (
-    TemplateViewSerializer,
-    TemplateCreateSerializer,
-    TemplateDomainSerializer,
+    ApiSerializer,
+    CreateSerializer,
+    DomainSerializer,
 )
 from openvair.modules.template.service_layer.exceptions import (
     VolumeRetrievalException,
@@ -107,7 +107,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         with self.uow as uow:
             orm_templates = uow.templates.get_all()
         return [
-            TemplateViewSerializer.to_dict(orm_template)
+            ApiSerializer.to_dict(orm_template)
             for orm_template in orm_templates
         ]
 
@@ -125,7 +125,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         LOG.info(dto.id)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(dto.id)
-        return TemplateViewSerializer.to_dict(orm_template)
+        return ApiSerializer.to_dict(orm_template)
 
     def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
         input_dto = CreateTemplateServiceCommandDTO.model_validate(
@@ -147,7 +147,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             is_backing=input_dto.is_backing,
             source_disk_path=volume.path / f'volume-{volume.id}',
         )
-        orm = TemplateCreateSerializer.to_orm(create_dto)
+        orm = CreateSerializer.to_orm(create_dto)
         with self.uow as uow:
             uow.templates.add(orm)
             uow.commit()
@@ -164,7 +164,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             },
         )
 
-        return TemplateViewSerializer.to_dict(orm)
+        return ApiSerializer.to_dict(orm)
 
     def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
         edit_command_dto = EditTemplateServiceCommandDTO.model_validate(
@@ -181,7 +181,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._edit_template.__name__,
             data_for_method=edit_command_dto.model_dump(mode='json'),
         )
-        return TemplateViewSerializer.to_dict(orm_template)
+        return ApiSerializer.to_dict(orm_template)
 
     def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
         delete_command_dto = DeleteTemplateDomainCommandDTO.model_validate(
@@ -199,7 +199,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             data_for_method=delete_command_dto.model_dump(mode='json'),
         )
 
-        return TemplateViewSerializer.to_dict(orm_template)
+        return ApiSerializer.to_dict(orm_template)
 
     # def create_volume_from_template(
     #     self, volume_from_template_data: Dict
@@ -232,7 +232,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
         try:
-            data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
+            data_for_manager = DomainSerializer.to_dto(orm_template)
             data_for_method = CreateTemplateDomainCommandDTO.model_validate(
                 create_command_data
             )
@@ -250,7 +250,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             LOG.error('Error while creating template', exc_info=True)
             return
-        orm_template = TemplateDomainSerializer.update_orm_from_dict(
+        orm_template = DomainSerializer.update_orm_from_dict(
             orm_template,
             domain_result,
         )
@@ -267,7 +267,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template = uow.templates.get_or_fail(edit_dto.id)
 
         try:
-            data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
+            data_for_manager = DomainSerializer.to_dto(orm_template)
             data_for_method = EditTemplateDomainCommandDTO.model_validate(
                 edit_command_data
             )
@@ -285,7 +285,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             LOG.error('Error while editing template', exc_info=True)
             return
-        orm_template = TemplateDomainSerializer.update_orm_from_dict(
+        orm_template = DomainSerializer.update_orm_from_dict(
             orm_template,
             domain_result,
         )
@@ -300,7 +300,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(delete_dto.id)
         try:
-            data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
+            data_for_manager = DomainSerializer.to_dto(orm_template)
             self.domain_rpc.call(
                 BaseTemplate.delete.__name__,
                 data_for_manager=data_for_manager.model_dump(mode='json'),
