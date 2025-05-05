@@ -38,6 +38,7 @@ class CreateTemplateDomainCommandDTO(BaseModel):  # noqa: D101
 
 class EditTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     name: str
+    description: Optional[str]
 
 class DeleteTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     id: UUID

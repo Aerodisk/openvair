@@ -29,12 +29,13 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         is_backing (bool): Indicates if the template is a backing image.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         tmp_format: str,
         name: str,
         path: Path,
         related_volumes: Optional[List],
+        description: Optional[str],
         *,
         is_backing: bool,
     ) -> None:
@@ -49,6 +50,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         self.path = path
         self.related_volumes = related_volumes
         self.is_backing = is_backing
+        self.description = description
 
     @abc.abstractmethod
     def create(self, creation_data: Dict) -> Dict:

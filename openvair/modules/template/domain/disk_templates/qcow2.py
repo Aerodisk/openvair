@@ -33,12 +33,13 @@ class Qcow2Template(BaseTemplate):
     `qcow2` format using the `qemu-img` utility.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         tmp_format: str,
         name: str,
         path: Path,
         related_volumes: Optional[List],
+        description: Optional[str],
         *,
         is_backing: bool,
     ) -> None:
@@ -51,6 +52,7 @@ class Qcow2Template(BaseTemplate):
             name,
             path,
             related_volumes,
+            description,
             is_backing=is_backing,
         )
         self.tmp_format: str = 'qcow2'
@@ -98,22 +100,15 @@ class Qcow2Template(BaseTemplate):
             RuntimeError: If template is in use as a backing image.
             TemplateFileEditingException: If file renaming fails.
         """
-        if self.is_backing and self.related_volumes:
-            message = 'Cannot edit template in use'
-            raise TemplateFileEditingException(message)
         dto: EditTemplateDomainCommandDTO = (
             EditTemplateDomainCommandDTO.model_validate(editing_data)
         )
-        new_name = dto.name
-        new_path = Path(self.path.parent.absolute() / f'template-{new_name}')
-        try:
-            self.path.rename(new_path)
-            self.name = new_name
-            self.path = new_path
-        except OSError as err:
-            LOG.error(f'Error while editing template file: {self.name}')
-            message = f'{self.name}. Error: f{err}'
-            raise TemplateFileEditingException(message) from err
+        if dto.name is not None:
+            self._edit_name(dto.name)
+
+        if dto.description is not None:
+            self._edit_description(dto.description)
+
         template_info = DomainTemplateManagerDTO.model_validate(self.__dict__)
         return template_info.model_dump(mode='json')
 
@@ -128,3 +123,24 @@ class Qcow2Template(BaseTemplate):
         except OSError as err:
             message = f'Failed to delete template file: {err}'
             raise TemplateFileDeletingException(message) from err
+
+    def _edit_name(self, new_name: str) -> None:
+        if self.is_backing and self.related_volumes:
+            message = (
+                'Cannot edit template name in use by volumes: '
+                f'{self.related_volumes}'
+            )
+            raise TemplateFileEditingException(message)
+
+        new_path = Path(self.path.parent.absolute() / f'template-{new_name}')
+        try:
+            self.path.rename(new_path)
+            self.name = new_name
+            self.path = new_path
+        except OSError as err:
+            LOG.error(f'Error while editing template file: {self.name}')
+            message = f'{self.name}. Error: f{err}'
+            raise TemplateFileEditingException(message) from err
+
+    def _edit_description(self, new_description: str) -> None:
+        self.description = new_description
