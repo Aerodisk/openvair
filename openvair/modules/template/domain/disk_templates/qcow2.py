@@ -16,7 +16,7 @@ from openvair.modules.template.domain.exception import (
     TemplateFileDeletingException,
 )
 from openvair.modules.template.adapters.dto.internal.models import (
-    DomainTemplateManagerDTO,
+    DomainDTO,
 )
 from openvair.modules.template.adapters.dto.internal.commands.domain import (
     EditTemplateDomainCommandDTO,
@@ -87,7 +87,7 @@ class Qcow2Template(BaseTemplate):
                 f'from {source_disk_path}'
             )
             raise TemplateFileCreatingException(str(self.path)) from err
-        template_info = DomainTemplateManagerDTO.model_validate(self.__dict__)
+        template_info = DomainDTO.model_validate(self.__dict__)
         return template_info.model_dump(mode='json')
 
     def edit(self, editing_data: Dict) -> Dict[str, Any]:
@@ -109,7 +109,7 @@ class Qcow2Template(BaseTemplate):
         if dto.description is not None:
             self._edit_description(dto.description)
 
-        template_info = DomainTemplateManagerDTO.model_validate(self.__dict__)
+        template_info = DomainDTO.model_validate(self.__dict__)
         return template_info.model_dump(mode='json')
 
     def delete(self) -> None:

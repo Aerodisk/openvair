@@ -44,7 +44,7 @@ from openvair.modules.template.adapters.dto.external.models import (
     GetStorageDTO,
 )
 from openvair.modules.template.adapters.dto.internal.models import (
-    CreateTemplateDTO,
+    CreateDTO,
 )
 from openvair.modules.template.adapters.dto.external.commands import (
     GetVolumeCommandDTO,
@@ -138,7 +138,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         # 2. Получаем volume и storage
         volume = self._get_volume_info(input_dto.base_volume_id)
         storage = self._get_storage_info(input_dto.storage_id)
-        create_dto = CreateTemplateDTO(
+        create_dto = CreateDTO(
             name=input_dto.name,
             description=input_dto.description,
             path=(
