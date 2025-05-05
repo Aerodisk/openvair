@@ -46,6 +46,7 @@ class GetVolumeDTO(BaseModel):
     information: Optional[str] = None
     read_only: Optional[bool] = False
     path: Path
+    template_id: Optional[UUID]
     model_config: ClassVar[ConfigDict] = lenient_dto_config
 
 
