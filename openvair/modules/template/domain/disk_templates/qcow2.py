@@ -18,7 +18,7 @@ from openvair.modules.template.domain.exception import (
 from openvair.modules.template.adapters.dto.internal.models import (
     DomainDTO,
 )
-from openvair.modules.template.adapters.dto.internal.commands.domain import (
+from openvair.modules.template.adapters.dto.internal.commands import (
     EditTemplateDomainCommandDTO,
     CreateTemplateDomainCommandDTO,
 )

@@ -40,8 +40,8 @@ from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
 )
 from openvair.modules.template.adapters.dto.external.models import (
-    GetVolumeDTO,
-    GetStorageDTO,
+    VolumeDTO,
+    StorageDTO,
 )
 from openvair.modules.template.adapters.dto.internal.models import (
     CreateDTO,
@@ -50,21 +50,19 @@ from openvair.modules.template.adapters.dto.external.commands import (
     GetVolumeCommandDTO,
     GetStorageCommandDTO,
 )
+from openvair.modules.template.adapters.dto.internal.commands import (
+    EditTemplateDomainCommandDTO,
+    GetTemplateServiceCommandDTO,
+    EditTemplateServiceCommandDTO,
+    CreateTemplateDomainCommandDTO,
+    CreateTemplateServiceCommandDTO,
+    DeleteTemplateServiceCommandDTO,
+)
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
     StorageServiceLayerRPCClient,
-)
-from openvair.modules.template.adapters.dto.internal.commands.domain import (
-    EditTemplateDomainCommandDTO,
-    CreateTemplateDomainCommandDTO,
-    DeleteTemplateDomainCommandDTO,
-)
-from openvair.modules.template.adapters.dto.internal.commands.service import (
-    GetTemplateServiceCommandDTO,
-    EditTemplateServiceCommandDTO,
-    CreateTemplateServiceCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -187,7 +185,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         return ApiSerializer.to_dict(orm_template)
 
     def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
-        delete_command_dto = DeleteTemplateDomainCommandDTO.model_validate(
+        delete_command_dto = DeleteTemplateServiceCommandDTO.model_validate(
             deleting_data
         )
         with self.uow as uow:
@@ -301,7 +299,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
     def _delete_template(self, delete_command_data: Dict) -> None:
-        delete_dto = DeleteTemplateDomainCommandDTO.model_validate(
+        delete_dto = DeleteTemplateServiceCommandDTO.model_validate(
             delete_command_data
         )
         with self.uow as uow:
@@ -349,7 +347,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         }
         self.event_store.add_event(**event)
 
-    def _get_volume_info(self, volume_id: UUID) -> GetVolumeDTO:
+    def _get_volume_info(self, volume_id: UUID) -> VolumeDTO:
         volume_query_payload = GetVolumeCommandDTO(
             volume_id=volume_id
         ).model_dump(mode='json')
@@ -357,7 +355,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             volume_data = self.volume_service_client.get_volume(
                 volume_query_payload
             )
-            return GetVolumeDTO.model_validate(volume_data)
+            return VolumeDTO.model_validate(volume_data)
 
         except RpcException as rpc_volume_err:
             LOG.error(
@@ -369,7 +367,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
     def _get_volumes(
         self, storage_id: Optional[UUID] = None
-    ) -> List[GetVolumeDTO]:
+    ) -> List[VolumeDTO]:
         LOG.info('Getting all volumes...')
         try:
             volumes_info = self.volume_service_client.get_all_volumes(
@@ -379,9 +377,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             LOG.error('Error while getting volumes', exc_info=True)
             message = 'Failed to get volumes'
             raise VolumeRetrievalException(message) from rpc_volume_err
-        return [
-            GetVolumeDTO.model_validate(vol_info) for vol_info in volumes_info
-        ]
+        return [VolumeDTO.model_validate(vol_info) for vol_info in volumes_info]
 
     def _get_related_volumes(
         self, template_id: UUID, storage_id: UUID
@@ -395,7 +391,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return [volume.name for volume in related_volumes]
 
-    def _get_storage_info(self, storage_id: UUID) -> GetStorageDTO:
+    def _get_storage_info(self, storage_id: UUID) -> StorageDTO:
         storage_query_payload = GetStorageCommandDTO(
             storage_id=storage_id
         ).model_dump(mode='json')
@@ -403,7 +399,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             storage_data = self.storage_service_client.get_storage(
                 storage_query_payload
             )
-            return GetStorageDTO.model_validate(storage_data)
+            return StorageDTO.model_validate(storage_data)
         except RpcException as rpc_storage_err:
             LOG.error(
                 f'Error while getting base storage with id: ' f'{storage_id}',

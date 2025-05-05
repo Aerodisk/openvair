@@ -28,13 +28,11 @@ from openvair.modules.template.entrypoints.schemas.requests import (
 from openvair.modules.template.entrypoints.schemas.responses import (
     TemplateResponse,
 )
-from openvair.modules.template.adapters.dto.internal.commands.domain import (
-    DeleteTemplateDomainCommandDTO,
-)
-from openvair.modules.template.adapters.dto.internal.commands.service import (
+from openvair.modules.template.adapters.dto.internal.commands import (
     GetTemplateServiceCommandDTO,
     EditTemplateServiceCommandDTO,
     CreateTemplateServiceCommandDTO,
+    DeleteTemplateServiceCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -158,7 +156,7 @@ class TemplateCrud:
             Template: The deleted template object.
         """
         LOG.info(f'Starting deletion of template with ID: {template_id}.')
-        deleting_data = DeleteTemplateDomainCommandDTO(id=template_id)
+        deleting_data = DeleteTemplateServiceCommandDTO(id=template_id)
         result = self.service_layer_rpc.call(
             TemplateServiceLayerManager.delete_template.__name__,
             data_for_method=deleting_data.model_dump(mode='json'),
