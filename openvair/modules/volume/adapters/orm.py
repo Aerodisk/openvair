@@ -82,6 +82,10 @@ class Volume(Base):
         default='',
         nullable=True,
     )
+    template_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        nullable=True,
+    )
     description: Mapped[str] = mapped_column(
         String(255),
         nullable=True,

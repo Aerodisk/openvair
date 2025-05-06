@@ -284,3 +284,20 @@ async def detach_volume(
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(detached_volume)
+
+
+@router.post(
+    '/from_template/',
+    response_model=schemas.Volume,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)],
+)
+async def create_from_template(  # noqa: D103
+    data: schemas.CreateVolumeFromTemplate,
+    user_info: Dict = Depends(get_current_user),
+    crud: VolumeCrud = Depends(VolumeCrud),
+) -> schemas.Volume:
+    LOG.info('Api handle response on create volume from template')
+    volume = await run_in_threadpool(crud.create_from_template, data, user_info)
+    LOG.info('Api request was successfully processed.')
+    return volume

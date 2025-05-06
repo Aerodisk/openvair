@@ -15,6 +15,13 @@ from openvair.libs.log import get_logger
 from openvair.modules.volume.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.volume.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.modules.volume.entrypoints.schemas import (
+    Volume,
+    CreateVolumeFromTemplate,
+)
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateServiceCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
@@ -230,3 +237,18 @@ class VolumeCrud:
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
+
+    def create_from_template(  # noqa: D102
+        self,
+        data: CreateVolumeFromTemplate,
+        user_info: Dict,
+    ) -> Volume:
+        command = CreateVolumeFromTemplateServiceCommandDTO(
+            user_id=user_info['id'],
+            **data.model_dump(),
+        )
+        volume = self.service_layer_rpc.call(
+            services.VolumeServiceLayerManager.create_from_template.__name__,
+            data_for_method=command.model_dump(mode='json')
+        )
+        return Volume.model_validate(volume)

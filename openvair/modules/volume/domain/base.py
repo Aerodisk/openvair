@@ -86,6 +86,10 @@ class BaseVolume(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        raise NotImplementedError
+
     def _check_volume_exists(self) -> None:
         """Check if the volume exists on the storage.
 
@@ -132,51 +136,3 @@ class BaseVolume(metaclass=abc.ABCMeta):
         except ValueError as err:
             LOG.error(f'Failed to parse JSON output: {err}')
             return {}
-
-
-class RemoteFSVolume(BaseVolume):
-    """Abstract base class for RemoteFS volume operations.
-
-    This class provides an interface for managing volumes stored on remote
-    filesystems.
-    """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Initialize a RemoteFSVolume instance."""
-        LOG.info('Initialized RemoteFSVolume')
-        super(RemoteFSVolume, self).__init__(*args, **kwargs)
-
-    def create(self) -> Dict:
-        """Create a new volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def delete(self) -> Dict:
-        """Delete an existing volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def extend(self, new_size: str) -> Dict:
-        """Extend an existing volume to the given size.
-
-        Args:
-            new_size (str): The new size for the volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def attach_volume_info(self) -> Dict:
-        """Get information about an existing volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
