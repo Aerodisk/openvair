@@ -17,23 +17,22 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import Dict
+from typing import List
 
 from fastapi import Depends, APIRouter, status
-from fastapi_pagination import Page, paginate
+from fastapi_pagination import Page, Params, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.common.schemas import BaseResponse
 from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.template.entrypoints.crud import TemplateCrud
-from openvair.modules.template.entrypoints.schemas import (
-    Volume,
-    Template,
-    BaseTemplate,
-    EditTemplate,
-    CreateTemplate,
-    CreateVolumeFromTemplate,
+from openvair.modules.template.entrypoints.schemas.requests import (
+    RequestEditTemplate,
+    RequestCreateTemplate,
+)
+from openvair.modules.template.entrypoints.schemas.responses import (
+    TemplateResponse,
 )
 
 LOG = get_logger(__name__)
@@ -49,31 +48,34 @@ router = APIRouter(
 
 @router.get(
     '/',
-    response_model=BaseResponse[Page[BaseTemplate]],
+    response_model=BaseResponse[Page[TemplateResponse]],
     status_code=status.HTTP_200_OK,
 )
 async def get_templates(
     crud: TemplateCrud = Depends(TemplateCrud),
+    params: Params = Depends(),
 ) -> BaseResponse:
     """Retrieve a paginated list of templates.
 
     Args:
         crud (TemplateCrud): Dependency-injected service for handling template
             logic.
-
+        params (Params): Dependency-injected for pagination params
     Returns:
         BaseResponse[Page[Template]]: Paginated response containing templates.
     """
     LOG.info('API: Getting list of templates')
-    templates = await run_in_threadpool(crud.get_all_templates)
-    paginated_templates = paginate(templates)
+    templates: List[TemplateResponse] = await run_in_threadpool(
+        crud.get_all_templates
+    )
+    paginated_templates = paginate(templates, params)
     LOG.info('API: Finished getting list of templates')
     return BaseResponse(status='success', data=paginated_templates)
 
 
 @router.get(
     '/{template_id}',
-    response_model=BaseResponse[BaseTemplate],
+    response_model=BaseResponse[TemplateResponse],
     status_code=status.HTTP_200_OK,
 )
 async def get_template(
@@ -98,11 +100,11 @@ async def get_template(
 
 @router.post(
     '/',
-    response_model=BaseResponse[Template],
+    response_model=BaseResponse[TemplateResponse],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_template(
-    data: CreateTemplate,
+    data: RequestCreateTemplate,
     crud: TemplateCrud = Depends(TemplateCrud),
 ) -> BaseResponse:
     """Create a new template.
@@ -123,12 +125,12 @@ async def create_template(
 
 @router.patch(
     '/{template_id}',
-    response_model=BaseResponse[BaseTemplate],
+    response_model=BaseResponse[TemplateResponse],
     status_code=status.HTTP_200_OK,
 )
 async def update_template(
     template_id: UUID,
-    data: EditTemplate,
+    data: RequestEditTemplate,
     crud: TemplateCrud = Depends(TemplateCrud),
 ) -> BaseResponse:
     """Update an existing template.
@@ -150,7 +152,7 @@ async def update_template(
 
 @router.delete(
     '/{template_id}',
-    response_model=BaseResponse[BaseTemplate],
+    response_model=BaseResponse[TemplateResponse],
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def delete_template(
@@ -173,32 +175,32 @@ async def delete_template(
     return BaseResponse(status='success', data=template)
 
 
-@router.post(
-    '/{template_id}/volumes',
-    response_model=BaseResponse[Volume],
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_volume_from_template(
-    template_id: UUID,
-    data: CreateVolumeFromTemplate,
-    user_info: Dict = Depends(get_current_user),
-    crud: TemplateCrud = Depends(TemplateCrud),
-) -> BaseResponse:
-    """Create a volume from a specific template.
+# @router.post(
+#     '/{template_id}/volumes',
+#     response_model=BaseResponse,  # TODO Определить модель
+#     status_code=status.HTTP_201_CREATED,
+# )
+# async def create_volume_from_template(
+#     template_id: UUID,
+#     data: RequetsCreateVolumeFromTemplate,
+#     user_info: Dict = Depends(get_current_user),
+#     crud: TemplateCrud = Depends(TemplateCrud),
+# ) -> BaseResponse:
+#     """Create a volume from a specific template.
 
-    Args:
-        template_id (UUID): The ID of the template to use.
-        data (CreateVolumeFromTemplate): Volume creation details.
-        crud (TemplateCrud): Dependency-injected service for handling template
-            logic.
-        user_info (Dict): Information about the authenticated user.
+#     Args:
+#         template_id (UUID): The ID of the template to use.
+#         data (CreateVolumeFromTemplate): Volume creation details.
+#         crud (TemplateCrud): Dependency-injected service for handling template
+#             logic.
+#         user_info (Dict): Information about the authenticated user.
 
-    Returns:
-        BaseResponse[Volume]: The created volume.
-    """
-    LOG.info(f'API: Creating volume from template {template_id}')
-    await run_in_threadpool(
-        crud.create_volume_from_template, template_id, data, user_info
-    )
-    LOG.info(f'API: Finished creating volume from template {template_id}')
-    return BaseResponse(status='success')
+#     Returns:
+#         BaseResponse[Volume]: The created volume.
+#     """
+#     LOG.info(f'API: Creating volume from template {template_id}')
+#     await run_in_threadpool(
+#         crud.create_volume_from_template, template_id, data, user_info
+#     )
+#     LOG.info(f'API: Finished creating volume from template {template_id}')
+#     return BaseResponse(status='success')

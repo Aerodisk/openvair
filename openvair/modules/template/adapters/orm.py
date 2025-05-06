@@ -66,15 +66,11 @@ class Template(Base):
         PathType,
         nullable=False,
     )
-    format: Mapped[Literal['qcow2', 'raw']] = mapped_column(
+    tmp_format: Mapped[Literal['qcow2', 'raw']] = mapped_column(
         String(10),
         nullable=False,
     )
-    size: Mapped[int] = mapped_column(
-        BigInteger,
-        nullable=False,
-        default=0
-    )
+    size: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     storage_id: Mapped[str] = mapped_column(
         String(36),
         nullable=False,
