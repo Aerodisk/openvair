@@ -15,59 +15,16 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
+from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.base import BaseVolume
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateDomainCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
 
-class BaseLocalFSVolume(BaseVolume):
-    """Base class for local filesystem volumes.
-
-    This class provides a base implementation for managing volumes stored on
-    local filesystems.
-    """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Initialize a BaseLocalFSVolume instance."""
-        super(BaseLocalFSVolume, self).__init__(*args, **kwargs)
-
-    def create(self) -> Dict:
-        """Create a new volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def delete(self) -> Dict:
-        """Delete an existing volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def extend(self, new_size: str) -> Dict:
-        """Extend an existing volume to the given size.
-
-        Args:
-            new_size (int): The new size for the volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def attach_volume_info(self) -> Dict:
-        """Get information about an existing volume.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-
-class LocalFSVolume(BaseLocalFSVolume):
+class LocalFSVolume(BaseVolume):
     """Class for managing local filesystem volumes.
 
     This class provides methods for creating, deleting, and managing local
@@ -76,7 +33,7 @@ class LocalFSVolume(BaseLocalFSVolume):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a LocalFSVolume instance."""
-        super(LocalFSVolume, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._execute_as_root = False
         self.provisioning = 'metadata'
 
@@ -106,12 +63,11 @@ class LocalFSVolume(BaseLocalFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             LOG.error(f'Error while creating volume: {err!s}')
             raise
-
         return self.__dict__
 
     def delete(self) -> Dict:
@@ -131,7 +87,7 @@ class LocalFSVolume(BaseLocalFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             LOG.error(f'Error while deleting volume: {err!s}')
@@ -164,7 +120,7 @@ class LocalFSVolume(BaseLocalFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             LOG.error(f'Error while extending volume: {err!s}')
@@ -187,3 +143,21 @@ class LocalFSVolume(BaseLocalFSVolume):
             'used': qemu_volume_info.get('actual-size', 0),
             'provisioning': self.provisioning,
         }
+
+    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        qemu_img_adapter = QemuImgAdapter()
+        creation_data = CreateVolumeFromTemplateDomainCommandDTO.model_validate(
+            data
+        )
+
+        if creation_data.is_backing:
+            qemu_img_adapter.create_backing_volume(
+                creation_data.template_path,
+                Path(f'{self.path}/volume-{self.id}'),
+            )
+        else:
+            qemu_img_adapter.create_copy(
+                creation_data.template_path,
+                Path(f'{self.path}/volume-{self.id}'),
+            )
+        return self.__dict__

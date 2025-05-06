@@ -224,7 +224,6 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
     def _create_template(self, create_command_data: Dict) -> None:
         template_id = UUID(create_command_data.pop('id'))
-        creation_dto = CreateTemplateDTO.model_validate(create_command_data)
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(template_id)
 
@@ -235,7 +234,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         try:
             data_for_manager = TemplateDomainSerializer.to_dto(orm_template)
             data_for_method = CreateTemplateDomainCommandDTO.model_validate(
-                creation_dto
+                create_command_data
             )
             domain_result = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
