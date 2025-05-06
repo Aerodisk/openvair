@@ -173,6 +173,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(edit_command_dto.id)
+        self._ensure_not_in_use(orm_template)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.EDITING, 'TemplateEditingStarted'
@@ -190,6 +191,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         with self.uow as uow:
             orm_template = uow.templates.get_or_fail(delete_command_dto.id)
+        self._ensure_not_in_use(orm_template)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.DELETING, 'TemplateDeletingStarted'
@@ -306,6 +308,10 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template = uow.templates.get_or_fail(delete_dto.id)
         try:
             data_for_manager = DomainSerializer.to_dto(orm_template)
+            data_for_manager.related_volumes = self._get_related_volumes(
+                orm_template.id,
+                orm_template.storage_id,
+            )
             self.domain_rpc.call(
                 BaseTemplate.delete.__name__,
                 data_for_manager=data_for_manager.model_dump(mode='json'),
@@ -323,6 +329,17 @@ class TemplateServiceLayerManager(BackgroundTasks):
         with self.uow as uow:
             uow.templates.delete(orm_template)
             uow.commit()
+
+    def _ensure_not_in_use(self, orm_template: Template) -> None:
+        data_for_manager = DomainSerializer.to_dto(orm_template)
+        data_for_manager.related_volumes = self._get_related_volumes(
+            orm_template.id,
+            orm_template.storage_id,
+        )
+        self.domain_rpc.call(
+            BaseTemplate.ensure_not_in_use.__name__,
+            data_for_manager=data_for_manager.model_dump(mode='json'),
+        )
 
     def _update_and_log_event(
         self,
