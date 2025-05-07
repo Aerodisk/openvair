@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from openvair.modules.template.shared.enums import TemplateStatus
 
 
-class ApiDTO(BaseModel):  # noqa: D101
+class ApiTemplateModel(BaseModel):  # noqa: D101
     id: UUID
     name: str
     description: Optional[str]
@@ -22,7 +22,7 @@ class ApiDTO(BaseModel):  # noqa: D101
     storage_id: UUID
 
 
-class DomainDTO(BaseModel):  # noqa: D101
+class DomainTemplateModel(BaseModel):  # noqa: D101
     tmp_format: str
     name: str
     path: Path
@@ -31,11 +31,10 @@ class DomainDTO(BaseModel):  # noqa: D101
     description: str
 
 
-class CreateDTO(BaseModel):  # noqa: D101
+class CreateTemplateModel(BaseModel):  # noqa: D101
     name: str
     description: Optional[str]
     path: Path
     tmp_format: Literal['qcow2', 'raw']
     storage_id: UUID
     is_backing: bool
-    source_disk_path: Path

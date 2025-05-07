@@ -21,6 +21,11 @@ class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     model_config: ClassVar[ConfigDict] = dto_config
 
 
+class ExecuteTemplateCreationServiceCommandDTO(BaseModel):  # noqa: D101
+    id: UUID
+    source_disk_path: Path
+
+
 class CreateTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     source_disk_path: Path
     model_config: ClassVar[ConfigDict] = lenient_dto_config

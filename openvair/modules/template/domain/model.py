@@ -16,7 +16,7 @@ from openvair.modules.template.domain.base import BaseTemplate
 # from openvair.modules.template.adapters.dto.templates import TemplateDomain
 from openvair.modules.template.domain.disk_templates.qcow2 import Qcow2Template
 from openvair.modules.template.adapters.dto.internal.models import (
-    DomainDTO,
+    DomainTemplateModel,
 )
 
 
@@ -68,7 +68,7 @@ class TemplateFactory(AbstractTemplateFactory):
         Returns:
             BaseTemplate: The created template instance.
         """
-        dto = DomainDTO.model_validate(template_data)
+        dto = DomainTemplateModel.model_validate(template_data)
 
         template_class = self._template_classes[dto.tmp_format]
         template_manager = template_class(**dto.model_dump())

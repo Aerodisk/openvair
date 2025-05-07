@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID, uuid4
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -44,7 +44,7 @@ from openvair.modules.template.adapters.dto.external.models import (
     StorageDTO,
 )
 from openvair.modules.template.adapters.dto.internal.models import (
-    CreateDTO,
+    CreateTemplateModel,
 )
 from openvair.modules.template.adapters.dto.external.commands import (
     GetVolumeCommandDTO,
@@ -57,6 +57,7 @@ from openvair.modules.template.adapters.dto.internal.commands import (
     CreateTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
     DeleteTemplateServiceCommandDTO,
+    ExecuteTemplateCreationServiceCommandDTO,
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
@@ -99,18 +100,27 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
-    def get_all_templates(self) -> List[Dict]:
+    def get_all_templates(self) -> List[Dict[str, Any]]:
         """Retrieves all template records from the database.
 
         Returns:
             List: A list of serialized templates in JSON-compatible format.
         """
+        LOG.info('Service layer handle request on getting templates')
+
         with self.uow as uow:
             orm_templates = uow.templates.get_all()
-        return [
+
+        api_templates: List[Dict[str, Any]] = [
             ApiSerializer.to_dict(orm_template)
             for orm_template in orm_templates
         ]
+
+        LOG.info(
+            'Service layer request on getting templates '
+            'was successfully processed'
+        )
+        return api_templates
 
     def get_template(self, getting_data: Dict) -> Dict:
         """Retrieves a single template by its ID.
@@ -122,50 +132,70 @@ class TemplateServiceLayerManager(BackgroundTasks):
         Returns:
             Dict: A JSON-serializable representation of the template.
         """
+        LOG.info('Service layer handle request on getting template')
+
         dto = GetTemplateServiceCommandDTO.model_validate(getting_data)
-        LOG.info(dto.id)
+        template_id = dto.id
+        LOG.info(f'template_id: {template_id}')
+
         with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(dto.id)
-        return ApiSerializer.to_dict(orm_template)
+            orm_template = uow.templates.get_or_fail(template_id)
+
+        api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
+
+        LOG.info(
+            f'Service layer request on getting template {template_id} '
+            'was successfully processed'
+        )
+        return api_template
 
     def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
-        input_dto = CreateTemplateServiceCommandDTO.model_validate(
+        LOG.info('Service layer handle request on creating template')
+
+        creation_dto = CreateTemplateServiceCommandDTO.model_validate(
             creating_data
         )
 
-        # 2. Получаем volume и storage
-        volume = self._get_volume_info(input_dto.base_volume_id)
-        storage = self._get_storage_info(input_dto.storage_id)
-        create_dto = CreateDTO(
-            name=input_dto.name,
-            description=input_dto.description,
-            path=(
-                storage.mount_point
-                / f'template-{input_dto.name}.{volume.format}'
-            ),
-            tmp_format=volume.format,
-            storage_id=input_dto.storage_id,
-            is_backing=input_dto.is_backing,
-            source_disk_path=volume.path / f'volume-{volume.id}',
+        volume_dto = self._get_volume_info(creation_dto.base_volume_id)
+        storage_dto = self._get_storage_info(creation_dto.storage_id)
+
+        path = (
+            storage_dto.mount_point
+            / f'template-{creation_dto.name}.{volume_dto.format}'
         )
-        orm = CreateSerializer.to_orm(create_dto)
+        tmp_format = volume_dto.format
+
+        new_template_model = CreateTemplateModel(
+            name=creation_dto.name,
+            description=creation_dto.description,
+            path=path,
+            tmp_format=tmp_format,
+            storage_id=creation_dto.storage_id,
+            is_backing=creation_dto.is_backing,
+        )
+        orm_template = CreateSerializer.to_orm(new_template_model)
         with self.uow as uow:
-            uow.templates.add(orm)
+            uow.templates.add(orm_template)
             uow.commit()
-
         self._update_and_log_event(
-            orm, TemplateStatus.NEW, 'TemplateCreationPrepared'
+            orm_template, TemplateStatus.NEW, 'TemplateCreationPrepared'
         )
 
+        internal_creation_dto = ExecuteTemplateCreationServiceCommandDTO(
+            id=orm_template.id,
+            source_disk_path=volume_dto.path / f'volume-{volume_dto.id}',
+        )
         self.service_layer_rpc.cast(
             self._create_template.__name__,
-            data_for_method={
-                'id': str(orm.id),
-                **create_dto.model_dump(mode='json'),
-            },
+            data_for_method=internal_creation_dto.model_dump(mode='json'),
         )
 
-        return ApiSerializer.to_dict(orm)
+        LOG.info(
+            'Service layer request on creating template'
+            'was successfully processed'
+        )
+        api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
+        return api_template
 
     def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
         edit_command_dto = EditTemplateServiceCommandDTO.model_validate(
@@ -204,24 +234,30 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         return ApiSerializer.to_dict(orm_template)
 
-    def _create_template(self, create_command_data: Dict) -> None:
-        template_id = UUID(create_command_data.pop('id'))
+    def _create_template(self, prepared_create_command_data: Dict) -> None:
+        prepared_creation_dto = (
+            ExecuteTemplateCreationServiceCommandDTO.model_validate(
+                prepared_create_command_data
+            )
+        )
         with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(template_id)
+            orm_template = uow.templates.get_or_fail(prepared_creation_dto.id)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.CREATING, 'TemplateCreationStarted'
         )
 
         try:
-            data_for_manager = DomainSerializer.to_dto(orm_template)
-            data_for_method = CreateTemplateDomainCommandDTO.model_validate(
-                create_command_data
+            domain_template = DomainSerializer.to_dto(orm_template)
+            creatinon_domain_command_dto = CreateTemplateDomainCommandDTO(
+                source_disk_path=prepared_creation_dto.source_disk_path
             )
             domain_result = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
-                data_for_manager=data_for_manager.model_dump(mode='json'),
-                data_for_method=data_for_method.model_dump(mode='json'),
+                data_for_manager=domain_template.model_dump(mode='json'),
+                data_for_method=creatinon_domain_command_dto.model_dump(
+                    mode='json'
+                ),
             )
         except RpcException as err:
             self._update_and_log_event(

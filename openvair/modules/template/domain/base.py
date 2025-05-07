@@ -10,7 +10,9 @@ from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
-from openvair.modules.template.adapters.dto.internal.models import DomainDTO
+from openvair.modules.template.adapters.dto.internal.models import (
+    DomainTemplateModel,
+)
 
 
 class BaseTemplate(metaclass=abc.ABCMeta):
@@ -82,5 +84,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         ...
 
     def _to_json_dict(self) -> Dict[str, Any]:
-        template_info: DomainDTO = DomainDTO.model_validate(self.__dict__)
+        template_info: DomainTemplateModel = DomainTemplateModel.model_validate(
+            self.__dict__
+        )
         return template_info.model_dump(mode='json')

@@ -84,10 +84,10 @@ class TemplateCrud:
         """
         LOG.info(f'Call service layer on getting template {template_id}.')
 
-        getting_data = GetTemplateServiceCommandDTO(id=template_id)
+        getting_command_dto = GetTemplateServiceCommandDTO(id=template_id)
         result: Dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_template.__name__,
-            data_for_method=getting_data.model_dump(mode='json'),
+            data_for_method=getting_command_dto.model_dump(mode='json'),
         )
 
         return TemplateResponse.model_validate(result)
@@ -105,12 +105,12 @@ class TemplateCrud:
         """
         LOG.info('Call service layer on creating new template.')
 
-        input_dto = CreateTemplateServiceCommandDTO.model_validate(
+        creation_command_dto = CreateTemplateServiceCommandDTO.model_validate(
             creation_data
         )
         result: Dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.create_template.__name__,
-            data_for_method=input_dto.model_dump(mode='json'),
+            data_for_method=creation_command_dto.model_dump(mode='json'),
         )
 
         return TemplateResponse.model_validate(result)
@@ -131,17 +131,16 @@ class TemplateCrud:
         """
         LOG.info(f'Call service layer on editing template {template_id}.')
 
-        edit_dto = EditTemplateServiceCommandDTO(
+        editing_command_dto = EditTemplateServiceCommandDTO(
             id=template_id,
             name=edit_data.name,
             description=edit_data.description,
         )
         result: Dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.edit_template.__name__,
-            data_for_method=edit_dto.model_dump(mode='json'),
+            data_for_method=editing_command_dto.model_dump(mode='json'),
         )
         return TemplateResponse.model_validate(result)
-
 
     def delete_template(self, template_id: UUID) -> TemplateResponse:
         """Delete a template by its ID via RPC.
@@ -154,10 +153,9 @@ class TemplateCrud:
         """
         LOG.info(f'Call service layer on deleting template {template_id}.')
 
-        deleting_data = DeleteTemplateServiceCommandDTO(id=template_id)
+        deleting_command_dto = DeleteTemplateServiceCommandDTO(id=template_id)
         result: Dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.delete_template.__name__,
-            data_for_method=deleting_data.model_dump(mode='json'),
+            data_for_method=deleting_command_dto.model_dump(mode='json'),
         )
         return TemplateResponse.model_validate(result)
-
