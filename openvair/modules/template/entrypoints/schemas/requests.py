@@ -65,6 +65,7 @@ class RequetsCreateVolumeFromTemplate(APIConfigRequestModel):
 
     volume_data: 'CreateVolume'
 
+
 class CreateVolume(APIConfigRequestModel):
     """Schema for creating a new volume.
 
