@@ -204,27 +204,6 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         return ApiSerializer.to_dict(orm_template)
 
-    # def create_volume_from_template(
-    #     self, volume_from_template_data: Dict
-    # ) -> None:
-    #     dto = DTOCreateVolumeFromTemplate.model_validate(
-    #         volume_from_template_data
-    #     )
-    #     volume = dto.volume_info
-    #     with self.uow as uow:
-    #         orm_template = uow.templates.get_or_fail(dto.template_id)
-    #     create_volume_data = DTOCreateVolume(
-    #         name=volume.name,
-    #         description=volume.description,
-    #         storage_id=volume.storage_id,
-    #         format=orm_template.tmp_format,
-    #         size=orm_template.size,
-    #         read_only=volume.read_only,
-    #     )
-    #     self.volume_service_client.create_volume(
-    #         create_volume_data.model_dump(mode='json')
-    #     )
-
     def _create_template(self, create_command_data: Dict) -> None:
         template_id = UUID(create_command_data.pop('id'))
         with self.uow as uow:

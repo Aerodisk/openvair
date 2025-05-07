@@ -173,34 +173,3 @@ async def delete_template(
     template = await run_in_threadpool(crud.delete_template, template_id)
     LOG.info(f'API: Finished deleting template {template_id}')
     return BaseResponse(status='success', data=template)
-
-
-# @router.post(
-#     '/{template_id}/volumes',
-#     response_model=BaseResponse,  # TODO Определить модель
-#     status_code=status.HTTP_201_CREATED,
-# )
-# async def create_volume_from_template(
-#     template_id: UUID,
-#     data: RequetsCreateVolumeFromTemplate,
-#     user_info: Dict = Depends(get_current_user),
-#     crud: TemplateCrud = Depends(TemplateCrud),
-# ) -> BaseResponse:
-#     """Create a volume from a specific template.
-
-#     Args:
-#         template_id (UUID): The ID of the template to use.
-#         data (CreateVolumeFromTemplate): Volume creation details.
-#         crud (TemplateCrud): Dependency-injected service for handling template
-#             logic.
-#         user_info (Dict): Information about the authenticated user.
-
-#     Returns:
-#         BaseResponse[Volume]: The created volume.
-#     """
-#     LOG.info(f'API: Creating volume from template {template_id}')
-#     await run_in_threadpool(
-#         crud.create_volume_from_template, template_id, data, user_info
-#     )
-#     LOG.info(f'API: Finished creating volume from template {template_id}')
-#     return BaseResponse(status='success')
