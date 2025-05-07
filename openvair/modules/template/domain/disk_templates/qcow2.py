@@ -66,9 +66,10 @@ class Qcow2Template(BaseTemplate):
             TemplateFileCreatingException: If creation via qemu-img fails.
         """
         LOG.info(f'Start creating new template: {self.name}')
-        dto = CreateTemplateDomainCommandDTO.model_validate(creation_data)
-        source_disk_path = dto.source_disk_path
 
+        dto = CreateTemplateDomainCommandDTO.model_validate(creation_data)
+
+        source_disk_path = dto.source_disk_path
         if not Path(source_disk_path).exists():
             message = f'Source disk not found: {source_disk_path}'
             raise FileNotFoundError(message)
@@ -100,9 +101,8 @@ class Qcow2Template(BaseTemplate):
             TemplateFileEditingException: If file renaming fails.
         """
         LOG.info(f'Start editing template: {self.name}')
-        dto: EditTemplateDomainCommandDTO = (
-            EditTemplateDomainCommandDTO.model_validate(editing_data)
-        )
+
+        dto = EditTemplateDomainCommandDTO.model_validate(editing_data)
         if dto.name is not None:
             self._edit_name(dto.name)
 
@@ -120,16 +120,19 @@ class Qcow2Template(BaseTemplate):
             TemplateFileDeletingException: If deletion fails.
         """
         LOG.info(f'Start deleting template: {self.name}')
+
         try:
             self.path.unlink()
         except OSError as err:
             message = f'Failed to delete template file: {err}'
             raise TemplateFileDeletingException(message) from err
+
         LOG.info(f'Template {self.name} successfull deleted')
 
     def ensure_not_in_use(self) -> None:
         """Check the template not in use by volumes"""
         LOG.info(f'Checking template {self.name} for related volumes')
+
         if self.is_backing and self.related_volumes:
             message = (
                 'Cannot delete or edit template name in use by volumes: '
@@ -137,7 +140,8 @@ class Qcow2Template(BaseTemplate):
             )
             LOG.error(message)
             raise TemplateFileEditingException(message)
-        LOG.info(f'Template {self.name} not in use.')
+
+        LOG.info(f'Template {self.name} have not related volumes.')
 
     def _edit_name(self, new_name: str) -> None:
         LOG.info(f'Changing name of template "{self.name}" to "{new_name}"')
@@ -147,9 +151,13 @@ class Qcow2Template(BaseTemplate):
             self.path.rename(new_path)
             self.name = new_name
             self.path = new_path
+            LOG.info(
+                f'Name changed successfull.\n'
+                f'New name: {new_name}. New path: {new_path}'
+            )
         except OSError as err:
             LOG.error(f'Error while editing template file: {self.name}')
             message = f'{self.name}. Error: f{err}'
             raise TemplateFileEditingException(message) from err
-        LOG.info(f'New name: {new_name}. New path: {new_path}')
+
         LOG.info('Templaed name susccessfull edited.')

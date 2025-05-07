@@ -69,6 +69,8 @@ class TemplateFactory(AbstractTemplateFactory):
             BaseTemplate: The created template instance.
         """
         dto = DomainDTO.model_validate(template_data)
+
         template_class = self._template_classes[dto.tmp_format]
         template_manager = template_class(**dto.model_dump())
+
         return cast(BaseTemplate, template_manager)
