@@ -249,13 +249,13 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         try:
             domain_template = DomainSerializer.to_dto(orm_template)
-            creatinon_domain_command_dto = CreateTemplateDomainCommandDTO(
+            creation_domain_command_dto = CreateTemplateDomainCommandDTO(
                 source_disk_path=prepared_creation_dto.source_disk_path
             )
             domain_result = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
                 data_for_manager=domain_template.model_dump(mode='json'),
-                data_for_method=creatinon_domain_command_dto.model_dump(
+                data_for_method=creation_domain_command_dto.model_dump(
                     mode='json'
                 ),
             )
@@ -302,7 +302,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._update_and_log_event(
                 orm_template,
                 TemplateStatus.ERROR,
-                'TemplateEditingFaild',
+                'TemplateEditingFailed',
                 str(err),
             )
             LOG.error('Error while editing template', exc_info=True)
@@ -335,7 +335,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._update_and_log_event(
                 orm_template,
                 TemplateStatus.ERROR,
-                'TemplateDeletingFaild',
+                'TemplateDeletingFailed',
                 str(err),
             )
             LOG.error('Error while deleting template', exc_info=True)
