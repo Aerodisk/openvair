@@ -23,7 +23,7 @@ LOG = get_logger(__name__)
 
 def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     """Test successful volume creation.
-
+ 
     Asserts:
     - Response is 200 OK.
     - Returned fields match request.
