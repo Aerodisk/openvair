@@ -1,3 +1,4 @@
+# noqa: D100
 from uuid import uuid4
 from typing import Generator
 from pathlib import Path
@@ -33,7 +34,6 @@ def client() -> Generator[TestClient, None, None]:
         LOG.info('CLIENT WAS CLOSED')
 
 
-
 @pytest.fixture(autouse=True, scope='session')
 def mock_auth_dependency() -> None:
     """Overrides real JWT authentication with a mocked test user."""
@@ -53,13 +53,10 @@ def configure_pagination() -> None:
     add_pagination(app)
 
 
-
 @pytest.fixture(scope='session')
 def test_storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
-    headers = {
-        'Authorization': 'Bearer mocked_token'
-    }
+    headers = {'Authorization': 'Bearer mocked_token'}
 
     storage_disk = Path(settings.storage_path)
 
@@ -93,6 +90,7 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
             )
         )
     LOG.info('FINISH DELETE STORAGE')
+
 
 @pytest.fixture(scope='function')
 def test_volume(
