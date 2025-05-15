@@ -3,7 +3,7 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict
 
-from openvair.common.configs.pydantic import dto_config
+from openvair.common.configs.pydantic_config import dto_config
 
 
 class GetVolumeCommandDTO(BaseModel):
