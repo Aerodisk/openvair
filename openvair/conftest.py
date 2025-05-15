@@ -97,7 +97,7 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
 
 
 @pytest.fixture(scope='function')
-def test_template(
+def test_volume(
     client: TestClient, test_storage: dict
 ) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
