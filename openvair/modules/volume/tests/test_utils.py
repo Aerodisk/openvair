@@ -12,11 +12,6 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
-from openvair.modules.volume.domain.model import VolumeFactory
-from openvair.modules.volume.adapters.serializer import DataSerializer
-from openvair.modules.volume.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork,
-)
 
 LOG = get_logger(__name__)
 
@@ -51,20 +46,3 @@ def wait_for_status(
         f'within {timeout} seconds.'
     )
     raise TimeoutError(message)
-
-
-def cleanup_all_volumes() -> None:
-    """Removes all volumes from DB and filesystem (used after storage tests)."""
-    unit_of_work = SqlAlchemyUnitOfWork()
-    try:
-        with unit_of_work as uow:
-            s = uow.volumes.get_all()
-            for volume_data in s:
-                volume_instance = VolumeFactory().get_volume(
-                    DataSerializer.to_domain(volume_data)
-                )
-                uow.volumes.delete(volume_data.id)
-                volume_instance.delete()
-                uow.commit()
-    except Exception as err:  # noqa: BLE001
-        LOG.warning(f'Error while cleaning up volumes: {err}')
