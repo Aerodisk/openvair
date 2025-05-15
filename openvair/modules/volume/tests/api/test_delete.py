@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_delete_volume_success(client: TestClient, test_template: dict) -> None:
+def test_delete_volume_success(client: TestClient, test_volume: dict) -> None:
     """Test successful deletion of a volume in 'available' state."""
-    volume_id = test_template['id']
+    volume_id = test_volume['id']
     response = client.delete(f'/volumes/{volume_id}/')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -46,7 +46,7 @@ def test_delete_volume_invalid_uuid(client: TestClient) -> None:
 
 
 def test_delete_volume_invalid_status(
-    client: TestClient, test_template: dict
+    client: TestClient, test_volume: dict
 ) -> None:
     """Test failure when trying to delete a volume not in 'available' state.
 
@@ -57,15 +57,15 @@ def test_delete_volume_invalid_status(
     """
     wait_for_status(
         client,
-        test_template['id'],
+        test_volume['id'],
         'available',
     )
     with SqlAlchemyUnitOfWork() as uow:
-        volume: ORMVolume = uow.volumes.get(test_template['id'])
+        volume: ORMVolume = uow.volumes.get(test_volume['id'])
         volume.status = 'extending'
         uow.commit()
 
-    response = client.delete(f"/volumes/{test_template['id']}/")
+    response = client.delete(f"/volumes/{test_volume['id']}/")
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'VolumeStatusException' in response.text
 
