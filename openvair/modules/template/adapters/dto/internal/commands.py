@@ -4,7 +4,10 @@ from pathlib import Path
 
 from pydantic import Field, BaseModel, ConfigDict
 
-from openvair.common.configs.pydantic import dto_config, lenient_dto_config
+from openvair.common.configs.pydantic_config import (
+    dto_config,
+    lenient_dto_config,
+)
 
 
 class CreateTemplateServiceCommandDTO(BaseModel):  # noqa: D101
@@ -38,6 +41,7 @@ class CreateTemplateDomainCommandDTO(BaseModel):  # noqa: D101
 
 class EditTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     name: str
+
 
 class DeleteTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     id: UUID

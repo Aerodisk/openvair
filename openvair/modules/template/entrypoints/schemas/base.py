@@ -6,7 +6,7 @@ multiple template-related API schemas.
 
 from pydantic import BaseModel
 
-from openvair.common.configs.pydantic import (
+from openvair.common.configs.pydantic_config import (
     api_request_config,
     api_response_config,
 )
