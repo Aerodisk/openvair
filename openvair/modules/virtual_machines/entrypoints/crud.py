@@ -179,3 +179,28 @@ class VMCrud:
             data_for_method={'vm_id': vm_id, 'user_info': user_info},
         )
         return result
+
+    def clone_vm(self, vm_id: str, count: int, user_info: Dict) -> List[Dict]:
+        """Clone a virtual machine.
+
+        Args:
+            vm_id (str): The ID of the virtual machine to copy.
+            count (int): The number of copies to create.
+            user_info (Dict): The user information for authorization.
+
+        Returns:
+            List[Dict]: The list of cloned virtual machine data.
+        """
+        LOG.info(
+            f'Call service layer to clone VM by ID: {vm_id} {count} times.'
+        )
+        result: List[Dict] = self.service_layer_rpc.call(
+            services.VMServiceLayerManager.clone_vm.__name__,
+            data_for_method={
+                'vm_id': vm_id,
+                'count': count,
+                'user_info': user_info
+            },
+        )
+        LOG.debug(f'Response from service layer: {result}')
+        return result

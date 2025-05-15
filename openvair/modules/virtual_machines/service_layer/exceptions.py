@@ -90,3 +90,10 @@ class MaxTriesError(BaseCustomException):
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize MaxTriesError with optional arguments."""
         super().__init__(message, *args)
+
+class VMNotFoundException(BaseCustomException):
+    """Raised when a virtual machine is not found."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VMNotFoundException with optional arguments."""
+        super().__init__(message, *args)

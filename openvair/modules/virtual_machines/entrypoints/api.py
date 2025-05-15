@@ -29,9 +29,9 @@ Endpoints:
         Access the VNC session of a virtual machine by ID.
 """
 
-from typing import Dict, cast
+from typing import Dict, List, cast
 
-from fastapi import Path, Depends, APIRouter, status
+from fastapi import Path, Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
@@ -261,3 +261,37 @@ async def vnc_vm(
     """
     result = await run_in_threadpool(crud.vnc, vm_id, user_info)
     return schemas.Vnc(**result)
+
+
+@router.get(
+    '/{vm_id}/clone/',
+    response_model=List[schemas.VirtualMachineInfo],
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_user)],
+)
+async def clone_vm(
+    vm_id: str = Path(description='VM ID'),
+    count: int = Query(1, description='Number of clones'),
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> List[schemas.VirtualMachineInfo]:
+    """Clone a virtual machine.
+
+    Args:
+        vm_id (str): The ID of the virtual machine to copy.
+        count (int): The number of clones to create.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        List[schemas.VirtualMachineInfo]: The list of cloned virtual machine
+    """
+    LOG.info(
+        f'API handling request to copy data for VM with ID: {vm_id} '
+        f'{count} times.'
+    )
+    result: List[Dict] = await run_in_threadpool(
+        crud.clone_vm, vm_id, count, user_info
+    )
+    LOG.info('API request was successfully processed.')
+    return [schemas.VirtualMachineInfo(**item) for item in result]

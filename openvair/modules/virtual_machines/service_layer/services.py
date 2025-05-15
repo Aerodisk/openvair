@@ -1339,6 +1339,57 @@ class VMServiceLayerManager(BackgroundTasks):
             else:
                 return result
 
+    def clone_vm(self, data: Dict) -> List[Dict]:
+        """Clone a virtual machine.
+
+        Args:
+            data (Dict): The data containing the ID of the virtual machine
+                to clone and the number of clones to create.
+
+        Returns:
+            List[Dict]: The list of cloned virtual machine data.
+        """
+        LOG.info(f'Handling response on clone_vm with data: {data}')
+        result = []
+        vm_id = data.pop('vm_id', '')
+        count = data.pop('count', 1)
+        # user_info = data.pop('user_info', {})
+
+        LOG.info(f'Cloning VM with ID: {vm_id} {count} times.')
+        vm_to_clone = self.get_vm({'vm_id': vm_id})
+
+        if not vm_to_clone:
+            msg = f'VM with ID: {vm_id} not found.'
+            raise exceptions.VMNotFoundException(msg)
+
+        for number in range(1, count+1):
+            new_vm_name = f'{vm_to_clone["name"]}_clone_{number}'
+            cloned_vm = self._clone_vm(vm_to_clone, new_vm_name)
+            # result.append(DataSerializer.vm_to_web(cloned_vm))
+            # Заглушка для проверки работы
+            result.append(vm_to_clone)
+
+        # return [DataSerializer.vm_to_web(vm) for vm in result]
+        # Заглушка для проверки работы
+        return result
+
+    def _clone_vm(self, vm_to_clone: Dict, new_vm_name: str) -> Dict:
+        """Clone a virtual machine.
+
+        Args:
+            vm_to_clone (Dict): The data containing the ID of the virtual machine
+                to clone.
+            new_vm_name (str): The name of the new virtual machine.
+
+        Returns:
+            Dict: The cloned virtual machine data.
+        """
+        LOG.info(f'Cloning VM with ID: {vm_to_clone["id"]} to {new_vm_name}.')
+        # TODO: Реализовать логику клонирования
+        # 1. Клонирование дисклв
+        # 2. Клонирование образа
+        pass
+
     @periodic_task(interval=10)
     def monitoring(self) -> None:
         """Monitor the state of virtual machines periodically.
