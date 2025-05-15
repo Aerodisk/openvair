@@ -22,14 +22,14 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_extend_volume_success(client: TestClient, test_template: dict) -> None:
+def test_extend_volume_success(client: TestClient, test_volume: dict) -> None:
     """Test successful extension of volume size.
 
     Asserts:
     - Status is updated to 'extending', then 'available'.
     - Final size matches expected.
     """
-    volume_id = test_template['id']
+    volume_id = test_volume['id']
     new_size = 2048
 
     response = client.post(
@@ -42,7 +42,7 @@ def test_extend_volume_success(client: TestClient, test_template: dict) -> None:
 
     wait_for_status(
         client,
-        test_template['id'],
+        test_volume['id'],
         'available',
     )
     response = client.get(f'/volumes/{volume_id}/')
@@ -65,15 +65,15 @@ def test_extend_volume_invalid_uuid(client: TestClient) -> None:
 
 
 def test_extend_volume_smaller_than_current(
-    client: TestClient, test_template: dict
+    client: TestClient, test_volume: dict
 ) -> None:
     """Test failure when new size is not greater than current size.
 
     Asserts:
     - HTTP 500 with 'ValidateArgumentsError'.
     """
-    volume_id = test_template['id']
-    new_size = test_template['size']  # same size
+    volume_id = test_volume['id']
+    new_size = test_volume['size']  # same size
 
     response = client.post(
         f'/volumes/{volume_id}/extend/',
@@ -84,14 +84,14 @@ def test_extend_volume_smaller_than_current(
 
 
 def test_extend_volume_status_not_available(
-    client: TestClient, test_template: dict
+    client: TestClient, test_volume: dict
 ) -> None:
     """Test failure when volume status is not 'available'.
 
     Asserts:
     - HTTP 500 with 'VolumeStatusException'.
     """
-    volume_id = test_template['id']
+    volume_id = test_volume['id']
     with SqlAlchemyUnitOfWork() as uow:
         db_volume: ORMVolume = uow.volumes.get(volume_id)
         db_volume.status = 'extending'
