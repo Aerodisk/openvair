@@ -10,6 +10,7 @@ Covers:
 """
 
 import uuid
+from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -19,7 +20,7 @@ from openvair.libs.log import get_logger
 LOG = get_logger(__name__)
 
 
-def test_get_all_volumes(client: TestClient, test_volume: dict) -> None:
+def test_get_all_volumes(client: TestClient, test_template: Dict) -> None:
     """Test retrieving all volumes.
 
     Asserts:
@@ -29,31 +30,31 @@ def test_get_all_volumes(client: TestClient, test_volume: dict) -> None:
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert 'items' in data
-    assert any(v['id'] == test_volume['id'] for v in data['items'])
+    assert any(v['id'] == test_template['id'] for v in data['items'])
 
 
 def test_get_volumes_by_storage_id(
-    client: TestClient, test_volume: dict
+    client: TestClient, test_template: dict
 ) -> None:
     """Test filtering volumes by specific storage ID."""
-    storage_id = test_volume['storage_id']
+    storage_id = test_template['storage_id']
     response = client.get(f'/volumes/?storage_id={storage_id}')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert all(volume['storage_id'] == storage_id for volume in data['items'])
 
 
-def test_get_free_volumes_only(client: TestClient, test_volume: dict) -> None:
+def test_get_free_volumes_only(client: TestClient, test_template: dict) -> None:
     """Test filtering only unattached (free) volumes."""
     response = client.get('/volumes/?free_volumes=true')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert any(volume['id'] == test_volume['id'] for volume in data['items'])
+    assert any(volume['id'] == test_template['id'] for volume in data['items'])
 
 
 def test_get_volumes_with_pagination(
     client: TestClient,
-    test_volume: dict,  # noqa: ARG001
+    test_template: dict,  # noqa: ARG001
 ) -> None:
     """Test that pagination metadata is returned correctly."""
     response = client.get('/volumes/?page=1&size=1')
@@ -90,16 +91,16 @@ def test_get_volumes_with_invalid_free_volumes_param(
 
 
 def test_get_existing_volume_by_id(
-    client: TestClient, test_volume: dict
+    client: TestClient, test_template: dict
 ) -> None:
     """Test retrieving volume by ID returns correct data."""
-    volume_id = test_volume['id']
+    volume_id = test_template['id']
     response = client.get(f'/volumes/{volume_id}/')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data['id'] == volume_id
-    assert data['name'] == test_volume['name']
-    assert data['storage_id'] == test_volume['storage_id']
+    assert data['name'] == test_template['name']
+    assert data['storage_id'] == test_template['storage_id']
 
 
 def test_get_nonexistent_volume_by_id(client: TestClient) -> None:

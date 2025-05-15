@@ -12,9 +12,9 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
-from openvair.modules.volume.tests.helpers import (
+from openvair.libs.testing_utils import generate_test_entity_name
+from openvair.modules.volume.tests.test_utils import (
     wait_for_status,
-    generate_volume_name,
 )
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 
@@ -30,7 +30,7 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     - Volume reaches 'available' status.
     """
     volume_data = CreateVolume(
-        name=generate_volume_name(),
+        name=generate_test_entity_name('volume'),
         description='Integration test volume',
         storage_id=test_storage['id'],
         format='qcow2',

@@ -10,10 +10,14 @@ from fastapi_pagination import add_pagination
 
 from openvair.main import app
 from openvair.libs.log import get_logger
+from openvair.libs.testing_utils import (
+    create_resource,
+    delete_resource,
+    cleanup_all_volumes,
+)
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.modules.volume.tests.config import settings
-from openvair.modules.volume.tests.helpers import (
-    cleanup_all_volumes,
+from openvair.modules.volume.tests.test_utils import (
     generate_volume_name,
 )
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
@@ -93,7 +97,7 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
 
 
 @pytest.fixture(scope='function')
-def test_volume(
+def test_template(
     client: TestClient, test_storage: dict
 ) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
@@ -104,26 +108,9 @@ def test_volume(
         format='qcow2',
         size=1024,
         read_only=False,
-    )
-    response = client.post(
-        '/volumes/create/', json=volume_data.model_dump(mode='json')
-    )
-    if response.status_code != status.HTTP_200_OK:
-        message = (
-            f'Failed to create volume: {response.status_code}, '
-            f'{response.text}'
-        )
-        raise RuntimeError(message)
+    ).model_dump(mode='json')
+    volume = create_resource(client, '/volumes/create/', volume_data, 'volume')
 
-    volume = response.json()
     yield volume
 
-    # Cleanup: delete the volume after the test
-    delete_response = client.delete(f"/volumes/{volume['id']}/")
-    if delete_response.status_code != status.HTTP_202_ACCEPTED:
-        LOG.warning(
-            (
-                f'Test volume deletion failed: {delete_response.status_code}, '
-                f'{delete_response.text}'
-            )
-        )
+    delete_resource(client, '/volumes', volume['id'], 'volume')

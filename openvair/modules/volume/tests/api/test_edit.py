@@ -22,9 +22,9 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_edit_volume_success(client: TestClient, test_volume: dict) -> None:
+def test_edit_volume_success(client: TestClient, test_template: dict) -> None:
     """Test successful metadata update for a volume."""
-    volume_id = test_volume['id']
+    volume_id = test_template['id']
     payload = {
         'name': 'updated-volume',
         'description': 'Updated description',
@@ -54,14 +54,14 @@ def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
 
 
 def test_edit_volume_with_invalid_data(
-    client: TestClient, test_volume: dict
+    client: TestClient, test_template: dict
 ) -> None:
     """Test failure when name field is empty.
 
     Asserts:
     - HTTP 422 validation error.
     """
-    volume_id = test_volume['id']
+    volume_id = test_template['id']
     payload = {
         'name': '',  # Invalid
         'description': 'Still valid',
@@ -72,7 +72,7 @@ def test_edit_volume_with_invalid_data(
 
 
 def test_edit_volume_when_status_not_available(
-    client: TestClient, test_volume: dict
+    client: TestClient, test_template: dict
 ) -> None:
     """Test failure when editing a volume with non-available status.
 
@@ -81,7 +81,7 @@ def test_edit_volume_when_status_not_available(
     Asserts:
     - HTTP 500 with 'VolumeStatusException'.
     """
-    volume_id = test_volume['id']
+    volume_id = test_template['id']
 
     # Change manual DB status
     with SqlAlchemyUnitOfWork() as uow:

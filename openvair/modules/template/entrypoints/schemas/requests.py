@@ -25,9 +25,8 @@ class RequestCreateTemplate(APIConfigRequestModel):
         base_volume_id (UUID): ID of the base volume to use for the template.
 
     Example:
-        >>> CreateTemplate(
+        >>> RequestCreateTemplate(
         ...     name='ubuntu-template',
-        ...     path=Path('/mnt/ubuntu.qcow2'),
         ...     storage_id=UUID('...'),
         ...     is_backing=True,
         ...     base_volume_id=UUID('...'),
