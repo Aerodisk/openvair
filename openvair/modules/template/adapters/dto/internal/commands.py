@@ -41,7 +41,7 @@ class EditTemplateServiceCommandDTO(BaseModel):  # noqa: D101
 
 
 class EditTemplateDomainCommandDTO(BaseModel):  # noqa: D101
-    name: str
+    name: Optional[str]
     description: Optional[str]
 
 
