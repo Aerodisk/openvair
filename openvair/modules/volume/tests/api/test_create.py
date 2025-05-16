@@ -12,9 +12,9 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
-from openvair.libs.testing_utils import generate_test_entity_name
-from openvair.modules.volume.tests.test_utils import (
-    wait_for_status,
+from openvair.libs.testing_utils import (
+    wait_for_field_value,
+    generate_test_entity_name,
 )
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 
@@ -47,10 +47,8 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     assert data['size'] == volume_data.size
     assert data['format'] == volume_data.format
 
-    wait_for_status(
-        client,
-        data['id'],
-        'available',
+    wait_for_field_value(
+        client, f'/volumes/{data["id"]}/', 'status', 'available'
     )
 
 

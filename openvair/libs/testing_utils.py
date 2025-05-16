@@ -10,6 +10,7 @@ functions for:
 - Cleaning up test volumes
 """
 
+import time
 import uuid
 from typing import Any, Dict, cast
 
@@ -140,3 +141,39 @@ def cleanup_all_volumes() -> None:
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def wait_for_field_value(  # noqa: PLR0913
+    client: TestClient,
+    path: str,
+    field: str,
+    expected: Any,  # noqa: ANN401
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Polls a GET endpoint until a specific field reaches expected value.
+
+    Args:
+        client: FastAPI TestClient
+        path: API path like "/templates/{id}/"
+        field: Name of the field in .json()['data']
+        expected: Value to wait for
+        timeout: Max wait time in seconds
+        interval: Time between checks
+
+    Raises:
+        TimeoutError: If value was not reached in time.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        response = client.get(path)
+        if response.status_code == status.HTTP_200_OK:
+            data = response.json()['data']
+            if data.get(field) == expected:
+                return
+        time.sleep(interval)
+    message = (
+        f'Field "{field}" at "{path}" did not become "{expected}" '
+        f'within {timeout} seconds.'
+    )
+    raise TimeoutError(message)

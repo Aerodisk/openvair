@@ -14,7 +14,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
-from openvair.modules.volume.tests.test_utils import wait_for_status
+from openvair.libs.testing_utils import wait_for_field_value
 from openvair.modules.volume.service_layer.unit_of_work import (
     SqlAlchemyUnitOfWork,
 )
@@ -55,11 +55,10 @@ def test_delete_volume_invalid_status(
     Asserts:
     - HTTP 500 with 'VolumeStatusException'.
     """
-    wait_for_status(
-        client,
-        test_volume['id'],
-        'available',
+    wait_for_field_value(
+        client, f'/volumes/{test_volume["id"]}/', 'status', 'available'
     )
+
     with SqlAlchemyUnitOfWork() as uow:
         volume: ORMVolume = uow.volumes.get(test_volume['id'])
         volume.status = 'extending'
