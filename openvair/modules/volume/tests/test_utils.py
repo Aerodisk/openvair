@@ -1,12 +1,10 @@
 """Helper functions for volume integration tests.
 
 Includes:
-- `generate_volume_name`: Generates a unique name for testing.
 - `wait_for_status`: Waits until a volume reaches the expected status.
 """
 
 import time
-import uuid
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -14,11 +12,6 @@ from fastapi.testclient import TestClient
 from openvair.libs.log import get_logger
 
 LOG = get_logger(__name__)
-
-
-def generate_volume_name(prefix: str = 'test-volume') -> str:
-    """Generates a unique volume name using UUID suffix."""
-    return f'{prefix}-{uuid.uuid4().hex[:6]}'
 
 
 def wait_for_status(
