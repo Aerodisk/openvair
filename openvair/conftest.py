@@ -14,6 +14,7 @@ from openvair.libs.testing_utils import (
     create_resource,
     delete_resource,
     cleanup_all_volumes,
+    cleanup_all_templates,
     generate_test_entity_name,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
@@ -73,7 +74,7 @@ def configure_pagination() -> None:
     add_pagination(app)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     headers = {'Authorization': 'Bearer mocked_token'}
@@ -100,6 +101,7 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
     storage = response.json()
     yield storage
     cleanup_all_volumes()
+    cleanup_all_templates()
 
     delete_response = client.delete(f"/storages/{storage['id']}/delete")
     if delete_response.status_code != status.HTTP_202_ACCEPTED:

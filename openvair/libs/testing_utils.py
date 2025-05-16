@@ -25,6 +25,9 @@ from openvair.modules.volume.adapters.serializer import (
 from openvair.modules.volume.service_layer.unit_of_work import (
     SqlAlchemyUnitOfWork as VolumeUOW,
 )
+from openvair.modules.template.service_layer.unit_of_work import (
+    TemplateSqlAlchemyUnitOfWork,
+)
 
 LOG = get_logger(__name__)
 
@@ -131,13 +134,39 @@ def cleanup_all_volumes() -> None:
     unit_of_work = VolumeUOW()
     try:
         with unit_of_work as uow:
-            s = uow.volumes.get_all()
-            for volume_data in s:
+            volumes = uow.volumes.get_all()
+            for orm_volume in volumes:
                 volume_instance = VolumeFactory().get_volume(
-                    VolumeSerializer.to_domain(volume_data)
+                    VolumeSerializer.to_domain(orm_volume)
                 )
-                uow.volumes.delete(volume_data.id)
+                uow.volumes.delete(orm_volume.id)
                 volume_instance.delete()
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_templates() -> None:
+    """Remove all volumes from both database and filesystem.
+
+    This utility function is typically used after storage tests to ensure
+    a clean state. It:
+    1. Retrieves all volumes from the database
+    2. For each volume:
+        - Creates a domain model instance
+        - Deletes the volume record from the database
+        - Removes the volume file from the filesystem
+        - Commits the transaction
+
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = TemplateSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            templates = uow.templates.get_all()
+            for orm_template in templates:
+                uow.templates.delete(orm_template)
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
@@ -153,22 +182,18 @@ def wait_for_field_value(  # noqa: PLR0913
 ) -> None:
     """Polls a GET endpoint until a specific field reaches expected value.
 
-    Args:
-        client: FastAPI TestClient
-        path: API path like "/templates/{id}/"
-        field: Name of the field in .json()['data']
-        expected: Value to wait for
-        timeout: Max wait time in seconds
-        interval: Time between checks
-
-    Raises:
-        TimeoutError: If value was not reached in time.
+    Compatible with both plain and BaseResponse-style APIs.
     """
     start_time = time.time()
     while time.time() - start_time < timeout:
         response = client.get(path)
         if response.status_code == status.HTTP_200_OK:
-            data = response.json()['data']
+            raw = response.json()
+            data = (
+                raw['data']
+                if 'data' in raw and isinstance(raw['data'], dict)
+                else raw
+            )
             if data.get(field) == expected:
                 return
         time.sleep(interval)
@@ -177,3 +202,10 @@ def wait_for_field_value(  # noqa: PLR0913
         f'within {timeout} seconds.'
     )
     raise TimeoutError(message)
+
+
+def _extract_data_field(response_json: Dict) -> Dict:
+    """Returns response['data'] if it's a BaseResponse, else root object."""
+    if 'data' in response_json and isinstance(response_json['data'], dict):
+        return response_json['data']
+    return response_json
