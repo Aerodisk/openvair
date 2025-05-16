@@ -14,12 +14,10 @@ from openvair.libs.testing_utils import (
     create_resource,
     delete_resource,
     cleanup_all_volumes,
+    generate_test_entity_name,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.modules.volume.tests.config import settings
-from openvair.modules.volume.tests.test_utils import (
-    generate_volume_name,
-)
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -36,6 +34,14 @@ def client() -> Generator[TestClient, None, None]:
         LOG.info('CLIENT WAS STARTS')
         yield client
         LOG.info('CLIENT WAS CLOSED')
+
+
+@pytest.fixture(scope='session')
+def unauthorized_client() -> Generator[TestClient, None, None]:
+    """TestClient without mocked auth for unauthorized access tests."""
+    with TestClient(app=app) as client:
+        app.dependency_overrides[get_current_user] = lambda: None
+        yield client
 
 
 @pytest.fixture(autouse=True, scope='session')
@@ -102,7 +108,7 @@ def test_volume(
 ) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
-        name=generate_volume_name(),
+        name=generate_test_entity_name('volume'),
         description='Volume for integration tests',
         storage_id=test_storage['id'],
         format='qcow2',
