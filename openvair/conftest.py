@@ -36,12 +36,22 @@ def client() -> Generator[TestClient, None, None]:
         LOG.info('CLIENT WAS CLOSED')
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def unauthorized_client() -> Generator[TestClient, None, None]:
-    """TestClient without mocked auth for unauthorized access tests."""
-    with TestClient(app=app) as client:
-        app.dependency_overrides[get_current_user] = lambda: None
-        yield client
+    """TestClient without auth overrides (temporarily)."""
+    from openvair.main import app
+
+    # Сохраняем текущие overrides
+    original_overrides = app.dependency_overrides.copy()
+
+    # Удаляем mock авторизацию
+    app.dependency_overrides = {}
+
+    client = TestClient(app)
+    yield client
+
+    # Восстанавливаем mock авторизацию
+    app.dependency_overrides = original_overrides
 
 
 @pytest.fixture(autouse=True, scope='session')
