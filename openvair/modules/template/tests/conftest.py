@@ -18,11 +18,11 @@ LOG = get_logger(__name__)
 
 @pytest.fixture(scope='function')
 def test_template(
-    client: TestClient, test_storage: Dict, test_template: Dict
+    client: TestClient, test_storage: Dict, test_volume: Dict
 ) -> Generator[Dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     template_data = RequestCreateTemplate(
-        base_volume_id=test_template['id'],
+        base_volume_id=test_volume['id'],
         name=generate_test_entity_name(entity_type='template'),
         description='Template for integration tests',
         storage_id=test_storage['id'],
