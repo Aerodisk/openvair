@@ -14,13 +14,17 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.volume.domain.base import RemoteFSVolume
+from openvair.libs.qemu_img.adapter import QemuImgAdapter
+from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import exceptions
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateDomainCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
 
-class NfsVolume(RemoteFSVolume):
+class NfsVolume(BaseVolume):
     """Class for managing NFS volumes.
 
     This class provides methods for creating, deleting, extending, and
@@ -65,7 +69,7 @@ class NfsVolume(RemoteFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             message = f'Qemu img create raised exception: {err!s}'
@@ -95,7 +99,7 @@ class NfsVolume(RemoteFSVolume):
                     run_as_root=self._execute_as_root,
                     shell=True,
                     raise_on_error=True,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             message = f'Delete volume raised exception: {err!s}'
@@ -129,7 +133,7 @@ class NfsVolume(RemoteFSVolume):
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
                     run_as_root=self._execute_as_root,
-                )
+                ),
             )
         except (ExecuteError, OSError) as err:
             message = f'Qemu img extend volume raised exception: {err!s}'
@@ -154,3 +158,21 @@ class NfsVolume(RemoteFSVolume):
             'used': qemu_volume_info.get('actual-size', 0),
             'provisioning': self.provisioning,
         }
+
+    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        qemu_img_adapter = QemuImgAdapter()
+        creation_data = CreateVolumeFromTemplateDomainCommandDTO.model_validate(
+            data
+        )
+
+        if creation_data.is_backing:
+            qemu_img_adapter.create_backing_volume(
+                creation_data.template_path,
+                Path(f'{self.path}/volume-{self.id}'),
+            )
+        else:
+            qemu_img_adapter.create_copy(
+                creation_data.template_path,
+                Path(f'{self.path}/volume-{self.id}'),
+            )
+        return self.__dict__
