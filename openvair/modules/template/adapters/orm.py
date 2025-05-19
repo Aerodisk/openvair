@@ -71,7 +71,7 @@ class Template(Base):
         nullable=False,
     )
     size: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
-    storage_id: Mapped[str] = mapped_column(
+    storage_id: Mapped[uuid.UUID] = mapped_column(
         String(36),
         nullable=False,
     )

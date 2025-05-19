@@ -14,7 +14,7 @@ from openvair.common.configs.pydantic_config import (
 )
 
 
-class GetVolumeDTO(BaseModel):
+class VolumeDTO(BaseModel):
     """Schema representing a volume.
 
     Attributes:
@@ -46,10 +46,11 @@ class GetVolumeDTO(BaseModel):
     information: Optional[str] = None
     read_only: Optional[bool] = False
     path: Path
+    template_id: Optional[UUID]
     model_config: ClassVar[ConfigDict] = lenient_dto_config
 
 
-class GetStorageDTO(BaseModel):
+class StorageDTO(BaseModel):
     """Schema representing a storage entity.
 
     Attributes:

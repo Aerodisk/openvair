@@ -6,10 +6,11 @@ the required interface and shared fields used for managing templates.
 """
 
 import abc
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
+from openvair.modules.template.adapters.dto.internal.models import DomainDTO
 
 
 class BaseTemplate(metaclass=abc.ABCMeta):
@@ -29,12 +30,13 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         is_backing (bool): Indicates if the template is a backing image.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         tmp_format: str,
         name: str,
         path: Path,
         related_volumes: Optional[List],
+        description: Optional[str],
         *,
         is_backing: bool,
     ) -> None:
@@ -49,9 +51,10 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         self.path = path
         self.related_volumes = related_volumes
         self.is_backing = is_backing
+        self.description = description
 
     @abc.abstractmethod
-    def create(self, creation_data: Dict) -> Dict:
+    def create(self, creation_data: Dict) -> Dict[str, Any]:
         """Create the template on disk.
 
         Args:
@@ -60,7 +63,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def edit(self, editing_data: Dict) -> Dict:
+    def edit(self, editing_data: Dict) -> Dict[str, Any]:
         """Edit the template metadata or file.
 
         Args:
@@ -72,3 +75,12 @@ class BaseTemplate(metaclass=abc.ABCMeta):
     def delete(self) -> None:
         """Delete the template file from disk."""
         ...
+
+    @abc.abstractmethod
+    def ensure_not_in_use(self) -> None:
+        """Check the template not in use by volumes"""
+        ...
+
+    def _to_json_dict(self) -> Dict[str, Any]:
+        template_info: DomainDTO = DomainDTO.model_validate(self.__dict__)
+        return template_info.model_dump(mode='json')
