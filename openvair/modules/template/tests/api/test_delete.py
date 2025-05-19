@@ -7,40 +7,13 @@ Covers:
 - Errors when template is already deleted.
 """
 
-import time
 import uuid
 from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
-
-def wait_until_404(
-    client: TestClient,
-    template_id: str,
-    timeout: int = 30,
-    interval: float = 0.5,
-) -> None:
-    """Wait until GET /templates/{id} returns 500, indicating deletion.
-
-    Args:
-        client (TestClient): The test client to use.
-        template_id (str): ID of the template to wait for disappearance.
-        timeout (int): Maximum wait time in seconds.
-        interval (float): Interval between retries.
-
-    Raises:
-        TimeoutError: If template is still available after timeout.
-    """
-    url = f'/templates/{template_id}'
-    start = time.time()
-    while time.time() - start < timeout:
-        response = client.get(url)
-        if response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
-            return
-        time.sleep(interval)
-    message = f'Template {template_id} not deleted within {timeout} seconds'
-    raise TimeoutError(message)
+from openvair.libs.testing_utils import wait_until_404
 
 
 def test_delete_template_success(
