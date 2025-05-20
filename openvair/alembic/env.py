@@ -14,6 +14,7 @@ from openvair.modules.virtual_network.adapters.orm import (
     Base as VirtualNetworkBase,
 )
 from openvair.modules.block_device.adapters.orm import Base as BlockDeviceBase
+from openvair.modules.template.adapters.orm import Base as TemplateBase
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -42,6 +43,7 @@ target_metadata = [
     NotificationBase.metadata,
     VirtualNetworkBase.metadata,
     BlockDeviceBase.metadata,
+    TemplateBase.metadata,
 ]
 
 # other values from the config, defined by the needs of env.py,
