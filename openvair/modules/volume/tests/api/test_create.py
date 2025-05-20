@@ -12,7 +12,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
-from openvair.libs.testing_utils import (
+from openvair.libs.testing.utils import (
     wait_for_field_value,
     generate_test_entity_name,
 )
@@ -21,7 +21,7 @@ from openvair.modules.volume.entrypoints.schemas import CreateVolume
 LOG = get_logger(__name__)
 
 
-def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
+def test_create_volume_success(client: TestClient, storage: dict) -> None:
     """Test successful volume creation.
 
     Asserts:
@@ -32,7 +32,7 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     volume_data = CreateVolume(
         name=generate_test_entity_name('volume'),
         description='Integration test volume',
-        storage_id=test_storage['id'],
+        storage_id=storage['id'],
         format='qcow2',
         size=1024,
         read_only=False,
@@ -52,9 +52,7 @@ def test_create_volume_success(client: TestClient, test_storage: dict) -> None:
     )
 
 
-def test_create_volume_invalid_size(
-    client: TestClient, test_storage: dict
-) -> None:
+def test_create_volume_invalid_size(client: TestClient, storage: dict) -> None:
     """Test creation failure with invalid size (0 bytes).
 
     Asserts:
@@ -63,7 +61,7 @@ def test_create_volume_invalid_size(
     volume_data = {
         'name': 'volume-invalid-size',
         'description': 'Invalid size test',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'format': 'qcow2',
         'size': 0,  # Invalid
         'read_only': False,
@@ -72,9 +70,7 @@ def test_create_volume_invalid_size(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_create_volume_without_name(
-    client: TestClient, test_storage: dict
-) -> None:
+def test_create_volume_without_name(client: TestClient, storage: dict) -> None:
     """Test volume creation fails if 'name' is missing.
 
     Asserts:
@@ -83,7 +79,7 @@ def test_create_volume_without_name(
     volume_data = {
         # 'name' is omitted
         'description': 'Missing name',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'format': 'qcow2',
         'size': 1024,
         'read_only': False,
@@ -93,7 +89,7 @@ def test_create_volume_without_name(
 
 
 def test_create_volume_with_special_chars_in_name(
-    client: TestClient, test_storage: dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure on invalid characters in volume name.
 
@@ -103,7 +99,7 @@ def test_create_volume_with_special_chars_in_name(
     volume_data = {
         'name': 'invalid!name',
         'description': 'Invalid chars',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'format': 'qcow2',
         'size': 1024,
         'read_only': False,
@@ -113,7 +109,7 @@ def test_create_volume_with_special_chars_in_name(
 
 
 def test_create_volume_with_invalid_format(
-    client: TestClient, test_storage: dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure when volume format is not allowed.
 
@@ -123,7 +119,7 @@ def test_create_volume_with_invalid_format(
     volume_data = {
         'name': 'volume-invalid-format',
         'description': 'Unsupported format',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'format': 'not_allowed',  # Not allowed
         'size': 1024,
         'read_only': False,
@@ -133,7 +129,7 @@ def test_create_volume_with_invalid_format(
 
 
 def test_create_volume_with_duplicate_name(
-    client: TestClient, test_storage: dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure when creating a volume with duplicate name in same storage.
 
@@ -143,7 +139,7 @@ def test_create_volume_with_duplicate_name(
     volume_data = {
         'name': 'duplicate-volume',
         'description': 'First volume',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'format': 'qcow2',
         'size': 1024,
         'read_only': False,
@@ -158,7 +154,7 @@ def test_create_volume_with_duplicate_name(
 
 
 def test_create_volume_with_too_large_size(
-    client: TestClient, test_storage: dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure when requested size exceeds storage capacity.
 
@@ -168,7 +164,7 @@ def test_create_volume_with_too_large_size(
     volume_data = {
         'name': 'too-big-volume',
         'description': 'Should fail due to size',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'format': 'qcow2',
         'size': 100**12,  # заведомо превышает допустимое
         'read_only': False,

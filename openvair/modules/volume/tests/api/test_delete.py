@@ -14,7 +14,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
-from openvair.libs.testing_utils import wait_for_field_value
+from openvair.libs.testing.utils import wait_for_field_value
 from openvair.modules.volume.service_layer.unit_of_work import (
     SqlAlchemyUnitOfWork,
 )
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_delete_volume_success(client: TestClient, test_volume: dict) -> None:
+def test_delete_volume_success(client: TestClient, volume: dict) -> None:
     """Test successful deletion of a volume in 'available' state."""
-    volume_id = test_volume['id']
+    volume_id = volume['id']
     response = client.delete(f'/volumes/{volume_id}/')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -45,9 +45,7 @@ def test_delete_volume_invalid_uuid(client: TestClient) -> None:
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_delete_volume_invalid_status(
-    client: TestClient, test_volume: dict
-) -> None:
+def test_delete_volume_invalid_status(client: TestClient, volume: dict) -> None:
     """Test failure when trying to delete a volume not in 'available' state.
 
     Manually sets status to 'extending'.
@@ -56,15 +54,15 @@ def test_delete_volume_invalid_status(
     - HTTP 500 with 'VolumeStatusException'.
     """
     wait_for_field_value(
-        client, f'/volumes/{test_volume["id"]}/', 'status', 'available'
+        client, f'/volumes/{volume["id"]}/', 'status', 'available'
     )
 
     with SqlAlchemyUnitOfWork() as uow:
-        volume: ORMVolume = uow.volumes.get(test_volume['id'])
-        volume.status = 'extending'
+        orm_volume: ORMVolume = uow.volumes.get(volume['id'])
+        orm_volume.status = 'extending'
         uow.commit()
 
-    response = client.delete(f"/volumes/{test_volume['id']}/")
+    response = client.delete(f"/volumes/{volume['id']}/")
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'VolumeStatusException' in response.text
 

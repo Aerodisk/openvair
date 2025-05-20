@@ -13,14 +13,12 @@ from typing import Dict
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from openvair.libs.testing_utils import wait_until_404
+from openvair.libs.testing.utils import wait_until_404
 
 
-def test_delete_template_success(
-    client: TestClient, test_template: Dict
-) -> None:
+def test_delete_template_success(client: TestClient, template: Dict) -> None:
     """Test successful deletion of template and wait for its disappearance."""
-    template_id = test_template['id']
+    template_id = template['id']
     response = client.delete(f'/templates/{template_id}')
     assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()['data']
@@ -29,9 +27,9 @@ def test_delete_template_success(
     wait_until_404(client, template_id)
 
 
-def test_delete_template_twice(client: TestClient, test_template: Dict) -> None:
+def test_delete_template_twice(client: TestClient, template: Dict) -> None:
     """Test deleting template twice results in error on second attempt."""
-    template_id = test_template['id']
+    template_id = template['id']
     response = client.delete(f'/templates/{template_id}')
     assert response.status_code == status.HTTP_202_ACCEPTED
     wait_until_404(client, template_id)
@@ -54,8 +52,8 @@ def test_delete_template_nonexistent_id(client: TestClient) -> None:
 
 
 def test_delete_template_unauthorized(
-    test_template: Dict, unauthorized_client: TestClient
+    template: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized user cannot delete template."""
-    response = unauthorized_client.delete(f"/templates/{test_template['id']}")
+    response = unauthorized_client.delete(f"/templates/{template['id']}")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

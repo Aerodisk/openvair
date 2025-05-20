@@ -19,13 +19,13 @@ from openvair.libs.log import get_logger
 LOG = get_logger(__name__)
 
 
-def test_get_templates_success(client: TestClient, test_template: Dict) -> None:
+def test_get_templates_success(client: TestClient, template: Dict) -> None:
     """Test successful retrieval of templates."""
     response = client.get('/templates/')
     assert response.status_code == status.HTTP_200_OK, response.text
     data = response.json()['data']
     assert 'items' in data
-    assert any(v['id'] == test_template['id'] for v in data['items'])
+    assert any(v['id'] == template['id'] for v in data['items'])
 
 
 def test_get_templates_empty_response(client: TestClient) -> None:
@@ -66,16 +66,16 @@ def test_get_templates_unauthorized(unauthorized_client: TestClient) -> None:
 
 
 def test_get_existing_template_by_id(
-    client: TestClient, test_template: dict
+    client: TestClient, template: dict
 ) -> None:
     """Test retrieving template by ID returns correct data."""
-    template_id = test_template['id']
+    template_id = template['id']
     response = client.get(f'/templates/{template_id}/')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()['data']
     assert data['id'] == template_id
-    assert data['name'] == test_template['name']
-    assert data['storage_id'] == test_template['storage_id']
+    assert data['name'] == template['name']
+    assert data['storage_id'] == template['storage_id']
 
 
 def test_get_nonexistent_template_by_id(client: TestClient) -> None:

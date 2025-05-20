@@ -11,7 +11,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class VolumeTestSettings(BaseSettings):
+class StorageSettings(BaseSettings):
     """Pydantic settings for test storage environment.
 
     Attributes:
@@ -27,4 +27,4 @@ class VolumeTestSettings(BaseSettings):
     )
 
 
-settings = VolumeTestSettings()
+storage_settings = StorageSettings()

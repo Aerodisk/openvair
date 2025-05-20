@@ -27,9 +27,9 @@ LOG = get_logger(__name__)
 
 
 @pytest.fixture(scope='function')
-def attached_volume(test_volume: dict) -> Generator[dict, None, None]:
+def attached_volume(volume: dict) -> Generator[dict, None, None]:
     """Creates volume-to-VM attachment (directly in DB) and removes it after test."""  # noqa: E501
-    volume_id = UUID(test_volume['id'])
+    volume_id = UUID(volume['id'])
     vm_id = uuid4()
 
     with SqlAlchemyUnitOfWork() as uow:

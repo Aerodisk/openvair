@@ -10,7 +10,7 @@ from fastapi_pagination import add_pagination
 
 from openvair.main import app
 from openvair.libs.log import get_logger
-from openvair.libs.testing_utils import (
+from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
     cleanup_all_volumes,
@@ -18,7 +18,7 @@ from openvair.libs.testing_utils import (
     generate_test_entity_name,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
-from openvair.modules.volume.tests.config import settings
+from openvair.libs.testing.config import storage_settings
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -75,11 +75,11 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='module')
-def test_storage(client: TestClient) -> Generator[dict, None, None]:
+def storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     headers = {'Authorization': 'Bearer mocked_token'}
 
-    storage_disk = Path(settings.storage_path)
+    storage_disk = Path(storage_settings.storage_path)
 
     storage_data = CreateStorage(
         name='test-storage',
@@ -115,14 +115,12 @@ def test_storage(client: TestClient) -> Generator[dict, None, None]:
 
 
 @pytest.fixture(scope='function')
-def test_volume(
-    client: TestClient, test_storage: dict
-) -> Generator[dict, None, None]:
+def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
         name=generate_test_entity_name('volume'),
         description='Volume for integration tests',
-        storage_id=test_storage['id'],
+        storage_id=storage['id'],
         format='qcow2',
         size=1024,
         read_only=False,

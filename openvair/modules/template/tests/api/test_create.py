@@ -15,7 +15,7 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from openvair.libs.testing_utils import generate_test_entity_name
+from openvair.libs.testing.utils import generate_test_entity_name
 from openvair.modules.template.entrypoints.schemas.requests import (
     RequestCreateTemplate,
 )
@@ -24,17 +24,17 @@ from openvair.modules.template.entrypoints.schemas.requests import (
 @pytest.mark.parametrize('is_backing', [True, False])
 def test_create_template_success(
     client: TestClient,
-    test_storage: Dict,
-    test_volume: Dict,
+    storage: Dict,
+    volume: Dict,
     *,
     is_backing: bool,
 ) -> None:
     """Test successful template creation with both is_backing values."""
     request = RequestCreateTemplate(
-        base_volume_id=test_volume['id'],
+        base_volume_id=volume['id'],
         name=generate_test_entity_name('template'),
         description='Test template',
-        storage_id=test_storage['id'],
+        storage_id=storage['id'],
         is_backing=is_backing,
     )
     response = client.post('/templates/', json=request.model_dump(mode='json'))
@@ -50,16 +50,16 @@ def test_create_template_success(
 )
 def test_create_template_missing_required_field(
     client: TestClient,
-    test_storage: Dict,
-    test_volume: Dict,
+    storage: Dict,
+    volume: Dict,
     missing_field: str,
 ) -> None:
     """Test that missing required fields result in HTTP 422."""
     request_data: Dict = {
-        'base_volume_id': test_volume['id'],
+        'base_volume_id': volume['id'],
         'name': generate_test_entity_name('template'),
         'description': 'Test',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'is_backing': True,
     }
     request_data.pop(missing_field)
@@ -83,11 +83,11 @@ def test_create_template_unauthorized(unauthorized_client: TestClient) -> None:
 
 def test_create_template_with_invalid_storage_id(
     client: TestClient,
-    test_volume: Dict,
+    volume: Dict,
 ) -> None:
     """Test creation with nonexistent storage_id returns 500."""
     request_data: Dict = {
-        'base_volume_id': test_volume['id'],
+        'base_volume_id': volume['id'],
         'name': generate_test_entity_name('template'),
         'description': 'Invalid storage',
         'storage_id': str(uuid.uuid4()),
@@ -99,13 +99,13 @@ def test_create_template_with_invalid_storage_id(
 
 def test_create_template_missing_base_volume(
     client: TestClient,
-    test_storage: Dict,
+    storage: Dict,
 ) -> None:
     """Test creation without base_volume_id returns 422."""
     request_data: Dict = {
         'name': generate_test_entity_name('template'),
         'description': 'Missing base_volume_id',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'is_backing': True,
     }
     response = client.post('/templates/', json=request_data)
@@ -114,14 +114,14 @@ def test_create_template_missing_base_volume(
 
 def test_create_template_with_null_base_volume_id(
     client: TestClient,
-    test_storage: Dict,
+    storage: Dict,
 ) -> None:
     """Test creation with null base_volume_id returns 422."""
     request_data: Dict = {
         'base_volume_id': None,
         'name': generate_test_entity_name('template'),
         'description': 'Null base_volume_id',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'is_backing': True,
     }
     response = client.post('/templates/', json=request_data)
@@ -130,14 +130,14 @@ def test_create_template_with_null_base_volume_id(
 
 def test_create_template_with_nonexistent_base_volume(
     client: TestClient,
-    test_storage: Dict,
+    storage: Dict,
 ) -> None:
     """Test creation with nonexistent base_volume_id returns 500."""
     request_data: Dict = {
         'base_volume_id': str(uuid.uuid4()),
         'name': generate_test_entity_name('template'),
         'description': 'Nonexistent volume',
-        'storage_id': test_storage['id'],
+        'storage_id': storage['id'],
         'is_backing': True,
     }
     response = client.post('/templates/', json=request_data)
