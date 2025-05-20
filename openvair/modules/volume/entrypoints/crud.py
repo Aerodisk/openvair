@@ -8,12 +8,20 @@ Classes:
     VolumeCrud: Class providing CRUD operations for volumes.
 """
 
+from uuid import UUID
 from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.modules.volume.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.volume.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.modules.volume.entrypoints.schemas import (
+    Volume,
+    CreateVolumeFromTemplate,
+)
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateServiceCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
@@ -33,7 +41,7 @@ class VolumeCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_volume(self, volume_id: str) -> Dict:
+    def get_volume(self, volume_id: UUID) -> Dict:
         """Retrieve a specific volume by its ID.
 
         Args:
@@ -45,7 +53,7 @@ class VolumeCrud:
         LOG.info('Call service layer on getting volume.')
         result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.get_volume.__name__,
-            data_for_method={'volume_id': volume_id},
+            data_for_method={'volume_id': str(volume_id)},
             priority=8,
         )
         LOG.debug('Response from service layer: %s.' % result)
@@ -53,7 +61,7 @@ class VolumeCrud:
 
     def get_all_volumes(
         self,
-        storage_id: Optional[str],
+        storage_id: Optional[UUID],
         *,
         free_volumes: bool = False,
     ) -> List:
@@ -74,7 +82,7 @@ class VolumeCrud:
         result: List = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.get_all_volumes.__name__,
             data_for_method={
-                'storage_id': storage_id,
+                'storage_id': str(storage_id) if storage_id else None,
                 'free_volumes': free_volumes,
             },
             priority=8,
@@ -102,7 +110,7 @@ class VolumeCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def delete_volume(self, volume_id: str, user_info: Dict) -> Dict:
+    def delete_volume(self, volume_id: UUID, user_info: Dict) -> Dict:
         """Delete a specific volume by its ID.
 
         Args:
@@ -115,7 +123,10 @@ class VolumeCrud:
         LOG.info('Call service layer on delete volume.')
         result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.delete_volume.__name__,
-            data_for_method={'volume_id': volume_id, 'user_info': user_info},
+            data_for_method={
+                'volume_id': str(volume_id),
+                'user_info': user_info,
+            },
             priority=8,
         )
         LOG.debug('Response from service layer: %s.' % result)
@@ -123,7 +134,7 @@ class VolumeCrud:
 
     def extend_volume(
         self,
-        volume_id: str,
+        volume_id: UUID,
         data: Dict,
         user_info: Dict,
     ) -> Dict:
@@ -137,7 +148,7 @@ class VolumeCrud:
         Returns:
             Dict: The extended volume's data as a dictionary.
         """
-        data.update({'volume_id': volume_id, 'user_info': user_info})
+        data.update({'volume_id': str(volume_id), 'user_info': user_info})
         LOG.info('Call service layer on extend volume.')
         result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.extend_volume.__name__,
@@ -147,7 +158,7 @@ class VolumeCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def edit_volume(self, volume_id: str, data: Dict, user_info: Dict) -> Dict:
+    def edit_volume(self, volume_id: UUID, data: Dict, user_info: Dict) -> Dict:
         """Edit an existing volume's metadata.
 
         Args:
@@ -160,7 +171,7 @@ class VolumeCrud:
         """
         data.update(
             {
-                'volume_id': volume_id,
+                'volume_id': str(volume_id),
                 'user_info': user_info,
             }
         )
@@ -175,7 +186,7 @@ class VolumeCrud:
 
     def attach_volume(
         self,
-        volume_id: str,
+        volume_id: UUID,
         data: Dict,
         user_info: Dict,
     ) -> Dict:
@@ -189,7 +200,7 @@ class VolumeCrud:
         Returns:
             Dict: The attached volume's data as a dictionary.
         """
-        data.update({'volume_id': volume_id, 'user_info': user_info})
+        data.update({'volume_id': str(volume_id), 'user_info': user_info})
         LOG.info('Call service layer on attach volume.')
         result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.attach_volume.__name__,
@@ -201,7 +212,7 @@ class VolumeCrud:
 
     def detach_volume(
         self,
-        volume_id: str,
+        volume_id: UUID,
         detach_info: Dict,
         user_info: Dict,
     ) -> Dict:
@@ -216,7 +227,9 @@ class VolumeCrud:
             Dict: The detached volume's data as a dictionary.
         """
         LOG.info('Call service layer on detach volume.')
-        detach_info.update({'volume_id': volume_id, 'user_info': user_info})
+        detach_info.update(
+            {'volume_id': str(volume_id), 'user_info': user_info}
+        )
         result: Dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.detach_volume.__name__,
             data_for_method=detach_info,
@@ -224,3 +237,18 @@ class VolumeCrud:
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
+
+    def create_from_template(  # noqa: D102
+        self,
+        data: CreateVolumeFromTemplate,
+        user_info: Dict,
+    ) -> Volume:
+        command = CreateVolumeFromTemplateServiceCommandDTO(
+            user_id=user_info['id'],
+            **data.model_dump(),
+        )
+        volume = self.service_layer_rpc.call(
+            services.VolumeServiceLayerManager.create_from_template.__name__,
+            data_for_method=command.model_dump(mode='json')
+        )
+        return Volume.model_validate(volume)

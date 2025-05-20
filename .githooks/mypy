@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo 'Running mypy check'
+if ! ./venv/bin/mypy --config-file=mypy.ini .; then
+    echo
+    echo
+    echo "=========================================================================="
+    echo "Mypy check failed. Please review the errors above.                         "
+    echo "For a better development experience, it is recommended to configure the    "
+    echo "mypy plugin for your IDE or use command-line tools. For more details,      "
+    echo "refer to the CODE_CONVENTION.md file.                                      "
+    echo "=========================================================================="
+    exit 1
+fi

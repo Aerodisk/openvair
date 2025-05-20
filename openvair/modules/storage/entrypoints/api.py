@@ -18,20 +18,20 @@ Entrypoints:
     DELETE /storages/{storage_id}/delete/ - Delete a storage by its ID.
 """
 
-from typing import Dict, Optional
+from uuid import UUID
+from typing import Dict, Optional, cast
 
-from fastapi import Path, Depends, APIRouter, status
+from fastapi import Depends, APIRouter, status
 from fastapi.responses import JSONResponse
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.storage.entrypoints import schemas
 from openvair.modules.storage.entrypoints.crud import StorageCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/storages',
@@ -48,7 +48,7 @@ router = APIRouter(
 )
 async def get_storages(
     crud: StorageCrud = Depends(StorageCrud),
-) -> Page:
+) -> Page[schemas.Storage]:
     """It gets a list of storages from the database
 
     Args:
@@ -60,7 +60,7 @@ async def get_storages(
     LOG.info('Api start getting list of storages')
     storages = await run_in_threadpool(crud.get_all_storages)
     LOG.info('Api request was successfully processed.')
-    return storages
+    return cast(Page, paginate(storages))
 
 
 @router.get(
@@ -115,7 +115,7 @@ async def create_local_partition(
     """
     LOG.info('Api start create partition on local disk')
     result = await run_in_threadpool(
-        crud.create_local_partition, data.dict(), user_data
+        crud.create_local_partition, data.model_dump(mode='json'), user_data
     )
     LOG.info('Api request was successfully processed.')
     return schemas.LocalDisk(**result)
@@ -178,7 +178,7 @@ async def delete_local_partition(
     """
     LOG.info('Api start delete partition on local disk')
     result = await run_in_threadpool(
-        crud.delete_local_partition, data.dict(), user_data
+        crud.delete_local_partition, data.model_dump(mode='json'), user_data
     )
     LOG.info('Api request was successfully processed.')
     return JSONResponse(result)
@@ -191,7 +191,7 @@ async def delete_local_partition(
     dependencies=[Depends(get_current_user)],
 )
 async def get_storage(
-    storage_id: str = Path(..., description='Storage id', regex=UUID_REGEX),
+    storage_id: UUID,
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.Storage:
     """It gets a storage by id
@@ -231,9 +231,12 @@ async def create_storage(
     Returns:
         The storage object is being returned.
     """
-    LOG.info('Api start creating storage with data: %s.' % data.dict())
+    LOG.info(
+        'Api start creating storage with data: %s.'
+        % data.model_dump(mode='json')
+    )
     storage = await run_in_threadpool(
-        crud.create_storage, data.dict(), user_data
+        crud.create_storage, data.model_dump(mode='json'), user_data
     )
     LOG.info('Api request was successfully processed.')
     return schemas.Storage(**storage)
@@ -245,7 +248,7 @@ async def create_storage(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def delete_storage(
-    storage_id: str = Path(..., description='Storage id', regex=UUID_REGEX),
+    storage_id: UUID,
     user_data: Dict = Depends(get_current_user),
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.Storage:

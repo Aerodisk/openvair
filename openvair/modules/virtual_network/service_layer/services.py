@@ -13,12 +13,13 @@ Enums:
         network.
 """
 
+from uuid import UUID
 from typing import Dict, List, Literal, Optional, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import xml_to_jsonable
+from openvair.libs.libvirt.network import LibvirtNetworkAdapter
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.modules.virtual_network.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
@@ -26,6 +27,7 @@ from openvair.modules.virtual_network.config import (
 )
 from openvair.modules.virtual_network.domain import base
 from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.libs.data_handlers.xml.serializer import deserialize_xml
 from openvair.modules.virtual_network.entrypoints import schemas
 from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.virtual_network.adapters.orm import (
@@ -34,9 +36,6 @@ from openvair.modules.virtual_network.adapters.orm import (
 )
 from openvair.modules.virtual_network.service_layer import unit_of_work
 from openvair.modules.virtual_network.adapters.serializer import DataSerializer
-from openvair.modules.virtual_network.adapters.virsh_adapter import (
-    VirshNetworkAdapter,
-)
 from openvair.modules.virtual_network.service_layer.exceptions import (
     PortGroupException,
     VirtualNetworkAlreadyExist,
@@ -77,7 +76,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         )
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
         self.event_store = EventCrud('virtual_networks')
-        self.virsh_net_adapter = VirshNetworkAdapter()
+        self.virsh_net_adapter = LibvirtNetworkAdapter()
 
     def get_all_virtual_networks(self) -> Dict:
         """Retrieve all virtual networks from the database.
@@ -494,7 +493,9 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         autostart = self.virsh_net_adapter.get_network_autostart(uuid)
         persistent = self.virsh_net_adapter.get_network_persistent(uuid)
 
-        virhs_network_data = cast(Dict, xml_to_jsonable(xml))
+        virhs_network_data = cast(
+            Dict, deserialize_xml(xml, attr_prefix='', cdata_key='')
+        )
         pg_info = virhs_network_data['network'].get('portgroup', [])
         if isinstance(pg_info, Dict):
             pg_info = [virhs_network_data['network']['portgroup']]
@@ -624,7 +625,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
     def __change_state(
         self,
-        vn_id: str,
+        vn_id: UUID,
         action: Literal['on', 'off'],
     ) -> None:
         """Change the state of a virtual network.

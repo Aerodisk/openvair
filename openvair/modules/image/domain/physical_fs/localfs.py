@@ -14,7 +14,9 @@ from pathlib import Path
 
 from openvair.config import TMP_DIR
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.image.domain.base import BaseLocalFSImage
 
 LOG = get_logger(__name__)
@@ -47,20 +49,28 @@ class LocalFSImage(BaseLocalFSImage):
         image_path = Path(self.path, f'image-{self.id}')
         image_tmp = Path(TMP_DIR, self.name)
         try:
+            LOG.info('Converting image to QCOW2 format...')
             execute(
                 'qemu-img',
                 'convert',
                 '-f raw',
                 '-O qcow2',
-                image_tmp,  # type: ignore
-                image_path,  # type: ignore
+                str(image_tmp),
+                str(image_path),
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=self._execute_as_root,
+                    raise_on_error=True
+                )
             )
-        except Exception as e:
-            LOG.exception(f'Failed to upload image with ID {self.id}')
-            LOG.error(e)
+            LOG.info('Image converted successfully')
+        except (ExecuteError, OSError) as err:
+            msg = f'Failed to upload image with ID {self.id}: {err}'
+            LOG.exception(msg)
             raise
         else:
-            LOG.info(f'Image with ID {self.id} uploaded successfully')
+            msg = f'Image with ID {self.id} uploaded successfully'
+            LOG.info(msg)
         return self.__dict__
 
     def delete(self) -> Dict:
@@ -77,11 +87,25 @@ class LocalFSImage(BaseLocalFSImage):
             self._check_image_exists()
         except Exception as _:
             LOG.exception("LocalFSImage doesn't exist on storage.")
+            raise
         else:
-            image_path = f'{self.path}/image-{self.id}'
-            execute('rm', '-f', image_path, run_as_root=self._execute_as_root)
-        LOG.info('LocalFSImage successfully deleted.')
-        return self.__dict__
+            try:
+                image_path = Path(self.path, f'image-{self.id}')
+                execute(
+                    'rm', '-f',
+                    str(image_path),
+                    params=ExecuteParams(
+                        run_as_root=self._execute_as_root,
+                        raise_on_error=True
+                    )
+                )
+            except (ExecuteError, OSError) as err:
+                msg = f'Failed to delete image with ID {self.id}: {err}'
+                LOG.exception(msg)
+                raise
+
+            LOG.info('LocalFSImage successfully deleted.')
+            return self.__dict__
 
     def delete_from_tmp(self) -> Dict:
         """Deletes the image from the temporary directory.
@@ -93,7 +117,24 @@ class LocalFSImage(BaseLocalFSImage):
         """
         LOG.info('Deleting LocalFSImage from temporary directory...')
         image_tmp = Path(TMP_DIR, self.name)
-        execute('rm', '-f', image_tmp, run_as_root=self._execute_as_root)  # type: ignore
+        try:
+            execute(
+                'rm',
+                '-f',
+                str(image_tmp),
+                params=ExecuteParams(
+                    run_as_root=self._execute_as_root,
+                    raise_on_error=True
+                )
+            )
+        except (ExecuteError, OSError) as err:
+            msg = (
+                f'Failed to delete image with ID {self.id} '
+                f'from temporary directory: {err}'
+            )
+            LOG.exception(msg)
+            raise
+
         LOG.info('LocalFSImage successfully deleted from temporary directory.')
         return self.__dict__
 

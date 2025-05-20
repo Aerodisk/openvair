@@ -10,6 +10,7 @@ Classes:
 """
 
 import abc
+from uuid import UUID
 from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy.exc import OperationalError
@@ -37,11 +38,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def get(self, virt_net_id: str) -> VirtualNetwork:
+    def get(self, virt_net_id: UUID) -> VirtualNetwork:
         """Get a virtual network by ID.
 
         Args:
-            virt_net_id (str): The ID of the virtual network.
+            virt_net_id (UUID): The ID of the virtual network.
 
         Returns:
             VirtualNetwork: The virtual network object.
@@ -75,16 +76,16 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         self._add(virtual_network)
 
-    def delete(self, vn_id: str) -> None:
+    def delete(self, vn_id: UUID) -> None:
         """Delete a virtual network by ID.
 
         Args:
-            vn_id (str): The ID of the virtual network to delete.
+            vn_id (UUID): The ID of the virtual network to delete.
         """
         return self._delete(vn_id)
 
     @abc.abstractmethod
-    def _get(self, vn_id: str) -> VirtualNetwork:
+    def _get(self, vn_id: UUID) -> VirtualNetwork:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -100,7 +101,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _delete(self, vn_id: str) -> None:
+    def _delete(self, vn_id: UUID) -> None:
         raise NotImplementedError
 
 
@@ -128,7 +129,7 @@ class SqlAlchemyRepository(AbstractRepository):
         except OperationalError:
             raise DBCannotBeConnectedError(message="Can't connect to Database")
 
-    def _get(self, vn_id: str) -> VirtualNetwork:
+    def _get(self, vn_id: UUID) -> VirtualNetwork:
         """Get a virtual network by ID.
 
         Args:
@@ -180,11 +181,11 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         self.session.add(virtual_network)
 
-    def _delete(self, vn_id: str) -> None:
+    def _delete(self, vn_id: UUID) -> None:
         """Delete a virtual network by ID.
 
         Args:
-            vn_id (str): The ID of the virtual network to delete.
+            vn_id (UUID): The ID of the virtual network to delete.
         """
         self.session.query(PortGroup).filter_by(
             virtual_network_id=vn_id

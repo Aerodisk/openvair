@@ -84,11 +84,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_all()
 
-    def get_all_by_storage(self, storage_id: str) -> List[Image]:
+    def get_all_by_storage(self, storage_id: UUID) -> List[Image]:
         """Retrieve all images associated with a specific storage.
 
         Args:
-            storage_id (str): The storage ID to filter images by.
+            storage_id (UUID): The storage ID to filter images by.
 
         Returns:
             List[Image]: A list of images associated with the given storage ID.
@@ -170,11 +170,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_all_by_storage(self, storage_id: str) -> List[Image]:
+    def _get_all_by_storage(self, storage_id: UUID) -> List[Image]:
         """Retrieve all images associated with a specific storage.
 
         Args:
-            storage_id (str): The storage ID to filter images by.
+            storage_id (UUID): The storage ID to filter images by.
 
         Returns:
             List[Image]: A list of images associated with the given storage ID.
@@ -297,11 +297,11 @@ class SqlAlchemyRepository(AbstractRepository):
             .all()
         )
 
-    def _get_all_by_storage(self, storage_id: str) -> List[Image]:
+    def _get_all_by_storage(self, storage_id: UUID) -> List[Image]:
         """Retrieve all images associated with a specific storage.
 
         Args:
-            storage_id (str): The storage ID to filter images by.
+            storage_id (UUID): The storage ID to filter images by.
 
         Returns:
             List[Image]: A list of images associated with the given storage ID.

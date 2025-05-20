@@ -8,16 +8,23 @@ Classes:
 """
 
 from typing import Any, Dict
+from pathlib import Path
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
-from openvair.modules.volume.domain.base import RemoteFSVolume
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.cli.exceptions import ExecuteError
+from openvair.libs.qemu_img.adapter import QemuImgAdapter
+from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import exceptions
+from openvair.modules.volume.adapters.dto.internal.commands import (
+    CreateVolumeFromTemplateDomainCommandDTO,
+)
 
 LOG = get_logger(__name__)
 
 
-class NfsVolume(RemoteFSVolume):
+class NfsVolume(BaseVolume):
     """Class for managing NFS volumes.
 
     This class provides methods for creating, deleting, extending, and
@@ -47,22 +54,28 @@ class NfsVolume(RemoteFSVolume):
             Dict: A dictionary representation of the volume's attributes.
         """
         preallocation = self.provisioning if self.format != 'raw' else 'off'
-        volume_path = f'{self.path}/volume-{self.id}'
-        _, err = execute(
-            'qemu-img',
-            'create',
-            '-f',
-            self.format,
-            '-o',
-            f'preallocation={preallocation}',
-            volume_path,
-            self.size,
-            run_as_root=self._execute_as_root,
-        )
-        if err:
+        volume_path = Path(self.path, f'volume-{self.id}')
+        try:
+            execute(
+                'qemu-img',
+                'create',
+                '-f',
+                self.format,
+                '-o',
+                f'preallocation={preallocation}',
+                str(volume_path),
+                str(self.size),
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=self._execute_as_root,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except (ExecuteError, OSError) as err:
             message = f'Qemu img create raised exception: {err!s}'
             LOG.error(message)
             raise exceptions.QemuImgCreateException(message)
+
         LOG.info(f'Created volume {volume_path}')
         return self.__dict__
 
@@ -76,17 +89,23 @@ class NfsVolume(RemoteFSVolume):
         Returns:
             Dict: A dictionary representation of the volume's attributes.
         """
-        volume_path = f'{self.path}/volume-{self.id}'
-        _, err = execute(
-            'rm',
-            '-f',
-            volume_path,
-            run_as_root=self._execute_as_root,
-        )
-        if err:
+        volume_path = Path(self.path, f'volume-{self.id}')
+        try:
+            execute(
+                'rm',
+                '-f',
+                str(volume_path),
+                params=ExecuteParams(  # noqa: S604
+                    run_as_root=self._execute_as_root,
+                    shell=True,
+                    raise_on_error=True,
+                ),
+            )
+        except (ExecuteError, OSError) as err:
             message = f'Delete volume raised exception: {err!s}'
             LOG.error(message)
             raise exceptions.DeleteVolumeException(message)
+
         LOG.info(f'Deleted volume {volume_path}')
         return self.__dict__
 
@@ -104,18 +123,23 @@ class NfsVolume(RemoteFSVolume):
             Dict: A dictionary representation of the volume's attributes.
         """
         self._check_volume_exists()
-        volume_path = f'{self.path}/volume-{self.id}'
-        _, err = execute(
-            'qemu-img',
-            'resize',
-            volume_path,
-            new_size,
-            run_as_root=self._execute_as_root,
-        )
-        if err:
+        volume_path = Path(self.path, f'volume-{self.id}')
+        try:
+            execute(
+                'qemu-img',
+                'resize',
+                str(volume_path),
+                str(new_size),
+                params=ExecuteParams(  # noqa: S604
+                    shell=True,
+                    run_as_root=self._execute_as_root,
+                ),
+            )
+        except (ExecuteError, OSError) as err:
             message = f'Qemu img extend volume raised exception: {err!s}'
             LOG.error(message)
             raise exceptions.QemuImgExtendException(message)
+
         LOG.info(f'Extended volume {volume_path} to size {new_size}')
         return self.__dict__
 
@@ -134,3 +158,21 @@ class NfsVolume(RemoteFSVolume):
             'used': qemu_volume_info.get('actual-size', 0),
             'provisioning': self.provisioning,
         }
+
+    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+        qemu_img_adapter = QemuImgAdapter()
+        creation_data = CreateVolumeFromTemplateDomainCommandDTO.model_validate(
+            data
+        )
+
+        if creation_data.is_backing:
+            qemu_img_adapter.create_backing_volume(
+                creation_data.template_path,
+                Path(f'{self.path}/volume-{self.id}'),
+            )
+        else:
+            qemu_img_adapter.create_copy(
+                creation_data.template_path,
+                Path(f'{self.path}/volume-{self.id}'),
+            )
+        return self.__dict__

@@ -10,11 +10,12 @@ Classes:
         interfaces.
 """
 
-import json
 from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 from openvair.modules.network.domain.utils.exceptions import (
     OVSManagerException,
     BridgeNotFoundException,
@@ -44,7 +45,7 @@ class OVSManager:
             command_format (str): Base command for OVS management.
             bridge_prefix (str): Prefix for bridge names.
         """
-        self.command_format = 'sudo ovs-vsctl'
+        self.command_format = 'ovs-vsctl'
 
     def _build_command(self, subcommand: str) -> str:
         """Constructs a command with the configured settings.
@@ -73,12 +74,18 @@ class OVSManager:
         """
         command = self._build_command(f'add-br {bridge_name}')
         LOG.info(f'Creating bridge: {bridge_name}')
-        stdout, stderr = execute(command)
-        if stderr:
-            message = f'Error creating bridge {bridge_name}: {stderr}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = f'Error creating bridge {bridge_name}: {exec_res.stderr}'
             LOG.error(message)
             raise OVSManagerException(message)
-        return stdout.strip()
+        return exec_res.stdout.strip()
 
     def delete_bridge(self, bridge_name: str) -> None:
         """Delete an OVS bridge with the specified name.
@@ -92,8 +99,14 @@ class OVSManager:
         """
         command = self._build_command(f'del-br {bridge_name}')
         LOG.info(f'Deleting bridge: {bridge_name}')
-        stdout, stderr = execute(command)
-        if stderr:
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
             messsage = (
                 f'Bridge {bridge_name} not found or could not be deleted: '
                 '{stderr}'
@@ -124,15 +137,21 @@ class OVSManager:
             f'Adding interface {iface_name} to bridge '
             f'{bridge_name} with tag {tag}'
         )
-        stdout, stderr = execute(command)
-        if stderr:
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
             message = (
                 f'Error adding interface {iface_name} to bridge {bridge_name}: '
-                f'{stderr}'
+                f'{exec_res.stderr}'
             )
             LOG.error(message)
             raise InterfaceNotFoundException(message)
-        return stdout.strip()
+        return exec_res.stdout.strip()
 
     def get_ports_in_bridge(self, bridge_name: str) -> List:
         """Retrieve a list of ports within a specified OVS bridge.
@@ -148,12 +167,18 @@ class OVSManager:
             OVSManagerException: If an error occurs while retrieving the ports.
         """
         command = self._build_command(f'list-ports {bridge_name}')
-        stdout, stderr = execute(command)
-        if stderr:
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
             message = f'Error while getting port in bridge: {bridge_name}'
             LOG.error(message)
             raise OVSManagerException(message)
-        return stdout.split()
+        return exec_res.stdout.split()
 
     def get_bridges(self) -> Dict:
         """Retrieve all OVS bridges in JSON format.
@@ -166,10 +191,16 @@ class OVSManager:
         """
         command = self._build_command('--format=json list bridge')
         LOG.info('Retrieving list of bridges')
-        stdout, stderr = execute(command)
-        if stderr:
-            message = f'Error retrieving bridge list: {stderr}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = f'Error retrieving bridge list: {exec_res.stderr}'
             LOG.error(message)
             raise OVSManagerException(message)
-        bridges: Dict = json.loads(stdout)
+        bridges: Dict = deserialize_json(exec_res.stdout)
         return bridges

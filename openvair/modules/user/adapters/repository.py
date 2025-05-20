@@ -22,11 +22,13 @@ Methods:
     SqlAlchemyRepository._get: Retrieves a user by ID from the database.
     SqlAlchemyRepository._get_by_name: Retrieves a user by username from
         the database.
+    SqlAlchemyRepository._get_all: Retrieves a list of users from the database.
     SqlAlchemyRepository._delete: Deletes a user by ID from the database.
 """
 
 import abc
-from typing import TYPE_CHECKING
+from uuid import UUID
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy.exc import OperationalError
 
@@ -49,6 +51,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         add: Adds a user to the repository.
         get: Retrieves a user by ID from the repository.
         get_by_name: Retrieves a user by username from the repository.
+        get_all: Retrieves a list of users from the database.
         delete: Deletes a user by ID from the repository.
     """
 
@@ -70,11 +73,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         self._add(user)
 
-    def get(self, user_id: str) -> User:
+    def get(self, user_id: UUID) -> User:
         """Retrieve a user by ID from the repository.
 
         Args:
-            user_id (str): The ID of the user to retrieve.
+            user_id (UUID): The ID of the user to retrieve.
 
         Returns:
             User: The user entity with the specified ID.
@@ -92,11 +95,19 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._get_by_name(username)
 
-    def delete(self, user_id: str) -> None:
+    def get_all(self) -> List[User]:
+        """Retrieve a list of users from the database.
+
+        Returns:
+            List[User]: List of all user entities in the database.
+        """
+        return self._get_all()
+
+    def delete(self, user_id: UUID) -> None:
         """Delete a user by ID from the repository.
 
         Args:
-            user_id (str): The ID of the user to delete.
+            user_id (UUID): The ID of the user to delete.
         """
         self._delete(user_id)
 
@@ -110,11 +121,11 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get(self, user_id: str) -> User:
+    def _get(self, user_id: UUID) -> User:
         """Retrieve a user by ID from the repository.
 
         Args:
-            user_id (str): The ID of the user to retrieve.
+            user_id (UUID): The ID of the user to retrieve.
 
         Returns:
             User: The user entity with the specified ID.
@@ -134,11 +145,20 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _delete(self, user_id: str) -> None:
+    def _get_all(self) -> List[User]:
+        """Retrieve a list of users from the database.
+
+        Returns:
+            List[User]: List of all user entities in the database.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _delete(self, user_id: UUID) -> None:
         """Delete a user by ID from the repository.
 
         Args:
-            user_id (str): The ID of the user to delete.
+            user_id (UUID): The ID of the user to delete.
         """
         raise NotImplementedError
 
@@ -158,6 +178,7 @@ class SqlAlchemyRepository(AbstractRepository):
         _add: Adds a user to the database.
         _get: Retrieves a user by ID from the database.
         _get_by_name: Retrieves a user by username from the database.
+        _get_all: Retrieves a list of users from the database.
         _delete: Deletes a user by ID from the database.
     """
 
@@ -191,11 +212,11 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         self.session.add(user)
 
-    def _get(self, user_id: str) -> User:
+    def _get(self, user_id: UUID) -> User:
         """Retrieve a user by ID from the database.
 
         Args:
-            user_id (str): The ID of the user to retrieve.
+            user_id (UUID): The ID of the user to retrieve.
 
         Returns:
             User: The user entity with the specified ID.
@@ -213,10 +234,18 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return self.session.query(User).filter_by(username=username).one()
 
-    def _delete(self, user_id: str) -> None:
+    def _get_all(self) -> List[User]:
+        """Retrieve a list of users from the database.
+
+        Returns:
+            List[User]: List of all user entities in the database.
+        """
+        return self.session.query(User).all()
+
+    def _delete(self, user_id: UUID) -> None:
         """Delete a user by ID from the database.
 
         Args:
-            user_id (str): The ID of the user to delete.
+            user_id (UUID): The ID of the user to delete.
         """
         self.session.query(User).filter_by(id=user_id).delete()

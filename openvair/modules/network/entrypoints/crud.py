@@ -9,6 +9,7 @@ Classes:
         operations.
 """
 
+from uuid import UUID
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
@@ -72,7 +73,7 @@ class InterfaceCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_interface(self, iface_id: str) -> Dict:
+    def get_interface(self, iface_id: UUID) -> Dict:
         """Retrieve a specific network interface.
 
         This method calls the service layer to retrieve data for a specific
@@ -87,7 +88,7 @@ class InterfaceCrud:
         LOG.info('Call service layer on getting interface.')
         result: Dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_interface.__name__,
-            data_for_method={'iface_id': iface_id},
+            data_for_method={'iface_id': str(iface_id)},
             priority=8,
         )
         LOG.debug('Response from service layer: %s.' % result)
@@ -146,14 +147,13 @@ class InterfaceCrud:
         return result
 
     def delete_bridge(self, data: List, user_info: Dict) -> List:
-        """Delete a network bridge.
+        """Delete a network bridge by ID.
 
         This method calls the service layer to delete a network bridge based
         on the provided data and user information.
 
         Args:
-            data (List): A list of dictionaries containing information about
-                the bridges to be deleted.
+            data (List): A list containing IDs of bridges to be deleted.
             user_info (Dict): A dictionary containing user information.
 
         Returns:
@@ -164,7 +164,8 @@ class InterfaceCrud:
         os_type_interface = get_os_type()
         result = []
 
-        for iface in data:
+        for iface_id in data:
+            iface = {'id': iface_id}
             iface.update(
                 {
                     'user_info': user_info,

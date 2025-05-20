@@ -37,7 +37,7 @@ from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.virtual_machines.entrypoints import schemas
 from openvair.modules.virtual_machines.entrypoints.crud import VMCrud
 
@@ -121,7 +121,9 @@ async def create_vm(
         schemas.VirtualMachineInfo: The created virtual machine data.
     """
     LOG.info('API handling request to create a new virtual machine.')
-    vm = await run_in_threadpool(crud.create_vm, data.dict(), user_info)
+    vm = await run_in_threadpool(
+        crud.create_vm, data.model_dump(mode='json'), user_info
+    )
     LOG.info('API request was successfully processed.')
     return schemas.VirtualMachineInfo(**vm)
 
@@ -230,7 +232,9 @@ async def edit_vm(
         schemas.VirtualMachineInfo: The updated virtual machine data.
     """
     LOG.info(f'API handling request to edit virtual machine with ID: {vm_id}.')
-    vm = await run_in_threadpool(crud.edit_vm, vm_id, data.dict(), user_info)
+    vm = await run_in_threadpool(
+        crud.edit_vm, vm_id, data.model_dump(mode='json'), user_info
+    )
     LOG.info('API request was successfully processed.')
     return schemas.VirtualMachineInfo(**vm)
 

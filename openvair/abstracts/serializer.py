@@ -3,7 +3,9 @@
 import abc
 from typing import Dict, Type, Generic, TypeVar
 
-T = TypeVar('T')
+from sqlalchemy.orm import DeclarativeBase
+
+T = TypeVar('T', bound=DeclarativeBase)
 
 
 class AbstractDataSerializer(Generic[T], metaclass=abc.ABCMeta):

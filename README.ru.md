@@ -85,7 +85,7 @@
 4. Настройте конфигурационный файл:
 
     ```shell
-    vi ~/openvair/project_config.toml
+    nano ~/openvair/project_config.toml
     ```
 
 ### ⚙️ Настройка проекта

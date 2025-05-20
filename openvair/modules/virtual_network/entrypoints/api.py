@@ -33,19 +33,19 @@ Dependencies:
         networks.
 """  # noqa: E501, W505
 
+from uuid import UUID
 from typing import Dict
 
-from fastapi import Path, Depends, APIRouter, status
+from fastapi import Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.virtual_network.entrypoints import schemas
 from openvair.modules.virtual_network.entrypoints.crud import VirtualNetworkCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/virtual_networks',
@@ -91,9 +91,7 @@ async def get_virtual_networks(
     dependencies=[Depends(get_current_user)],
 )
 async def get_virtual_network_by_id(
-    virtual_network_id: str = Path(
-        ..., description='Virtual network id', regex=UUID_REGEX
-    ),
+    virtual_network_id: UUID,
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> schemas.VirtualNetworkResponse:
     """Retrieves a virtual network by its ID.
@@ -202,9 +200,7 @@ async def create_virtual_network(
     status_code=status.HTTP_200_OK,
 )
 async def delete_virtual_network(
-    virtual_network_id: str = Path(
-        ..., description='Virtual network id', regex=UUID_REGEX
-    ),
+    virtual_network_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> JSONResponse:

@@ -14,20 +14,20 @@ Routes:
     - PUT /interfaces/{name}/turn_off: Turn off a specific interface.
 """
 
+from uuid import UUID
 from typing import Dict, List, cast
 
-from fastapi import Path, Query, Depends, APIRouter, status
+from fastapi import Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import regex_matcher, get_current_user
+from openvair.libs.auth.jwt_utils import get_current_user
 from openvair.modules.network.entrypoints import schemas
 from openvair.modules.network.entrypoints.crud import InterfaceCrud
 
 LOG = get_logger(__name__)
-UUID_REGEX = regex_matcher('uuid4')
 
 router = APIRouter(
     prefix='/interfaces',
@@ -105,11 +105,7 @@ async def get_bridges_list(
     dependencies=[Depends(get_current_user)],
 )
 async def get_interface(
-    iface_id: str = Path(
-        ...,
-        description='Interface ID (UUID4)',
-        regex=UUID_REGEX,
-    ),
+    iface_id: UUID,
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> schemas.Interface:
     """API endpoint for retrieving current network interface data.
@@ -159,7 +155,9 @@ async def bridge_create(
         Exception: Any error that occurs during the process.
     """
     LOG.info('API: Start creating a network bridge')
-    bridge = await run_in_threadpool(crud.create_bridge, data.dict(), user_info)
+    bridge = await run_in_threadpool(
+        crud.create_bridge, data.model_dump(mode='json'), user_info
+    )
     LOG.info('API: Request processed successfully.')
     return schemas.BridgeCreateResponse(**bridge)
 
@@ -169,14 +167,14 @@ async def bridge_create(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def bridge_delete(
-    data: schemas.BridgeDelete,
+    data: List[str],
     user_info: Dict = Depends(get_current_user),
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> List[Dict]:
     """API endpoint for deleting a bridge.
 
     Args:
-        data (schemas.BridgeDelete): Information about the bridge to delete.
+        data (List[str]): IDs of bridges to delete.
         user_info (Dict): User information retrieved from the authentication
             token.
         crud (InterfaceCrud, optional): Dependency injection for CRUD operations
@@ -191,7 +189,9 @@ async def bridge_delete(
     """
     LOG.info('API: Start deleting a bridge')
     bridge = await run_in_threadpool(
-        crud.delete_bridge, data.dict().get('data', {}), user_info
+        crud.delete_bridge,
+        data,
+        user_info
     )
     LOG.info('API: Request processed successfully.')
     return bridge

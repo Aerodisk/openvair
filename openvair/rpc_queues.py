@@ -101,3 +101,10 @@ class RPCQueueNames:
 
         SERVICE_LAYER: str = 'volume_api_service_layer'
         DOMAIN_LAYER: str = 'volume_service_layer_domain'
+
+    @dataclass(frozen=True)
+    class Template:
+        """Queue names for template-related operations."""
+
+        SERVICE_LAYER: str = 'template_api_service_layer'
+        DOMAIN_LAYER: str = 'template_service_layer_domain'

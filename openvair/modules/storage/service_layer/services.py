@@ -25,14 +25,8 @@ import enum
 from typing import Dict, List, cast
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import (
-    is_system_disk,
-    get_system_disks,
-    is_system_partition,
-    get_local_partitions,
-    synchronized_session,
-)
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
+from openvair.libs.context_managers import synchronized_session
 from openvair.modules.storage.config import (
     API_SERVICE_LAYER_QUEUE_NAME,
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
@@ -42,6 +36,12 @@ from openvair.modules.storage.adapters import orm
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
+)
+from openvair.modules.storage.libs.utils import (
+    is_system_disk,
+    get_system_disks,
+    is_system_partition,
+    get_local_partitions,
 )
 from openvair.modules.storage.service_layer import exceptions, unit_of_work
 from openvair.libs.messaging.messaging_agents import MessagingClient

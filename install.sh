@@ -255,6 +255,12 @@ install_python_requirements() {
   install_python_package "-r $PROJECT_PATH/requirements.txt" "python requirements"
 }
 
+install_pre-commit(){
+  local install_command="$PROJECT_PATH/venv/bin/pre-commit install"
+  local message="Installing pre-commit"
+  execute "$install_command" "$message"
+}
+
 # Installing psycopg
 install_psycopg2(){
     install_python_package "psycopg2" "psycopg2"
@@ -833,6 +839,7 @@ main() {
     install_requirements_for_storages
     install_wheel
     install_python_requirements
+    install_pre-commit
     install_openvswitch
     install_multipath
     change_owner

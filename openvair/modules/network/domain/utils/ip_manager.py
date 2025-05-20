@@ -8,11 +8,12 @@ Classes:
         standard IP commands to manage network interfaces.
 """
 
-import json
 from typing import Any, Dict, List, Tuple
 
 from openvair.libs.log import get_logger
-from openvair.modules.tools.utils import execute
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
+from openvair.libs.data_handlers.json.serializer import deserialize_json
 from openvair.modules.network.domain.utils.exceptions import (
     IPManagerException,
     InvalidAddressException,
@@ -28,32 +29,47 @@ class IPManager:
     """
 
     def _get_addresses_data(self) -> Dict[str, Dict[str, Any]]:
-        cmd = 'sudo ip -j a'
-        result, error = execute(cmd)
-        if error:
-            message = f'Failure while getting addresses info: {error}'
+        command = 'ip -j a'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = f'Failure while getting addresses info: {exec_res.stderr}'
             LOG.error(message)
             raise IPManagerException(message)
-        addresses: List[Dict] = json.loads(result)
+        addresses: List[Dict] = deserialize_json(exec_res.stdout)
         return {iface['ifname']: iface for iface in addresses}
 
     def _get_interfaces_data(self) -> Dict[str, Dict[str, Any]]:
-        cmd = 'sudo ip -j link show'
-        result, error = execute(cmd)
-        if error:
-            message = f'Failure while gettin interfaces info: {error}'
+        command = 'ip -j link show'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = f'Failure while gettin interfaces info: {exec_res.stderr}'
             LOG.error(message)
             raise IPManagerException(message)
-        interfaces: List[Dict] = json.loads(result)
+        interfaces: List[Dict] = deserialize_json(exec_res.stdout)
         return {iface['ifname']: iface for iface in interfaces}
 
     def _get_routes_data(self) -> List[Dict]:
-        cmd = 'ip -j route'
-        result, error = execute(cmd)
-        if error:
-            msg = f'Failure while getting main port name: {error}'
+        command = 'ip -j route'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(shell=True)  # noqa: S604
+        )
+        if exec_res.stderr:
+            msg = f'Failure while getting main port name: {exec_res.stderr}'
             raise IPManagerException(msg)
-        routes_info: List[Dict] = json.loads(result)
+        routes_info: List[Dict] = deserialize_json(exec_res.stdout)
         return routes_info
 
     def get_iface_data(self, iface_name: str) -> Dict:
@@ -105,25 +121,40 @@ class IPManager:
         """
         LOG.info(f'Setting IP: {ip_address} to the: {iface_name}')
 
-        command = f'sudo ip addr add {ip_address} dev {iface_name}'
-        result, error = execute(command)
-        if error:
+        command = f'ip addr add {ip_address} dev {iface_name}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
             message = (
                 f'Error setting IP address {ip_address} '
-                f'for interface {iface_name}: {error}'
+                f'for interface {iface_name}: {exec_res.stderr}'
             )
             raise InvalidAddressException(message)
-        LOG.info(result)
-        LOG.info(error)
+        LOG.info(exec_res.stdout)
+        LOG.info(exec_res.stderr)
         LOG.info('IP address was successfully set')
-        return result.strip()
+        return exec_res.stdout.strip()
 
     def set_alias(self, iface_name: str, alias: str) -> None:
         """Sertting alias for interface"""
-        command = f'sudo ip link set {iface_name} alias "{alias}"'
-        _, error = execute(command)
-        if error:
-            message = f'Error setting alias for interface {iface_name}: {error}'
+        command = f'ip link set {iface_name} alias "{alias}"'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stdout:
+            message = (
+                f'Error setting alias for interface {iface_name}: '
+                f'{exec_res.stderr}'
+            )
             err = IPManagerException(message)
             LOG.error(err)
             raise err
@@ -142,15 +173,21 @@ class IPManager:
         Raises:
             InvalidAddressException: If removing the IP address fails.
         """
-        command = f'sudo ip addr del {ip_address} dev {iface_name}'
-        result, error = execute(command)
-        if error:
+        command = f'ip addr del {ip_address} dev {iface_name}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
             message = (
                 f'Error removing IP address {ip_address} from interface '
-                f'{iface_name}: {error}'
+                f'{iface_name}: {exec_res.stderr}'
             )
             raise InvalidAddressException(message)
-        return result.strip()
+        return exec_res.stdout.strip()
 
     @staticmethod
     def turn_on_interface(iface_name: str) -> str:
@@ -166,15 +203,22 @@ class IPManager:
             IPManagerException: If turning on the interface fails.
         """
         LOG.info('Turning the bridge on')
-        command = f'sudo ip link set {iface_name} up'
-        result, error = execute(command)
-
-        if error:
-            message = f'Error turning on interface {iface_name}: {error}'
+        command = f'ip link set {iface_name} up'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = (
+                f'Error turning on interface {iface_name}: {exec_res.stderr}'
+            )
             raise IPManagerException(message)
         LOG.info(f"The bridge '{iface_name}' was successfully created")
 
-        return result.strip()
+        return exec_res.stdout.strip()
 
     @staticmethod
     def turn_off_interface(iface_name: str) -> str:
@@ -189,16 +233,24 @@ class IPManager:
         Raises:
             IPManagerException: If turning off the interface fails.
         """
-        command = f'sudo ip link set {iface_name} down'
-        result, error = execute(command)
-        if error:
-            message = f'Error turning off interface {iface_name}: {error}'
+        command = f'ip link set {iface_name} down'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = (
+                f'Error turning off interface {iface_name}: {exec_res.stderr}'
+            )
             raise IPManagerException(message)
-        return result.strip()
+        return exec_res.stdout.strip()
 
     @staticmethod
     def check_interface_state(
-        iface_name: str, expected_states: tuple = ('UP', 'DOWN')
+        iface_name: str, expected_states: tuple = ('UP', 'DOWN', 'UNKNOW')
     ) -> bool:
         """Check the state of the given interface.
 
@@ -210,12 +262,23 @@ class IPManager:
             bool: True if the interface has any of the expected states,
                 False otherwise.
         """
-        command = f'sudo ip link show {iface_name}'
-        result, error = execute(command)
-        if error:
-            message = f'Error occurred while checking interface state: {error}'
+        command = f'ip link show {iface_name}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        if exec_res.stderr:
+            message = (
+                'Error occurred while checking interface state: '
+                f'{exec_res.stderr}'
+            )
             raise IPManagerException(message)
-        return any(f'state {state}' in result for state in expected_states)
+        return any(
+            f'state {state}' in exec_res.stdout for state in expected_states
+        )
 
     @staticmethod
     def get_interface_addresses(iface_name: str) -> List[str]:
@@ -231,19 +294,24 @@ class IPManager:
             NetworkInterfaceException: If retrieving the IP addresses fails.
         """
         command = (
-            f'sudo ip addr show {iface_name} | '
-            f"grep 'inet ' | awk '{{print $2}}'"
+            f'ip addr show {iface_name} | ' f"grep 'inet ' | awk '{{print $2}}'"
         )
-        result, error = execute(command)
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
 
-        if error:
+        if exec_res.stderr:
             message = (
                 f"Error occurred while getting interface '{iface_name}'"
-                f' IP addresses: {error}'
+                f' IP addresses: {exec_res.stderr}'
             )
             raise IPManagerException(message)
 
-        return result.strip().split('\n')
+        return exec_res.stdout.strip().split('\n')
 
     # need replce by get_addresses
     @staticmethod
@@ -260,20 +328,26 @@ class IPManager:
             NetworkInterfaceException: If retrieving the IP address fails.
         """
         command = (
-            f'sudo ip addr show {port_name} |'
+            f'ip addr show {port_name} |'
             " awk '/inet / {print $2}' | cut -d '/' -f 1"
         )
-        result, error = execute(command)
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
 
-        if error:
-            message = f'Failure while getting main port IP: {error}'
+        if exec_res.stderr:
+            message = f'Failure while getting main port IP: {exec_res.stderr}'
             raise IPManagerException(message)
 
-        if not result.strip():
+        if not exec_res.stdout.strip():
             LOG.info('Got an empty result while getting main port IP')
             return ''
 
-        return result.strip().split()[0]
+        return exec_res.stdout.strip().split()[0]
 
     @staticmethod
     def flush_iface_ip(iface_name: str) -> str:
@@ -289,14 +363,20 @@ class IPManager:
             NetworkInterfaceException: If flushing the IP addresses fails.
         """
         LOG.info(f'Flushing IP from: {iface_name}...')
-        command = f'sudo ip addr flush dev {iface_name}'
-        result, error = execute(command)
+        command = f' ip addr flush dev {iface_name}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
 
-        if error:
-            message = f'Failure while removing IP from port: {error}'
+        if exec_res.stderr:
+            message = f'Failure while removing IP from port: {exec_res.stderr}'
             raise IPManagerException(message)
 
-        return result.strip()
+        return exec_res.stdout.strip()
 
     def is_dhcp_ip(self, iface_name: str) -> bool:
         """Check if dhcp enabled for interface"""
@@ -320,9 +400,15 @@ class IPManager:
         Returns:
             str: Command stdout.
         """
-        command = f'sudo dhclient {iface_name}'
-        result, _ = execute(command)
-        return result.strip()
+        command = f'dhclient {iface_name}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        return exec_res.stdout.strip()
 
     def get_default_gateway_ip(self) -> str:
         """Get the default gateway IP for the given interface IP.
@@ -358,14 +444,22 @@ class IPManager:
             NetworkInterfaceException: If setting the default gateway fails.
         """
         LOG.info(f'Setting default gateway: {gateway_ip}')
-        command = f'sudo ip route add default via {gateway_ip}'
-        result, error = execute(command)
+        command = f'ip route add default via {gateway_ip}'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
 
-        if error:
-            message = f'Failure while setting default gateway: {error}'
+        if exec_res.stderr:
+            message = (
+                f'Failure while setting default gateway: {exec_res.stderr}'
+            )
             raise IPManagerException(message)
 
-        return result.strip()
+        return exec_res.stdout.strip()
 
     def get_json_ifaces(self) -> Dict:
         """Get network interfaces in JSON format.
@@ -379,13 +473,18 @@ class IPManager:
         Raises:
             IPManagerException: If retrieving the network interfaces fails.
         """
-        stdout, stderr = execute('ip -j link show')
-        if stderr:
-            message = stderr
+        command = 'ip -j link show'
+        exec_res = execute(
+            command,
+            params=ExecuteParams(shell=True),  # noqa: S604
+        )
+
+        if exec_res.stderr:
+            message = exec_res.stderr
             raise IPManagerException(message)
 
         # Convert results of commands into dict
-        ifaces: Dict = json.loads(stdout.strip())
+        ifaces: Dict = deserialize_json(exec_res.stdout)
         return ifaces
 
     def _check_defaoult_gateways(self, addresses: Tuple) -> None:
