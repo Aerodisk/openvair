@@ -14,21 +14,8 @@ Classes:
 
 from pydantic import ConfigDict
 
-api_request_config = ConfigDict(
-    from_attributes=True,
-    extra='forbid',  # более строгая проверка для входящих данных
-    use_enum_values=True,
-)
-
-api_response_config = ConfigDict(
-    from_attributes=True,
-    extra='ignore',  # более мягкая — для отдачи наружу
-    use_enum_values=True,
-)
-
 dto_config = ConfigDict(
     from_attributes=True,
-    extra='forbid',
     populate_by_name=True,
     use_enum_values=True,
     str_strip_whitespace=True,
@@ -36,8 +23,5 @@ dto_config = ConfigDict(
 
 lenient_dto_config = ConfigDict(
     from_attributes=True,
-    extra='ignore',
-    populate_by_name=True,
     use_enum_values=True,
-    str_strip_whitespace=True,
 )

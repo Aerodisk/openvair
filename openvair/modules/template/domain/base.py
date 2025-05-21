@@ -11,7 +11,7 @@ from pathlib import Path
 
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.template.adapters.dto.internal.models import (
-    DomainTemplateModel,
+    DomainTemplateModelDTO,
 )
 
 
@@ -84,7 +84,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         ...
 
     def _to_json_dict(self) -> Dict[str, Any]:
-        template_info: DomainTemplateModel = DomainTemplateModel.model_validate(
-            self.__dict__
+        template_info: DomainTemplateModelDTO = (
+            DomainTemplateModelDTO.model_validate(self.__dict__)
         )
         return template_info.model_dump(mode='json')

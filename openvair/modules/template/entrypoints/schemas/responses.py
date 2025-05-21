@@ -7,10 +7,8 @@ from uuid import UUID
 from typing import Optional
 from datetime import datetime
 
+from openvair.common.base_pydantic_models import APIConfigResponseModel
 from openvair.modules.template.shared.enums import TemplateStatus
-from openvair.modules.template.entrypoints.schemas.base import (
-    APIConfigResponseModel,
-)
 
 
 class TemplateResponse(APIConfigResponseModel):

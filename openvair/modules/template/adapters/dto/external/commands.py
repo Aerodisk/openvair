@@ -1,12 +1,9 @@
 from uuid import UUID  # noqa: D100
-from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict
-
-from openvair.common.configs.pydantic_config import dto_config
+from openvair.common.base_pydantic_models import BaseDTOModel
 
 
-class GetVolumeCommandDTO(BaseModel):
+class GetVolumeCommandDTO(BaseDTOModel):
     """DTO for querying a volume by its ID.
 
     This model is used to create a JSON-serializable payload for RPC calls
@@ -24,10 +21,9 @@ class GetVolumeCommandDTO(BaseModel):
     """  # noqa: E501
 
     volume_id: UUID
-    model_config: ClassVar[ConfigDict] = dto_config
 
 
-class GetStorageCommandDTO(BaseModel):
+class GetStorageCommandDTO(BaseDTOModel):
     """DTO for querying a storage by its ID.
 
     This model is used to create a JSON-serializable payload for RPC calls
@@ -45,4 +41,3 @@ class GetStorageCommandDTO(BaseModel):
     """  # noqa: E501
 
     storage_id: UUID
-    model_config: ClassVar[ConfigDict] = dto_config

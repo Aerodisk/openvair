@@ -9,9 +9,7 @@ from typing import Literal, Optional
 
 from pydantic import Field
 
-from openvair.modules.template.entrypoints.schemas.base import (
-    APIConfigRequestModel,
-)
+from openvair.common.base_pydantic_models import APIConfigRequestModel
 
 
 class RequestCreateTemplate(APIConfigRequestModel):
@@ -32,10 +30,10 @@ class RequestCreateTemplate(APIConfigRequestModel):
         ... )
     """
 
-    base_volume_id: UUID
     name: str
     description: Optional[str]
     storage_id: UUID
+    base_volume_id: UUID
     is_backing: bool
 
 

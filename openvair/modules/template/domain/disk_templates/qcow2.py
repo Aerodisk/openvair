@@ -67,9 +67,11 @@ class Qcow2Template(BaseTemplate):
         """
         LOG.info(f'Start creating new template: {self.name}')
 
-        dto = CreateTemplateDomainCommandDTO.model_validate(creation_data)
+        create_command = CreateTemplateDomainCommandDTO.model_validate(
+            creation_data
+        )
 
-        source_disk_path = dto.source_disk_path
+        source_disk_path = create_command.source_disk_path
         if not Path(source_disk_path).exists():
             message = f'Source disk not found: {source_disk_path}'
             raise FileNotFoundError(message)

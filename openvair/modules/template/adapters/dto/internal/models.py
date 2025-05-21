@@ -4,12 +4,11 @@ from typing import List, Literal, Optional
 from pathlib import Path
 from datetime import datetime
 
-from pydantic import BaseModel
-
+from openvair.common.base_pydantic_models import BaseDTOModel
 from openvair.modules.template.shared.enums import TemplateStatus
 
 
-class ApiTemplateModel(BaseModel):  # noqa: D101
+class ApiTemplateModelDTO(BaseDTOModel):  # noqa: D101
     id: UUID
     name: str
     description: Optional[str]
@@ -22,7 +21,7 @@ class ApiTemplateModel(BaseModel):  # noqa: D101
     storage_id: UUID
 
 
-class DomainTemplateModel(BaseModel):  # noqa: D101
+class DomainTemplateModelDTO(BaseDTOModel):  # noqa: D101
     tmp_format: str
     name: str
     path: Path
@@ -31,7 +30,7 @@ class DomainTemplateModel(BaseModel):  # noqa: D101
     description: str
 
 
-class CreateTemplateModel(BaseModel):  # noqa: D101
+class CreateTemplateModelDTO(BaseDTOModel):  # noqa: D101
     name: str
     description: Optional[str]
     path: Path
