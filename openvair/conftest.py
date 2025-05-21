@@ -82,7 +82,7 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
     storage_disk = Path(storage_settings.storage_path)
 
     storage_data = CreateStorage(
-        name='test-storage',
+        name=generate_test_entity_name('storage'),
         description='Test storage for integration tests',
         storage_type='localfs',
         specs=LocalFSStorageExtraSpecsCreate(path=storage_disk, fs_type='ext4'),

@@ -183,6 +183,7 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
         'name': 'nonexistent-storage-volume',
         'description': 'Attempt to use bad storage_id',
         'storage_id': str(uuid.uuid4()),  # Нереальный UUID
+        'storage_type': 'localfs',
         'format': 'qcow2',
         'size': 1024,
         'read_only': False,
