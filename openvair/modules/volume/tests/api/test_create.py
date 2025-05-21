@@ -4,9 +4,13 @@ Covers:
 - Successful volume creation.
 - Validation errors (e.g. missing fields, invalid size, format, name).
 - Logical errors (duplicate name, nonexistent storage, oversized request).
+- Successful volume creation from a template.
+- Invalid template ID.
+- Unauthorized access.
 """
 
 import uuid
+from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -21,7 +25,7 @@ from openvair.modules.volume.entrypoints.schemas import CreateVolume
 LOG = get_logger(__name__)
 
 
-def test_create_volume_success(client: TestClient, storage: dict) -> None:
+def test_create_volume_success(client: TestClient, storage: Dict) -> None:
     """Test successful volume creation.
 
     Asserts:
@@ -52,7 +56,7 @@ def test_create_volume_success(client: TestClient, storage: dict) -> None:
     )
 
 
-def test_create_volume_invalid_size(client: TestClient, storage: dict) -> None:
+def test_create_volume_invalid_size(client: TestClient, storage: Dict) -> None:
     """Test creation failure with invalid size (0 bytes).
 
     Asserts:
@@ -70,7 +74,7 @@ def test_create_volume_invalid_size(client: TestClient, storage: dict) -> None:
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_create_volume_without_name(client: TestClient, storage: dict) -> None:
+def test_create_volume_without_name(client: TestClient, storage: Dict) -> None:
     """Test volume creation fails if 'name' is missing.
 
     Asserts:
@@ -89,7 +93,7 @@ def test_create_volume_without_name(client: TestClient, storage: dict) -> None:
 
 
 def test_create_volume_with_special_chars_in_name(
-    client: TestClient, storage: dict
+    client: TestClient, storage: Dict
 ) -> None:
     """Test failure on invalid characters in volume name.
 
@@ -109,7 +113,7 @@ def test_create_volume_with_special_chars_in_name(
 
 
 def test_create_volume_with_invalid_format(
-    client: TestClient, storage: dict
+    client: TestClient, storage: Dict
 ) -> None:
     """Test failure when volume format is not allowed.
 
@@ -129,7 +133,7 @@ def test_create_volume_with_invalid_format(
 
 
 def test_create_volume_with_duplicate_name(
-    client: TestClient, storage: dict
+    client: TestClient, storage: Dict
 ) -> None:
     """Test failure when creating a volume with duplicate name in same storage.
 
@@ -154,7 +158,7 @@ def test_create_volume_with_duplicate_name(
 
 
 def test_create_volume_with_too_large_size(
-    client: TestClient, storage: dict
+    client: TestClient, storage: Dict
 ) -> None:
     """Test failure when requested size exceeds storage capacity.
 
@@ -194,3 +198,65 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
     assert (
         'storage' in response.text.lower()
     )  # Сообщение о несуществующем хранилище  # noqa: RUF003
+
+
+def test_create_volume_from_template_success(
+    client: TestClient,
+    storage: Dict,
+    template: Dict,
+) -> None:
+    """Test successful creation of volume from template."""
+    request_data = {
+        'name': generate_test_entity_name('volume'),
+        'description': 'Test volume from template',
+        'storage_id': storage['id'],
+        'template_id': template['id'],
+    }
+    response = client.post('/volumes/from_template/', json=request_data)
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+
+    data = response.json()
+    assert data['name'] == request_data['name']
+    assert data['storage_id'] == storage['id']
+    assert data['status'] == 'new'
+
+    wait_for_field_value(
+        client=client,
+        path=f"/volumes/{data['id']}/",
+        field='status',
+        expected='available',
+        timeout=60,
+    )
+
+
+def test_create_volume_from_template_invalid_template_id(
+    client: TestClient,
+    storage: Dict,
+) -> None:
+    """Test creation with invalid template ID returns 500."""
+    request_data = {
+        'name': generate_test_entity_name('volume'),
+        'description': 'Invalid template test',
+        'storage_id': storage['id'],
+        'template_id': str(uuid.uuid4()),
+    }
+    response = client.post('/volumes/from_template/', json=request_data)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+def test_create_volume_from_template_unauthorized(
+    storage: Dict,
+    template: Dict,
+    unauthorized_client: TestClient,
+) -> None:
+    """Test unauthorized request returns 401."""
+    request_data = {
+        'name': generate_test_entity_name('volume'),
+        'description': 'Unauthorized test',
+        'storage_id': storage['id'],
+        'template_id': template['id'],
+    }
+    response = unauthorized_client.post(
+        '/volumes/from_template/', json=request_data
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

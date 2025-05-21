@@ -1,10 +1,11 @@
 # noqa: D100
 from uuid import uuid4
-from typing import Generator
+from typing import Dict, Generator
 from pathlib import Path
 
 import pytest
 from fastapi import status
+from schemas.requests import RequestCreateTemplate
 from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
 
@@ -74,6 +75,45 @@ def configure_pagination() -> None:
     add_pagination(app)
 
 
+# def delete_storage_from_fs() -> None:
+#     devices = get_block_devices_info()
+#     for device in devices:
+#         mount_point = device.get('mountpoint') or ''
+#         if '/opt/aero/openvair/data/mnt' in mount_point:
+#             try:
+#                 execute(
+#                     'umount',
+#                     mount_point,
+#                     params=ExecuteParams(
+#                         shell=True, run_as_root=True, raise_on_error=True
+#                     ),
+#                 )
+#                 execute(
+#                     'rm',
+#                     '-rf',
+#                     mount_point,
+#                     params=ExecuteParams(
+#                         shell=True,
+#                         run_as_root=True,
+#                         raise_on_error=True,
+#                     ),
+#                 )
+#             except (ExecuteError, OSError) as e:
+#                 LOG.error(f'Error during unmounting storage - {e}')
+#                 raise
+
+
+# @pytest.fixture(autouse=True, scope='session')
+# def delete_storages_from_db() -> None:
+#     unit_of_work = SqlAlchemyUnitOfWork()
+#     with unit_of_work as uow:
+#         orm_storages = uow.storages.get_all()
+#         for orm_storage in orm_storages:
+#             uow.storages.delete(orm_storage.id)
+#             uow.commit()
+#
+
+
 @pytest.fixture(scope='module')
 def storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
@@ -130,3 +170,24 @@ def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
     yield volume
 
     delete_resource(client, '/volumes', volume['id'], 'volume')
+
+
+@pytest.fixture(scope='function')
+def template(
+    client: TestClient, storage: Dict, volume: Dict
+) -> Generator[Dict, None, None]:
+    """Creates a test volume and deletes it after each test."""
+    template_data = RequestCreateTemplate(
+        base_volume_id=volume['id'],
+        name=generate_test_entity_name(entity_type='template'),
+        description='Template for integration tests',
+        storage_id=storage['id'],
+        is_backing=False,
+    ).model_dump(mode='json')
+    template = create_resource(
+        client, '/templates/', template_data, 'template'
+    )['data']
+
+    yield template
+
+    delete_resource(client, '/templates', template['id'], 'volume')
