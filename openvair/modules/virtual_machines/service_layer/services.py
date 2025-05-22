@@ -1393,6 +1393,7 @@ class VMServiceLayerManager(BackgroundTasks):
             # TODO: вынести логику клонирования дисков в модуль volume
             new_disks = []
             for disk in clone_data.get('disks', []):
+                LOG.info(f'=====================> Cloning disk: {disk}')
                 new_disk = {
                     'emulation': disk['emulation'],
                     'format': disk['format'],
@@ -1404,7 +1405,26 @@ class VMServiceLayerManager(BackgroundTasks):
                 if disk.get('type') == DiskType.volume.value:
                     new_disk['name'] = f"{disk['name']}_clone_{i+1}"
                     new_disk['volume_id'] = disk['disk_id']
+                    # name: str
+                    # description: str
+                    # storage_id: UUID
+                    # template_id: UUID
+                    # read_only: Optional[bool]
+                    # user_id: UUID
+                    try:
+                        cloned_disk = self.volume_service_client.create_from_template({
+                            'name': new_disk['name'],
+                            'description': f'Cloned volume from {disk["name"]}',
+                            'storage_id': disk['storage_id'], # тут нужно брать id хранилища самим так как его нет в disk['storeage_id']
+                            'template_id': disk['disk_id'],
+                            'read_only': disk['read_only'],
+                        })
+                        new_disks.append(cloned_disk)
+                    except Exception as e:
+                        LOG.exception(f'--------------> Error cloning volume: {e}')
+                        continue
                 elif disk.get('type') == DiskType.image.value:
+                    new_disk['name'] = disk['name']
                     new_disk['image_id'] = disk['disk_id']
 
                 new_disks.append(new_disk)
