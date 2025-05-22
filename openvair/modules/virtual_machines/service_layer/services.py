@@ -32,6 +32,7 @@ from __future__ import annotations
 import enum
 import time
 import string
+from copy import deepcopy
 from uuid import UUID, uuid4
 from typing import Dict, List, Optional, cast
 from collections import namedtuple
@@ -231,13 +232,13 @@ class VMServiceLayerManager(BackgroundTasks):
         """Prepare the information needed to create a virtual machine.
 
         Args:
-            vm_info (Dict): The dictionary containing the parameters
+            vm_info (Dict): The dictiona-------------------------> ry containing the parameters
                 of the virtual machine.
 
         Returns:
             CreateVmInfo: The prepared virtual machine information.
         """
-        LOG.info('Preparing vm information for create.')
+        LOG.info(f'-------------------------> Preparing vm information: {vm_info}')
         user_info = vm_info.get('user_info', {})
         create_vm_info = CreateVmInfo(
             name=vm_info.pop('name', ''),
@@ -356,6 +357,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info: Dict = data.get('user_info', {})
         create_vm_info = self._prepare_create_vm_info(data)
         web_vm = self._insert_vm_into_db(create_vm_info)
+
         self.event_store.add_event(
             str(web_vm.get('id', '')),
             str(user_info.get('id', '')),
@@ -1340,55 +1342,94 @@ class VMServiceLayerManager(BackgroundTasks):
                 return result
 
     def clone_vm(self, data: Dict) -> List[Dict]:
-        """Clone a virtual machine.
-
-        Args:
-            data (Dict): The data containing the ID of the virtual machine
-                to clone and the number of clones to create.
-
-        Returns:
-            List[Dict]: The list of cloned virtual machine data.
-        """
-        LOG.info(f'Handling response on clone_vm with data: {data}')
         result = []
         vm_id = data.pop('vm_id', '')
         count = data.pop('count', 1)
-        # user_info = data.pop('user_info', {})
+        user_info = data.get('user_info', {})
 
-        LOG.info(f'Cloning VM with ID: {vm_id} {count} times.')
-        vm_to_clone = self.get_vm({'vm_id': vm_id})
+        original_vm = self.get_vm({'vm_id': vm_id})
 
-        if not vm_to_clone:
-            msg = f'VM with ID: {vm_id} not found.'
-            raise exceptions.VMNotFoundException(msg)
+        if not original_vm:
+            raise exceptions.VMNotFoundException(f'VM {vm_id} not found.')
 
-        for number in range(1, count+1):
-            new_vm_name = f'{vm_to_clone["name"]}_clone_{number}'
-            cloned_vm = self._clone_vm(vm_to_clone, new_vm_name)
-            # result.append(DataSerializer.vm_to_web(cloned_vm))
-            # Заглушка для проверки работы
-            result.append(vm_to_clone)
+        for i in range(count):
+            clone_data = deepcopy(original_vm)
+            clone_data['name'] = f"{original_vm['name']}_clone_{i+1}"
+            clone_data['user_info'] = user_info
 
-        # return [DataSerializer.vm_to_web(vm) for vm in result]
-        # Заглушка для проверки работы
+            # Удаление лишних идентификаторов и полей
+            fields_to_remove = ['id', 'vm_id', 'status', 'power_state', 'information', 'user_id']
+            nested_fields_to_remove = ['id', 'vm_id', 'path', 'disk_id']
+
+            # Удаление полей верхнего уровня
+            for field in fields_to_remove:
+                clone_data.pop(field, None)
+
+            # Очистка вложенных структур
+            clone_data['cpu'] = {k: v for k, v in clone_data['cpu'].items() if k not in nested_fields_to_remove}
+            clone_data['ram'] = {k: v for k, v in clone_data['ram'].items() if k not in nested_fields_to_remove}
+            clone_data['os'] = {k: v for k, v in clone_data['os'].items() if k not in nested_fields_to_remove}
+
+            clone_data['graphic_interface'] = {
+                'login': clone_data['graphic_interface'].get('login'),
+                'password': clone_data['graphic_interface'].get('password'),
+                'connect_type': clone_data['graphic_interface'].get('connect_type')
+            }
+
+            original_ifaces = original_vm.get('virtual_interfaces', [])
+            clone_data['virtual_interfaces'] = [
+                {
+                    'mode': iface['mode'],
+                    'portgroup': iface.get('portgroup'),
+                    'interface': iface['interface'],
+                    'mac': iface['mac'],
+                    'model': iface['model'],
+                    'order': iface.get('order'),
+                }
+                for iface in original_ifaces
+            ]
+
+            # START: работа с дисками
+            # TODO: вынести логику клонирования дисков в модуль volume
+            new_disks = []
+            for disk in clone_data.get('disks', []):
+                new_disk = {
+                    'emulation': disk['emulation'],
+                    'format': disk['format'],
+                    'qos': disk['qos'],
+                    'boot_order': disk['boot_order'],
+                    'order': disk['order'],
+                    'read_only': disk['read_only']
+                }
+                if disk.get('type') == DiskType.volume.value:
+                    new_disk['name'] = f"{disk['name']}_clone_{i+1}"
+                    new_disk['volume_id'] = disk['disk_id']
+                elif disk.get('type') == DiskType.image.value:
+                    new_disk['image_id'] = disk['disk_id']
+
+                new_disks.append(new_disk)
+
+            clone_data['disks'] = {'attach_disks': new_disks}
+            # END
+
+            prepared_info = self._prepare_create_vm_info(clone_data)
+            new_vm = self._insert_vm_into_db(prepared_info)
+
+            self.service_layer_rpc.cast(
+                self._create_vm.__name__,
+                data_for_method={
+                    'vm_id': new_vm['id'],
+                    'attach_volumes': prepared_info.attach_volumes,
+                    'attach_images': prepared_info.attach_images,
+                    'auto_create_volumes': prepared_info.auto_create_volumes,
+                    'user_info': user_info,
+                },
+            )
+
+            result.append(new_vm)
+
         return result
 
-    def _clone_vm(self, vm_to_clone: Dict, new_vm_name: str) -> Dict:
-        """Clone a virtual machine.
-
-        Args:
-            vm_to_clone (Dict): The data containing the ID of the virtual machine
-                to clone.
-            new_vm_name (str): The name of the new virtual machine.
-
-        Returns:
-            Dict: The cloned virtual machine data.
-        """
-        LOG.info(f'Cloning VM with ID: {vm_to_clone["id"]} to {new_vm_name}.')
-        # TODO: Реализовать логику клонирования
-        # 1. Клонирование дисклв
-        # 2. Клонирование образа
-        pass
 
     @periodic_task(interval=10)
     def monitoring(self) -> None:
