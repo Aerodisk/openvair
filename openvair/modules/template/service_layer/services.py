@@ -70,23 +70,31 @@ LOG = get_logger(__name__)
 
 
 class TemplateServiceLayerManager(BackgroundTasks):
-    """Manager for handling template service operations.
+    """Manager for coordinating template operations in the service layer.
 
-    This class handles database interactions, messaging, and event logging.
+    This class orchestrates template-related tasks such as creation,
+    updating, and deletion. It handles RPC communication, database transactions,
+    domain delegation, and event logging.
 
     Attributes:
         uow (TemplateSqlAlchemyUnitOfWork): Unit of Work for template
             transactions.
-        domain_rpc (MessagingClient): RPC client for domain layer communication.
-        service_layer_rpc (MessagingClient): RPC client for service layer
-            communication.
-        event_store (EventCrud): Event store manager for templates.
+        domain_rpc (MessagingClient): RPC client for communicating with the
+            domain layer.
+        service_layer_rpc (MessagingClient): RPC client for internal task
+            delegation.
+        volume_service_client (VolumeServiceLayerRPCClient): RPC client for
+            volume queries.
+        storage_service_client (StorageServiceLayerRPCClient): RPC client for
+            storage queries.
+        event_store (EventCrud): Event logger for template operations.
     """
 
     def __init__(self) -> None:
-        """Initializes the service layer manager.
+        """Initialize the TemplateServiceLayerManager.
 
-        Sets up the Unit of Work, messaging clients, and event store.
+        Sets up messaging clients, unit of work, and RPC clients for
+        volume and storage services.
         """
         super().__init__()
         self.uow = TemplateSqlAlchemyUnitOfWork()
@@ -101,10 +109,10 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.event_store = EventCrud('templates')
 
     def get_all_templates(self) -> List[Dict[str, Any]]:
-        """Retrieves all template records from the database.
+        """Retrieve all templates from the database.
 
         Returns:
-            List: A list of serialized templates in JSON-compatible format.
+            List[Dict[str, Any]]: A list of serialized template representations.
         """
         LOG.info('Service layer handle request on getting templates')
 
@@ -123,14 +131,13 @@ class TemplateServiceLayerManager(BackgroundTasks):
         return api_templates
 
     def get_template(self, getting_data: Dict) -> Dict:
-        """Retrieves a single template by its ID.
+        """Retrieve a single template by its ID.
 
         Args:
-            getting_data (Dict): A dictionary containing the 'id' of the
-                template.
+            getting_data (Dict): A dictionary with the 'id' of the template.
 
         Returns:
-            Dict: A JSON-serializable representation of the template.
+            Dict: A serialized representation of the retrieved template.
         """
         LOG.info('Service layer handle request on getting template')
 
@@ -151,7 +158,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return api_template
 
-    def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
+    def create_template(self, creating_data: Dict) -> Dict:
+        """Create a new template, persist it in the db, start async creation.
+
+        Args:
+            creating_data (Dict): A dictionary with template creation fields.
+
+        Returns:
+            Dict: A serialized representation of the newly created template.
+        """
         LOG.info('Service layer handle request on creating template')
 
         creating_command = CreateTemplateServiceCommandDTO.model_validate(
@@ -199,7 +214,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
         api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
         return api_template
 
-    def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
+    def edit_template(self, updating_data: Dict) -> Dict:
+        """Initiate the editing process for an existing template.
+
+        Args:
+            updating_data (Dict): A dictionary with updated template fields.
+
+        Returns:
+            Dict: A serialized representation of the template being edited.
+        """
         edit_command = EditTemplateServiceCommandDTO.model_validate(
             updating_data
         )
@@ -217,7 +240,16 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return ApiSerializer.to_dict(orm_template)
 
-    def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
+    def delete_template(self, deleting_data: Dict) -> Dict:
+        """Initiate the deletion process for a template.
+
+        Args:
+            deleting_data (Dict): A dictionary containing the template ID.
+
+        Returns:
+            Dict: A serialized representation of the template marked for
+                deletion.
+        """
         delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             deleting_data
         )
@@ -237,6 +269,18 @@ class TemplateServiceLayerManager(BackgroundTasks):
         return ApiSerializer.to_dict(orm_template)
 
     def _create_template(self, prepared_create_command_data: Dict) -> None:
+        """Perform the async creation of a template file via the domain layer.
+
+        This method is invoked via cast-RPC after initial template DB
+        registration.
+
+        Args:
+            prepared_create_command_data (Dict): Data containing template ID and
+                source volume path.
+
+        Raises:
+            RpcException: If domain RPC call fails.
+        """
         async_creating_command = (
             AsyncCreateTemplateServiceCommandDTO.model_validate(
                 prepared_create_command_data
@@ -279,6 +323,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
     def _edit_template(self, edit_command_data: Dict) -> None:
+        """Perform the async renaming/editing of a template via the domain layer
+
+        Args:
+            edit_command_data (Dict): Serialized DTO with updated name and
+                description.
+
+        Raises:
+            RpcException: If domain RPC call fails.
+        """
         edit_command = EditTemplateServiceCommandDTO.model_validate(
             edit_command_data
         )
@@ -318,6 +371,14 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
     def _delete_template(self, delete_command_data: Dict) -> None:
+        """Delete a template file from the filesystem and remove the DB record.
+
+        Args:
+            delete_command_data (Dict): Dictionary containing the template ID.
+
+        Raises:
+            RpcException: If domain RPC call fails.
+        """
         delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             delete_command_data
         )
@@ -348,6 +409,14 @@ class TemplateServiceLayerManager(BackgroundTasks):
             uow.commit()
 
     def _ensure_template_not_in_use(self, orm_template: Template) -> None:
+        """Check if the template is safe to edit or delete.
+
+        Args:
+            orm_template (Template): ORM instance of the template.
+
+        Raises:
+            Exception: If template is still referenced by volumes.
+        """
         data_for_manager = DomainSerializer.to_dto(orm_template)
         data_for_manager.related_volumes = self._get_related_volumes(
             orm_template.id,
@@ -365,6 +434,14 @@ class TemplateServiceLayerManager(BackgroundTasks):
         event_type: str,
         message: str = '',
     ) -> None:
+        """Update template status and persist an audit event.
+
+        Args:
+            orm_template (Template): Template ORM object to update.
+            status (TemplateStatus): New status to apply.
+            event_type (str): Type of event to log.
+            message (str, optional): Additional context or error message.
+        """
         orm_template.status = status
         orm_template.information = message
         with self.uow as uow:
@@ -382,6 +459,17 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.event_store.add_event(**event)
 
     def _get_volume_info(self, volume_id: UUID) -> VolumeModelDTO:
+        """Fetch detailed information about a volume via RPC.
+
+        Args:
+            volume_id (UUID): ID of the base volume.
+
+        Returns:
+            VolumeModelDTO: Volume model containing metadata.
+
+        Raises:
+            VolumeRetrievalException: If RPC fails or volume is not found.
+        """
         volume_query_payload = GetVolumeCommandDTO(
             volume_id=volume_id
         ).model_dump(mode='json')
@@ -402,6 +490,19 @@ class TemplateServiceLayerManager(BackgroundTasks):
     def _get_volumes(
         self, storage_id: Optional[UUID] = None
     ) -> List[VolumeModelDTO]:
+        """Retrieve all volumes from the volume service.
+
+        Optionally filtered by storage.
+
+        Args:
+            storage_id (Optional[UUID]): Filter volumes by this storage.
+
+        Returns:
+            List[VolumeModelDTO]: List of validated volume models.
+
+        Raises:
+            VolumeRetrievalException: If RPC call fails.
+        """
         LOG.info('Getting all volumes...')
         try:
             volumes_info = self.volume_service_client.get_all_volumes(
@@ -418,6 +519,15 @@ class TemplateServiceLayerManager(BackgroundTasks):
     def _get_related_volumes(
         self, template_id: UUID, storage_id: UUID
     ) -> List[str]:
+        """Get names of volumes that were created from the given template.
+
+        Args:
+            template_id (UUID): Template UUID to search references for.
+            storage_id (UUID): Storage ID to limit volume search.
+
+        Returns:
+            List[str]: Names of volumes referencing the template.
+        """
         LOG.info(f'Filtering volumes with reff on template {template_id}...')
         related_volumes = list(
             filter(
@@ -428,6 +538,17 @@ class TemplateServiceLayerManager(BackgroundTasks):
         return [volume.name for volume in related_volumes]
 
     def _get_storage_info(self, storage_id: UUID) -> StorageModelDTO:
+        """Fetch metadata about a specific storage via RPC.
+
+        Args:
+            storage_id (UUID): ID of the storage to retrieve.
+
+        Returns:
+            StorageModelDTO: Storage information object.
+
+        Raises:
+            StorageRetrievalException: If storage is not found or RPC fails.
+        """
         storage_query_payload = GetStorageCommandDTO(
             storage_id=storage_id
         ).model_dump(mode='json')
