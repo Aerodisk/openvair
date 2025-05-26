@@ -1,7 +1,14 @@
-"""Request models for template-related API endpoints.
+"""Request models for template API operations.
 
-Defines request payload schemas used for creating, updating templates and
-creating volumes from templates.
+Defines schemas used as input payloads for template-related API endpoints.
+These models represent user-submitted data for creating or modifying templates,
+and for creating volumes based on templates.
+
+Classes:
+    - RequestCreateTemplate
+    - RequestEditTemplate
+    - RequetsCreateVolumeFromTemplate
+    - CreateVolume
 """
 
 from uuid import UUID

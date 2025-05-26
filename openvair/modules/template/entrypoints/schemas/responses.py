@@ -1,6 +1,9 @@
-"""Response models for template-related API endpoints.
+"""Response models for template API endpoints.
 
-Defines schemas for returning template metadata in API responses.
+Defines schemas used to serialize and return template metadata from the API.
+
+Classes:
+    - TemplateResponse: Full representation of a template in API responses.
 """
 
 from uuid import UUID
