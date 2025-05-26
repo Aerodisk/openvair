@@ -1,4 +1,10 @@
-from uuid import UUID  # noqa: D100
+"""DTOs for external service-layer command requests.
+
+This module provides typed command DTOs used for RPC-based communication with
+external systems, such as volume and storage services.
+"""
+
+from uuid import UUID
 
 from openvair.common.base_pydantic_models import BaseDTOModel
 
