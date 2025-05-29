@@ -1342,6 +1342,20 @@ class VMServiceLayerManager(BackgroundTasks):
                 return result
 
     def clone_vm(self, data: Dict) -> List[Dict]:
+        """Clone a virtual machine.
+
+        This function creates one or more clones of a virtual machine
+
+        Args:
+            data (Dict): Data containing the ID of the virtual machine to clone
+                and quantity of clones to create.
+
+        Raises:
+            exceptions.VMNotFoundException: _description_
+
+        Returns:
+            List[Dict]: _description_
+        """
         result = []
         vm_id = data.pop('vm_id', '')
         count = data.pop('count', 1)
@@ -1350,31 +1364,48 @@ class VMServiceLayerManager(BackgroundTasks):
         original_vm = self.get_vm({'vm_id': vm_id})
 
         if not original_vm:
-            raise exceptions.VMNotFoundException(f'VM {vm_id} not found.')
+            msg = f'VM {vm_id} not found.'
+            raise exceptions.VMNotFoundException(msg)
 
         for i in range(count):
             clone_data = deepcopy(original_vm)
             clone_data['name'] = f"{original_vm['name']}_clone_{i+1}"
             clone_data['user_info'] = user_info
+            clone_data['user_id'] = original_vm['user_id']
 
             # Удаление лишних идентификаторов и полей
-            fields_to_remove = ['id', 'vm_id', 'status', 'power_state', 'information', 'user_id']
-            nested_fields_to_remove = ['id', 'vm_id', 'path', 'disk_id']
+            fields_to_remove = [
+                'id', 'vm_id', 'status', 'power_state',
+                'information', 'user_id'
+            ]
+            nested_fields_to_remove = [
+                'id', 'vm_id', 'path', 'disk_id'
+            ]
 
             # Удаление полей верхнего уровня
             for field in fields_to_remove:
                 clone_data.pop(field, None)
 
             # Очистка вложенных структур
-            clone_data['cpu'] = {k: v for k, v in clone_data['cpu'].items() if k not in nested_fields_to_remove}
-            clone_data['ram'] = {k: v for k, v in clone_data['ram'].items() if k not in nested_fields_to_remove}
-            clone_data['os'] = {k: v for k, v in clone_data['os'].items() if k not in nested_fields_to_remove}
+            self._clear_nested_fields(
+                clone_data['cpu'], nested_fields_to_remove
+            )
+            self._clear_nested_fields(
+                clone_data['ram'], nested_fields_to_remove
+            )
+            self._clear_nested_fields(
+                clone_data['os'], nested_fields_to_remove
+            )
 
-            clone_data['graphic_interface'] = {
-                'login': clone_data['graphic_interface'].get('login'),
-                'password': clone_data['graphic_interface'].get('password'),
-                'connect_type': clone_data['graphic_interface'].get('connect_type')
-            }
+            LOG.info(
+                f'-----------------------> : clone_data["graphic_interface"]'
+                f': {clone_data["graphic_interface"]})'
+            )
+            # clone_data['graphic_interface'] = {
+            #     'login': clone_data['graphic_interface'].get('login'),
+            #     'password': clone_data['graphic_interface'].get('password'),
+            #     'connect_type': clone_data['graphic_interface'].get('connect_type')
+            # }
 
             original_ifaces = original_vm.get('virtual_interfaces', [])
             clone_data['virtual_interfaces'] = [
@@ -1382,9 +1413,9 @@ class VMServiceLayerManager(BackgroundTasks):
                     'mode': iface['mode'],
                     'portgroup': iface.get('portgroup'),
                     'interface': iface['interface'],
-                    'mac': iface['mac'],
+                    'mac': iface['mac'],    #TODO: реализовать функцию генерации MAC-адреса
                     'model': iface['model'],
-                    'order': iface.get('order'),
+                    'order': iface.get('order', 0),
                 }
                 for iface in original_ifaces
             ]
@@ -1392,42 +1423,42 @@ class VMServiceLayerManager(BackgroundTasks):
             # START: работа с дисками
             # TODO: вынести логику клонирования дисков в модуль volume
             new_disks = []
-            for disk in clone_data.get('disks', []):
-                LOG.info(f'=====================> Cloning disk: {disk}')
-                new_disk = {
-                    'emulation': disk['emulation'],
-                    'format': disk['format'],
-                    'qos': disk['qos'],
-                    'boot_order': disk['boot_order'],
-                    'order': disk['order'],
-                    'read_only': disk['read_only']
-                }
-                if disk.get('type') == DiskType.volume.value:
-                    new_disk['name'] = f"{disk['name']}_clone_{i+1}"
-                    new_disk['volume_id'] = disk['disk_id']
-                    # name: str
-                    # description: str
-                    # storage_id: UUID
-                    # template_id: UUID
-                    # read_only: Optional[bool]
-                    # user_id: UUID
-                    try:
-                        cloned_disk = self.volume_service_client.create_from_template({
-                            'name': new_disk['name'],
-                            'description': f'Cloned volume from {disk["name"]}',
-                            'storage_id': disk['storage_id'], # тут нужно брать id хранилища самим так как его нет в disk['storeage_id']
-                            'template_id': disk['disk_id'],
-                            'read_only': disk['read_only'],
-                        })
-                        new_disks.append(cloned_disk)
-                    except Exception as e:
-                        LOG.exception(f'--------------> Error cloning volume: {e}')
-                        continue
-                elif disk.get('type') == DiskType.image.value:
-                    new_disk['name'] = disk['name']
-                    new_disk['image_id'] = disk['disk_id']
+            # for disk in clone_data.get('disks', []):
+            #     LOG.info(f'=====================> Cloning disk: {disk}')
+            #     new_disk = {
+            #         'emulation': disk['emulation'],
+            #         'format': disk['format'],
+            #         'qos': disk['qos'],
+            #         'boot_order': disk['boot_order'],
+            #         'order': disk['order'],
+            #         'read_only': disk['read_only'],
+            #     }
+            #     if disk.get('type') == DiskType.volume.value:
+            #         new_disk['name'] = f"{disk['name']}_clone_{i+1}"
+            #         new_disk['volume_id'] = disk['disk_id']
 
-                new_disks.append(new_disk)
+            #         data_to_get_web_volume = {
+            #             'volume_id': disk['disk_id'],
+            #         }
+            #         web_volume = self.volume_service_client.get_volume(
+            #             data_to_get_web_volume
+            #         )
+
+            #         cloned_disk = self.volume_service_client.create_from_template({
+            #             'name': new_disk['name'],
+            #             'description': f'Cloned volume from {disk["name"]}',
+            #             'storage_id': web_volume.get('storage_id'),
+            #             'template_id': disk['disk_id'],
+            #             'read_only': disk['read_only'],
+            #             'user_id': original_vm['user_id'],
+            #         })
+            #         new_disks.append(cloned_disk)
+
+            #     elif disk.get('type') == DiskType.image.value:
+            #         new_disk['name'] = disk['name']
+            #         new_disk['image_id'] = disk['disk_id']
+
+            #     new_disks.append(new_disk)
 
             clone_data['disks'] = {'attach_disks': new_disks}
             # END
@@ -1450,6 +1481,24 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return result
 
+    def _clear_nested_fields(
+        self,
+        data: Dict,
+        nested_fields: List[str]
+    ) -> Dict:
+        """Cleans nested fields from a given data dictionary.
+
+        Args:
+            data (Dict): The data dictionary to clean.
+            nested_fields (List[str]): The nested fields to remove.
+
+        Returns:
+            Dict: The cleaned data dictionary
+        """
+        return {
+            k: v for k, v in data.items()
+            if k not in nested_fields
+        }
 
     @periodic_task(interval=10)
     def monitoring(self) -> None:
