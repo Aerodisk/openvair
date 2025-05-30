@@ -1490,7 +1490,7 @@ class VMServiceLayerManager(BackgroundTasks):
         for disk in disks_list:
             new_disk = {
                 "name": (
-                    f'{disk['name']}{suffix}'
+                    f'{disk["name"]}{suffix}'
                     if disk.get("type") == DiskType.volume.value
                     else disk['name']
                 ),
