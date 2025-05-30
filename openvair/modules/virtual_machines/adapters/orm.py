@@ -2,8 +2,8 @@
 
 This module defines the ORM mappings for various entities associated with
 virtual machines, including CPU information, operating system details, disks,
-virtual interfaces, protocol graphic interfaces, and RAM. It uses SQLAlchemy
-to define table schemas and relationships between these entities.
+virtual interfaces, protocol graphic interfaces, RAM and snapshots. It uses
+SQLAlchemy to define table schemas and relationships between these entities.
 
 Tables:
     virtual_machines: Table containing virtual machine details.
@@ -14,6 +14,7 @@ Tables:
     protocol_graphic_interface: Table containing graphic interface protocol
         details.
     ram: Table containing RAM information for virtual machines.
+    snapshots: Table containing information about snapshots of virtual machine.
 
 Classes:
     VirtualMachines: ORM class mapped to the `virtual_machines` table.
@@ -24,12 +25,14 @@ Classes:
     ProtocolGraphicInterface: ORM class mapped to the
         `protocol_graphic_interface` table.
     RAM: ORM class mapped to the `ram` table.
+    Snapshots: ORM class mapped to the `snapshots` table.
 
 Functions:
     start_mappers: Configures the ORM mappings for all defined classes.
 """
 
 import uuid
+import datetime
 from typing import List
 
 from sqlalchemy import (
@@ -39,6 +42,7 @@ from sqlalchemy import (
     String,
     Boolean,
     Integer,
+    DateTime,
     MetaData,
     BigInteger,
     ForeignKey,
@@ -134,6 +138,12 @@ class VirtualMachines(Base):
         back_populates='virtual_machine',
         uselist=False,
         cascade='all, delete-orphan',
+    )
+
+    snapshots: Mapped[List['Snapshot']] = relationship(
+        'Snapshot',
+        back_populates='virtual_machine',
+        order_by='Snapshot.created_at',
     )
 
 
@@ -364,4 +374,52 @@ class RAM(Base):
     virtual_machine: Mapped[VirtualMachines] = relationship(
         'VirtualMachines',
         back_populates='ram',
+    )
+
+
+class Snapshot(Base):
+    """ORM class mapped to the `snapshots` table."""
+
+    __tablename__ = 'snapshots'
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    vm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('virtual_machines.id'),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(
+        String(60),
+        nullable=False,
+    )
+    parent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey('snapshots.id'),
+        nullable=True,
+    )
+    description: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime,
+        default=datetime.datetime.now(),
+    )
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+    )
+
+    virtual_machine: Mapped[VirtualMachines] = relationship(
+        'VirtualMachines',
+        back_populates='snapshots',
+    )
+    parent: Mapped['Snapshot'] = relationship(
+        'Snapshot',
+        foreign_keys=[parent_id],
+        remote_side=[id],
     )
