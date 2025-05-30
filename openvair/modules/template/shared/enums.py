@@ -19,6 +19,7 @@ class TemplateStatus(str, Enum):
         - ERROR: Template creation or validation failed.
         - DELETING: Template is being deleted.
     """
+
     NEW = 'new'
     CREATING = 'creating'
     EDITING = 'editing'

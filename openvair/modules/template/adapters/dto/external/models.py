@@ -1,20 +1,14 @@
 # noqa: D100
 from uuid import UUID
-from typing import Any, Dict, Literal, ClassVar, Optional
+from typing import Any, Dict, Literal, Optional
 from pathlib import Path
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    model_validator,
-)
+from pydantic import model_validator
 
-from openvair.common.configs.pydantic_config import (
-    lenient_dto_config,
-)
+from openvair.common.base_pydantic_models import BaseDTOModel
 
 
-class VolumeDTO(BaseModel):
+class VolumeModelDTO(BaseDTOModel):
     """Schema representing a volume.
 
     Attributes:
@@ -47,10 +41,9 @@ class VolumeDTO(BaseModel):
     read_only: Optional[bool] = False
     path: Path
     template_id: Optional[UUID]
-    model_config: ClassVar[ConfigDict] = lenient_dto_config
 
 
-class StorageDTO(BaseModel):
+class StorageModelDTO(BaseDTOModel):
     """Schema representing a storage entity.
 
     Attributes:
@@ -67,8 +60,6 @@ class StorageDTO(BaseModel):
             LocalFSStorageExtraSpecsInfo]): Additional specifications for the
             storage.
     """
-
-    model_config: ClassVar[ConfigDict] = lenient_dto_config
 
     id: UUID
     name: str

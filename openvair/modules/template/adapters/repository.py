@@ -15,7 +15,7 @@ from openvair.common.repositories.base_sqlalchemy import (
     BaseSqlAlchemyRepository,
 )
 from openvair.modules.template.adapters.exceptions import (
-    TemplateNotFoundException,
+    TemplateNotFoundInDBException,
 )
 
 
@@ -50,4 +50,4 @@ class TemplateSqlAlchemyRepository(BaseSqlAlchemyRepository[Template]):
             return self.session.query(self.model_cls).filter_by(name=name).one()
         except NoResultFound as e:
             message = f"Template with name '{name}' not found."
-            raise TemplateNotFoundException(message) from e
+            raise TemplateNotFoundInDBException(message) from e

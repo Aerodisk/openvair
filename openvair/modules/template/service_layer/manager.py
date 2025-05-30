@@ -24,6 +24,7 @@ LOG = get_logger('service-layer-manager')
 
 if __name__ == '__main__':
     LOG.info('Starting RPCServer for consuming')
+
     service = TemplateServiceLayerManager
     service.start(block=False)
     server = MessagingServer(

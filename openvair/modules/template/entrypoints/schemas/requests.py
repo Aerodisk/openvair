@@ -9,10 +9,7 @@ from typing import Literal, Optional
 
 from pydantic import Field
 
-# from openvair.modules.template.adapters.dto import CreateVolume
-from openvair.modules.template.entrypoints.schemas.base import (
-    APIConfigRequestModel,
-)
+from openvair.common.base_pydantic_models import APIConfigRequestModel
 
 
 class RequestCreateTemplate(APIConfigRequestModel):
@@ -25,27 +22,25 @@ class RequestCreateTemplate(APIConfigRequestModel):
         base_volume_id (UUID): ID of the base volume to use for the template.
 
     Example:
-        >>> CreateTemplate(
+        >>> RequestCreateTemplate(
         ...     name='ubuntu-template',
-        ...     path=Path('/mnt/ubuntu.qcow2'),
         ...     storage_id=UUID('...'),
         ...     is_backing=True,
         ...     base_volume_id=UUID('...'),
         ... )
     """
 
-    base_volume_id: UUID
     name: str
     description: Optional[str]
     storage_id: UUID
+    base_volume_id: UUID
     is_backing: bool
 
 
 class RequestEditTemplate(APIConfigRequestModel):
     """Schema for updating a template.
 
-    Inherits common fields from BaseTemplate and makes name and description
-    optional.
+    Requires at least one of the fields to be provided.
 
     Attributes:
         name (Optional[str]): New name for the template.
@@ -64,6 +59,7 @@ class RequetsCreateVolumeFromTemplate(APIConfigRequestModel):
     """
 
     volume_data: 'CreateVolume'
+
 
 class CreateVolume(APIConfigRequestModel):
     """Schema for creating a new volume.

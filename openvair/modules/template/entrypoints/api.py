@@ -64,12 +64,14 @@ async def get_templates(
     Returns:
         BaseResponse[Page[Template]]: Paginated response containing templates.
     """
-    LOG.info('API: Getting list of templates')
+    LOG.info('Api handle request on getting templates')
+
     templates: List[TemplateResponse] = await run_in_threadpool(
         crud.get_all_templates
     )
     paginated_templates = paginate(templates, params)
-    LOG.info('API: Finished getting list of templates')
+
+    LOG.info('Api request on getting templates was successfully processed')
     return BaseResponse(status='success', data=paginated_templates)
 
 
@@ -92,9 +94,14 @@ async def get_template(
     Returns:
         BaseResponse[Template]: The retrieved template.
     """
-    LOG.info(f'API: Getting template {template_id}')
+    LOG.info(f'Api handle request on getting template: {template_id}')
+
     template = await run_in_threadpool(crud.get_template, template_id)
-    LOG.info(f'API: Finished getting template {template_id}')
+
+    LOG.info(
+        f'Api request on getting template {template_id} '
+        'was successfully processed'
+    )
     return BaseResponse(status='success', data=template)
 
 
@@ -117,9 +124,11 @@ async def create_template(
     Returns:
         BaseResponse[Template]: The created template.
     """
-    LOG.info('API: Creating template')
+    LOG.info('Api handle request on creating template')
+
     template = await run_in_threadpool(crud.create_template, data)
-    LOG.info('API: Finished creating template')
+
+    LOG.info('Api request on creating template was successfully processed')
     return BaseResponse(status='success', data=template)
 
 
@@ -128,7 +137,7 @@ async def create_template(
     response_model=BaseResponse[TemplateResponse],
     status_code=status.HTTP_200_OK,
 )
-async def update_template(
+async def edit_template(
     template_id: UUID,
     data: RequestEditTemplate,
     crud: TemplateCrud = Depends(TemplateCrud),
@@ -144,9 +153,14 @@ async def update_template(
     Returns:
         BaseResponse[Template]: The updated template.
     """
-    LOG.info(f'API: Updating template {template_id}')
+    LOG.info(f'Api handle request on editing template {template_id}')
+
     template = await run_in_threadpool(crud.edit_template, template_id, data)
-    LOG.info(f'API: Finished updating template {template_id}')
+
+    LOG.info(
+        f'Api request on editing template {template_id}'
+        'was successfully processed'
+    )
     return BaseResponse(status='success', data=template)
 
 
@@ -169,38 +183,12 @@ async def delete_template(
     Returns:
         BaseResponse[Template]: The deleted template.
     """
-    LOG.info(f'API: Deleting template {template_id}')
+    LOG.info(f'Api handle request on deleting template {template_id}')
+
     template = await run_in_threadpool(crud.delete_template, template_id)
-    LOG.info(f'API: Finished deleting template {template_id}')
+
+    LOG.info(
+        f'Api request on deleting template {template_id}'
+        'was successfully processed'
+    )
     return BaseResponse(status='success', data=template)
-
-
-# @router.post(
-#     '/{template_id}/volumes',
-#     response_model=BaseResponse,  # TODO Определить модель
-#     status_code=status.HTTP_201_CREATED,
-# )
-# async def create_volume_from_template(
-#     template_id: UUID,
-#     data: RequetsCreateVolumeFromTemplate,
-#     user_info: Dict = Depends(get_current_user),
-#     crud: TemplateCrud = Depends(TemplateCrud),
-# ) -> BaseResponse:
-#     """Create a volume from a specific template.
-
-#     Args:
-#         template_id (UUID): The ID of the template to use.
-#         data (CreateVolumeFromTemplate): Volume creation details.
-#         crud (TemplateCrud): Dependency-injected service for handling template
-#             logic.
-#         user_info (Dict): Information about the authenticated user.
-
-#     Returns:
-#         BaseResponse[Volume]: The created volume.
-#     """
-#     LOG.info(f'API: Creating volume from template {template_id}')
-#     await run_in_threadpool(
-#         crud.create_volume_from_template, template_id, data, user_info
-#     )
-#     LOG.info(f'API: Finished creating volume from template {template_id}')
-#     return BaseResponse(status='success')
