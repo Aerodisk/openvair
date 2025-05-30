@@ -84,6 +84,11 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         ...
 
     def _to_json_dict(self) -> Dict[str, Any]:
+        """Serialize the template instance to a JSON-compatible dict.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the template.
+        """
         template_info: DomainTemplateModelDTO = (
             DomainTemplateModelDTO.model_validate(self.__dict__)
         )

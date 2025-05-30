@@ -1,19 +1,22 @@
-"""API endpoints for managing templates.
+"""Template API endpoints.
 
-This module defines the API routes for managing templates and creating
-volumes from templates. All endpoints require user authentication.
+This module exposes HTTP API endpoints for managing VM templates.
+It includes operations for listing, retrieving, creating, updating, and deleting
+templates.
+
+All endpoints require user authentication and rely on the TemplateCrud adapter
+for business logic.
 
 Endpoints:
-    - GET /templates/: Retrieve a list of templates.
-    - GET /templates/{template_id}: Retrieve a specific template by ID.
-    - POST /templates/: Create a new template.
-    - PATCH /templates/{template_id}: Update an existing template.
-    - DELETE /templates/{template_id}: Delete a template.
-    - POST /templates/{template_id}/volumes: Create a volume from a template.
+    - GET /templates — list templates (with pagination)
+    - GET /templates/{template_id — get template by ID
+    - POST /templates — create template
+    - PATCH /templates/{template_id} — update template
+    - DELETE /templates/{template_id} — delete template
 
 Dependencies:
-    - get_current_user: Enforces authentication for all routes.
-    - TemplateCrud: Service layer abstraction for performing business logic.
+    - get_current_user: Ensures request is authenticated
+    - TemplateCrud: RPC adapter between API and service layer
 """
 
 from uuid import UUID

@@ -1,15 +1,17 @@
-"""CRUD logic for template API entrypoints.
+"""CRUD adapter for Template API.
 
-This module defines the TemplateCrud class, which acts as an adapter between
-API endpoints and the service layer. All communication is performed via RPC.
+This module defines the TemplateCrud class, which mediates between API handlers
+and the service layer using RPC calls.
+
+The methods of this class are responsible for invoking service-layer logic
+using strongly typed DTOs and returning validated response models.
 
 Classes:
-    - TemplateCrud: Provides methods for managing templates and creating
-        volumes.
+    - TemplateCrud: Encapsulates all template-related RPC logic.
 
 Dependencies:
-    - MessagingClient: RPC client for service layer communication.
-    - TemplateServiceLayerManager: Contains service layer method names.
+    - MessagingClient: Generic RPC client for service-to-service communication.
+    - TemplateServiceLayerManager: RPC method names for the service layer.
 """
 
 from uuid import UUID

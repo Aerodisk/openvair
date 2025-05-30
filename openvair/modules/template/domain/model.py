@@ -1,11 +1,7 @@
 """Factories for template domain models.
 
-This module defines abstract and concrete factory classes for creating
-template instances.
-
-Classes:
-    - AbstractTemplateFactory: Base factory class for template creation.
-    - TemplateFactory: Concrete factory for managing templates.
+This module defines abstract and concrete factory classes for instantiating
+template implementations based on disk format (e.g., qcow2).
 """
 
 import abc
@@ -55,18 +51,16 @@ class TemplateFactory(AbstractTemplateFactory):
     }
 
     def get_template(self, template_data: Dict) -> BaseTemplate:
-        """Creates a template instance.
+        """Creates and returns a concrete template instance.
 
-        This method should be implemented to return a specific template type.
+        Selects the appropriate implementation based on `tmp_format`
+        (e.g., 'qcow2') and initializes it with validated data.
 
         Args:
-            template_data (TemplateDomain): Data for creating a template.
-
-        Raises:
-            NotImplementedError: If not implemented in a subclass.
+            template_data (Dict): Raw dictionary to build a domain template.
 
         Returns:
-            BaseTemplate: The created template instance.
+            BaseTemplate: Instantiated domain template.
         """
         dto = DomainTemplateModelDTO.model_validate(template_data)
 

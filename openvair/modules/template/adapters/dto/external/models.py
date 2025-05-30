@@ -1,4 +1,9 @@
-# noqa: D100
+"""DTOs for external volume and storage service responses.
+
+Defines strongly typed models representing volumes and storages as returned
+by external services. These DTOs are used in service layer validation and logic.
+"""
+
 from uuid import UUID
 from typing import Any, Dict, Literal, Optional
 from pathlib import Path
