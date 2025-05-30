@@ -31,9 +31,9 @@ class LocalFSVolume(BaseVolume):
     filesystem volumes.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a LocalFSVolume instance."""
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = False
         self.provisioning = 'metadata'
 

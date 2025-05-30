@@ -11,5 +11,5 @@ Classes:
 from openvair.abstracts.base_exception import BaseCustomException
 
 
-class TemplateNotFoundException(BaseCustomException):
+class TemplateNotFoundInDBException(BaseCustomException):
     """Exception raised when a template is not found in the database."""

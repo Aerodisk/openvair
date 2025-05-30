@@ -22,9 +22,9 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_edit_volume_success(client: TestClient, test_volume: dict) -> None:
+def test_edit_volume_success(client: TestClient, volume: dict) -> None:
     """Test successful metadata update for a volume."""
-    volume_id = test_volume['id']
+    volume_id = volume['id']
     payload = {
         'name': 'updated-volume',
         'description': 'Updated description',
@@ -54,14 +54,14 @@ def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
 
 
 def test_edit_volume_with_invalid_data(
-    client: TestClient, test_volume: dict
+    client: TestClient, volume: dict
 ) -> None:
     """Test failure when name field is empty.
 
     Asserts:
     - HTTP 422 validation error.
     """
-    volume_id = test_volume['id']
+    volume_id = volume['id']
     payload = {
         'name': '',  # Invalid
         'description': 'Still valid',
@@ -72,7 +72,7 @@ def test_edit_volume_with_invalid_data(
 
 
 def test_edit_volume_when_status_not_available(
-    client: TestClient, test_volume: dict
+    client: TestClient, volume: dict
 ) -> None:
     """Test failure when editing a volume with non-available status.
 
@@ -81,7 +81,7 @@ def test_edit_volume_when_status_not_available(
     Asserts:
     - HTTP 500 with 'VolumeStatusException'.
     """
-    volume_id = test_volume['id']
+    volume_id = volume['id']
 
     # Change manual DB status
     with SqlAlchemyUnitOfWork() as uow:
@@ -99,9 +99,7 @@ def test_edit_volume_when_status_not_available(
     assert 'VolumeStatusException' in response.text
 
 
-def test_edit_volume_duplicate_name(
-    client: TestClient, test_storage: dict
-) -> None:
+def test_edit_volume_duplicate_name(client: TestClient, storage: dict) -> None:
     """Test failure when renaming volume to name that already exists in storage.
 
     Asserts:
@@ -113,7 +111,7 @@ def test_edit_volume_duplicate_name(
         json={
             'name': 'original-volume',
             'description': 'v1',
-            'storage_id': test_storage['id'],
+            'storage_id': storage['id'],
             'format': 'qcow2',
             'size': 1024,
             'read_only': False,
@@ -125,7 +123,7 @@ def test_edit_volume_duplicate_name(
         json={
             'name': 'conflict-name',
             'description': 'v2',
-            'storage_id': test_storage['id'],
+            'storage_id': storage['id'],
             'format': 'qcow2',
             'size': 1024,
             'read_only': False,
