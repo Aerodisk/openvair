@@ -1356,123 +1356,45 @@ class VMServiceLayerManager(BackgroundTasks):
         Returns:
             List[Dict]: _description_
         """
-        result = []
+        result: List[Dict] = []
+
         vm_id = data.pop('vm_id', '')
         count = data.pop('count', 1)
         user_info = data.get('user_info', {})
 
         original_vm = self.get_vm({'vm_id': vm_id})
-
         if not original_vm:
-            msg = f'VM {vm_id} not found.'
+            msg = f'VM with ID {vm_id} not found.'
+            LOG.error(msg)
             raise exceptions.VMNotFoundException(msg)
 
+        if original_vm.get('power_state') != VmPowerState.shut_off.name:
+            msg = 'VM must be powered off before cloning.'
+            LOG.error(msg)
+            raise exceptions.VMPowerStateException(msg)
+
+        # Create *count* of clones
         for i in range(count):
-            clone_data = deepcopy(original_vm)
-            clone_data['name'] = f"{original_vm['name']}_clone_{i+1}"
-            clone_data['user_info'] = user_info
-            clone_data['user_id'] = original_vm['user_id']
+            suffix = f'_clone_{i + 1}'
 
-            # Удаление лишних идентификаторов и полей
-            fields_to_remove = [
-                'id', 'vm_id', 'status', 'power_state',
-                'information', 'user_id'
-            ]
-            nested_fields_to_remove = [
-                'id', 'vm_id', 'path', 'disk_id'
-            ]
-
-            # Удаление полей верхнего уровня
-            for field in fields_to_remove:
-                clone_data.pop(field, None)
-
-            # Очистка вложенных структур
-            self._clear_nested_fields(
-                clone_data['cpu'], nested_fields_to_remove
+            # 1. Build minimal create_VM payload
+            clone_payload = self._transform_clone_vm_data(
+                original_vm, user_info, suffix
             )
-            self._clear_nested_fields(
-                clone_data['ram'], nested_fields_to_remove
-            )
-            self._clear_nested_fields(
-                clone_data['os'], nested_fields_to_remove
-            )
+            clone_payload['name'] = f'{original_vm["name"]}{suffix}'
 
-            LOG.info(
-                f'-----------------------> : clone_data["graphic_interface"]'
-                f': {clone_data["graphic_interface"]})'
-            )
-            # clone_data['graphic_interface'] = {
-            #     'login': clone_data['graphic_interface'].get('login'),
-            #     'password': clone_data['graphic_interface'].get('password'),
-            #     'connect_type': clone_data['graphic_interface'].get('connect_type')
-            # }
+            # 2. Prepare & insert stub record into DB
+            create_info = self._prepare_create_vm_info(clone_payload)
+            new_vm = self._insert_vm_into_db(create_info)
 
-            original_ifaces = original_vm.get('virtual_interfaces', [])
-            clone_data['virtual_interfaces'] = [
-                {
-                    'mode': iface['mode'],
-                    'portgroup': iface.get('portgroup'),
-                    'interface': iface['interface'],
-                    'mac': iface['mac'],    #TODO: реализовать функцию генерации MAC-адреса
-                    'model': iface['model'],
-                    'order': iface.get('order', 0),
-                }
-                for iface in original_ifaces
-            ]
-
-            # START: работа с дисками
-            # TODO: вынести логику клонирования дисков в модуль volume
-            new_disks = []
-            # for disk in clone_data.get('disks', []):
-            #     LOG.info(f'=====================> Cloning disk: {disk}')
-            #     new_disk = {
-            #         'emulation': disk['emulation'],
-            #         'format': disk['format'],
-            #         'qos': disk['qos'],
-            #         'boot_order': disk['boot_order'],
-            #         'order': disk['order'],
-            #         'read_only': disk['read_only'],
-            #     }
-            #     if disk.get('type') == DiskType.volume.value:
-            #         new_disk['name'] = f"{disk['name']}_clone_{i+1}"
-            #         new_disk['volume_id'] = disk['disk_id']
-
-            #         data_to_get_web_volume = {
-            #             'volume_id': disk['disk_id'],
-            #         }
-            #         web_volume = self.volume_service_client.get_volume(
-            #             data_to_get_web_volume
-            #         )
-
-            #         cloned_disk = self.volume_service_client.create_from_template({
-            #             'name': new_disk['name'],
-            #             'description': f'Cloned volume from {disk["name"]}',
-            #             'storage_id': web_volume.get('storage_id'),
-            #             'template_id': disk['disk_id'],
-            #             'read_only': disk['read_only'],
-            #             'user_id': original_vm['user_id'],
-            #         })
-            #         new_disks.append(cloned_disk)
-
-            #     elif disk.get('type') == DiskType.image.value:
-            #         new_disk['name'] = disk['name']
-            #         new_disk['image_id'] = disk['disk_id']
-
-            #     new_disks.append(new_disk)
-
-            clone_data['disks'] = {'attach_disks': new_disks}
-            # END
-
-            prepared_info = self._prepare_create_vm_info(clone_data)
-            new_vm = self._insert_vm_into_db(prepared_info)
-
+            # 3. Kick async task that actually creates disks & atttaches them
             self.service_layer_rpc.cast(
                 self._create_vm.__name__,
                 data_for_method={
                     'vm_id': new_vm['id'],
-                    'attach_volumes': prepared_info.attach_volumes,
-                    'attach_images': prepared_info.attach_images,
-                    'auto_create_volumes': prepared_info.auto_create_volumes,
+                    'attach_volumes': create_info.attach_volumes,
+                    'attach_images': create_info.attach_images,
+                    'auto_create_volumes': create_info.auto_create_volumes,
                     'user_info': user_info,
                 },
             )
@@ -1481,24 +1403,126 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return result
 
-    def _clear_nested_fields(
+    def _transform_clone_vm_data(
         self,
-        data: Dict,
-        nested_fields: List[str]
+        vm: Dict,
+        user_info: Dict,
+        suffix: str = "",
     ) -> Dict:
-        """Cleans nested fields from a given data dictionary.
+        """Convert VM data for cloning.
+
+        This function prepares the VM data for cloning by removing
+        unnecessary fields and ensuring the data structure is compatible
+        with the expected input for creating a new VM.
 
         Args:
-            data (Dict): The data dictionary to clean.
-            nested_fields (List[str]): The nested fields to remove.
+            vm (Dict): The original virtual machine data to clone.
+            user_info (Dict): User information to be included in the new VM.
+            suffix (str): A suffix to append to the names of the cloned
+                virtual machine and its disks. This is used to ensure that
+                the new resources do not clash with the originals.
 
         Returns:
-            Dict: The cleaned data dictionary
+            Dict: The transformed VM data ready for cloning.
+            This function prepares the VM data for cloning by removing
+            unnecessary fields and ensuring the data structure is compatible
+            with the expected input for creating a new VM.
         """
-        return {
-            k: v for k, v in data.items()
-            if k not in nested_fields
+        data = deepcopy(vm)
+        data["user_info"] = user_info
+
+        for key in ("id", "status", "power_state", "information"):
+            data.pop(key, None)
+
+        for section in ("cpu", "ram", "os"):
+            if section in data:
+                data[section] = self._strip_keys(data[section], ["id", "vm_id"])
+
+        graphic_interface: Dict = data.get("graphic_interface", {})
+        data["graphic_interface"] = {
+            "login": graphic_interface.get("login"),
+            "password": graphic_interface.get("password"),
+            "connect_type": graphic_interface.get("connect_type"),
         }
+
+        virtual_interfaces: List[Dict] = []
+        for vif in vm.get("virtual_interfaces", []):
+            virtual_interfaces.append(
+                {
+                    "mode": vif["mode"],
+                    "portgroup": vif.get("portgroup"),
+                    "interface": vif["interface"],
+                    "mac": vif["mac"],  # TODO: generate unique MAC if required
+                    "model": vif["model"],
+                    "order": vif.get("order", 0),
+                }
+            )
+        data["virtual_interfaces"] = virtual_interfaces
+
+        attach_disks: List[Dict] = self._vm_clone_disks_payload(
+            data.get("disks", {}).get("attach_disks", []),
+            suffix,
+        )
+
+        data["disks"] = {"attach_disks": attach_disks}
+        return data
+
+    def _vm_clone_disks_payload(
+        self, disks_list: List, suffix: str
+    ) -> List[Dict]:
+        """Transform VM disks for cloning.
+
+        This function prepares the disks of a virtual machine for cloning
+        by transforming the disk data into a format suitable for attaching
+        to a new VM. It ensures that the disk names are unique by appending
+        a suffix to the names of the disks that are being cloned.
+
+        Args:
+            disks_list (List): A list of disk dictionaries from the original VM.
+            suffix (str): A suffix to append to the names of the disks.
+
+        Returns:
+            List[Dict]: A list of dictionaries representing the disks
+                ready for cloning, with unique names.
+        """
+        attach_disks: List[Dict] = []
+        LOG.info(f'Preparing disks for cloning with suffix: {suffix}')
+        for disk in disks_list:
+            new_disk = {
+                "name": (
+                    f'{disk['name']}{suffix}'
+                    if disk.get("type") == DiskType.volume.value
+                    else disk['name']
+                ),
+                "emulation": disk["emulation"],
+                "format": disk["format"],
+                "qos": disk["qos"],
+                "boot_order": disk["boot_order"],
+                "order": disk["order"],
+                "read_only": disk["read_only"],
+            }
+            if disk.get("type") == DiskType.volume.value:
+                new_disk["volume_id"] = disk["disk_id"]
+            elif disk.get("type") == DiskType.image.value:
+                new_disk["image_id"] = disk["disk_id"]
+
+            attach_disks.append(new_disk)
+            LOG.info(f'Prepared disk for cloning: {new_disk}')
+
+        LOG.info('All disks were successfully prepared for cloning.')
+        return attach_disks
+
+    def _strip_keys(self, src: Dict, keys: List[str]) -> Dict:
+        """Remove specified keys from a dictionary
+
+        Args:
+            src (Dict): The source dictionary from which to remove keys.
+            keys (List[str]): A list of keys to remove from the dictionary.
+
+        Returns:
+            Dict: A new dictionary with the specified keys removed.
+        """
+        return {k: v for k, v in src.items() if k not in keys}
 
     @periodic_task(interval=10)
     def monitoring(self) -> None:
