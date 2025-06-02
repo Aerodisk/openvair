@@ -281,14 +281,16 @@ class SnapshotInfo(BaseModel):
         vm_id (UUID): The ID of the virtual machine.
         id (UUID): The ID of the snapshot.
         name (str): The name of the snapshot.
+        status (str): The status of the snapshot.
         parent (Optional[str]): The optional name of the parent snapshot.
         description (Optional[str]): The optional description of the snapshot.
     """
-    # TODO: Решить, использовать name (str) или ID (UUID) для parent
+
     vm_id: UUID
     id: UUID
     name: str
     parent: Optional[str] = None
+    status: str
     description: Optional[str] = None
 
 

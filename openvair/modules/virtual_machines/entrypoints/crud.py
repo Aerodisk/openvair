@@ -203,14 +203,16 @@ class VMCrud:
                 'id': snapshot_id,
                 'name': 'NAME1',
                 'parent': 'ROOT',
-                'description': 'DESCRIPTION',
+                'status': 'active',
+                'description': 'DESCRIPTION1',
             },
             {
                 'vm_id': vm_id,
                 'id': snapshot_id,
                 'name': 'NAME2',
-                'parent': 'ROOT',
-                'description': 'DESCRIPTION',
+                'parent': None,
+                'status': 'active',
+                'description': None,
             }
         ]
         # result: Dict = self.service_layer_rpc.call(
@@ -242,6 +244,7 @@ class VMCrud:
             'id': snap_id,
             'name': 'NAME',
             'parent': 'ROOT',
+            'status': 'active',
             'description': 'DESCRIPTION',
         }
         # result: Dict = self.service_layer_rpc.call(
@@ -282,6 +285,7 @@ class VMCrud:
             'id': snapshot_id,
             'name': data.get('name'),
             'parent': 'ROOT',
+            'status': 'active',
             'description': data.get('description'),
         }
         # data.update({'vm_id': vm_id, 'user_info': user_info})
@@ -315,6 +319,7 @@ class VMCrud:
             'id': snap_id,
             'name': 'NAME',
             'parent': 'ROOT',
+            'status': 'active',
             'description': 'DESCRIPTION'
         }
         # result: Dict = self.service_layer_rpc.call(
