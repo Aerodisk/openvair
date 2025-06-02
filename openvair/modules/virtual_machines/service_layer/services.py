@@ -1373,6 +1373,8 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.error(msg)
             raise exceptions.VMPowerStateException(msg)
 
+        LOG.info(f'Original VM power_state: {original_vm["power_state"]}')
+
         # Create *count* of clones
         for i in range(count):
             suffix = f'_clone_{i + 1}'
@@ -1428,43 +1430,49 @@ class VMServiceLayerManager(BackgroundTasks):
             unnecessary fields and ensuring the data structure is compatible
             with the expected input for creating a new VM.
         """
-        data = deepcopy(vm)
-        data["user_info"] = user_info
+        try:
+            data = deepcopy(vm)
+            data["user_info"] = user_info
 
-        for key in ("id", "status", "power_state", "information"):
-            data.pop(key, None)
+            for key in ("id", "status", "power_state", "information"):
+                data.pop(key, None)
 
-        for section in ("cpu", "ram", "os"):
-            if section in data:
-                data[section] = self._strip_keys(data[section], ["id", "vm_id"])
+            for section in ("cpu", "ram", "os"):
+                if section in data:
+                    data[section] = self._strip_keys(data[section], ["id", "vm_id"])
 
-        graphic_interface: Dict = data.get("graphic_interface", {})
-        data["graphic_interface"] = {
-            "login": graphic_interface.get("login"),
-            "password": graphic_interface.get("password"),
-            "connect_type": graphic_interface.get("connect_type"),
-        }
+            graphic_interface: Dict = data.get("graphic_interface", {})
+            data["graphic_interface"] = {
+                "login": graphic_interface.get("login"),
+                "password": graphic_interface.get("password"),
+                "connect_type": graphic_interface.get("connect_type"),
+            }
 
-        virtual_interfaces: List[Dict] = []
-        for vif in vm.get("virtual_interfaces", []):
-            virtual_interfaces.append(
-                {
-                    "mode": vif["mode"],
-                    "portgroup": vif.get("portgroup"),
-                    "interface": vif["interface"],
-                    "mac": vif["mac"],  # TODO: generate unique MAC if required
-                    "model": vif["model"],
-                    "order": vif.get("order", 0),
-                }
+            virtual_interfaces: List[Dict] = []
+            for vif in vm.get("virtual_interfaces", []):
+                virtual_interfaces.append(
+                    {
+                        "mode": vif["mode"],
+                        "portgroup": vif.get("portgroup"),
+                        "interface": vif["interface"],
+                        "mac": vif["mac"],  # TODO: generate unique MAC if required
+                        "model": vif["model"],
+                        "order": vif.get("order", 0),
+                    }
+                )
+            data["virtual_interfaces"] = virtual_interfaces
+
+            LOG.info(f'Transformed VM data for cloning: {data}')
+            attach_disks: List[Dict] = self._vm_clone_disks_payload(
+                data.get("disks", []),
+                suffix,
             )
-        data["virtual_interfaces"] = virtual_interfaces
 
-        attach_disks: List[Dict] = self._vm_clone_disks_payload(
-            data.get("disks", {}).get("attach_disks", []),
-            suffix,
-        )
+            data["disks"] = {"attach_disks": attach_disks}
+        except Exception as e:
+            LOG.exception(f'Error transforming VM data for cloning: {e}')
+            raise
 
-        data["disks"] = {"attach_disks": attach_disks}
         return data
 
     def _vm_clone_disks_payload(
