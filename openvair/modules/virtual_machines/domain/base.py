@@ -24,6 +24,7 @@ from openvair.libs.data_handlers.xml.serializer import deserialize_xml
 from openvair.modules.virtual_machines.domain.exceptions import (
     GraphicPortNotFoundInXmlException,
     GraphicTypeNotFoundInXmlException,
+    CreationTimeNotFoundInXmlException,
 )
 from openvair.modules.virtual_machines.libs.template_rendering.vm_renderer import (  # noqa: E501
     VMRenderer,
@@ -36,8 +37,9 @@ class BaseVMDriver:
     """Abstract base class for virtual machine drivers.
 
     This class defines the basic interface for virtual machine drivers,
-    requiring implementations of methods to start, stop, and access a
-    VNC session for a virtual machine.
+    requiring implementations of methods to start, stop, access a
+    VNC session for a virtual machine, create, delete and revert to
+    snapshot of the virtual machine.
     """
 
     @abc.abstractmethod
@@ -66,6 +68,29 @@ class BaseVMDriver:
 
         Returns:
             Dict: A dictionary containing the URL of the VNC session.
+        """
+        pass
+
+    @abc.abstractmethod
+    def create_snapshot(
+            self,
+            snapshot_name: str,
+            description: Optional[str] = None,
+            snapshot_type: Optional[str] = None
+    ) -> Dict:
+        """Create a snapshot of the virtual machine.
+
+        Args:
+            snapshot_name: Name of the snapshot
+            description: Optional description
+            snapshot_type: Type of snapshot ('internal'|'external'|None)
+                         None is 'internal' by default
+
+        Returns:
+            Dict: Snapshot metadata
+
+        Raises:
+            ValueError: If unsupported snapshot type is requested
         """
         pass
 
@@ -219,3 +244,79 @@ class BaseLibvirtDriver(BaseVMDriver):
             f"http://{ip}/{graphic_type}/?token="
             f"{self.vm_info.get('name', '')}"
         )
+
+    def create_snapshot(
+            self,
+            snapshot_name: str,
+            description: Optional[str] = None,
+            snapshot_type: Optional[str] = None
+    ) -> Dict:
+        """Create a snapshot of the virtual machine.
+
+        Args:
+            snapshot_name: Name of the snapshot
+            description: Optional description of the snapshot
+            snapshot_type: Type of snapshot ('internal'|'external'|None)
+                         None means 'internal' by default
+        """
+        if snapshot_type not in ('internal', 'external'):
+            snapshot_type = 'internal'
+        if snapshot_type == 'internal':
+            return self.create_internal_snapshot(snapshot_name, description)
+        return self.create_external_snapshot(snapshot_name, description)
+
+    def create_internal_snapshot(
+        self,
+        snapshot_name: str,
+        description: Optional[str] = None
+    ) -> Dict:
+        """Internal implementation for internal snapshots.
+
+        This method should be implemented by subclasses.
+
+        Returns:
+            Dict: A dictionary containing information about new snapshot.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    def create_external_snapshot(
+        self,
+        snapshot_name: str,
+        description: Optional[str] = None
+    ) -> Dict:
+        """Internal implementation for external snapshots.
+
+        This method should be implemented by subclasses.
+
+        Returns:
+            Dict: A dictionary containing information about new snapshot.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_creation_time_from_xml(xml_str: str) -> Optional[str]:
+        """Extract creationTime from Libvirt XML.
+
+        Args:
+            xml_str (str): XML string from Libvirt (snapshot).
+
+        Returns:
+            (Optional[str]): Snapshot creation time.
+
+        Raises:
+            XMLDeserializationError: If XML is invalid.
+        """
+        try:
+            data = deserialize_xml(xml_str)
+            creation_time = data.get('domainsnapshot', {}).get('creationTime')
+            return str(creation_time) if creation_time is not None else None
+        except (KeyError, AttributeError, TypeError, XMLDeserializationError):
+            err = CreationTimeNotFoundInXmlException(xml_str)
+            LOG.error(err)
+            raise err

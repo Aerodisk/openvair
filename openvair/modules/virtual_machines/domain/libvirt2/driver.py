@@ -9,7 +9,9 @@ Classes:
         Libvirt API.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+import libvirt
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -154,3 +156,57 @@ class LibvirtDriver(BaseLibvirtDriver):
             f'host={SERVER_IP}&port={vnc_port}'
         )
         return {'url': vnc_url}
+
+    def create_internal_snapshot(
+            self, snapshot_name: str, description: Optional[str] = None
+    ) -> Dict:
+        """Create an internal snapshot of the virtual machine.
+
+        Method creates a snapshot of the virtual machine using the Libvirt API.
+
+        Args:
+            snapshot_name (str): The name of the new snapshot.
+            description (str): Optional description of the snapshot.
+
+        Returns:
+            Dict: A dictionary containing snapshot information.
+
+        Raises:
+            Exception: If an error occurs while creating the snapshot.
+        """
+        LOG.info(f'Creating snapshot for VM {self.vm_info.get("name")}')
+
+        with self.connection as connection:
+            domain = connection.lookupByName(self.vm_info.get('name'))
+
+            parent_name = None
+            try:
+                with domain.snapshotCurrent() as current_snapshot:
+                    if current_snapshot:
+                        parent_name = current_snapshot.getName()
+            except libvirt.libvirtError:
+                # Snapshot is root
+                pass
+
+            snapshot_xml = f"""
+            <domainsnapshot>
+                <name>{snapshot_name}</name>
+                <description>{description or 'Open vAIR snapshot'}</description>
+            </domainsnapshot>
+            """
+
+            # 0 flag = disk snapshot + memory dump if possible
+            with domain.snapshotCreateXML(snapshot_xml, flags=0) as snapshot:
+                snap_xml_desc = snapshot.getXMLDesc()
+                creation_time = self._get_creation_time_from_xml(snap_xml_desc)
+
+                LOG.info(f'Created snapshot {snapshot_name} '
+                         f'for VM {self.vm_info.get("name")}')
+
+                return {
+                    'name': snapshot_name,
+                    'parent': parent_name,
+                    'description': description,
+                    'creation_time': creation_time,
+                    'vm_name': self.vm_info.get('name')
+                }
