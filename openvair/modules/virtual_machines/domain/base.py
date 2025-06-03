@@ -74,6 +74,7 @@ class BaseVMDriver:
     @abc.abstractmethod
     def create_snapshot(
             self,
+            vm_name: str,
             snapshot_name: str,
             description: Optional[str] = None,
             snapshot_type: Optional[str] = None
@@ -81,10 +82,11 @@ class BaseVMDriver:
         """Create a snapshot of the virtual machine.
 
         Args:
-            snapshot_name: Name of the snapshot
-            description: Optional description
+            vm_name: Name of the virtual machine.
+            snapshot_name: Name of the snapshot.
+            description: Optional description.
             snapshot_type: Type of snapshot ('internal'|'external'|None)
-                         None is 'internal' by default
+                         None is 'internal' by default.
 
         Returns:
             Dict: Snapshot metadata
@@ -247,6 +249,7 @@ class BaseLibvirtDriver(BaseVMDriver):
 
     def create_snapshot(
             self,
+            vm_name: str,
             snapshot_name: str,
             description: Optional[str] = None,
             snapshot_type: Optional[str] = None
@@ -254,19 +257,29 @@ class BaseLibvirtDriver(BaseVMDriver):
         """Create a snapshot of the virtual machine.
 
         Args:
-            snapshot_name: Name of the snapshot
-            description: Optional description of the snapshot
+            vm_name: Name of the virtual machine.
+            snapshot_name: Name of the snapshot.
+            description: Optional description of the snapshot.
             snapshot_type: Type of snapshot ('internal'|'external'|None)
-                         None means 'internal' by default
+                         None means 'internal' by default.
         """
         if snapshot_type not in ('internal', 'external'):
             snapshot_type = 'internal'
         if snapshot_type == 'internal':
-            return self.create_internal_snapshot(snapshot_name, description)
-        return self.create_external_snapshot(snapshot_name, description)
+            return self.create_internal_snapshot(
+                vm_name,
+                snapshot_name,
+                description
+            )
+        return self.create_external_snapshot(
+            vm_name,
+            snapshot_name,
+            description
+        )
 
     def create_internal_snapshot(
         self,
+        vm_name: str,
         snapshot_name: str,
         description: Optional[str] = None
     ) -> Dict:
@@ -284,6 +297,7 @@ class BaseLibvirtDriver(BaseVMDriver):
 
     def create_external_snapshot(
         self,
+        vm_name: str,
         snapshot_name: str,
         description: Optional[str] = None
     ) -> Dict:
