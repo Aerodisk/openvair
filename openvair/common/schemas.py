@@ -10,7 +10,7 @@ Classes:
 
 from typing import Generic, TypeVar, Optional
 
-from pydantic import BaseModel
+from pydantic import Field, BaseModel
 
 T = TypeVar('T')
 
@@ -27,6 +27,17 @@ class BaseResponse(BaseModel, Generic[T]):
         error (Optional[str]): An error message, if applicable.
     """
 
-    status: str
-    data: Optional[T] = None
-    error: Optional[str] = None
+    status: str = Field(
+        ...,
+        examples=['success'],
+        description='Status of the response ("success" or "error")',
+    )
+    data: Optional[T] = Field(
+        default=None,
+        description='Payload containing the response data (if any)',
+    )
+    error: Optional[str] = Field(
+        default=None,
+        examples=['Template not found'],
+        description='Error message (if any)',
+    )
