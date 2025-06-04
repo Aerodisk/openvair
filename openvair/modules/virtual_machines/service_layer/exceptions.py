@@ -97,3 +97,11 @@ class VMNotFoundException(BaseCustomException):
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize VMNotFoundException with optional arguments."""
         super().__init__(message, *args)
+
+
+class VolumeCloneException(BaseCustomException):
+    """Raised when there is an error with volume cloning."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VolumeCloneException with optional arguments."""
+        super().__init__(message, *args)

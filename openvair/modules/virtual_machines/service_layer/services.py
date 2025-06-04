@@ -1430,6 +1430,10 @@ class VMServiceLayerManager(BackgroundTasks):
             unnecessary fields and ensuring the data structure is compatible
             with the expected input for creating a new VM.
         """
+        LOG.warning(
+            f'Starting to transform VM data for cloning: {vm} '
+            f'with suffix: {suffix}'
+        )
         try:
             data = deepcopy(vm)
             data["user_info"] = user_info
@@ -1462,7 +1466,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
             data["virtual_interfaces"] = virtual_interfaces
 
-            LOG.info(f'Transformed VM data for cloning: {data}')
+            LOG.warning(f'Transformed VM data for cloning: {data}')
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get("disks", []),
                 suffix,
@@ -1494,23 +1498,35 @@ class VMServiceLayerManager(BackgroundTasks):
                 ready for cloning, with unique names.
         """
         attach_disks: List[Dict] = []
-        LOG.info(f'Preparing disks for cloning with suffix: {suffix}')
+        LOG.warning(f'Preparing disks for cloning with suffix: {suffix}')
         for disk in disks_list:
+            LOG.warning(f'Original disk before transform: {disk}')
             new_disk = {
                 "name": (
                     f'{disk["name"]}{suffix}'
                     if disk.get("type") == DiskType.volume.value
                     else disk['name']
                 ),
-                "emulation": disk["emulation"],
-                "format": disk["format"],
-                "qos": disk["qos"],
-                "boot_order": disk["boot_order"],
-                "order": disk["order"],
-                "read_only": disk["read_only"],
+                'emulation': disk['emulation'],
+                'format': disk['format'],
+                'qos': disk['qos'],
+                'boot_order': disk['boot_order'],
+                'order': disk['order'],
+                'read_only': disk['read_only'],
+                'storage_id': disk.get('storage_id', ''),
             }
+
+            # Тут нужно не копировать данные дисков, а создавать новые
+            # с уникальными именами и ID, затем копировать path
             if disk.get("type") == DiskType.volume.value:
                 new_disk["volume_id"] = disk["disk_id"]
+                try:
+                    LOG.info(f'RPC call to clone volume: {new_disk}')
+                    self.volume_service_client.clone_volume(new_disk)
+                except exceptions.VolumeCloneException as err:
+                    msg = f'Error cloning volume: {err}'
+                    LOG.exception(msg)
+                    raise
             elif disk.get("type") == DiskType.image.value:
                 new_disk["image_id"] = disk["disk_id"]
 

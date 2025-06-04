@@ -577,6 +577,117 @@ class VolumeServiceLayerManager(BackgroundTasks):
             'Service layer method _create_volume was' 'successfully processed'
         )
 
+    def clone_volume(self, clone_volume_info: Dict) -> Dict:
+        """Create a new volume by cloning an existing one.
+
+        Args:
+            clone_volume_info (Dict): _description_
+
+        Returns:
+            Dict: _description_
+        """
+        LOG.info('Service layer start handling response on create volume.')
+        user_info = clone_volume_info.pop('user_info', {})
+        clone_volume_info.update({'user_id': user_info.get('id', '')})
+        volume = self._prepare_volume_data(clone_volume_info)
+        with self.uow:
+            self._check_volume_exists_on_storage(volume.name, volume.storage_id)
+            db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
+            db_volume.status = VolumeStatus.new.name
+            LOG.info('Start inserting volume into db with status new.')
+            self.uow.volumes.add(db_volume)
+            self.uow.commit()
+            serialized_volume = DataSerializer.to_web(db_volume)
+            LOG.debug(
+                'Serialized volume ready for other steps: %s'
+                % serialized_volume
+            )
+        LOG.info('Cast _create_volume for other steps.')
+        serialized_volume.update({'user_info': user_info})
+        self.service_layer_rpc.cast(
+            self._clone_volume.__name__, data_for_method=serialized_volume
+        )
+        self.event_store.add_event(
+            str(serialized_volume.get('id')),
+            user_info.get('id'),
+            self.clone_volume.__name__,
+            'Volume clone successfully inserted into db.',
+        )
+        LOG.info(
+            'Service layer method clone_volume was' 'successfully processed'
+        )
+        return serialized_volume
+
+    def _clone_volume(self, clone_volume_info: Dict) -> None:
+        """Clone an existing volume in the domain layer.
+
+        This method handles the cloning of a volume by calling the domain layer
+        to perform the actual cloning operation.
+
+        Args:
+            clone_volume_info (Dict): A dictionary containing the information
+                about the volume to be cloned.
+
+        Raises:
+            RpcCallException: If an error occurs during the RPC call to the
+                domain layer.
+            RpcCallTimeoutException: If the RPC call times out.
+        """
+        LOG.info('Service layer start handling response on _clone_volume.')
+        clone_volume_info.pop('user_info', {})
+        volume_id = clone_volume_info.get('volume_id', '')
+        storage_id = clone_volume_info.get('storage_id', '')
+
+        if not volume_id:
+            message = 'Volume id was not received.'
+            LOG.error(message)
+            raise exceptions.CreateVolumeDataException(message)
+
+        storage_info = self._get_storage_info(storage_id)
+
+        with self.uow:
+            db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
+            try:
+                self._check_volume_status(
+                    db_volume.status, [VolumeStatus.new.name]
+                )
+                db_volume.status = VolumeStatus.creating.name
+                db_volume.path = storage_info.mount_point
+                db_volume.storage_type = storage_info.storage_type
+                self.uow.commit()
+                self._check_storage_on_availability(storage_info)
+                self._check_available_space_on_storage(
+                    int(db_volume.size), storage_info
+                )
+
+                domain_volume = DataSerializer.to_domain(db_volume)
+                LOG.info(
+                    'Serialized volume which will call to domain '
+                    'for creating: %s.' % domain_volume
+                )
+                result = self.domain_rpc.call(
+                    BaseVolume.clone.__name__, data_for_manager=domain_volume
+                )
+                LOG.debug('Result of rpc call to domain: %s.' % result)
+                db_volume.status = VolumeStatus.available.name
+                LOG.debug(
+                    'Volume status was updated on %s.'
+                    % VolumeStatus.available.name
+                )
+                self.event_store.add_event(
+                    str(db_volume.id),
+                    str(db_volume.user_id),
+                    self.clone_volume.__name__,
+                    'Volume successfully cloned in the system.',
+                )
+            except (RpcCallException, RpcCallTimeoutException) as err:
+                msg = (
+                    f'An error occurred when calling the '
+                    f'domain layer while cloning volume: {err!s}'
+                )
+                db_volume.status = VolumeStatus.error.name
+                raise exceptions.CreateVolumeDataException(msg)
+
     def _check_vm_power_state(self, vm_id: str) -> None:
         """Check if a VM is in the 'shut_off' power state.
 
