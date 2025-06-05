@@ -72,27 +72,11 @@ class BaseVMDriver:
         pass
 
     @abc.abstractmethod
-    def create_snapshot(
-            self,
-            vm_name: str,
-            snapshot_name: str,
-            description: Optional[str] = None,
-            snapshot_type: Optional[str] = None
-    ) -> Dict:
+    def create_snapshot(self) -> Dict:
         """Create a snapshot of the virtual machine.
 
-        Args:
-            vm_name: Name of the virtual machine.
-            snapshot_name: Name of the snapshot.
-            description: Optional description.
-            snapshot_type: Type of snapshot ('internal'|'external'|None)
-                         None is 'internal' by default.
-
         Returns:
-            Dict: Snapshot metadata
-
-        Raises:
-            ValueError: If unsupported snapshot type is requested
+            Dict: Snapshot metadata.
         """
         pass
 
@@ -108,6 +92,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         connection (LibvirtConnection): Connection to the Libvirt API.
         vm_info (Dict): Dictionary containing the virtual machine
             configuration.
+        snapshot_info (Dict): Dictionary containing the snapshot configuration.
     """
 
     def __init__(self) -> None:
@@ -119,6 +104,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         self.renderer = VMRenderer()
         self.connection = LibvirtConnection()
         self.vm_info: Dict = {}
+        self.snapshot_info: Dict = {}
 
     def render_domain(self, vm_info: Dict) -> str:
         """Render the domain XML from the virtual machine information.
@@ -247,42 +233,18 @@ class BaseLibvirtDriver(BaseVMDriver):
             f"{self.vm_info.get('name', '')}"
         )
 
-    def create_snapshot(
-            self,
-            vm_name: str,
-            snapshot_name: str,
-            description: Optional[str] = None,
-            snapshot_type: Optional[str] = None
-    ) -> Dict:
+    def create_snapshot(self) -> Dict:
         """Create a snapshot of the virtual machine.
 
-        Args:
-            vm_name: Name of the virtual machine.
-            snapshot_name: Name of the snapshot.
-            description: Optional description of the snapshot.
-            snapshot_type: Type of snapshot ('internal'|'external'|None)
-                         None means 'internal' by default.
+        Type of snapshot in snapshot_info: None|'internal'|'external',
+        None is 'internal' by default.
         """
-        if snapshot_type not in ('internal', 'external'):
-            snapshot_type = 'internal'
-        if snapshot_type == 'internal':
-            return self.create_internal_snapshot(
-                vm_name,
-                snapshot_name,
-                description
-            )
-        return self.create_external_snapshot(
-            vm_name,
-            snapshot_name,
-            description
-        )
+        snapshot_type = self.snapshot_info.get('type')
+        if snapshot_type == 'external':
+            return self.create_external_snapshot()
+        return self.create_internal_snapshot()
 
-    def create_internal_snapshot(
-        self,
-        vm_name: str,
-        snapshot_name: str,
-        description: Optional[str] = None
-    ) -> Dict:
+    def create_internal_snapshot(self) -> Dict:
         """Internal implementation for internal snapshots.
 
         This method should be implemented by subclasses.
@@ -295,12 +257,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         raise NotImplementedError
 
-    def create_external_snapshot(
-        self,
-        vm_name: str,
-        snapshot_name: str,
-        description: Optional[str] = None
-    ) -> Dict:
+    def create_external_snapshot(self) -> Dict:
         """Internal implementation for external snapshots.
 
         This method should be implemented by subclasses.

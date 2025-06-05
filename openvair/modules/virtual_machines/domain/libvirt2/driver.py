@@ -9,7 +9,7 @@ Classes:
         Libvirt API.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from pathlib import Path
 
 import libvirt
@@ -31,11 +31,12 @@ LOG = get_logger(__name__)
 class LibvirtDriver(BaseLibvirtDriver):
     """Driver class for managing virtual machines using the Libvirt API.
 
-    This class provides methods to start, stop, and manage VNC sessions
-    for virtual machines.
+    This class provides methods to start, stop, manage VNC sessions and
+    snapshots for virtual machines.
 
     Attributes:
         vm_info (Dict): Dictionary containing the virtual machine configuration.
+        snapshot_info (Dict): Dictionary containing the snapshot configuration.
         vm_xml (str): The XML definition of the virtual machine.
     """
 
@@ -47,6 +48,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                 configuration.
         """
         super(LibvirtDriver, self).__init__()
+        self.snapshot_info = kwargs.pop('snapshot_info', None)
         self.vm_info = kwargs
         self.vm_xml = self.render_domain(self.vm_info)
 
@@ -161,71 +163,59 @@ class LibvirtDriver(BaseLibvirtDriver):
         )
         return {'url': vnc_url}
 
-    def create_internal_snapshot(
-            self,
-            vm_name: str,
-            snapshot_name: str,
-            description: Optional[str] = None
-    ) -> Dict:
+    def create_internal_snapshot(self) -> Dict:
         """Create an internal snapshot of the virtual machine.
 
         Method creates a snapshot of the virtual machine using the Libvirt API.
 
-        Args:
-            vm_name (str): Name of the virtual machine.
-            snapshot_name (str): The name of the new snapshot.
-            description (str): Optional description of the snapshot.
-
         Returns:
-            Dict: A dictionary containing snapshot information.
+            Dict: A dictionary containing the new snapshot information.
 
         Raises:
             Exception: If an error occurs while creating the snapshot.
         """
-        LOG.info(f'Creating snapshot for VM {vm_name}')
-
+        LOG.info(f'Creating snapshot for VM {self.vm_info.get("name")}')
+        vm_name = self.vm_info.get('name')
+        name = self.snapshot_info.get('snapshot_name')
+        description = self.snapshot_info.get('description')
+        description = 'Open vAIR' if description is None else description
+        parent_name = None
         with self.connection as connection:
             domain = connection.lookupByName(vm_name)
-
-            parent_name = None
             try:
-                with domain.snapshotCurrent() as current_snapshot:
-                    if current_snapshot:
-                        parent_name = current_snapshot.getName()
+                current_snapshot = domain.snapshotCurrent()
+                if current_snapshot:
+                    parent_name = current_snapshot.getName()
             except libvirt.libvirtError:
                 # Snapshot is root
                 pass
 
             snapshot_xml = f"""
             <domainsnapshot>
-                <name>{snapshot_name}</name>
-                <description>{description or 'Open vAIR snapshot'}</description>
+                <name>{name}</name>
+                <description>{description}</description>
             </domainsnapshot>
             """
+            snapshot = domain.snapshotCreateXML(snapshot_xml, flags=0)
 
-            # 0 flag = disk snapshot + memory dump if possible
-            with domain.snapshotCreateXML(snapshot_xml, flags=0) as snapshot:
-                snap_xml_desc = snapshot.getXMLDesc()
-                creation_time = self._get_creation_time_from_xml(snap_xml_desc)
-                snapshot_file = Path(f"{SNAPSHOTS_PATH}"
-                                     f"{vm_name}_"
-                                     f"{snapshot_name}.xml")
-                try:
-                    snapshot_file.parent.mkdir(parents=True, exist_ok=True)
-                    with Path.open(snapshot_file, 'w') as f:
-                        f.write(snap_xml_desc)
-                    LOG.debug(f"Saved snapshot XML to {snapshot_file}")
-                except IOError as e:
-                    LOG.error(f"Failed to save snapshot XML: {e}")
+            snap_xml_desc = snapshot.getXMLDesc()
+            creation_time = self._get_creation_time_from_xml(snap_xml_desc)
 
+            snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{name}.xml")
+            try:
+                snapshot_file.parent.mkdir(parents=True, exist_ok=True)
+                with snapshot_file.open('w', encoding='utf-8') as f:
+                    f.write(snap_xml_desc)
+                LOG.debug(f"Saved snapshot XML to {snapshot_file}")
+            except (IOError, OSError) as e:
+                LOG.error(f"Failed to save snapshot XML: {e}")
 
-                LOG.info(f'Created snapshot {snapshot_name} '
-                         f'for VM {vm_name}')
+            LOG.info(f'Created snapshot {name} for VM {vm_name}')
 
-                return {
-                    'name': snapshot_name,
-                    'parent': parent_name,
-                    'description': description,
-                    'creation_time': creation_time,
-                    'vm_name': vm_name
-                }
+        return {
+            'vm_name': vm_name,
+            'name': name,
+            'parent': parent_name,
+            'description': description,
+            'creation_time': creation_time,
+        }
