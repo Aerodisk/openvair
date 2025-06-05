@@ -43,6 +43,7 @@ from openvair.libs.context_managers import synchronized_session
 from openvair.modules.virtual_machines import config
 from openvair.libs.messaging.exceptions import (
     RpcCallException,
+    RpcCallTimeoutException,
     RpcServerInitializedException,
 )
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -105,6 +106,14 @@ EditVmInfo = namedtuple(
     ],
 )
 
+CreateSnapshotInfo = namedtuple(
+    'CreateSnapshotInfo',
+    [
+        'vm_id',
+        'name',
+        'description'
+    ],
+)
 
 class VmStatus(enum.Enum):
     """Enumeration of possible virtual machine statuses."""
@@ -1364,3 +1373,74 @@ class VMServiceLayerManager(BackgroundTasks):
                         db_vm.power_state = VmPowerState[db_vm_power_state].name
             self.uow.commit()
         LOG.info('Stop monitoring.')
+
+    def create_snapshot(self, data: Dict) -> Dict:
+        """Create a new snapshot.
+
+        Args:
+            data (Dict): The data required to create the snapshot.
+
+        Returns:
+            Dict: Snapshot data.
+        """
+        LOG.info('Handling call on create snapshot of vm.')
+        user_info: Dict = data.get('user_info', {})
+        user_id = str(user_info.get('id'))
+        vm_id = data.pop('vm_id', '')
+        snapshot_id = str(uuid4())  # TODO: заменить на вызов бд (uow)
+
+        with self.uow:
+            db_vm = self.uow.virtual_machines.get(vm_id)
+            # db_snapshot = self._create_snapshot_in_db()
+            snap_info = {
+                'vm_name': str(db_vm.name),
+                'snapshot_name': data.get('name', ''),
+                'description': data.get('description')
+            }
+            serialized_vm = DataSerializer.vm_to_web(db_vm)
+            prepared_data = {
+                **serialized_vm,
+                'snapshot_info': snap_info
+            }
+            try:
+                result: Dict = self.domain_rpc.call(
+                    BaseVMDriver.create_snapshot.__name__,
+                    data_for_manager=prepared_data,
+                    time_limit=360
+                )
+                self.event_store.add_event(
+                    str(db_vm.id),
+                    user_id,
+                    self.create_snapshot.__name__,
+                    f"Snapshot {data.get('name')} created successfully",
+                )
+            except (RpcCallException, RpcCallTimeoutException) as err:
+                message = f'Error while creating snapshot: {err!s}'
+                LOG.error(message)
+                self.event_store.add_event(
+                    str(db_vm.id),
+                    user_id,
+                    self.create_snapshot.__name__,
+                    message,
+                )
+                raise
+            except Exception as err:
+                message = f'Unexpected error while creating snapshot: {err!s}'
+                LOG.error(message)
+                self.event_store.add_event(
+                    str(db_vm.id),
+                    user_id,
+                    self.create_snapshot.__name__,
+                    message,
+                )
+                raise
+            # parent_name = result.get('parent')
+            # creation_time = result.pop('creation_time')
+            result.pop('creation_time')
+
+        LOG.info('Call on create snapshot was successfully processed.')
+        return {
+            'vm_id': vm_id,
+            'id': snapshot_id,
+            **result,
+        }

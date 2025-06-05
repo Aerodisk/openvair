@@ -276,21 +276,10 @@ class VMCrud:
                  f'with data: {data}')
 
         data.update({'vm_id': str(vm_id), 'user_info': user_info})
-        # TODO: Заменить на вызов RPC
-        import uuid
-        snapshot_id = str(uuid.uuid4())
-        result = {
-            "vm_id": vm_id,
-            "id": snapshot_id,
-            "vm_name": "vm_name",
-            "name": "snap_name",
-            "parent": "parent_name",
-            "description": "Open vAIR"
-        }
-        # result: Dict = self.service_layer_rpc.call(
-        #     services.VMServiceLayerManager.create_snapshot.__name__,
-        #     data_for_method=data,
-        # )
+        result: Dict = self.service_layer_rpc.call(
+            services.VMServiceLayerManager.create_snapshot.__name__,
+            data_for_method=data,
+        )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
