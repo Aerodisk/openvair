@@ -141,7 +141,7 @@ def cleanup_all_volumes() -> None:
                 volume_instance = VolumeFactory().get_volume(
                     VolumeSerializer.to_domain(orm_volume)
                 )
-                uow.session.delete(orm_volume)
+                uow.volumes.delete(orm_volume.id)
                 volume_instance.delete()
             uow.commit()
     except Exception as err:  # noqa: BLE001

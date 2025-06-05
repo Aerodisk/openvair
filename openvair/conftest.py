@@ -16,6 +16,7 @@ from openvair.libs.testing.utils import (
     delete_resource,
     wait_full_deleting,
     cleanup_all_volumes,
+    wait_for_field_value,
     cleanup_all_templates,
     generate_test_entity_name,
 )
@@ -244,8 +245,65 @@ def virtual_machine(
         ],
     ).model_dump(mode='json')
     vm = create_resource(client, '/virtual-machines/create/', vm_data, 'vm')
+    wait_for_field_value(
+        client, f'/virtual-machines/{vm["id"]}/', 'status', 'available'
+    )
+    created_vm = client.get(f'/virtual-machines/{vm["id"]}/').json()
 
-    yield vm
+    yield created_vm
 
-    delete_resource(client, '/virtual-machines', vm['id'], 'vm')
-    wait_full_deleting(client, '/virtual-machines/', vm['id'])
+    delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
+    wait_full_deleting(client, '/virtual-machines/', created_vm['id'])
+
+
+@pytest.fixture(scope='function')
+def deactivated_virtual_machine(
+    client: TestClient, virtual_machine: Dict
+) -> Generator[Dict, None, None]:
+    """Creates a test deactivated virtual machine."""
+    if virtual_machine['power_state'] != 'shut_off':
+        response = client.post(
+            f'/virtual-machines/{virtual_machine["id"]}/shut-off/'
+        ).json()
+        wait_for_field_value(
+            client,
+            f'/virtual-machines/{response["id"]}/',
+            'power_state',
+            'shut_off',
+        )
+
+    deactivated_vm = client.get(
+        f'/virtual-machines/{virtual_machine["id"]}/'
+    ).json()
+
+    yield deactivated_vm
+
+
+@pytest.fixture(scope='function')
+def activated_virtual_machine(
+    client: TestClient, virtual_machine: Dict
+) -> Generator[Dict, None, None]:
+    """Creates a test activated virtual machine."""
+    response = client.post(
+        f'/virtual-machines/{virtual_machine["id"]}/start/'
+    ).json()
+    wait_for_field_value(
+        client,
+        f'/virtual-machines/{response["id"]}/',
+        'power_state',
+        'running',
+    )
+
+    activated = client.get(f'/virtual-machines/{virtual_machine["id"]}/').json()
+
+    yield activated
+
+    response = client.post(
+        f'/virtual-machines/{virtual_machine["id"]}/shut-off/'
+    ).json()
+    wait_for_field_value(
+        client,
+        f'/virtual-machines/{response["id"]}/',
+        'power_state',
+        'shut_off',
+    )
