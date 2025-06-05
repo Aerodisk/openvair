@@ -30,6 +30,7 @@ from __future__ import annotations
 import enum
 import uuid
 from typing import Dict, List, Optional, cast
+from pathlib import Path
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
@@ -581,41 +582,80 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """Create a new volume by cloning an existing one.
 
         Args:
-            clone_volume_info (Dict): _description_
+            clone_volume_info (Dict): A dictionary containing the information
+                - name: name of the new volume
+                - volume_id: ID of the volume to clone
+                - vm_id: ID of the VM to which the volume will be attached
+                - user_info: User information
 
         Returns:
-            Dict: _description_
+            Dict: Serialized representation of the cloned volume.
+
+        Raises:
+            VolumeNotFoundException: If the specified volume to clone does
+                not exist.
         """
-        LOG.info('Service layer start handling response on create volume.')
+        LOG.info('Service layer start handling response on clone_volume.')
+
+        # Получаем информацию о пользователе
         user_info = clone_volume_info.pop('user_info', {})
-        clone_volume_info.update({'user_id': user_info.get('id', '')})
-        volume = self._prepare_volume_data(clone_volume_info)
+        volume_id = clone_volume_info.get('volume_id', '')
+
+        source_volume = self.get_volume({'volume_id': volume_id})
+        if not source_volume:
+            msg = f'Source volume {volume_id} not found'
+            LOG.error(msg)
+            raise exceptions.VolumeNotFoundException(msg)
+
+        # Создаем новую запись в БД
         with self.uow:
-            self._check_volume_exists_on_storage(volume.name, volume.storage_id)
-            db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
-            db_volume.status = VolumeStatus.new.name
-            LOG.info('Start inserting volume into db with status new.')
+            # Проверяем существование диска с таким именем на storage
+            self._check_volume_exists_on_storage(
+                clone_volume_info['name'],
+                source_volume['storage_id']
+            )
+
+            # Создаем новый volume с параметрами исходного
+            db_volume = Volume(
+                name=clone_volume_info['name'],
+                description=clone_volume_info.get('description', ''),
+                user_id=user_info.get('id', ''),
+                format=source_volume.get('format', 'qcow2'),
+                size=source_volume.get('size', 0),
+                status=VolumeStatus.new.name,
+                storage_id=source_volume.get('storage_id', ''),
+                storage_type=source_volume.get('storage_type', 'localfs'),
+                read_only=clone_volume_info.get('read_only', False)
+            )
+
             self.uow.volumes.add(db_volume)
             self.uow.commit()
+
             serialized_volume = DataSerializer.to_web(db_volume)
-            LOG.debug(
-                'Serialized volume ready for other steps: %s'
-                % serialized_volume
+            LOG.info(
+                f'Serialized volume ready for cloning: {serialized_volume}.'
             )
-        LOG.info('Cast _create_volume for other steps.')
-        serialized_volume.update({'user_info': user_info})
+
+        # Запускаем процесс физического клонирования диска
+        serialized_volume.update({
+           'user_info': user_info,
+           'source_volume_id': source_volume.get('id', ''),
+        })
+
         self.service_layer_rpc.cast(
-            self._clone_volume.__name__, data_for_method=serialized_volume
+            self._clone_volume.__name__,
+            data_for_method=serialized_volume
         )
+
+        # Записываем событие
         self.event_store.add_event(
             str(serialized_volume.get('id')),
             user_info.get('id'),
             self.clone_volume.__name__,
-            'Volume clone successfully inserted into db.',
+            f'Volume clone {clone_volume_info["name"]} successfully created.',
         )
-        LOG.info(
-            'Service layer method clone_volume was' 'successfully processed'
-        )
+
+        LOG.info('Service layer method clone_volume was successfully processed')
         return serialized_volume
 
     def _clone_volume(self, clone_volume_info: Dict) -> None:
@@ -634,52 +674,48 @@ class VolumeServiceLayerManager(BackgroundTasks):
             RpcCallTimeoutException: If the RPC call times out.
         """
         LOG.info('Service layer start handling response on _clone_volume.')
-        clone_volume_info.pop('user_info', {})
-        volume_id = clone_volume_info.get('volume_id', '')
-        storage_id = clone_volume_info.get('storage_id', '')
+        volume_id = clone_volume_info.get('id', '')
+        source_volume_id = clone_volume_info.get('source_volume_id', '')
 
-        if not volume_id:
-            message = 'Volume id was not received.'
+        if not volume_id or not source_volume_id:
+            message = 'Volume id or source_volume_id was not received.'
             LOG.error(message)
             raise exceptions.CreateVolumeDataException(message)
 
-        storage_info = self._get_storage_info(storage_id)
-
         with self.uow:
             db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
+            source_volume = self.uow.volumes.get(uuid.UUID(source_volume_id))
             try:
-                self._check_volume_status(
-                    db_volume.status, [VolumeStatus.new.name]
-                )
-                db_volume.status = VolumeStatus.creating.name
-                db_volume.path = storage_info.mount_point
-                db_volume.storage_type = storage_info.storage_type
-                self.uow.commit()
+                storage_info = self._get_storage_info(str(db_volume.storage_id))
+
+                # Проверки
+                self._check_volume_status(db_volume.status, [VolumeStatus.new.name])
                 self._check_storage_on_availability(storage_info)
                 self._check_available_space_on_storage(
-                    int(db_volume.size), storage_info
+                    int(source_volume.size), storage_info
                 )
 
+                # Обновляем статус и путь
+                db_volume.status = VolumeStatus.creating.name
+                db_volume.path = str(
+                    Path(storage_info.mount_point) / f'volume-{db_volume.id}'
+                )
+                self.uow.commit()
+
+                # Готовим данные для domain layer
                 domain_volume = DataSerializer.to_domain(db_volume)
-                LOG.info(
-                    'Serialized volume which will call to domain '
-                    'for creating: %s.' % domain_volume
+                domain_volume.update({
+                    'source_path': source_volume.path,
+                })
+
+                # Клонируем через domain layer
+                self.domain_rpc.call(
+                    BaseVolume.clone.__name__,
+                    data_for_manager=domain_volume,
                 )
-                result = self.domain_rpc.call(
-                    BaseVolume.clone.__name__, data_for_manager=domain_volume
-                )
-                LOG.debug('Result of rpc call to domain: %s.' % result)
+
                 db_volume.status = VolumeStatus.available.name
-                LOG.debug(
-                    'Volume status was updated on %s.'
-                    % VolumeStatus.available.name
-                )
-                self.event_store.add_event(
-                    str(db_volume.id),
-                    str(db_volume.user_id),
-                    self.clone_volume.__name__,
-                    'Volume successfully cloned in the system.',
-                )
+                self.uow.commit()
             except (RpcCallException, RpcCallTimeoutException) as err:
                 msg = (
                     f'An error occurred when calling the '

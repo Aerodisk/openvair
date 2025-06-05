@@ -143,12 +143,18 @@ class LocalFSVolume(BaseVolume):
             f'size={self.size}, format={self.format}'
         )
         qemu_img_adapter = QemuImgAdapter()
-        clone_data = CreateVolumeCloneServiceCommandDTO.model_validate(
-            data
-        )
+        source_path = data.get('source_path', '')
+
+        if not source_path or not Path(source_path).exists():
+            msg = 'Source_path is required and must exist'
+            LOG.error(msg)
+            raise ValueError(msg)
+
+        target_path = Path(self.path, f'volume-{self.id}')
         qemu_img_adapter.create_copy(
-            Path(self.path, f'volume-{self.id}'),
-            Path(clone_data.path, f'volume-{clone_data.id}'),
+            Path(source_path),
+            target_path,
+            fmt=self.format,
         )
         return self.__dict__
 

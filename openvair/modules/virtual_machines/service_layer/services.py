@@ -1469,6 +1469,7 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.warning(f'Transformed VM data for cloning: {data}')
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get("disks", []),
+                user_info,
                 suffix,
             )
 
@@ -1480,7 +1481,7 @@ class VMServiceLayerManager(BackgroundTasks):
         return data
 
     def _vm_clone_disks_payload(
-        self, disks_list: List, suffix: str
+        self, disks_list: List, user_info: Dict, suffix: str
     ) -> List[Dict]:
         """Transform VM disks for cloning.
 
@@ -1491,6 +1492,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         Args:
             disks_list (List): A list of disk dictionaries from the original VM.
+            user_info (Dict): User information to be included in the new VM.
             suffix (str): A suffix to append to the names of the disks.
 
         Returns:
@@ -1513,7 +1515,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 'boot_order': disk['boot_order'],
                 'order': disk['order'],
                 'read_only': disk['read_only'],
-                'storage_id': disk.get('storage_id', ''),
+                'user_info': user_info,
             }
 
             # Тут нужно не копировать данные дисков, а создавать новые
@@ -1521,12 +1523,28 @@ class VMServiceLayerManager(BackgroundTasks):
             if disk.get("type") == DiskType.volume.value:
                 new_disk["volume_id"] = disk["disk_id"]
                 try:
-                    LOG.info(f'RPC call to clone volume: {new_disk}')
-                    self.volume_service_client.clone_volume(new_disk)
+                    self.volume_service_client.clone_volume(
+                        {
+                            'volume_id': disk['disk_id'],
+                            'name': new_disk['name'],
+                            'vm_id': disk.get('vm_id', ''),
+                            'user_info': user_info,
+                        }
+                    )
                 except exceptions.VolumeCloneException as err:
                     msg = f'Error cloning volume: {err}'
                     LOG.exception(msg)
-                    raise
+                    raise exceptions.VolumeCloneException(msg)
+                # volume_info = self.volume_service_client.get_volume(new_disk)
+                # new_disk['storage_id'] = volume_info.get('storage_id', '')
+                # new_disk['volume_id'] = disk.get('disk_id', '')
+                # try:
+                #     LOG.info(f'RPC call to clone volume: {new_disk}')
+                #     self.volume_service_client.clone_volume(new_disk)
+                # except exceptions.VolumeCloneException as err:
+                #     msg = f'Error cloning volume: {err}'
+                #     LOG.exception(msg)
+                #     raise
             elif disk.get("type") == DiskType.image.value:
                 new_disk["image_id"] = disk["disk_id"]
 
