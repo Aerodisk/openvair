@@ -299,7 +299,7 @@ async def get_snapshots(
     LOG.info(f'API handling request to get snapshots of '
              f'virtual machine with ID: {vm_id}.')
     snapshots = await run_in_threadpool(
-        crud.get_snapshots, vm_id, user_info
+        crud.get_snapshots, str(vm_id), user_info
     )
     LOG.info('API request was successfully processed.')
     return schemas.ListOfSnapshots(snapshots=snapshots)
@@ -331,7 +331,7 @@ async def get_snapshot(
     LOG.info(f'API handling request to get a snapshot with ID: {snap_id} '
              f'of virtual machine with ID: {vm_id}.')
     snapshot = await run_in_threadpool(
-        crud.get_snapshot, vm_id, snap_id, user_info
+        crud.get_snapshot, str(vm_id), str(snap_id), user_info
     )
     LOG.info('API request was successfully processed.')
     return schemas.SnapshotInfo(**snapshot)
@@ -359,13 +359,13 @@ async def create_snapshot(
         crud (VMCrud): The CRUD dependency for virtual machine operations.
 
     Returns:
-        schemas.SnapshotInfo: The created snapshot data.
+        Dict: The created snapshot data.
     """
     LOG.info(f'API handling request to create a snapshot '
              f'of virtual machine with ID: {vm_id}.')
     snapshot = await run_in_threadpool(
         crud.create_snapshot,
-        vm_id,
+        str(vm_id),
         data.model_dump(mode='json'),
         user_info
     )
@@ -399,7 +399,7 @@ async def revert_snapshot(
     LOG.info(f'API handling request to revert snapshot (ID: {snap_id}) '
              f'of virtual machine with ID: {vm_id}')
     snapshot = await run_in_threadpool(
-        crud.revert_snapshot, vm_id, snap_id, user_info
+        crud.revert_snapshot, str(vm_id), str(snap_id), user_info
     )
     LOG.info('API request was successfully processed.')
     return schemas.SnapshotInfo(**snapshot)
@@ -432,7 +432,7 @@ async def delete_snapshot(
         f'from virtual machine with ID: {vm_id}.'
     )
     result = await run_in_threadpool(
-        crud.delete_snapshot, vm_id, snap_id, user_info
+        crud.delete_snapshot, str(vm_id), str(snap_id), user_info
     )
     LOG.info('API request was successfully processed.')
     return JSONResponse(result)

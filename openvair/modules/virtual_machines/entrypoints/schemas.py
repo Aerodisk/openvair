@@ -280,17 +280,17 @@ class SnapshotInfo(BaseModel):
     Attributes:
         vm_id (UUID): The ID of the virtual machine.
         id (UUID): The ID of the snapshot.
+        vm_name (str): The name of the virtual machine.
         name (str): The name of the snapshot.
-        status (str): The status of the snapshot.
         parent (Optional[str]): The optional name of the parent snapshot.
         description (Optional[str]): The optional description of the snapshot.
     """
 
     vm_id: UUID
     id: UUID
+    vm_name: str
     name: str
     parent: Optional[str] = None
-    status: str
     description: Optional[str] = None
 
 

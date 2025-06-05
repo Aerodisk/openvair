@@ -9,7 +9,6 @@ Classes:
         virtual machines by interacting with the service layer.
 """
 
-from uuid import UUID
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
@@ -181,11 +180,11 @@ class VMCrud:
         )
         return result
 
-    def get_snapshots(self, vm_id: UUID, _user_info: Dict) -> List:
+    def get_snapshots(self, vm_id: str, _user_info: Dict) -> List:
         """Retrieve all snapshots of a virtual machine.
 
         Args:
-            vm_id (UUID): The ID of the virtual machine.
+            vm_id (str): The ID of the virtual machine.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -223,13 +222,13 @@ class VMCrud:
         return result
 
     def get_snapshot(
-            self, vm_id: UUID, snap_id: UUID, _user_info: Dict
+            self, vm_id: str, snap_id: str, _user_info: Dict
     ) -> Dict:
         """Retrieve a snapshot of a specific virtual machine by snapshot ID.
 
         Args:
-            vm_id (UUID): The ID of the virtual machine.
-            snap_id (UUID): The ID of the snapshot.
+            vm_id (str): The ID of the virtual machine.
+            snap_id (str): The ID of the snapshot.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -259,12 +258,12 @@ class VMCrud:
         return result
 
     def create_snapshot(
-            self, vm_id: UUID, data: Dict, _user_info: Dict
+            self, vm_id: str, data: Dict, user_info: Dict
     ) -> Dict:
         """Create a new snapshot of the virtual machine.
 
         Args:
-            vm_id (UUID): The ID of the virtual machine where snapshot will be
+            vm_id (str): The ID of the virtual machine where snapshot will be
             created.
             data (Dict): The data required to create a new snapshot of the
             virtual machine.
@@ -276,35 +275,34 @@ class VMCrud:
         LOG.info(f'Call service layer to create snapshot of VM (ID: {vm_id}) '
                  f'with data: {data}')
 
+        data.update({'vm_id': str(vm_id), 'user_info': user_info})
         # TODO: Заменить на вызов RPC
         import uuid
         snapshot_id = str(uuid.uuid4())
-
         result = {
-            'vm_id': vm_id,
-            'id': snapshot_id,
-            'name': data.get('name'),
-            'parent': 'ROOT',
-            'status': 'active',
-            'description': data.get('description'),
+            "vm_id": vm_id,
+            "id": snapshot_id,
+            "vm_name": "vm_name",
+            "name": "snap_name",
+            "parent": "parent_name",
+            "description": "Open vAIR"
         }
-        # data.update({'vm_id': vm_id, 'user_info': user_info})
         # result: Dict = self.service_layer_rpc.call(
         #     services.VMServiceLayerManager.create_snapshot.__name__,
-        #     data_for_method={'vm_id': vm_id, 'user_info': user_info},
+        #     data_for_method=data,
         # )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
     def revert_snapshot(
-            self, vm_id: UUID, snap_id: UUID, _user_info: Dict
+            self, vm_id: str, snap_id: str, _user_info: Dict
     ) -> Dict:
         """Revert a virtual machine to a snapshot.
 
         Args:
-            vm_id (UUID): The ID of the virtual machine where the snapshot
+            vm_id (str): The ID of the virtual machine where the snapshot
             will be reverted.
-            snap_id (UUID): The ID of the snapshot to revert.
+            snap_id (str): The ID of the snapshot to revert.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -334,14 +332,14 @@ class VMCrud:
         return result
 
     def delete_snapshot(
-            self, vm_id: UUID, snap_id: UUID, _user_info: Dict
+            self, vm_id: str, snap_id: str, _user_info: Dict
     ) -> Dict:
         """Delete a snapshot of virtual machine.
 
         Args:
             vm_id (str): The ID of the virtual machine where the snapshot
             will be deleted.
-            snap_id (UUID): The ID of the snapshot to delete.
+            snap_id (str): The ID of the snapshot to delete.
             user_info (Dict): The user information for authorization.
 
         Returns:
