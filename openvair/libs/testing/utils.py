@@ -234,6 +234,49 @@ def wait_until_404(
     raise TimeoutError(message)
 
 
+def wait_full_deleting(
+    client: TestClient,
+    path: str,
+    object_id: str,
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Polls a GET endpoint until a specific object is fully deleted.
+
+    This function repeatedly sends GET requests to a given path and checks
+    whether the object with the specified ID is absent in the response.
+    It is useful for ensuring that deletion has fully propagated.
+
+    Args:
+        client (TestClient): The test client to use for sending requests.
+        path (str): The API path to poll for object presence.
+        object_id (str): The ID of the object to wait for deletion.
+        timeout (int): Maximum wait time in seconds before timing out.
+        interval (float): Time in seconds between successive requests.
+
+    Raises:
+        TimeoutError: If the object is still present after the timeout expires.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        response = client.get(path)
+        if response.status_code == status.HTTP_200_OK:
+            raw = response.json()
+            data = (
+                raw['data']
+                if 'data' in raw and isinstance(raw['data'], dict)
+                else raw
+            )
+            if data.get(object_id) is None:
+                return
+            time.sleep(interval)
+    message = (
+        f'Object with id "{object_id}" at "{path}" did not deleted '
+        f'within {timeout} seconds.'
+    )
+    raise TimeoutError(message)
+
+
 def _extract_data_field(response_json: Dict) -> Dict:
     """Returns response['data'] if it's a BaseResponse, else root object."""
     if 'data' in response_json and isinstance(response_json['data'], dict):

@@ -14,6 +14,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
+    wait_full_deleting,
     cleanup_all_volumes,
     cleanup_all_templates,
     generate_test_entity_name,
@@ -24,6 +25,17 @@ from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
     LocalFSStorageExtraSpecsCreate,
+)
+from openvair.modules.virtual_machines.entrypoints.schemas import (
+    QOS,
+    RAM,
+    Os,
+    Cpu,
+    AttachVolume,
+    CreateVmDisks,
+    VirtualInterface,
+    CreateVirtualMachine,
+    GraphicInterfaceBase,
 )
 
 LOG = get_logger(__name__)
@@ -191,3 +203,49 @@ def template(
     yield template
 
     delete_resource(client, '/templates', template['id'], 'volume')
+
+
+@pytest.fixture(scope='function')
+def virtual_machine(
+    client: TestClient,
+    volume: Dict,
+) -> Generator[Dict, None, None]:
+    """Creates a test virtual machine and deletes it after each test."""
+    vm_data = CreateVirtualMachine(
+        name=generate_test_entity_name('virtual_machine'),
+        description='Virtual machine for integration tests',
+        cpu=Cpu(cores=1, threads=1, sockets=1, model='host', type='static'),
+        ram=RAM(size=1000000000),
+        os=Os(boot_device='hd', bios='LEGACY', graphic_driver='virtio'),
+        graphic_interface=GraphicInterfaceBase(connect_type='vnc'),
+        disks=CreateVmDisks(
+            attach_disks=[
+                AttachVolume(
+                    volume_id=volume['id'],
+                    qos=QOS(
+                        iops_read=500,
+                        iops_write=500,
+                        mb_read=150,
+                        mb_write=100,
+                    ),
+                    boot_order=1,
+                    order=1,
+                )
+            ]
+        ),
+        virtual_interfaces=[
+            VirtualInterface(
+                mode='bridge',
+                model='virtio',
+                mac='6C:4A:74:EC:CC:D9',
+                interface='virbr0',
+                order=0,
+            )
+        ],
+    ).model_dump(mode='json')
+    vm = create_resource(client, '/virtual-machines/create/', vm_data, 'vm')
+
+    yield vm
+
+    delete_resource(client, '/virtual-machines', vm['id'], 'vm')
+    wait_full_deleting(client, '/virtual-machines/', vm['id'])
