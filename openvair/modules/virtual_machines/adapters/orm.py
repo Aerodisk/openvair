@@ -140,10 +140,10 @@ class VirtualMachines(Base):
         cascade='all, delete-orphan',
     )
 
-    snapshots: Mapped[List['Snapshot']] = relationship(
-        'Snapshot',
+    snapshots: Mapped[List['Snapshots']] = relationship(
+        'Snapshots',
         back_populates='virtual_machine',
-        order_by='Snapshot.created_at',
+        order_by='Snapshots.created_at',
     )
 
 
@@ -377,7 +377,7 @@ class RAM(Base):
     )
 
 
-class Snapshot(Base):
+class Snapshots(Base):
     """ORM class mapped to the `snapshots` table."""
 
     __tablename__ = 'snapshots'
@@ -418,8 +418,8 @@ class Snapshot(Base):
         'VirtualMachines',
         back_populates='snapshots',
     )
-    parent: Mapped['Snapshot'] = relationship(
-        'Snapshot',
+    parent: Mapped['Snapshots'] = relationship(
+        'Snapshots',
         foreign_keys=[parent_id],
         remote_side=[id],
     )
