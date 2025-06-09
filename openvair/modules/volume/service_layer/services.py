@@ -685,36 +685,60 @@ class VolumeServiceLayerManager(BackgroundTasks):
         with self.uow:
             db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
             source_volume = self.uow.volumes.get(uuid.UUID(source_volume_id))
+            LOG.info(f'----> db_volume: {DataSerializer.to_domain(db_volume)}')
+            LOG.info(f'----> source_volume: {DataSerializer.to_domain(source_volume)}')
             try:
-                storage_info = self._get_storage_info(str(db_volume.storage_id))
+                storage_info = self._get_storage_info(str(source_volume.storage_id))
+                LOG.info(f'----> storage_info: {storage_info._asdict()}')
 
                 # Проверки
+                LOG.info('Start checking volume status and storage availability.')
                 self._check_volume_status(db_volume.status, [VolumeStatus.new.name])
+                LOG.info( 'Volume status is correct, continue with cloning.')
+                LOG.info('Start checking VM power state.')
                 self._check_storage_on_availability(storage_info)
+                LOG.info('Checking storage availability is correct, continue with cloning.')
+                LOG.info('Start checking available space on storage.')
                 self._check_available_space_on_storage(
                     int(source_volume.size), storage_info
                 )
+                LOG.info('checking available space on storage is correct, continue with cloning.')
 
                 # Обновляем статус и путь
                 db_volume.status = VolumeStatus.creating.name
+                LOG.info(f'Volume status was updated to creating: {db_volume.status}')
+
+                # Создаем папку')
+                LOG.info('Creating directory for the new volume.')
                 db_volume.path = str(
                     Path(storage_info.mount_point) / f'volume-{db_volume.id}'
                 )
+                LOG.info(f'Volume path was set to: {db_volume.path}')
                 self.uow.commit()
 
                 # Готовим данные для domain layer
+                LOG.info('Preparing data for domain layer cloning.')
                 domain_volume = DataSerializer.to_domain(db_volume)
+                LOG.info(f'Serialized volume for cloning: {domain_volume}')
                 domain_volume.update({
-                    'source_path': source_volume.path,
+                    'source_path': str(Path(source_volume.path) / f'volume-{source_volume.id}'),
                 })
+                LOG.info(f'Updated domain volume with source path: {domain_volume}')
 
                 # Клонируем через domain layer
+                LOG.info('Calling domain layer to clone the volume.')
                 self.domain_rpc.call(
                     BaseVolume.clone.__name__,
                     data_for_manager=domain_volume,
                 )
+                LOG.info('Volume cloning in domain layer completed successfully.')
 
+                LOG.info('Updating volume status to available.')
                 db_volume.status = VolumeStatus.available.name
+                LOG.info(f'Volume status was updated to available: {db_volume.status}')
+                self.uow.commit()
+
+                # Записыв}')
                 self.uow.commit()
             except (RpcCallException, RpcCallTimeoutException) as err:
                 msg = (

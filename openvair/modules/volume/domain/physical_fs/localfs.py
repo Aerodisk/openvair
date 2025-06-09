@@ -138,12 +138,14 @@ class LocalFSVolume(BaseVolume):
         Returns:
             Dict: A dictionary representation of the cloned volume's attributes.
         """
+        LOG.info('--- Volume domain layer clone method called ---')
         LOG.info(
             f'Cloning volume with id={self.id}, path={self.path},'
             f'size={self.size}, format={self.format}'
         )
         qemu_img_adapter = QemuImgAdapter()
         source_path = data.get('source_path', '')
+        LOG.info(f'Source path for cloning: {source_path}')
 
         if not source_path or not Path(source_path).exists():
             msg = 'Source_path is required and must exist'
@@ -151,6 +153,9 @@ class LocalFSVolume(BaseVolume):
             raise ValueError(msg)
 
         target_path = Path(self.path, f'volume-{self.id}')
+        LOG.info(f'Target path for cloning: {target_path}')
+
+        LOG.info('Starting cloning process using qemu-img adapter...')
         qemu_img_adapter.create_copy(
             Path(source_path),
             target_path,

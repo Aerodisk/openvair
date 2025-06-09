@@ -1521,9 +1521,8 @@ class VMServiceLayerManager(BackgroundTasks):
             # Тут нужно не копировать данные дисков, а создавать новые
             # с уникальными именами и ID, затем копировать path
             if disk.get("type") == DiskType.volume.value:
-                new_disk["volume_id"] = disk["disk_id"]
                 try:
-                    self.volume_service_client.clone_volume(
+                    clone_result = self.volume_service_client.clone_volume(
                         {
                             'volume_id': disk['disk_id'],
                             'name': new_disk['name'],
@@ -1531,6 +1530,12 @@ class VMServiceLayerManager(BackgroundTasks):
                             'user_info': user_info,
                         }
                     )
+                    available_volume = self._expect_volume_availability(
+                        clone_result['id']
+                    )
+                    new_disk['volume_id'] = available_volume['id']
+                    new_disk['disk_id'] = available_volume['id']
+                    new_disk['path'] = available_volume['path']
                 except exceptions.VolumeCloneException as err:
                     msg = f'Error cloning volume: {err}'
                     LOG.exception(msg)
