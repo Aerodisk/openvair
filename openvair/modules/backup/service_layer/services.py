@@ -126,12 +126,12 @@ class BackupServiceLayerManager(BackgroundTasks):
                 as returned by the domain layer.
         """
         LOG.info('Start restoring backup')
-        self.__restore_db()
         result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
             FSBackuper.restore.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={'snapshot_id': data.get('snapshot_id', 'latest')},
         )
+        self.__restore_db()
         LOG.info('Restoring successfully complete')
         return result
 
@@ -223,6 +223,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         LOG.info('Dump successful written into tmp')
 
         LOG.info('Moving dump file into project data dir...')
+        STORAGE_DATA.mkdir(exist_ok=True)
         move_cmd = f'mv {backup_file} {STORAGE_DATA}'
         execute(
             move_cmd,
