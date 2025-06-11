@@ -1400,7 +1400,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_info', {})
         vm_id = str(data.get('vm_id', ''))
         name = str(data.get('name'))
-        description = str(data.get('description'))
+        description = data.get('description')
         if description is None:
             description = 'Open vAIR'
 
