@@ -232,13 +232,13 @@ class VMServiceLayerManager(BackgroundTasks):
         """Prepare the information needed to create a virtual machine.
 
         Args:
-            vm_info (Dict): The dictiona-------------------------> ry containing the parameters
-                of the virtual machine.
+            vm_info (Dict): The dictionary containing the parameters of the
+                virtual machine.
 
         Returns:
             CreateVmInfo: The prepared virtual machine information.
         """
-        LOG.info(f'-------------------------> Preparing vm information: {vm_info}')
+        LOG.info(f'Preparing vm information: {vm_info}')
         user_info = vm_info.get('user_info', {})
         create_vm_info = CreateVmInfo(
             name=vm_info.pop('name', ''),
@@ -1389,7 +1389,7 @@ class VMServiceLayerManager(BackgroundTasks):
             create_info = self._prepare_create_vm_info(clone_payload)
             new_vm = self._insert_vm_into_db(create_info)
 
-            # 3. Kick async task that actually creates disks & atttaches them
+            # 3. Run async task that actually creates disks & atttaches them
             self.service_layer_rpc.cast(
                 self._create_vm.__name__,
                 data_for_method={
@@ -1405,7 +1405,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return result
 
-    def _transform_clone_vm_data(
+    def _transform_clone_vm_data(  # noqa: C901 # TODO: refactor using DTO
         self,
         vm: Dict,
         user_info: Dict,
@@ -1443,14 +1443,16 @@ class VMServiceLayerManager(BackgroundTasks):
 
             for section in ("cpu", "ram", "os"):
                 if section in data:
-                    data[section] = self._strip_keys(data[section], ["id", "vm_id"])
+                    data[section] = self._strip_keys(
+                        data[section], ["id", "vm_id"]
+                    )
 
-            graphic_interface: Dict = data.get("graphic_interface", {})
-            data["graphic_interface"] = {
-                "login": graphic_interface.get("login"),
-                "password": graphic_interface.get("password"),
-                "connect_type": graphic_interface.get("connect_type"),
-            }
+            # graphic_interface: Dict = data.get("graphic_interface", {})
+            # data["graphic_interface"] = {
+            #     "login": graphic_interface.get("login"),
+            #     "password": graphic_interface.get("password"),
+            #     "connect_type": graphic_interface.get("connect_type"),
+            # }
 
             virtual_interfaces: List[Dict] = []
             for vif in vm.get("virtual_interfaces", []):
@@ -1459,7 +1461,7 @@ class VMServiceLayerManager(BackgroundTasks):
                         "mode": vif["mode"],
                         "portgroup": vif.get("portgroup"),
                         "interface": vif["interface"],
-                        "mac": vif["mac"],  # TODO: generate unique MAC if required
+                        "mac": vif["mac"],  # TODO: generate unique MAC
                         "model": vif["model"],
                         "order": vif.get("order", 0),
                     }
@@ -1467,6 +1469,8 @@ class VMServiceLayerManager(BackgroundTasks):
             data["virtual_interfaces"] = virtual_interfaces
 
             LOG.warning(f'Transformed VM data for cloning: {data}')
+
+            # Клонирование дисков
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get("disks", []),
                 user_info,
@@ -1474,8 +1478,9 @@ class VMServiceLayerManager(BackgroundTasks):
             )
 
             data["disks"] = {"attach_disks": attach_disks}
-        except Exception as e:
-            LOG.exception(f'Error transforming VM data for cloning: {e}')
+        except Exception as err:  # TODO: заменить на конкретное исключение
+            msg = f'Error transforming VM data for cloning: {err}'
+            LOG.exception(msg)
             raise
 
         return data
@@ -1518,8 +1523,6 @@ class VMServiceLayerManager(BackgroundTasks):
                 'user_info': user_info,
             }
 
-            # Тут нужно не копировать данные дисков, а создавать новые
-            # с уникальными именами и ID, затем копировать path
             if disk.get("type") == DiskType.volume.value:
                 try:
                     clone_result = self.volume_service_client.clone_volume(

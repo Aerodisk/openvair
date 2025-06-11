@@ -18,7 +18,7 @@ from openvair.libs.cli.exceptions import ExecuteError
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.adapters.dto.internal.commands import (
-    CreateVolumeCloneServiceCommandDTO,
+    # CreateVolumeCloneServiceCommandDTO,
     CreateVolumeFromTemplateDomainCommandDTO,
 )
 
