@@ -24,7 +24,6 @@ from openvair.libs.data_handlers.xml.serializer import deserialize_xml
 from openvair.modules.virtual_machines.domain.exceptions import (
     GraphicPortNotFoundInXmlException,
     GraphicTypeNotFoundInXmlException,
-    CreationTimeNotFoundInXmlException,
 )
 from openvair.modules.virtual_machines.libs.template_rendering.vm_renderer import (  # noqa: E501
     VMRenderer,
@@ -72,12 +71,8 @@ class BaseVMDriver:
         pass
 
     @abc.abstractmethod
-    def create_snapshot(self) -> Dict:
-        """Create a snapshot of the virtual machine.
-
-        Returns:
-            Dict: Snapshot metadata.
-        """
+    def create_snapshot(self) -> None:
+        """Create a snapshot of the virtual machine."""
         pass
 
 
@@ -233,7 +228,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             f"{self.vm_info.get('name', '')}"
         )
 
-    def create_snapshot(self) -> Dict:
+    def create_snapshot(self) -> None:
         """Create a snapshot of the virtual machine.
 
         Type of snapshot in snapshot_info: None|'internal'|'external',
@@ -244,50 +239,22 @@ class BaseLibvirtDriver(BaseVMDriver):
             return self.create_external_snapshot()
         return self.create_internal_snapshot()
 
-    def create_internal_snapshot(self) -> Dict:
+    def create_internal_snapshot(self) -> None:
         """Internal implementation for internal snapshots.
 
         This method should be implemented by subclasses.
 
-        Returns:
-            Dict: A dictionary containing information about new snapshot.
-
         Raises:
             NotImplementedError: If the method is not implemented.
         """
         raise NotImplementedError
 
-    def create_external_snapshot(self) -> Dict:
+    def create_external_snapshot(self) -> None:
         """Internal implementation for external snapshots.
 
         This method should be implemented by subclasses.
 
-        Returns:
-            Dict: A dictionary containing information about new snapshot.
-
         Raises:
             NotImplementedError: If the method is not implemented.
         """
         raise NotImplementedError
-
-    @staticmethod
-    def _get_creation_time_from_xml(xml_str: str) -> Optional[str]:
-        """Extract creationTime from Libvirt XML.
-
-        Args:
-            xml_str (str): XML string from Libvirt (snapshot).
-
-        Returns:
-            (Optional[str]): Snapshot creation time.
-
-        Raises:
-            XMLDeserializationError: If XML is invalid.
-        """
-        try:
-            data = deserialize_xml(xml_str)
-            creation_time = data.get('domainsnapshot', {}).get('creationTime')
-            return str(creation_time) if creation_time is not None else None
-        except (KeyError, AttributeError, TypeError, XMLDeserializationError):
-            err = CreationTimeNotFoundInXmlException(xml_str)
-            LOG.error(err)
-            raise err

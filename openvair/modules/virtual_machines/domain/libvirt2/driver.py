@@ -23,7 +23,10 @@ from openvair.modules.virtual_machines.config import (
     SNAPSHOTS_PATH,
 )
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
-from openvair.modules.virtual_machines.domain.exceptions import VNCSessionError
+from openvair.modules.virtual_machines.domain.exceptions import (
+    VNCSessionError,
+    SnapshotCreationError,
+)
 
 LOG = get_logger(__name__)
 
@@ -163,13 +166,10 @@ class LibvirtDriver(BaseLibvirtDriver):
         )
         return {'url': vnc_url}
 
-    def create_internal_snapshot(self) -> Dict:
+    def create_internal_snapshot(self) -> None:
         """Create an internal snapshot of the virtual machine.
 
         Method creates a snapshot of the virtual machine using the Libvirt API.
-
-        Returns:
-            Dict: A dictionary containing the new snapshot information.
 
         Raises:
             Exception: If an error occurs while creating the snapshot.
@@ -179,16 +179,8 @@ class LibvirtDriver(BaseLibvirtDriver):
         name = self.snapshot_info.get('snapshot_name')
         description = self.snapshot_info.get('description')
         description = 'Open vAIR' if description is None else description
-        parent_name = None
         with self.connection as connection:
             domain = connection.lookupByName(vm_name)
-            try:
-                current_snapshot = domain.snapshotCurrent()
-                if current_snapshot:
-                    parent_name = current_snapshot.getName()
-            except libvirt.libvirtError:
-                # Snapshot is root
-                pass
 
             snapshot_xml = f"""
             <domainsnapshot>
@@ -196,26 +188,30 @@ class LibvirtDriver(BaseLibvirtDriver):
                 <description>{description}</description>
             </domainsnapshot>
             """
-            snapshot = domain.snapshotCreateXML(snapshot_xml, flags=0)
-
-            snap_xml_desc = snapshot.getXMLDesc()
-            creation_time = self._get_creation_time_from_xml(snap_xml_desc)
-
-            snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{name}.xml")
             try:
-                snapshot_file.parent.mkdir(parents=True, exist_ok=True)
-                with snapshot_file.open('w', encoding='utf-8') as f:
-                    f.write(snap_xml_desc)
-                LOG.debug(f"Saved snapshot XML to {snapshot_file}")
-            except (IOError, OSError) as e:
-                LOG.error(f"Failed to save snapshot XML: {e}")
+                snapshot = domain.snapshotCreateXML(snapshot_xml, flags=0)
+                if not snapshot:
+                    message = (f"Failed to create snapshot {name} "
+                               f"for VM {vm_name}")
+                    raise SnapshotCreationError(message)
 
-            LOG.info(f'Created snapshot {name} for VM {vm_name}')
+                snap_xml_desc = snapshot.getXMLDesc()
+                snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{name}.xml")
+                try:
+                    snapshot_file.parent.mkdir(parents=True, exist_ok=True)
+                    with snapshot_file.open('w', encoding='utf-8') as f:
+                        f.write(snap_xml_desc)
+                    LOG.debug(f"Saved snapshot XML to {snapshot_file}")
+                except (IOError, OSError) as e:
+                    message = f"Failed to save snapshot XML: {e}"
+                    raise SnapshotCreationError(message)
 
-        return {
-            'vm_name': vm_name,
-            'name': name,
-            'parent': parent_name,
-            'description': description,
-            'creation_time': creation_time,
-        }
+                LOG.info(f'Successfully created snapshot {name} '
+                         f'for VM {vm_name}')
+
+            except libvirt.libvirtError as e:
+                message = (f"Libvirt error while creating snapshot {name} "
+                           f"for VM {vm_name}: {e}")
+                LOG.error(message)
+                raise SnapshotCreationError(message)
+

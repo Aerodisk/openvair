@@ -41,9 +41,9 @@ class VNCSessionError(BaseCustomException):
         super().__init__(message, *args)
 
 
-class CreationTimeNotFoundInXmlException(BaseCustomException):
-    """Raised when getting error while searching creation time in xml"""
+class SnapshotCreationError(BaseCustomException):
+    """Raised when getting error while creating snapshot in Libvirt API"""
 
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Initialize the CreationTimeNotFoundInXmlException with a message."""
+        """Initialize the SnapshotCreationError with a message."""
         super().__init__(message, *args)
