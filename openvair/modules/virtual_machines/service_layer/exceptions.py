@@ -21,6 +21,8 @@ Classes:
         or invalid.
     MaxTriesError: Raised when the maximum number of tries for an operation
         is exceeded.
+    SnapshotNameExistsError: Raised when a snapshot with the same name already
+     exists for the VM.
 """
 
 from typing import Any
@@ -89,4 +91,12 @@ class MaxTriesError(BaseCustomException):
 
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize MaxTriesError with optional arguments."""
+        super().__init__(message, *args)
+
+
+class SnapshotNameExistsError(BaseCustomException):
+    """Raised when a snapshot with the same name already exists for the VM."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize SnapshotNameExistsError with optional arguments."""
         super().__init__(message, *args)

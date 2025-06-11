@@ -149,7 +149,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
     def get_snapshot(
             self, vm_id: str, snapshot_id: str
-    ) -> Optional[Snapshots]:
+    ) -> Snapshots:
         """Retrieve a snapshot by VM ID and snapshot ID.
 
         Args:
@@ -350,7 +350,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def _get_snapshot(
             self, vm_id: str, snapshot_id: str
-    ) -> Optional[Snapshots]:
+    ) -> Snapshots:
         """Retrieve a snapshot by VM ID and snapshot ID.
 
         Args:
@@ -602,7 +602,7 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def _get_snapshot(
             self, vm_id: str, snapshot_id: str
-    ) -> Optional[Snapshots]:
+    ) -> Snapshots:
         """Retrieve a snapshot by its ID.
 
         Args:
@@ -610,12 +610,12 @@ class SqlAlchemyRepository(AbstractRepository):
             snapshot_id (str): The ID of the snapshot to retrieve.
 
         Returns:
-            Optional(Snapshots): The retrieved snapshot entity if existed.
+            Snapshots: The retrieved snapshot entity.
         """
         return (
             self.session.query(Snapshots)
             .filter_by(vm_id=vm_id, id=snapshot_id)
-            .first()
+            .one()
         )
 
     def _get_snapshot_by_name(

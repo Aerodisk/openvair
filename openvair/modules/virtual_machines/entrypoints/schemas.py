@@ -284,6 +284,7 @@ class SnapshotInfo(BaseModel):
         name (str): The name of the snapshot.
         parent (Optional[str]): The optional name of the parent snapshot.
         description (Optional[str]): The optional description of the snapshot.
+        status (str): The status of the snapshot.
     """
 
     vm_id: UUID
@@ -292,6 +293,7 @@ class SnapshotInfo(BaseModel):
     name: str
     parent: Optional[str] = None
     description: Optional[str] = None
+    status: str
 
 
 class ListOfSnapshots(BaseModel):
