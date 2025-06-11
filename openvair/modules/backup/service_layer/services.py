@@ -227,7 +227,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         move_cmd = f'mv {backup_file} {STORAGE_DATA}'
         execute(
             move_cmd,
-            params=ExecuteParams(  # noqa: S604f
+            params=ExecuteParams(  # noqa: S604
                 shell=True,
                 run_as_root=True,
                 raise_on_error=True,
