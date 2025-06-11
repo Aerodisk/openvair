@@ -316,23 +316,3 @@ class CreateSnapshot(BaseModel):
 
     name: str
     description: Optional[str] = None
-
-
-# class RevertSnapshot(BaseModel):
-#     """Schema for reverting virtual machine to the snapshot.
-#
-#     Attributes:
-#         id (UUID): The ID of the snapshot to revert.
-#     """
-#
-#     id: UUID
-#
-#
-# class DeleteSnapshot(BaseModel):
-#     """Schema for deleting snapshot of the virtual machine.
-#
-#     Attributes:
-#         id (UUID): The ID of snapshot to delete.
-#     """
-#
-#     id: UUID
