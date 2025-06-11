@@ -405,13 +405,19 @@ class Snapshots(Base):
         String(255),
         nullable=True,
     )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(),
-    )
     status: Mapped[str] = mapped_column(
         String(30),
         nullable=False,
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime,
+        default=datetime.datetime.now,
+    )
+    is_current: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True
     )
 
     virtual_machine: Mapped[VirtualMachines] = relationship(
