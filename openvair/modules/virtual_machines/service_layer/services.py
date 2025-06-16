@@ -1379,6 +1379,84 @@ class VMServiceLayerManager(BackgroundTasks):
             self.uow.commit()
         LOG.info('Stop monitoring.')
 
+    def get_snapshot(self, data: Dict) -> Dict:
+        """Retrieve a specific snapshot by VM ID and snapshot ID.
+
+        Args:
+            data (Dict): The data containing:
+                - vm_id: ID of the virtual machine
+                - snap_id: ID of the snapshot to retrieve
+
+        Returns:
+            Dict: The serialized snapshot data
+
+        Raises:
+            UnexpectedDataArguments: If vm_id or snap_id is not provided
+            NotFound: If the snapshot is not found
+        """
+        LOG.info('Service layer handling get snapshot request.')
+        vm_id = data.pop('vm_id', '')
+        snap_id = data.pop('snap_id', '')
+        if not (vm_id and snap_id):
+            message = (
+                f'Incorrect arguments were received'
+                f'in the request get snapshots: {data}.'
+            )
+            LOG.error(message)
+            raise exceptions.UnexpectedDataArguments(message)
+        with self.uow:
+            db_vm = self.uow.virtual_machines.get(vm_id)
+            try:
+                db_snap = self.uow.virtual_machines.get_snapshot(vm_id, snap_id)
+                result = DataSerializer.snapshot_to_web(db_snap)
+                result['vm_name'] = db_vm.name
+                if result.get('parent'):
+                    result['parent'] = result['parent']['name']
+                else:
+                    result['parent'] = None
+            except exceptions.NoResultFound as err:
+                message = f'Handle error: {err!s} while searching snapshot.'
+                LOG.error(message)
+        LOG.info('Successfully processed get snapshot request.')
+        return result
+
+    def get_snapshots(self, data: Dict) -> List[Dict]:
+        """Retrieve all snapshots for a virtual machine by VM ID.
+
+        Args:
+            data (Dict): The data containing:
+                - vm_id: ID of the virtual machine
+
+        Returns:
+            List[Dict]: A list of serialized snapshot data
+
+        Raises:
+            UnexpectedDataArguments: If vm_id is not provided
+        """
+        LOG.info('Service layer handling get snapshots request.')
+        vm_id = data.pop('vm_id', '')
+        if not vm_id:
+            message = (
+                f'Incorrect arguments were received'
+                f'in the request get snapshots: {data}.'
+            )
+            LOG.error(message)
+            raise exceptions.UnexpectedDataArguments(message)
+        with self.uow:
+            db_vm = self.uow.virtual_machines.get(vm_id)
+            db_snapshots = self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            serialized_snapshots = []
+            for snap in db_snapshots:
+                snap_data = DataSerializer.snapshot_to_web(snap)
+                snap_data['vm_name'] = db_vm.name
+                if snap_data.get('parent'):
+                    snap_data['parent'] = snap_data['parent']['name']
+                else:
+                    snap_data['parent'] = None
+                serialized_snapshots.append(snap_data)
+        LOG.info('Successfully processed get snapshots of VM request.')
+        return serialized_snapshots
+
     def create_snapshot(self, data: Dict) -> Dict:
         """Create a new snapshot.
 
@@ -1386,15 +1464,7 @@ class VMServiceLayerManager(BackgroundTasks):
             data (Dict): The data required to create the snapshot.
 
         Returns:
-            Dict: {
-                'vm_id': str,
-                'id': str,
-                'vm_name': str,
-                'name': str,
-                'parent': Optional[str],
-                'description': Optional[str],
-                'status': str
-            }
+            Dict: The serialized snapshot data
         """
         LOG.info('Handling call on create snapshot of vm.')
         user_info = data.pop('user_info', {})
@@ -1413,49 +1483,34 @@ class VMServiceLayerManager(BackgroundTasks):
                            f"for VM {vm_id}")
                 LOG.error(message)
                 raise exceptions.SnapshotNameExistsError(message)
-
             db_vm = self.uow.virtual_machines.get(vm_id)
             self._check_vm_power_state(
                 db_vm.power_state,
                 [VmPowerState.running.name]
             )
-
             current_snap = self.uow.virtual_machines.get_current_snapshot(vm_id)
-            parent_name = current_snap.name if current_snap else None
-
             snapshot_data = {
                 'vm_id': vm_id,
                 'name': name,
                 'parent_id': current_snap.id if current_snap else None,
                 'description': description,
                 'is_current': False,
-                'status': SnapshotStatus.creating.name
+                'status': SnapshotStatus.creating.name,
             }
-
             snapshot = DataSerializer.snapshot_to_db(snapshot_data)
             self.uow.virtual_machines.add_snapshot(snapshot)
-            self.uow.commit()
-
             db_vm.power_state = VmPowerState.paused.name
             self.uow.commit()
-
-            result = {
-                'vm_id': str(vm_id),
-                'id': str(snapshot.id),
-                'vm_name': str(db_vm.name),
-                'name': str(snapshot.name),
-                'parent': parent_name,
-                'description': snapshot.description,
-                'status': snapshot.status,
-            }
-
+            result = DataSerializer.snapshot_to_web(snapshot)
+            result['vm_name'] = db_vm.name
+            if result.get('parent'):
+                result['parent'] = result['parent']['name']
             self.event_store.add_event(
                 str(db_vm.id),
                 user_info.get('id'),
                 self.create_snapshot.__name__,
                 f"Started creation of snapshot {snapshot.name}",
             )
-
         self.service_layer_rpc.cast(
             self._create_snapshot.__name__,
             data_for_method={
@@ -1465,7 +1520,6 @@ class VMServiceLayerManager(BackgroundTasks):
                 'user_info': user_info,
             }
         )
-
         LOG.info('Snapshot creation process started')
         return result
 
@@ -1475,7 +1529,6 @@ class VMServiceLayerManager(BackgroundTasks):
         snapshot_id = str(data.get('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
-
         try:
             with self.uow:
                 db_vm = self.uow.virtual_machines.get(vm_id)
@@ -1491,12 +1544,10 @@ class VMServiceLayerManager(BackgroundTasks):
                         'description': snapshot.description
                     }
                 }
-
                 self.domain_rpc.cast(
                     BaseVMDriver.create_snapshot.__name__,
                     data_for_manager=prepared_data,
                 )
-
                 self.event_store.add_event(
                     vm_id,
                     user_id,
@@ -1504,7 +1555,6 @@ class VMServiceLayerManager(BackgroundTasks):
                     f"Snapshot {snapshot.name} created",
                 )
                 LOG.info('Snapshot created')
-
         finally:
             self.uow.commit()
 
@@ -1521,22 +1571,19 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow, synchronized_session(self.uow.session):
             for db_vm in self.uow.virtual_machines.get_all():
                 if db_vm.power_state == VmPowerState.running.name:
-                    self._update_vm_snapshots(db_vm)
+                    self._update_snapshots_statuses(db_vm)
             self.uow.commit()
         LOG.info('Stop snapshot monitoring.')
 
-    def _update_vm_snapshots(self, db_vm: VirtualMachines) -> None:
+    def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
         """Update snapshots statuses for a VM based on Libvirt API."""
         libvirt_snaps, libvirt_current = get_vm_snapshots(db_vm.name)
         db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(str(db_vm.id))
-
         for db_snap in db_snaps:
             if (db_snap.name not in libvirt_snaps and
                     db_snap.status == SnapshotStatus.running.name):
                 db_snap.status = SnapshotStatus.error.name
-
             if db_snap.status == SnapshotStatus.creating.name:
                 db_snap.status = SnapshotStatus.running.name
-
             if libvirt_current and db_snap.name == libvirt_current:
                 self.uow.virtual_machines.set_current_snapshot(db_snap)

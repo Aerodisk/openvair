@@ -614,6 +614,7 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return (
             self.session.query(Snapshots)
+            .options(joinedload(Snapshots.parent))
             .filter_by(vm_id=vm_id, id=snapshot_id)
             .one()
         )
@@ -632,6 +633,7 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return (
             self.session.query(Snapshots)
+            .options(joinedload(Snapshots.parent))
             .filter_by(vm_id=vm_id, name=name)
             .first()
         )
@@ -647,6 +649,7 @@ class SqlAlchemyRepository(AbstractRepository):
         """
         return (
             self.session.query(Snapshots)
+            .options(joinedload(Snapshots.parent))
             .filter_by(vm_id=vm_id)
             .order_by(Snapshots.created_at)
             .all()

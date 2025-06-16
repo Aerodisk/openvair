@@ -180,7 +180,7 @@ class VMCrud:
         )
         return result
 
-    def get_snapshots(self, vm_id: str, _user_info: Dict) -> List:
+    def get_snapshots(self, vm_id: str, user_info: Dict) -> List:
         """Retrieve all snapshots of a virtual machine.
 
         Args:
@@ -191,38 +191,15 @@ class VMCrud:
             List: A list of all snapshots of the specific virtual machine.
         """
         LOG.info(f'Call service layer to get snapshots of VM with ID: {vm_id}')
-
-        # TODO: Заменить на вызов RPC
-        import uuid
-        snapshot_id = str(uuid.uuid4())
-
-        result = [
-            {
-                'vm_id': vm_id,
-                'id': snapshot_id,
-                'name': 'NAME1',
-                'parent': 'ROOT',
-                'status': 'active',
-                'description': 'DESCRIPTION1',
-            },
-            {
-                'vm_id': vm_id,
-                'id': snapshot_id,
-                'name': 'NAME2',
-                'parent': None,
-                'status': 'active',
-                'description': None,
-            }
-        ]
-        # result: Dict = self.service_layer_rpc.call(
-        #     services.VMServiceLayerManager.get_snapshots.__name__,
-        #     data_for_method={'vm_id': vm_id, 'user_info': user_info},
-        # )
+        result: List = self.service_layer_rpc.call(
+            services.VMServiceLayerManager.get_snapshots.__name__,
+            data_for_method={'vm_id': vm_id, 'user_info': user_info},
+        )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
     def get_snapshot(
-            self, vm_id: str, snap_id: str, _user_info: Dict
+            self, vm_id: str, snap_id: str, user_info: Dict
     ) -> Dict:
         """Retrieve a snapshot of a specific virtual machine by snapshot ID.
 
@@ -236,24 +213,14 @@ class VMCrud:
         """
         LOG.info(f'Call service layer to get snapshot of VM (ID: {vm_id}) '
                  f'by snapshot ID: {snap_id}.')
-
-        # TODO: Заменить на вызов RPC
-        result = {
-            'vm_id': vm_id,
-            'id': snap_id,
-            'name': 'NAME',
-            'parent': 'ROOT',
-            'status': 'active',
-            'description': 'DESCRIPTION',
-        }
-        # result: Dict = self.service_layer_rpc.call(
-        #     services.VMServiceLayerManager.get_snapshot.__name__,
-        #     data_for_method={
-        #         'vm_id': vm_id,
-        #         'snap_id': snap_id,
-        #         'user_info': user_info
-        #     },
-        # )
+        result: Dict = self.service_layer_rpc.call(
+            services.VMServiceLayerManager.get_snapshot.__name__,
+            data_for_method={
+                'vm_id': vm_id,
+                'snap_id': snap_id,
+                'user_info': user_info
+            },
+        )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
@@ -274,7 +241,6 @@ class VMCrud:
         """
         LOG.info(f'Call service layer to create snapshot of VM (ID: {vm_id}) '
                  f'with data: {data}')
-
         data.update({'vm_id': str(vm_id), 'user_info': user_info})
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.create_snapshot.__name__,
@@ -299,7 +265,6 @@ class VMCrud:
         """
         LOG.info(f'Call service layer to revert snapshot of VM (ID: {vm_id}) '
                  f'with snapshot ID: {snap_id}')
-
         # TODO: Заменить на вызов RPC
         result = {
             'vm_id': vm_id,
@@ -336,7 +301,6 @@ class VMCrud:
         """
         LOG.info(f'Call service layer to delete snapshot of VM (ID: {vm_id}) '
                  f'with snapshot ID: {snap_id}')
-
         # TODO: Заменить на вызов RPC
         result = {
             'status': 'SUCCESS'

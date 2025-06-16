@@ -23,6 +23,7 @@ Classes:
         is exceeded.
     SnapshotNameExistsError: Raised when a snapshot with the same name already
      exists for the VM.
+    NoResultFound: Raised when a database query returns no results.
 """
 
 from typing import Any
@@ -99,4 +100,12 @@ class SnapshotNameExistsError(BaseCustomException):
 
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize SnapshotNameExistsError with optional arguments."""
+        super().__init__(message, *args)
+
+
+class NoResultFound(BaseCustomException):
+    """Raised when a database query returns no results."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize NoResultFound with optional arguments."""
         super().__init__(message, *args)

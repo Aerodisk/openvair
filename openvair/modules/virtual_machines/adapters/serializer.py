@@ -216,16 +216,21 @@ class DataSerializer(AbstractDataSerializer):
         """
         if not snapshot:
             return {}
-
         data = snapshot.__dict__.copy()
         data.pop('_sa_instance_state', None)
-
+        data.pop('created_at', None)
         data['id'] = str(data.get('id', ''))
         data['vm_id'] = str(data.get('vm_id', ''))
-        if data.get('parent_id'):
-            data['parent_id'] = str(data.get('parent_id'))
-
-        data.pop('virtual_machine', None)
+        data['created_at'] = snapshot.created_at.isoformat()
+        parent_data = None
+        if hasattr(snapshot, 'parent') and snapshot.parent:
+            parent_data = {
+                'id': str(snapshot.parent.id),
+                'name': snapshot.parent.name,
+                'status': snapshot.parent.status
+            }
         data.pop('parent', None)
-
+        data['parent'] = parent_data
+        data.pop('parent_id', None)
+        data.pop('virtual_machine', None)
         return data
