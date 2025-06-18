@@ -31,7 +31,7 @@ class NfsVolume(BaseVolume):
     retrieving information about NFS volumes.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize an instance of the NfsVolume class.
 
         Args:
@@ -39,7 +39,7 @@ class NfsVolume(BaseVolume):
             **kwargs: Arbitrary keyword arguments.
         """
         LOG.info('Initialized NfsVolume')
-        super(NfsVolume, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = False
         self.provisioning = 'metadata'
 
