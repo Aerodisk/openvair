@@ -78,3 +78,22 @@ class CreateImagePageException(BaseCustomException):
             *args (Any): Additional arguments for exception initialization.
         """
         super().__init__(message, *args)
+
+class CannotRemoveFileException(BaseCustomException):
+    """Exception raised when unable to delete tmp file
+
+    This exception is triggered when tmp file cannot be removed.
+
+    Args:
+        message (str): The error message describing the issue.
+        *args (Any): Additional arguments for exception initialization.
+    """
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the exception with the given arguments.
+
+        Args:
+            message (str): The error message describing the issue.
+            *args (Any): Additional arguments for exception initialization.
+        """
+        super().__init__(message, *args)

@@ -189,6 +189,8 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
         )
     else:
         return schemas.Image(**upload_info)
+    finally:
+        crud.delete_tmp(tmp_path)
 
 
 @router.delete(

@@ -11,13 +11,14 @@ Classes:
 
 from uuid import UUID
 from typing import Dict, List, Optional, cast
+from pathlib import Path as Path_lib
 
 from openvair.libs.log import get_logger
 from openvair.modules.image.config import (
     PERMITTED_EXTENSIONS,
     API_SERVICE_LAYER_QUEUE_NAME,
 )
-from openvair.modules.image.entrypoints import schemas
+from openvair.modules.image.entrypoints import schemas, exceptions
 from openvair.libs.validation.validators import Validator
 from openvair.modules.image.service_layer import services
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -155,6 +156,18 @@ class ImageCrud:
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
+
+    def delete_tmp(
+        self,
+        tmp_path: Path_lib,
+    ) -> None:
+        """Deleting a tmp file of the image"""
+        if Path_lib.is_file(tmp_path):
+            try:
+                Path_lib.unlink(tmp_path)
+                LOG.info('tmp file removed')
+            except exceptions.CannotRemoveFileException:
+                LOG.info('not able to remove tmp file')
 
     def delete_image(
         self,
