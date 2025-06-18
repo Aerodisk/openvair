@@ -1,10 +1,7 @@
 """SQLAlchemy repository for the template module.
 
-This module provides a repository implementation for managing templates using
-SQLAlchemy.
-
-Classes:
-    - TemplateSqlAlchemyRepository: Repository for template entities.
+This module implements the repository pattern to manage Template entities
+in the database using SQLAlchemy.
 """
 
 from sqlalchemy.exc import NoResultFound
@@ -15,7 +12,7 @@ from openvair.common.repositories.base_sqlalchemy import (
     BaseSqlAlchemyRepository,
 )
 from openvair.modules.template.adapters.exceptions import (
-    TemplateNotFoundException,
+    TemplateNotFoundInDBException,
 )
 
 
@@ -34,20 +31,19 @@ class TemplateSqlAlchemyRepository(BaseSqlAlchemyRepository[Template]):
         super().__init__(session, Template)
 
     def get_by_name(self, name: str) -> Template:
-        """Retrieves a template by its unique name.
+        """Retrieve a template by its unique name.
 
-        Uses the SQLAlchemy one() method to ensure that the result is strictly
-        a Template.
+        Args:
+            name (str): The unique name of the template to fetch.
 
         Returns:
-            Template: The matching template entity.
+            Template: The template instance from the database.
 
         Raises:
-            TemplateNotFoundException: If no template with the given name is
-                found.
+            TemplateNotFoundInDBException: If the template does not exist.
         """
         try:
             return self.session.query(self.model_cls).filter_by(name=name).one()
         except NoResultFound as e:
             message = f"Template with name '{name}' not found."
-            raise TemplateNotFoundException(message) from e
+            raise TemplateNotFoundInDBException(message) from e
