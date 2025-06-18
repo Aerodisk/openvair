@@ -41,8 +41,8 @@ class VNCSessionError(BaseCustomException):
         super().__init__(message, *args)
 
 
-class SnapshotCreationError(BaseCustomException):
-    """Raised when getting error while creating snapshot in Libvirt API"""
+class SnapshotError(BaseCustomException):
+    """Raised when getting error while operating snapshots in Libvirt API"""
 
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the SnapshotCreationError with a message."""

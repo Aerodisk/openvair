@@ -75,6 +75,11 @@ class BaseVMDriver:
         """Create a snapshot of the virtual machine."""
         pass
 
+    @abc.abstractmethod
+    def revert_snapshot(self) -> None:
+        """Revert to a snapshot of the virtual machine."""
+        pass
+
 
 class BaseLibvirtDriver(BaseVMDriver):
     """Base class for Libvirt-based virtual machine drivers.
@@ -240,7 +245,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         return self.create_internal_snapshot()
 
     def create_internal_snapshot(self) -> None:
-        """Internal implementation for internal snapshots.
+        """Create an internal snapshot of the virtual machine.
 
         This method should be implemented by subclasses.
 
@@ -250,7 +255,38 @@ class BaseLibvirtDriver(BaseVMDriver):
         raise NotImplementedError
 
     def create_external_snapshot(self) -> None:
-        """Internal implementation for external snapshots.
+        """Create an external snapshot of the virtual machine.
+
+        This method should be implemented by subclasses.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    def revert_snapshot(self) -> None:
+        """Revert to a snapshot of the virtual machine.
+
+        Type of snapshot in snapshot_info: None|'internal'|'external',
+        None is 'internal' by default.
+        """
+        snapshot_type = self.snapshot_info.get('type')
+        if snapshot_type == 'external':
+            return self.revert_external_snapshot()
+        return self.revert_internal_snapshot()
+
+    def revert_internal_snapshot(self) -> None:
+        """Revert to an internal snapshot of the virtual machine.
+
+        This method should be implemented by subclasses.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    def revert_external_snapshot(self) -> None:
+        """Revert to an external snapshot of the virtual machine.
 
         This method should be implemented by subclasses.
 

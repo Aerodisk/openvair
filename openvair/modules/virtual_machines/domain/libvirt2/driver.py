@@ -24,8 +24,8 @@ from openvair.modules.virtual_machines.config import (
 )
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 from openvair.modules.virtual_machines.domain.exceptions import (
+    SnapshotError,
     VNCSessionError,
-    SnapshotCreationError,
 )
 
 LOG = get_logger(__name__)
@@ -175,10 +175,12 @@ class LibvirtDriver(BaseLibvirtDriver):
             Exception: If an error occurs while creating the snapshot.
         """
         LOG.info(f'Creating snapshot for VM {self.vm_info.get("name")}')
+
         vm_name = self.vm_info.get('name')
         name = self.snapshot_info.get('snapshot_name')
         description = self.snapshot_info.get('description')
         description = 'Open vAIR' if description is None else description
+
         with self.connection as connection:
             domain = connection.lookupByName(vm_name)
 
@@ -188,15 +190,17 @@ class LibvirtDriver(BaseLibvirtDriver):
                 <description>{description}</description>
             </domainsnapshot>
             """
+
             try:
                 snapshot = domain.snapshotCreateXML(snapshot_xml, flags=0)
+
                 if not snapshot:
                     message = (f"Failed to create snapshot {name} "
                                f"for VM {vm_name}")
-                    raise SnapshotCreationError(message)
-
+                    raise SnapshotError(message)
                 snap_xml_desc = snapshot.getXMLDesc()
                 snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{name}.xml")
+
                 try:
                     snapshot_file.parent.mkdir(parents=True, exist_ok=True)
                     with snapshot_file.open('w', encoding='utf-8') as f:
@@ -204,7 +208,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                     LOG.debug(f"Saved snapshot XML to {snapshot_file}")
                 except (IOError, OSError) as e:
                     message = f"Failed to save snapshot XML: {e}"
-                    raise SnapshotCreationError(message)
+                    raise SnapshotError(message)
 
                 LOG.info(f'Successfully created snapshot {name} '
                          f'for VM {vm_name}')
@@ -213,5 +217,31 @@ class LibvirtDriver(BaseLibvirtDriver):
                 message = (f"Libvirt error while creating snapshot {name} "
                            f"for VM {vm_name}: {e}")
                 LOG.error(message)
-                raise SnapshotCreationError(message)
+                raise SnapshotError(message)
 
+    def revert_internal_snapshot(self) -> None:
+        """Revert the virtual machine to an internal snapshot.
+
+        Method reverts a snapshot of the virtual machine using the Libvirt API.
+
+        Raises:
+            Exception: If an error occurs while reverting the snapshot.
+        """
+        LOG.info(f'Reverting snapshot for VM {self.vm_info.get("name")}')
+
+        vm_name = self.vm_info.get('name')
+        name = self.snapshot_info.get('snapshot_name')
+
+        with self.connection as connection:
+            domain = connection.lookupByName(vm_name)
+            snapshot = domain.snapshotLookupByName(name)
+
+            try:
+                domain.revertToSnapshot(snapshot)
+                LOG.info(f'Successfully reverted VM {vm_name} to the '
+                         f'snapshot {name}')
+            except libvirt.libvirtError as e:
+                message = (f"Libvirt error while reverting VM {vm_name} to the "
+                           f"snapshot {name}: {e}")
+                LOG.error(message)
+                raise SnapshotError(message)
