@@ -695,7 +695,7 @@ class SqlAlchemyRepository(AbstractRepository):
         self.session.execute(
             update(Snapshots)
             .where(Snapshots.vm_id == snapshot.vm_id)
-            .values(is_current=False)
+            .values(is_current=(Snapshots.id == snapshot.id))
         )
 
         snapshot.is_current = True

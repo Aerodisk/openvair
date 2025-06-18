@@ -250,7 +250,7 @@ class VMCrud:
         return result
 
     def revert_snapshot(
-            self, vm_id: str, snap_id: str, _user_info: Dict
+            self, vm_id: str, snap_id: str, user_info: Dict
     ) -> Dict:
         """Revert a virtual machine to a snapshot.
 
@@ -265,23 +265,14 @@ class VMCrud:
         """
         LOG.info(f'Call service layer to revert snapshot of VM (ID: {vm_id}) '
                  f'with snapshot ID: {snap_id}')
-        # TODO: Заменить на вызов RPC
-        result = {
-            'vm_id': vm_id,
-            'id': snap_id,
-            'name': 'NAME',
-            'parent': 'ROOT',
-            'status': 'active',
-            'description': 'DESCRIPTION'
-        }
-        # result: Dict = self.service_layer_rpc.call(
-        #     services.VMServiceLayerManager.revert_snapshot.__name__,
-        #     data_for_method={
-        #         'vm_id': vm_id,
-        #         'snap_id': snap_id,
-        #         'user_info': user_info
-        #     },
-        # )
+        result: Dict = self.service_layer_rpc.call(
+            services.VMServiceLayerManager.revert_snapshot.__name__,
+            data_for_method={
+                'vm_id': vm_id,
+                'snap_id': snap_id,
+                'user_info': user_info
+            },
+        )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
