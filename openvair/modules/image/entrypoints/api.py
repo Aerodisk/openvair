@@ -122,7 +122,7 @@ async def get_image(
     response_model=schemas.Image,
     status_code=status.HTTP_200_OK,
 )
-async def upload_image(  # noqa: PLR0913 need create a schema for arguments
+async def upload_image(  # noqa: C901, PLR0913
     storage_id: UUID,
     description: str = Query(
         default='',
@@ -190,7 +190,12 @@ async def upload_image(  # noqa: PLR0913 need create a schema for arguments
     else:
         return schemas.Image(**upload_info)
     finally:
-        crud.delete_tmp(tmp_path)
+        if Path_lib.is_file(tmp_path):
+            try:
+                Path_lib.unlink(tmp_path)
+                LOG.info('tmp file removed')
+            except (PermissionError,IsADirectoryError, OSError):
+                LOG.info('not able to remove tmp file')
 
 
 @router.delete(
