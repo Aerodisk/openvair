@@ -599,7 +599,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on clone_volume.')
         source_volume_id = clone_volume_info['volume_id']
-        target_storage_id = clone_volume_info['storage_id']
+        target_storage_id = clone_volume_info['target_storage_id']
         target_storage_info = self._get_storage_info(target_storage_id)
         user_id = clone_volume_info.pop('user_info', {}).get('id')
 
@@ -621,7 +621,6 @@ class VolumeServiceLayerManager(BackgroundTasks):
             data_for_manager = DataSerializer.to_domain(db_source_volume)
             data_for_manager['storage_type'] = target_storage_info.storage_type
             data_for_method = CloneVolumeDomainCommandDTO(
-                description=clone_volume_info['description'],
                 mount_point=Path(target_storage_info.mount_point),
                 new_id=uuid.uuid4(),
             )
@@ -645,6 +644,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             raise exceptions.CreateVolumeDataException(message)
 
         new_db_volume = cast(Volume, DataSerializer.to_db(new_volume))
+        new_db_volume.status = VolumeStatus.available.name
         with self.uow:
             self.uow.volumes.add(new_db_volume)
             self.uow.commit()

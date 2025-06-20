@@ -145,13 +145,17 @@ class LocalFSVolume(BaseVolume):
         qemu_img_adapter = QemuImgAdapter()
 
         cloning_data = CloneVolumeDomainCommandDTO.model_validate(data)
-        target_path = cloning_data.mount_point / f'volume-{cloning_data.new_id}'
+        target_path = (
+            cloning_data.mount_point
+        ) / f'volume-{cloning_data.new_id}'
 
-        qemu_img_adapter.create_copy(self.path, target_path, fmt=self.format)
+        qemu_img_adapter.create_copy(
+            Path(f'{self.path}/volume-{self.id}'), target_path, fmt=self.format
+        )
 
         new_volume = LocalFSVolume(**self.__dict__)
-        new_volume.description = cloning_data.description
-        new_volume.path = target_path
+        new_volume.id = str(cloning_data.new_id)
+        new_volume.path = str(target_path)
 
         return new_volume.__dict__
 

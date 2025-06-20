@@ -20,6 +20,5 @@ class CreateVolumeFromTemplateDomainCommandDTO(BaseModel):  # noqa: D101
 
 
 class CloneVolumeDomainCommandDTO(BaseModel):  # noqa: D101
-    description: str
     mount_point: Path
     new_id: UUID
