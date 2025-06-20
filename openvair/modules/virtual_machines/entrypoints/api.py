@@ -263,7 +263,7 @@ async def vnc_vm(
     return schemas.Vnc(**result)
 
 
-@router.get(
+@router.post(
     '/{vm_id}/clone/',
     response_model=List[schemas.VirtualMachineInfo],
     status_code=status.HTTP_200_OK,

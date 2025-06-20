@@ -209,7 +209,7 @@ class VMCrud:
                 'vm_id': vm_id,
                 'count': count,
                 'user_info': user_info,
-                'target_storage_id': target_storage_id,
+                'target_storage_id': str(target_storage_id),
             },
         )
         LOG.debug(f'Response from service layer: {result}')
