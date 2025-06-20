@@ -62,6 +62,7 @@ from openvair.modules.volume.adapters.dto.internal.models import (
     CreateVolumeFromTemplateModelDTO,
 )
 from openvair.modules.volume.adapters.dto.internal.commands import (
+    CloneVolumeDomainCommandDTO,
     CreateVolumeFromTemplateDomainCommandDTO,
     CreateVolumeFromTemplateServiceCommandDTO,
 )
@@ -130,6 +131,7 @@ class VolumeStatus(enum.Enum):
     error = 4
     deleting = 5
     extending = 6
+    cloning = 7
 
 
 class VolumeServiceLayerManager(BackgroundTasks):
@@ -596,67 +598,69 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 not exist.
         """
         LOG.info('Service layer start handling response on clone_volume.')
+        source_volume_id = clone_volume_info['volume_id']
+        target_storage_id = clone_volume_info['storage_id']
+        target_storage_info = self._get_storage_info(target_storage_id)
+        user_id = clone_volume_info.pop('user_info', {}).get('id')
 
-        # Получаем информацию o пользователе
-        user_info = clone_volume_info.pop('user_info', {})
-        volume_id = clone_volume_info.get('volume_id', '')
-
-        source_volume = self.get_volume({'volume_id': volume_id})
-        if not source_volume:
-            msg = f'Source volume {volume_id} not found'
-            LOG.error(msg)
-            raise exceptions.VolumeNotFoundException(msg)
-
-        # Создаем новую запись в БД
         with self.uow:
-            # Проверяем существование диска c таким именем на storage
-            self._check_volume_exists_on_storage(
-                clone_volume_info['name'],
-                source_volume['storage_id']
-            )
-
-            # Создаем новый volume c параметрами исходного
-            db_volume = Volume(
-                name=clone_volume_info['name'],
-                description=clone_volume_info.get('description', ''),
-                user_id=user_info.get('id', ''),
-                format=source_volume.get('format', 'qcow2'),
-                size=source_volume.get('size', 0),
-                status=VolumeStatus.new.name,
-                storage_id=source_volume.get('storage_id', ''),
-                storage_type=source_volume.get('storage_type', 'localfs'),
-                read_only=clone_volume_info.get('read_only', False)
-            )
-
-            self.uow.volumes.add(db_volume)
+            db_source_volume = self.uow.volumes.get(source_volume_id)
+            db_source_volume.status = VolumeStatus.cloning.name
             self.uow.commit()
 
-            serialized_volume = DataSerializer.to_web(db_volume)
-            LOG.info(
-                f'Serialized volume ready for cloning: {serialized_volume}.'
-            )
-
-        # Запускаем процесс физического клонирования диска
-        serialized_volume.update({
-           'user_info': user_info,
-           'source_volume_id': source_volume.get('id', ''),
-        })
-
-        self.service_layer_rpc.cast(
-            self._clone_volume.__name__,
-            data_for_method=serialized_volume
+        self._check_storage_on_availability(target_storage_info)
+        self._check_available_space_on_storage(
+            int(db_source_volume.size), target_storage_info
+        )
+        self._check_volume_exists_on_storage(
+            clone_volume_info['name'], str(db_source_volume.storage_id)
         )
 
-        # Записываем событие
+        try:
+            LOG.info('Calling domain layer to clone the volume.')
+            data_for_manager = DataSerializer.to_domain(db_source_volume)
+            data_for_manager['storage_type'] = target_storage_info.storage_type
+            data_for_method = CloneVolumeDomainCommandDTO(
+                description=clone_volume_info['description'],
+                mount_point=Path(target_storage_info.mount_point),
+                new_id=uuid.uuid4(),
+            )
+
+            new_volume: Dict = self.domain_rpc.call(
+                BaseVolume.clone.__name__,
+                data_for_manager=data_for_manager,
+                data_for_method=data_for_method.model_dump(mode='json'),
+            )
+            new_volume['name'] = clone_volume_info['name']
+            new_volume['user_id'] = user_id
+        except (RpcCallException, RpcCallTimeoutException) as err:
+            message = (
+                f'An error occurred when calling the '
+                f'domain layer while cloning volume: {err!s}'
+            )
+            with self.uow:
+                db_source_volume = self.uow.volumes.get(source_volume_id)
+                db_source_volume.status = VolumeStatus.available.name
+                self.uow.commit()
+            raise exceptions.CreateVolumeDataException(message)
+
+        new_db_volume = cast(Volume, DataSerializer.to_db(new_volume))
+        with self.uow:
+            self.uow.volumes.add(new_db_volume)
+            self.uow.commit()
+
         self.event_store.add_event(
-            str(serialized_volume.get('id')),
-            user_info.get('id'),
+            str(new_db_volume.id),
+            user_id,
             self.clone_volume.__name__,
-            f'Volume clone {clone_volume_info["name"]} successfully created.',
+            (
+                f'Volume {source_volume_id} successfully cloned. '
+                f'New volume id: {new_db_volume.id}'
+            ),
         )
 
         LOG.info('Service layer method clone_volume was successfully processed')
-        return serialized_volume
+        return DataSerializer.to_web(new_db_volume)
 
     def _clone_volume(self, clone_volume_info: Dict) -> None:
         """Clone an existing volume in the domain layer.
@@ -674,93 +678,37 @@ class VolumeServiceLayerManager(BackgroundTasks):
             RpcCallTimeoutException: If the RPC call times out.
         """
         LOG.info('Service layer start handling response on _clone_volume.')
-        volume_id = clone_volume_info.get('id', '')
-        source_volume_id = clone_volume_info.get('source_volume_id', '')
-
-        if not volume_id or not source_volume_id:
-            message = 'Volume id or source_volume_id was not received.'
-            LOG.error(message)
-            raise exceptions.CreateVolumeDataException(message)
+        source_volume_id = clone_volume_info['source_volume_id']
+        new_volume_id = clone_volume_info['new_volume_id']
 
         with self.uow:
-            db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
-            source_volume = self.uow.volumes.get(uuid.UUID(source_volume_id))
+            db_source_volume = self.uow.volumes.get(source_volume_id)
 
-            LOG.info(f'db_volume: {DataSerializer.to_domain(db_volume)}')
-            LOG.info(
-                f'source_volume: {DataSerializer.to_domain(source_volume)}'
+        with self.uow:
+            db_new_volume = self.uow.volumes.get(new_volume_id)
+            db_new_volume.status = VolumeStatus.creating.name
+            self.uow.commit()
+
+        domain_source_volume = DataSerializer.to_domain(db_source_volume)
+        try:
+            LOG.info('Calling domain layer to clone the volume.')
+            self.domain_rpc.call(
+                BaseVolume.clone.__name__,
+                data_for_manager=domain_source_volume,
+                data_for_method={'target_path': db_new_volume.path},
             )
-
-            try:
-                storage_info = self._get_storage_info(
-                    str(source_volume.storage_id)
-                )
-                LOG.info(f'Storage_info: {storage_info._asdict()}')
-
-                # Проверки
-                LOG.info(
-                    'Start checking volume status and storage availability.'
-                )
-                self._check_volume_status(
-                    db_volume.status, [VolumeStatus.new.name]
-                )
-                LOG.info( 'Volume status is correct, continue with cloning.')
-                LOG.info('Start checking VM power state.')
-                self._check_storage_on_availability(storage_info)
-                LOG.info('Start checking available space on storage.')
-                self._check_available_space_on_storage(
-                    int(source_volume.size), storage_info
-                )
-                LOG.info('checking available space on storage is correct.')
-
-                # Обновляем статус и путь
-                db_volume.status = VolumeStatus.creating.name
-                LOG.info(
-                    f'Volume status was updated to creating: {db_volume.status}'
-                )
-
-                # Создаем папку
-                LOG.info('Creating directory for the new volume.')
-                db_volume.path = str(
-                    Path(storage_info.mount_point) / f'volume-{db_volume.id}'
-                )
-                LOG.info(f'Volume path was set to: {db_volume.path}')
+        except (RpcCallException, RpcCallTimeoutException) as err:
+            msg = (
+                f'An error occurred when calling the '
+                f'domain layer while cloning volume: {err!s}'
+            )
+            with self.uow:
+                db_new_volume.status = VolumeStatus.error.name
                 self.uow.commit()
-
-                # Готовим данные для domain layer
-                LOG.info('Preparing data for domain layer cloning.')
-                domain_volume = DataSerializer.to_domain(db_volume)
-                LOG.info(f'Serialized volume for cloning: {domain_volume}')
-                domain_volume.update({
-                    'source_path': str(
-                        Path(source_volume.path) / f'volume-{source_volume.id}'
-                    ),
-                })
-                LOG.info(
-                    f'Updated domain volume with source path: {domain_volume}'
-                )
-
-                # Клонируем через domain layer
-                LOG.info('Calling domain layer to clone the volume.')
-                self.domain_rpc.call(
-                    BaseVolume.clone.__name__,
-                    data_for_manager=domain_volume,
-                )
-                LOG.info(
-                    'Volume cloning in domain layer completed successfully.'
-                    )
-
-                LOG.info('Updating volume status to available.')
-                db_volume.status = VolumeStatus.available.name
-                LOG.info(f'Volume status was updated: {db_volume.status}')
-                self.uow.commit()
-            except (RpcCallException, RpcCallTimeoutException) as err:
-                msg = (
-                    f'An error occurred when calling the '
-                    f'domain layer while cloning volume: {err!s}'
-                )
-                db_volume.status = VolumeStatus.error.name
-                raise exceptions.CreateVolumeDataException(msg)
+            raise exceptions.CreateVolumeDataException(msg)
+        with self.uow:
+            db_new_volume.status = VolumeStatus.available.name
+            self.uow.commit()
 
     def _check_vm_power_state(self, vm_id: str) -> None:
         """Check if a VM is in the 'shut_off' power state.
@@ -1508,4 +1456,3 @@ class VolumeServiceLayerManager(BackgroundTasks):
         with self.uow:
             self.uow.volumes.bulk_update(updated_db_volumes)
             self.uow.commit()
-
