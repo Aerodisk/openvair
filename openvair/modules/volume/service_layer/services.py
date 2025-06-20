@@ -662,54 +662,6 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer method clone_volume was successfully processed')
         return DataSerializer.to_web(new_db_volume)
 
-    def _clone_volume(self, clone_volume_info: Dict) -> None:
-        """Clone an existing volume in the domain layer.
-
-        This method handles the cloning of a volume by calling the domain layer
-        to perform the actual cloning operation.
-
-        Args:
-            clone_volume_info (Dict): A dictionary containing the information
-                about the volume to be cloned.
-
-        Raises:
-            RpcCallException: If an error occurs during the RPC call to the
-                domain layer.
-            RpcCallTimeoutException: If the RPC call times out.
-        """
-        LOG.info('Service layer start handling response on _clone_volume.')
-        source_volume_id = clone_volume_info['source_volume_id']
-        new_volume_id = clone_volume_info['new_volume_id']
-
-        with self.uow:
-            db_source_volume = self.uow.volumes.get(source_volume_id)
-
-        with self.uow:
-            db_new_volume = self.uow.volumes.get(new_volume_id)
-            db_new_volume.status = VolumeStatus.creating.name
-            self.uow.commit()
-
-        domain_source_volume = DataSerializer.to_domain(db_source_volume)
-        try:
-            LOG.info('Calling domain layer to clone the volume.')
-            self.domain_rpc.call(
-                BaseVolume.clone.__name__,
-                data_for_manager=domain_source_volume,
-                data_for_method={'target_path': db_new_volume.path},
-            )
-        except (RpcCallException, RpcCallTimeoutException) as err:
-            msg = (
-                f'An error occurred when calling the '
-                f'domain layer while cloning volume: {err!s}'
-            )
-            with self.uow:
-                db_new_volume.status = VolumeStatus.error.name
-                self.uow.commit()
-            raise exceptions.CreateVolumeDataException(msg)
-        with self.uow:
-            db_new_volume.status = VolumeStatus.available.name
-            self.uow.commit()
-
     def _check_vm_power_state(self, vm_id: str) -> None:
         """Check if a VM is in the 'shut_off' power state.
 
