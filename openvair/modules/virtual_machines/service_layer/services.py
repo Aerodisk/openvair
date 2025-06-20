@@ -154,6 +154,7 @@ class SnapshotStatus(enum.Enum):
     running = 2
     error = 3
     reverting = 4
+    deleting = 5
 
 
 class VMServiceLayerManager(BackgroundTasks):
@@ -1530,7 +1531,7 @@ class VMServiceLayerManager(BackgroundTasks):
         return result
 
     def _create_snapshot(self, data: Dict) -> None:
-        LOG.info('Starting actual snapshot creation')
+        LOG.info('Handling response on _create_snapshot.')
         vm_id = str(data.get('vm_id'))
         snapshot_id = str(data.get('snapshot_id'))
         user_info = data.pop('user_info', {})
@@ -1561,7 +1562,8 @@ class VMServiceLayerManager(BackgroundTasks):
                     self._create_snapshot.__name__,
                     f"Snapshot {db_snap.name} created",
                 )
-                LOG.info('Snapshot created')
+                LOG.info('Response on _create_snapshot was successfully '
+                         'processed.')
             finally:
                 self.uow.commit()
 
@@ -1695,7 +1697,7 @@ class VMServiceLayerManager(BackgroundTasks):
             data (Dict): The data containing the virtual machine ID and the
             ID of the reverting snapshot.
         """
-        LOG.info('Starting revert VM to snapshot')
+        LOG.info('Handling response on _revert_snapshot.')
         vm_id = str(data.get('vm_id'))
         snapshot_id = str(data.get('snapshot_id'))
         user_info = data.pop('user_info', {})
@@ -1725,9 +1727,139 @@ class VMServiceLayerManager(BackgroundTasks):
                     self._revert_snapshot.__name__,
                     f"Successfully reverted snapshot {db_snap.name}",
                 )
-                LOG.info('VM successfully reverted to snapshot')
+                LOG.info('Response on _revert_snapshot was successfully '
+                         'processed.')
             except (RpcCallException, RpcServerInitializedException) as err:
                 message = f'Handle error: {err!s} while reverting snapshot'
                 LOG.error(message)
+            finally:
+                self.uow.commit()
+
+    def delete_snapshot(self, data: Dict) -> Dict:
+        """Delete a snapshot of the virtual machine.
+
+        Args:
+            data (Dict): The data required to delete the snapshot.
+
+        Returns:
+            Dict: The serialized snapshot data
+
+        Raises:
+            UnexpectedDataArguments: If vm_id or snapshot_id is missing
+            NotFound: If VM or snapshot not found
+            SnapshotStatusException: If snapshot cannot be deleted with current
+            status
+        """
+        LOG.info('Handling call to delete snapshot')
+        user_info = data.pop('user_info', {})
+        vm_id = str(data.get('vm_id', ''))
+        snapshot_id = str(data.get('snap_id', ''))
+        if not (vm_id and snapshot_id):
+            message = (
+                f'Incorrect arguments were received '
+                f'in the request to delete snapshot: {data}.'
+            )
+            LOG.error(message)
+            raise exceptions.UnexpectedDataArguments(message)
+        with self.uow:
+            try:
+                db_vm = self.uow.virtual_machines.get(vm_id)
+                db_snap = self.uow.virtual_machines.get_snapshot(
+                    vm_id,
+                    snapshot_id
+                )
+                self._check_vm_power_state(
+                    db_vm.power_state,
+                    [
+                        VmPowerState.running.name,
+                        VmPowerState.shut_off.name
+                    ]
+                )
+                self._check_snapshot_status(
+                    db_snap.status,
+                    [
+                        SnapshotStatus.running.name,
+                        SnapshotStatus.error.name
+                    ]
+                )
+                child_snapshots = self.uow.virtual_machines.get_child_snapshots(
+                    db_snap
+                )
+                for child in child_snapshots:
+                    child.parent_id = db_snap.parent_id
+                    self.uow.virtual_machines.update_snapshot(child)
+                db_snap.status = SnapshotStatus.deleting.name
+                self.uow.commit()
+                result = DataSerializer.snapshot_to_web(db_snap)
+                result['vm_name'] = db_vm.name
+                if result.get('parent'):
+                    result['parent'] = result['parent']['name']
+                self.event_store.add_event(
+                    vm_id,
+                    user_info.get('id'),
+                    self.delete_snapshot.__name__,
+                    f"Starting deletion of snapshot {db_snap.name}",
+                )
+            except exceptions.NoResultFound as err:
+                message = f'Handle error: {err!s} while searching for snapshot.'
+                LOG.error(message)
+                raise
+        self.service_layer_rpc.cast(
+            self._delete_snapshot.__name__,
+            data_for_method={
+                'vm_id': vm_id,
+                'snapshot_id': snapshot_id,
+                'user_info': user_info
+            }
+        )
+        LOG.info('Snapshot deletion process started')
+        return result
+
+    def _delete_snapshot(self, data: Dict) -> None:
+        """Delete a snapshot of the virtual machine.
+
+        Args:
+            data (Dict): The data containing the virtual machine ID and the ID
+            of the snapshot to delete.
+        """
+        LOG.info('Handling response on _delete_vm.')
+        vm_id = str(data.get('vm_id'))
+        snapshot_id = str(data.get('snapshot_id'))
+        user_info = data.pop('user_info', {})
+        user_id = str(user_info.get('id', ''))
+        with self.uow:
+            try:
+                db_vm = self.uow.virtual_machines.get(vm_id)
+                db_snap = self.uow.virtual_machines.get_snapshot(
+                    vm_id,
+                    snapshot_id
+                )
+                serialized_vm = DataSerializer.vm_to_web(db_vm)
+                prepared_data = {
+                    **serialized_vm,
+                    'snapshot_info': {
+                        'vm_name': db_vm.name,
+                        'snapshot_name': db_snap.name,
+                        'snapshot_id': str(db_snap.id)
+                    }
+                }
+                self.domain_rpc.cast(
+                    BaseVMDriver.delete_snapshot.__name__,
+                    data_for_manager=prepared_data,
+                )
+                self.uow.virtual_machines.delete_snapshot(db_snap)
+                self.event_store.add_event(
+                    vm_id,
+                    user_id,
+                    self._delete_snapshot.__name__,
+                    f"Successfully deleted snapshot {db_snap.name}",
+                )
+                LOG.info('Response on _delete_snapshot was successfully '
+                         'processed.')
+            except (RpcCallException, RpcServerInitializedException) as err:
+                message = f'Handle error: {err!s} while deleting snapshot'
+                LOG.error(message)
+                db_snap.status = SnapshotStatus.running.name
+                raise
             finally:
                 self.uow.commit()

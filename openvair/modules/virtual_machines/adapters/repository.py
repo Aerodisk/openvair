@@ -207,6 +207,9 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
         Args:
             vm_id: ID of the virtual machine
+
+        Returns:
+            Snapshots: The retrieved current snapshot entity.
         """
         return self._get_current_snapshot(vm_id)
 
@@ -217,6 +220,17 @@ class AbstractRepository(metaclass=abc.ABCMeta):
             snapshot: Snapshot to mark as current
         """
         return self._set_current_snapshot(snapshot)
+
+    def get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+        """Get all child snapshots for given parent snapshot.
+
+        Args:
+            snapshot (Snapshots): The parent snapshot entity.
+
+        Returns:
+            List[Snapshots]: A list of children snapshot entities.
+        """
+        return self._get_child_snapshots(snapshot)
 
     @abc.abstractmethod
     def _add(self, virtual_machine: VirtualMachines) -> None:
@@ -427,7 +441,10 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """Get current snapshot for VM.
 
         Args:
-            vm_id: ID of the virtual machine
+            vm_id: ID of the virtual machine.
+
+        Returns:
+            Snapshots: The retrieved current snapshot entity.
 
         Raises:
             NotImplementedError: If the method is not implemented by a subclass.
@@ -439,7 +456,22 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """Mark snapshot as current.
 
         Args:
-            snapshot: Snapshot to mark as current
+            snapshot: The snapshot entity to mark as current.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+        """Get all child snapshots for given parent snapshot.
+
+        Args:
+            snapshot (Snapshots): The parent snapshot entity.
+
+        Returns:
+            List[Snapshots]: A list of children snapshot entities.
 
         Raises:
             NotImplementedError: If the method is not implemented by a subclass.
@@ -699,3 +731,18 @@ class SqlAlchemyRepository(AbstractRepository):
         )
 
         snapshot.is_current = True
+
+    def _get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+        """Get all child snapshots for given snapshot.
+
+        Args:
+            snapshot (Snapshots): The parent snapshot entity.
+
+        Returns:
+            List[Snapshots]: A list of children snapshot entities.
+        """
+        return (
+            self.session.query(Snapshots)
+            .filter_by(parent_id=snapshot.id)
+            .all()
+        )
