@@ -18,7 +18,7 @@ from openvair.libs.cli.exceptions import ExecuteError
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.adapters.dto.internal.commands import (
-    # CreateVolumeCloneServiceCommandDTO,
+    CloneVolumeDomainCommandDTO,
     CreateVolumeFromTemplateDomainCommandDTO,
 )
 
@@ -129,7 +129,7 @@ class LocalFSVolume(BaseVolume):
 
         return self.__dict__
 
-    def clone (self, data: Dict) -> Dict:
+    def clone(self, data: Dict) -> Dict:
         """Clone an existing volume.
 
         Args:
@@ -143,24 +143,15 @@ class LocalFSVolume(BaseVolume):
             f'size={self.size}, format={self.format}'
         )
         qemu_img_adapter = QemuImgAdapter()
-        source_path = data.get['source_path']
-        LOG.info(f'Source path for cloning: {source_path}')
 
-        if not source_path or not Path(source_path).exists():
-            msg = 'Source_path is required and must exist'
-            LOG.error(msg)
-            raise ValueError(msg)
+        cloning_data = CloneVolumeDomainCommandDTO.model_validate(data)
+        target_path = cloning_data.target_path
 
-        target_path = Path(self.path, f'volume-{self.id}')
-        LOG.info(f'Target path for cloning: {target_path}')
+        qemu_img_adapter.create_copy(self.path, target_path, fmt=self.format)
 
-        LOG.info('Starting cloning process using qemu-img adapter...')
-        qemu_img_adapter.create_copy(
-            Path(source_path),
-            target_path,
-            fmt=self.format,
-        )
-        return self.__dict__
+        new_volume = LocalFSVolume(**self.__dict__)
+        new_volume.path = target_path
+        return new_volume.__dict__
 
     def attach_volume_info(self) -> Dict:
         """Get information about an existing volume.
