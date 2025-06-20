@@ -31,7 +31,7 @@ Endpoints:
 
 from typing import Dict, List, cast
 
-from fastapi import Path, Query, Depends, APIRouter, status
+from fastapi import Path, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Page, paginate
 from starlette.concurrency import run_in_threadpool
@@ -270,8 +270,8 @@ async def vnc_vm(
     dependencies=[Depends(get_current_user)],
 )
 async def clone_vm(
-    vm_id: str = Path(description='VM ID'),
-    count: int = Query(1, description='Number of clones'),
+    data: schemas.CloneVm,
+    vm_id: str = Path(description='Id of vm that will be cloned '),
     user_info: Dict = Depends(get_current_user),
     crud: VMCrud = Depends(VMCrud),
 ) -> List[schemas.VirtualMachineInfo]:
@@ -279,7 +279,7 @@ async def clone_vm(
 
     Args:
         vm_id (str): The ID of the virtual machine to copy.
-        count (int): The number of clones to create.
+        data (schemas.CloneVm): The data to clone the virtual machine.
         user_info (Dict): The dependency to ensure the user is authenticated.
         crud (VMCrud): The CRUD dependency for virtual machine operations.
 
@@ -288,10 +288,10 @@ async def clone_vm(
     """
     LOG.info(
         f'API handling request to copy data for VM with ID: {vm_id} '
-        f'{count} times.'
+        f'{data.count} times.'
     )
     result: List[Dict] = await run_in_threadpool(
-        crud.clone_vm, vm_id, count, user_info
+        crud.clone_vm, vm_id, data.count, data.target_storage_id, user_info
     )
     LOG.info('API request was successfully processed.')
     return [schemas.VirtualMachineInfo(**item) for item in result]

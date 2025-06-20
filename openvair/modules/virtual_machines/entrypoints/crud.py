@@ -9,6 +9,7 @@ Classes:
         virtual machines by interacting with the service layer.
 """
 
+from uuid import UUID
 from typing import Dict, List
 
 from openvair.libs.log import get_logger
@@ -180,13 +181,21 @@ class VMCrud:
         )
         return result
 
-    def clone_vm(self, vm_id: str, count: int, user_info: Dict) -> List[Dict]:
+    def clone_vm(
+        self,
+        vm_id: str,
+        count: int,
+        target_storage_id: UUID,
+        user_info: Dict,
+    ) -> List[Dict]:
         """Clone a virtual machine.
 
         Args:
             vm_id (str): The ID of the virtual machine to copy.
             count (int): The number of copies to create.
             user_info (Dict): The user information for authorization.
+            target_storage_id (UUID): ID of storage where the volume will be
+                created
 
         Returns:
             List[Dict]: The list of cloned virtual machine data.
@@ -199,7 +208,8 @@ class VMCrud:
             data_for_method={
                 'vm_id': vm_id,
                 'count': count,
-                'user_info': user_info
+                'user_info': user_info,
+                'target_storage_id': target_storage_id,
             },
         )
         LOG.debug(f'Response from service layer: {result}')

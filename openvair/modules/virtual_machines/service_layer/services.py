@@ -1361,6 +1361,7 @@ class VMServiceLayerManager(BackgroundTasks):
         vm_id = data.pop('vm_id', '')
         count = data.pop('count', 1)
         user_info = data.get('user_info', {})
+        target_storage_id = data['target_storage_id']
 
         original_vm = self.get_vm({'vm_id': vm_id})
         if not original_vm:
@@ -1381,7 +1382,10 @@ class VMServiceLayerManager(BackgroundTasks):
 
             # 1. Build minimal create_VM payload
             clone_payload = self._transform_clone_vm_data(
-                original_vm, user_info, suffix
+                original_vm,
+                user_info,
+                target_storage_id,
+                suffix,
             )
             clone_payload['name'] = f'{original_vm["name"]}{suffix}'
 
@@ -1409,7 +1413,8 @@ class VMServiceLayerManager(BackgroundTasks):
         self,
         vm: Dict,
         user_info: Dict,
-        suffix: str = "",
+        target_storage_id: UUID,
+        suffix: str = '',
     ) -> Dict:
         """Convert VM data for cloning.
 
@@ -1420,6 +1425,8 @@ class VMServiceLayerManager(BackgroundTasks):
         Args:
             vm (Dict): The original virtual machine data to clone.
             user_info (Dict): User information to be included in the new VM.
+            target_storage_id (UUID): ID of storage where the volume will be
+                created
             suffix (str): A suffix to append to the names of the cloned
                 virtual machine and its disks. This is used to ensure that
                 the new resources do not clash with the originals.
@@ -1436,15 +1443,15 @@ class VMServiceLayerManager(BackgroundTasks):
         )
         try:
             data = deepcopy(vm)
-            data["user_info"] = user_info
+            data['user_info'] = user_info
 
-            for key in ("id", "status", "power_state", "information"):
+            for key in ('id', 'status', 'power_state', 'information'):
                 data.pop(key, None)
 
-            for section in ("cpu", "ram", "os"):
+            for section in ('cpu', 'ram', 'os'):
                 if section in data:
                     data[section] = self._strip_keys(
-                        data[section], ["id", "vm_id"]
+                        data[section], ['id', 'vm_id']
                     )
 
             # graphic_interface: Dict = data.get("graphic_interface", {})
@@ -1455,29 +1462,30 @@ class VMServiceLayerManager(BackgroundTasks):
             # }
 
             virtual_interfaces: List[Dict] = []
-            for vif in vm.get("virtual_interfaces", []):
+            for vif in vm.get('virtual_interfaces', []):
                 virtual_interfaces.append(
                     {
-                        "mode": vif["mode"],
-                        "portgroup": vif.get("portgroup"),
-                        "interface": vif["interface"],
-                        "mac": vif["mac"],  # TODO: generate unique MAC
-                        "model": vif["model"],
-                        "order": vif.get("order", 0),
+                        'mode': vif['mode'],
+                        'portgroup': vif.get('portgroup'),
+                        'interface': vif['interface'],
+                        'mac': vif['mac'],  # TODO: generate unique MAC
+                        'model': vif['model'],
+                        'order': vif.get('order', 0),
                     }
                 )
-            data["virtual_interfaces"] = virtual_interfaces
+            data['virtual_interfaces'] = virtual_interfaces
 
             LOG.warning(f'Transformed VM data for cloning: {data}')
 
             # Клонирование дисков
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
-                data.get("disks", []),
+                data.get('disks', []),
                 user_info,
                 suffix,
+                target_storage_id,
             )
 
-            data["disks"] = {"attach_disks": attach_disks}
+            data['disks'] = {'attach_disks': attach_disks}
         except Exception as err:  # TODO: заменить на конкретное исключение
             msg = f'Error transforming VM data for cloning: {err}'
             LOG.exception(msg)
@@ -1486,7 +1494,11 @@ class VMServiceLayerManager(BackgroundTasks):
         return data
 
     def _vm_clone_disks_payload(
-        self, disks_list: List, user_info: Dict, suffix: str
+        self,
+        disks_list: List,
+        user_info: Dict,
+        suffix: str,
+        target_storage_id: UUID,
     ) -> List[Dict]:
         """Transform VM disks for cloning.
 
@@ -1499,6 +1511,8 @@ class VMServiceLayerManager(BackgroundTasks):
             disks_list (List): A list of disk dictionaries from the original VM.
             user_info (Dict): User information to be included in the new VM.
             suffix (str): A suffix to append to the names of the disks.
+            target_storage_id (UUID): ID of storage where the volume will be
+                created
 
         Returns:
             List[Dict]: A list of dictionaries representing the disks
@@ -1509,9 +1523,9 @@ class VMServiceLayerManager(BackgroundTasks):
         for disk in disks_list:
             LOG.warning(f'Original disk before transform: {disk}')
             new_disk = {
-                "name": (
+                'name': (
                     f'{disk["name"]}{suffix}'
-                    if disk.get("type") == DiskType.volume.value
+                    if disk.get('type') == DiskType.volume.value
                     else disk['name']
                 ),
                 'emulation': disk['emulation'],
@@ -1523,7 +1537,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 'user_info': user_info,
             }
 
-            if disk.get("type") == DiskType.volume.value:
+            if disk.get('type') == DiskType.volume.value:
                 try:
                     clone_result = self.volume_service_client.clone_volume(
                         {
@@ -1531,6 +1545,7 @@ class VMServiceLayerManager(BackgroundTasks):
                             'name': new_disk['name'],
                             'vm_id': disk.get('vm_id', ''),
                             'user_info': user_info,
+                            'target_storage_id': target_storage_id,
                         }
                     )
                     available_volume = self._expect_volume_availability(
@@ -1553,8 +1568,8 @@ class VMServiceLayerManager(BackgroundTasks):
                 #     msg = f'Error cloning volume: {err}'
                 #     LOG.exception(msg)
                 #     raise
-            elif disk.get("type") == DiskType.image.value:
-                new_disk["image_id"] = disk["disk_id"]
+            elif disk.get('type') == DiskType.image.value:
+                new_disk['image_id'] = disk['disk_id']
 
             attach_disks.append(new_disk)
             LOG.info(f'Prepared disk for cloning: {new_disk}')
