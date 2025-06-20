@@ -15,13 +15,20 @@ Classes:
 """
 
 import abc
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.connection import LibvirtConnection
-from openvair.libs.data_handlers.xml.exceptions import XMLDeserializationError
-from openvair.libs.data_handlers.xml.serializer import deserialize_xml
+from openvair.libs.data_handlers.xml.exceptions import (
+    XMLSerializationError,
+    XMLDeserializationError,
+)
+from openvair.libs.data_handlers.xml.serializer import (
+    serialize_xml,
+    deserialize_xml,
+)
 from openvair.modules.virtual_machines.domain.exceptions import (
+    SnapshotXmlError,
     GraphicPortNotFoundInXmlException,
     GraphicTypeNotFoundInXmlException,
 )
@@ -79,6 +86,10 @@ class BaseVMDriver:
     def revert_snapshot(self) -> None:
         """Revert to a snapshot of the virtual machine."""
         pass
+
+    def delete_snapshot(self) -> None:
+        """Delete a snapshot of the virtual machine."""
+    pass
 
 
 class BaseLibvirtDriver(BaseVMDriver):
@@ -294,3 +305,134 @@ class BaseLibvirtDriver(BaseVMDriver):
             NotImplementedError: If the method is not implemented.
         """
         raise NotImplementedError
+
+    def delete_snapshot(self) -> None:
+        """Delete a snapshot of the virtual machine.
+
+        Type of snapshot in snapshot_info: None|'internal'|'external',
+        None is 'internal' by default.
+        """
+        snapshot_type = self.snapshot_info.get('type')
+        if snapshot_type == 'external':
+            return self.delete_external_snapshot()
+        return self.delete_internal_snapshot()
+
+    def delete_internal_snapshot(self) -> None:
+        """Delete an internal snapshot of the virtual machine.
+
+        This method should be implemented by subclasses.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    def delete_external_snapshot(self) -> None:
+        """Delete an external snapshot of the virtual machine.
+
+        This method should be implemented by subclasses.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_snapshot_parent_from_xml(snapshot_xml: str) -> Optional[str]:
+        """Extract parent snapshot name from XML description.
+
+        Args:
+            snapshot_xml: XML description of the snapshot
+
+        Returns:
+            parent (str): Name of the parent snapshot
+            or None if no parent exists
+
+        Raises:
+            SnapshotXmlError: If the XML is invalid or cannot be parsed
+        """
+        try:
+            snap_xml = deserialize_xml(snapshot_xml)
+            parent = snap_xml['domainsnapshot'].get('parent', {}).get('name')
+        except (
+                KeyError,
+                AttributeError,
+                TypeError,
+                XMLDeserializationError
+        ) as e:
+            message = f"Failed to extract parent from snapshot XML: {e}"
+            LOG.error(message)
+            raise SnapshotXmlError(message)
+        else:
+            return str(parent) if parent else None
+
+    @staticmethod
+    def _update_child_xml(child_xml: str, new_parent: Optional[str]) -> str:
+        """Update child snapshot XML with new parent reference.
+
+        Args:
+            child_xml: Original child snapshot XML
+            new_parent: Name of the new parent snapshot (None to remove parent)
+
+        Returns:
+            new_snapshot_xml (str): Updated XML string
+
+        Raises:
+            SnapshotXmlError: If the XML is invalid or cannot be updated
+        """
+        try:
+            parsed_xml = deserialize_xml(child_xml)
+            domainsnapshot = parsed_xml['domainsnapshot']
+            if new_parent:
+                domainsnapshot['parent'] = {'name': new_parent}
+            elif 'parent' in domainsnapshot:
+                del domainsnapshot['parent']
+            new_snapshot_xml = serialize_xml({'domainsnapshot': domainsnapshot})
+        except (
+            KeyError,
+            AttributeError,
+            TypeError,
+            XMLDeserializationError,
+            XMLSerializationError
+        ) as e:
+            message = f"Failed to update child snapshot XML: {e}"
+            LOG.error(message)
+            raise SnapshotXmlError(message)
+        else:
+            return new_snapshot_xml
+
+    @staticmethod
+    def _get_snap_disk_path_from_xml(snapshot_xml: str) -> str:
+        """Extract disk path from snapshot XML description.
+
+        Args:
+            snapshot_xml: XML description of the snapshot
+
+        Returns:
+            Absolute path to the disk image
+
+        Raises:
+            SnapshotXmlError: If disk path cannot be extracted or XML is invalid
+        """
+        try:
+            snap_xml = deserialize_xml(snapshot_xml)
+            devices = snap_xml['domainsnapshot']['domain']['devices']
+            disks = devices['disk']
+            if not isinstance(disks, List):
+                disks = [disks]
+            for disk in disks:
+                if (disk.get('@type') == 'file' and
+                        disk.get('@device') == 'disk' and
+                        disk.get('source', {}).get('@file')):
+                    return str(disk['source']['@file'])
+            message = "No disk device with valid source file in snapshot XML"
+            raise SnapshotXmlError(message)
+        except (
+                KeyError,
+                AttributeError,
+                TypeError,
+                XMLDeserializationError
+        ) as e:
+            message = f"XML parsing failed with error: {e}"
+            LOG.error(message)
+            raise SnapshotXmlError(message)
