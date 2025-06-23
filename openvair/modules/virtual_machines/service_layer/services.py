@@ -25,8 +25,12 @@ Functions:
     edit_vm: Edit a virtual machine by ID.
     vnc: Access the VNC session of a virtual machine.
     monitoring: Periodically monitor the state of virtual machines.
+    get_snapshot: Retrieve a snapshot of a virtual machine.
+    get_snapshots: Retrieve all snapshots of a virtual machine.
     create_snapshot: Create a new snapshot of a virtual machine.
-    snapshots_monitoring: Periodically monitor the state of virtual machines.
+    revert_snapshot: Revert a virtual machine to a snapshot.
+    delete_snapshot: Delete a snapshot of a virtual machine.
+    snapshots_monitoring: Periodically monitor the statuses of snapshots.
 """
 
 from __future__ import annotations
@@ -1470,9 +1474,9 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Handling call on create snapshot of vm.')
         user_info = data.pop('user_info', {})
-        vm_id = str(data.get('vm_id'))
-        name = str(data.get('name'))
-        description = data.get('description')
+        vm_id = str(data.pop('vm_id'))
+        name = str(data.pop('name'))
+        description = data.pop('description')
         if description is None:
             description = 'Open vAIR'
         with self.uow:
@@ -1523,7 +1527,7 @@ class VMServiceLayerManager(BackgroundTasks):
             data_for_method={
                 'vm_id': str(vm_id),
                 'snapshot_id': str(db_snap.id),
-                'snapshot_name': data.get('name'),
+                'snapshot_name': name,
                 'user_info': user_info,
             }
         )
@@ -1532,8 +1536,8 @@ class VMServiceLayerManager(BackgroundTasks):
 
     def _create_snapshot(self, data: Dict) -> None:
         LOG.info('Handling response on _create_snapshot.')
-        vm_id = str(data.get('vm_id'))
-        snapshot_id = str(data.get('snapshot_id'))
+        vm_id = str(data.pop('vm_id'))
+        snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
         with self.uow:
@@ -1566,38 +1570,6 @@ class VMServiceLayerManager(BackgroundTasks):
                          'processed.')
             finally:
                 self.uow.commit()
-
-    @periodic_task(interval=10)
-    def snapshots_monitoring(self) -> None:
-        """Monitor the state of snapshots periodically.
-
-        This task checks the state of snapshots and updates their status and
-        'is_current' flag in the database.
-
-        This method runs as a periodic task every 10 seconds.
-        """
-        LOG.info('Start snapshot monitoring.')
-        with self.uow, synchronized_session(self.uow.session):
-            for db_vm in self.uow.virtual_machines.get_all():
-                if db_vm.power_state == VmPowerState.running.name:
-                    self._update_snapshots_statuses(db_vm)
-            self.uow.commit()
-        LOG.info('Stop snapshot monitoring.')
-
-    def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
-        """Update snapshots statuses for a VM based on Libvirt API."""
-        libvirt_snaps, libvirt_current = get_vm_snapshots(db_vm.name)
-        db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(str(db_vm.id))
-        for db_snap in db_snaps:
-            if (db_snap.name not in libvirt_snaps and
-                    db_snap.status != SnapshotStatus.creating.name):
-                db_snap.status = SnapshotStatus.error.name
-            if (db_snap.status == SnapshotStatus.creating.name or
-                    (db_snap.status == SnapshotStatus.reverting.name and
-                     db_snap.name == libvirt_current)):
-                db_snap.status = SnapshotStatus.running.name
-            if libvirt_current and db_snap.name == libvirt_current:
-                self.uow.virtual_machines.set_current_snapshot(db_snap)
 
     @staticmethod
     def _check_snapshot_status(
@@ -1638,8 +1610,8 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Handling call to revert snapshot')
         user_info = data.pop('user_info', {})
-        vm_id = str(data.get('vm_id', ''))
-        snapshot_id = str(data.get('snap_id', ''))
+        vm_id = str(data.pop('vm_id', ''))
+        snapshot_id = str(data.pop('snap_id', ''))
         if not (vm_id and snapshot_id):
             message = (
                 f'Incorrect arguments were received '
@@ -1698,8 +1670,8 @@ class VMServiceLayerManager(BackgroundTasks):
             ID of the reverting snapshot.
         """
         LOG.info('Handling response on _revert_snapshot.')
-        vm_id = str(data.get('vm_id'))
-        snapshot_id = str(data.get('snapshot_id'))
+        vm_id = str(data.pop('vm_id'))
+        snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
         with self.uow:
@@ -1752,8 +1724,8 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Handling call to delete snapshot')
         user_info = data.pop('user_info', {})
-        vm_id = str(data.get('vm_id', ''))
-        snapshot_id = str(data.get('snap_id', ''))
+        vm_id = str(data.pop('vm_id', ''))
+        snapshot_id = str(data.pop('snap_id', ''))
         if not (vm_id and snapshot_id):
             message = (
                 f'Incorrect arguments were received '
@@ -1782,18 +1754,18 @@ class VMServiceLayerManager(BackgroundTasks):
                         SnapshotStatus.error.name
                     ]
                 )
-                child_snapshots = self.uow.virtual_machines.get_child_snapshots(
-                    db_snap
-                )
-                for child in child_snapshots:
-                    child.parent_id = db_snap.parent_id
-                    self.uow.virtual_machines.update_snapshot(child)
-                db_snap.status = SnapshotStatus.deleting.name
-                self.uow.commit()
                 result = DataSerializer.snapshot_to_web(db_snap)
                 result['vm_name'] = db_vm.name
                 if result.get('parent'):
                     result['parent'] = result['parent']['name']
+                result['status'] = SnapshotStatus.deleting.name
+                if db_snap.status == SnapshotStatus.error.name:
+                    self._delete_snapshot_from_db(vm_id, snapshot_id)
+                    LOG.info('Snapshot with status "error" was deleted from '
+                             'the database')
+                    return result
+                db_snap.status = SnapshotStatus.deleting.name
+                self.uow.commit()
                 self.event_store.add_event(
                     vm_id,
                     user_info.get('id'),
@@ -1823,8 +1795,8 @@ class VMServiceLayerManager(BackgroundTasks):
             of the snapshot to delete.
         """
         LOG.info('Handling response on _delete_vm.')
-        vm_id = str(data.get('vm_id'))
-        snapshot_id = str(data.get('snapshot_id'))
+        vm_id = str(data.pop('vm_id'))
+        snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
         with self.uow:
@@ -1834,20 +1806,25 @@ class VMServiceLayerManager(BackgroundTasks):
                     vm_id,
                     snapshot_id
                 )
+                child_snapshots = self.uow.virtual_machines.get_child_snapshots(
+                    db_snap
+                )
+                children_names = [child.name for child in child_snapshots]
                 serialized_vm = DataSerializer.vm_to_web(db_vm)
                 prepared_data = {
                     **serialized_vm,
                     'snapshot_info': {
                         'vm_name': db_vm.name,
                         'snapshot_name': db_snap.name,
-                        'snapshot_id': str(db_snap.id)
+                        'snapshot_id': str(db_snap.id),
+                        'children_names': children_names,
                     }
                 }
-                self.domain_rpc.cast(
+                self.domain_rpc.call(
                     BaseVMDriver.delete_snapshot.__name__,
                     data_for_manager=prepared_data,
                 )
-                self.uow.virtual_machines.delete_snapshot(db_snap)
+                self._delete_snapshot_from_db(vm_id, snapshot_id)
                 self.event_store.add_event(
                     vm_id,
                     user_id,
@@ -1859,7 +1836,64 @@ class VMServiceLayerManager(BackgroundTasks):
             except (RpcCallException, RpcServerInitializedException) as err:
                 message = f'Handle error: {err!s} while deleting snapshot'
                 LOG.error(message)
-                db_snap.status = SnapshotStatus.running.name
+                db_snap.status = SnapshotStatus.error.name
                 raise
             finally:
                 self.uow.commit()
+
+    def _delete_snapshot_from_db(
+            self,
+            vm_id: str,
+            snapshot_id: str
+    ) -> None:
+        """Delete snapshot information from the database.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            snapshot_id (str): The ID of the snapshot to delete.
+        """
+        with self.uow:
+            db_snap = self.uow.virtual_machines.get_snapshot(
+                vm_id,
+                snapshot_id
+            )
+            child_snapshots = self.uow.virtual_machines.get_child_snapshots(
+                db_snap
+            )
+            for child in child_snapshots:
+                child.parent_id = db_snap.parent_id
+                self.uow.virtual_machines.update_snapshot(child)
+            self.uow.virtual_machines.delete_snapshot(db_snap)
+            self.uow.commit()
+
+    @periodic_task(interval=10)
+    def snapshots_monitoring(self) -> None:
+        """Monitor the state of snapshots periodically.
+
+        This task checks the state of snapshots and updates their status and
+        'is_current' flag in the database.
+
+        This method runs as a periodic task every 10 seconds.
+        """
+        LOG.info('Start snapshot monitoring.')
+        with self.uow, synchronized_session(self.uow.session):
+            for db_vm in self.uow.virtual_machines.get_all():
+                if db_vm.power_state == VmPowerState.running.name:
+                    self._update_snapshots_statuses(db_vm)
+            self.uow.commit()
+        LOG.info('Stop snapshot monitoring.')
+
+    def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
+        """Update snapshots statuses for a VM based on Libvirt API."""
+        libvirt_snaps, libvirt_current = get_vm_snapshots(db_vm.name)
+        db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(str(db_vm.id))
+        for db_snap in db_snaps:
+            if (db_snap.name not in libvirt_snaps and
+                    db_snap.status != SnapshotStatus.creating.name):
+                db_snap.status = SnapshotStatus.error.name
+            if (db_snap.status == SnapshotStatus.creating.name or
+                    (db_snap.status == SnapshotStatus.reverting.name and
+                     db_snap.name == libvirt_current)):
+                db_snap.status = SnapshotStatus.running.name
+            if libvirt_current and db_snap.name == libvirt_current:
+                self.uow.virtual_machines.set_current_snapshot(db_snap)

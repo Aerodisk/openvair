@@ -247,11 +247,14 @@ class LibvirtDriver(BaseLibvirtDriver):
                 LOG.error(message)
                 raise SnapshotError(message)
 
-    def delete_internal_snapshot(self) -> None:
+    def delete_internal_snapshot(self) -> Dict:
         """Delete an internal snapshot of the virtual machine.
 
         Deletes a snapshot of the virtual machine using the Libvirt API or QEMU
         command (in case of shut-off VM) and updates XML files.
+
+        Returns:
+            Dict: An empty dictionary representing the result of the operation.
 
         Raises:
             SnapshotError: If an error occurs while deleting the snapshot.
@@ -259,6 +262,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         """
         vm_name = self.vm_info.get('name')
         snapshot_name = self.snapshot_info.get('snapshot_name')
+        children_names = self.snapshot_info.get('children_names', [])
         if not vm_name or not snapshot_name:
             message = "VM name or snapshot name is missing or invalid"
             raise SnapshotError(message)
@@ -266,12 +270,11 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Deleting snapshot for VM {vm_name}')
 
         try:
-            child_names = self._get_snapshot_child_names(vm_name, snapshot_name)
             if self._is_vm_running(vm_name):
                 self._delete_with_libvirt(vm_name, snapshot_name)
             else:
                 self._delete_with_qemu(vm_name, snapshot_name)
-            self._process_snapshot_xml(vm_name, snapshot_name, child_names)
+            self._update_snapshots_xml(vm_name, snapshot_name, children_names)
         except SnapshotError as e:
             message = f"Failed to delete snapshot: {e}"
             raise SnapshotError(message)
@@ -279,63 +282,25 @@ class LibvirtDriver(BaseLibvirtDriver):
             self._cleanup_snapshot_files(vm_name, snapshot_name)
             LOG.info(f'Successfully deleted snapshot {snapshot_name} '
                      f'for VM {vm_name}')
+            return {}
 
-    def _get_snapshot_child_names(
-            self,
-            vm_name: str,
-            snapshot_name: str
-    ) -> List[str]:
-        """Find child snapshots in XML files.
-
-        Args:
-            vm_name (str): Name of the virtual machine
-            snapshot_name (str): Name of the parent snapshot
-
-        Returns:
-            List[str]: Names of child snapshots referencing the given parent
-
-        Raises:
-            SnapshotError: If unable to read snapshot directory
-        """
-        child_names = []
-        try:
-            for child_file in Path(SNAPSHOTS_PATH).glob(f"{vm_name}_*.xml"):
-                try:
-                    with child_file.open('r', encoding='utf-8') as f:
-                        child_xml = f.read()
-                    child_parent = self._get_snapshot_parent_from_xml(child_xml)
-                    if child_parent == snapshot_name:
-                        child_name = child_file.stem.split('_')[-1]
-                        child_names.append(child_name)
-                except (OSError, SnapshotXmlError) as e:
-                    message = f"Skipping snapshot file {child_file.name}: {e}"
-                    LOG.warning(message)
-                    continue
-        except OSError as e:
-            message = "Failed to scan snapshot files directory"
-            LOG.error(message)
-            raise SnapshotError(message) from e
-
-        return child_names
-
-    def _process_snapshot_xml(
+    def _update_snapshots_xml(
             self,
             vm_name: str,
             snapshot_name: str,
-            child_names: List[str]
+            children_names: List[str]
     ) -> None:
         """Update XML references for child snapshots after parent deletion.
 
         Args:
             vm_name (str): Name of the virtual machine
             snapshot_name (str): Name of the deleted snapshot
-            child_names (List): List of child snapshots names
+            children_names (List): List of child snapshots names
 
         Raises:
             SnapshotError: If XML processing fails
         """
         snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{snapshot_name}.xml")
-
         try:
             with snapshot_file.open('r', encoding='utf-8') as f:
                 snap_xml = f.read()
@@ -344,10 +309,8 @@ class LibvirtDriver(BaseLibvirtDriver):
             message = f"Failed to read snapshot XML file: {e}"
             LOG.error(message)
             raise SnapshotError(message)
-
-        for child_name in child_names:
+        for child_name in children_names:
             child_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{child_name}.xml")
-
             try:
                 with child_file.open('r', encoding='utf-8') as f:
                     child_xml = f.read()
@@ -362,7 +325,7 @@ class LibvirtDriver(BaseLibvirtDriver):
 
     @staticmethod
     def _cleanup_snapshot_files(vm_name: str, snapshot_name: str) -> None:
-        """"Remove snapshot XML files after successful deletion.
+        """Remove snapshot XML files after successful deletion.
 
         Args:
             vm_name (str): Name of the virtual machine

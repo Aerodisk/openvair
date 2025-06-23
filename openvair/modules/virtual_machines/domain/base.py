@@ -87,9 +87,14 @@ class BaseVMDriver:
         """Revert to a snapshot of the virtual machine."""
         pass
 
-    def delete_snapshot(self) -> None:
-        """Delete a snapshot of the virtual machine."""
-    pass
+    @abc.abstractmethod
+    def delete_snapshot(self) -> Dict:
+        """Delete a snapshot of the virtual machine.
+
+        Returns:
+            Dict: A dictionary containing the result of the delete operation.
+        """
+        pass
 
 
 class BaseLibvirtDriver(BaseVMDriver):
@@ -306,31 +311,40 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         raise NotImplementedError
 
-    def delete_snapshot(self) -> None:
+    def delete_snapshot(self) -> Dict:
         """Delete a snapshot of the virtual machine.
 
         Type of snapshot in snapshot_info: None|'internal'|'external',
         None is 'internal' by default.
+
+        Returns:
+            Dict: A dictionary containing the result of the delete operation.
         """
         snapshot_type = self.snapshot_info.get('type')
         if snapshot_type == 'external':
             return self.delete_external_snapshot()
         return self.delete_internal_snapshot()
 
-    def delete_internal_snapshot(self) -> None:
+    def delete_internal_snapshot(self) -> Dict:
         """Delete an internal snapshot of the virtual machine.
 
         This method should be implemented by subclasses.
+
+        Returns:
+            Dict: A dictionary containing the result of the delete operation.
 
         Raises:
             NotImplementedError: If the method is not implemented.
         """
         raise NotImplementedError
 
-    def delete_external_snapshot(self) -> None:
+    def delete_external_snapshot(self) -> Dict:
         """Delete an external snapshot of the virtual machine.
 
         This method should be implemented by subclasses.
+
+        Returns:
+            Dict: A dictionary containing the result of the delete operation.
 
         Raises:
             NotImplementedError: If the method is not implemented.
