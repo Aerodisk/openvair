@@ -122,7 +122,7 @@ async def get_image(
     response_model=schemas.Image,
     status_code=status.HTTP_200_OK,
 )
-async def upload_image(  # noqa: PLR0913
+async def upload_image(  # noqa: PLR0913 need create a schema for arguments
     storage_id: UUID,
     description: str = Query(
         default='',

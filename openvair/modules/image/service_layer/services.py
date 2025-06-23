@@ -510,7 +510,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
             # check if image with this name already exists
             if self.uow.images.get_by_name(image.name):
-                self._delete_tmp(name)
+                self._delete_image_copy(name)
                 raise exceptions.ImageNameExistsException(image.name)
 
             db_image: Image = cast(Image, DataSerializer.to_db(image._asdict()))
@@ -536,12 +536,12 @@ class ImageServiceLayerManager(BackgroundTasks):
         )
         return serialized_image
 
-    def _delete_tmp(self, name: str) -> None:
+    def _delete_image_copy(self, name: str) -> None:
         tmp_path = Path(TMP_DIR, name)
         try:
             tmp_path.unlink(missing_ok=True)
         except OSError:
-            LOG.info('not able to remove tmp file')
+            LOG.warning(f"Unable to remove tmp image '{tmp_path}'")
 
     def _create_image(self, image_info: Dict) -> None:
         """Create an image in the system asynchronously.
@@ -622,7 +622,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 )
                 self._handle_create_image_exceptions(db_image, err)
             finally:
-                self._delete_tmp(image_info.get('name', ''))
+                self._delete_image_copy(image_info.get('name', ''))
                 db_image.status = ImageStatus.available.name
                 self.uow.commit()
                 LOG.debug('Image status was updated on %s.' % db_image.status)
