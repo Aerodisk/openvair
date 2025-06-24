@@ -9,7 +9,7 @@ Classes:
         Libvirt API.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 import libvirt
@@ -85,7 +85,86 @@ class LibvirtDriver(BaseLibvirtDriver):
                 'url': f'{graphic_url}:{graphic_port}' if graphic_url else '',
             }
 
-        return {'power_state': state, 'url': graphic_url, 'port': graphic_port}
+        redefined_snapshots = self.redefine_snapshots()
+
+        return {
+            'power_state': state,
+            'url': graphic_url,
+            'port': graphic_port,
+            'redefined_snapshots': redefined_snapshots,
+        }
+
+    def redefine_snapshots(self) -> List[Optional[str]]:
+        """Redefine saved snapshots for the virtual machine.
+
+        Returns:
+            List[str]: Names of successfully redefined snapshots.
+        """
+        vm_name = self.vm_info.get('name')
+        snap_dir = Path(SNAPSHOTS_PATH)
+        pattern = f"{vm_name}_*.xml"
+        snap_files = list(snap_dir.glob(pattern))
+
+        LOG.info(f'Starting redefine snapshots of VM {vm_name}')
+
+        snap_list = []
+        for snap_file in snap_files:
+            try:
+                with snap_file.open('r', encoding='utf-8') as f:
+                    xml_content = f.read()
+                creation_time_str = self._get_snapshot_creation_time_from_xml(
+                    xml_content
+                )
+                if not creation_time_str:
+                    LOG.error(f"Missing creationTime in snapshot {snap_file}")
+                    continue
+                creation_time = int(creation_time_str)
+                snap_list.append((snap_file, xml_content, creation_time))
+            except (IOError, OSError) as e:
+                LOG.error(f"Error reading snapshot file {snap_file}: {e}")
+            except SnapshotXmlError as err:
+                LOG.error(f"XML parsing error in snapshot {snap_file}: {err}")
+
+        snap_list.sort(key=lambda x: x[2])
+        redefined_snapshots = self._redefine_snapshots(snap_list)
+
+        LOG.info(f'Finished redefine snapshots of VM {vm_name}')
+        return redefined_snapshots
+
+    def _redefine_snapshots(self, snap_list: List) -> List[Optional[str]]:
+        """Redefine saved snapshots for the virtual machine.
+
+        Args:
+            snap_list (List): A list of virtual machine snapshots info -
+            (file_path, xml_content, creation_time).
+
+        Returns:
+            successful_snaps (List[str]): Names of successfully redefined
+            snapshots.
+        """
+        current_snap_name = self.snapshot_info.get('current_snap_name')
+        successful_snaps = []
+
+        with self.connection as connection:
+            domain = connection.lookupByName(self.vm_info.get('name'))
+            for file_path, xml_content, _ in snap_list:
+                try:
+                    flag = libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE
+                    snap_name = self._get_snapshot_name_from_xml(xml_content)
+                    if snap_name == current_snap_name:
+                        flag |= libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT
+                        LOG.info(f"Setting snapshot {snap_name} as current")
+                    snapshot = domain.snapshotCreateXML(xml_content, flags=flag)
+                    if snapshot:
+                        successful_snaps.append(snap_name)
+                        LOG.info(f"Successfully redefined snapshot {snap_name}")
+                    else:
+                        message = f"Failed redefine snapshot from {file_path}"
+                        LOG.error(message)
+                except libvirt.libvirtError as e:
+                    message = f"Libvirt error redefining snapshot: {e}"
+                    LOG.error(message)
+        return successful_snaps
 
     def turn_off(self) -> Dict:
         """Turn off the virtual machine.

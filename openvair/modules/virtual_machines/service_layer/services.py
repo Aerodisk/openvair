@@ -950,10 +950,22 @@ class VMServiceLayerManager(BackgroundTasks):
                 disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'ide'})
         with self.uow:
             db_vm = self.uow.virtual_machines.get(data.get('id', ''))
+            current_snap = self.uow.virtual_machines.get_current_snapshot(
+                str(db_vm.id)
+            )
+            data['snapshot_info'] = {
+                'current_snap_name': current_snap.name if current_snap else ""
+            }
             try:
                 start_info = self.domain_rpc.call(
                     BaseVMDriver.start.__name__, data_for_manager=data
                 )
+                redefined_snaps = start_info.pop('redefined_snapshots')
+                self._set_recreated_snapshots_statuses(
+                    str(db_vm.id),
+                    redefined_snaps
+                )
+                self.uow.commit()
                 db_vm.power_state = VmPowerState(
                     start_info.get('power_state')
                 ).name
@@ -978,6 +990,26 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.information = message
             finally:
                 self.uow.commit()
+
+    def _set_recreated_snapshots_statuses(
+            self,
+            vm_id: str,
+            redefined_snaps: List
+    ) -> None:
+        """Update snapshot statuses to 'creating' after successful VM start.
+
+        Args:
+            vm_id (str): Virtual machine ID in database.
+            redefined_snaps (List(str)): List of snapshot names that were
+            redefined.
+        """
+        for snap_name in redefined_snaps:
+            db_snap = self.uow.virtual_machines.get_snapshot_by_name(
+                vm_id,
+                snap_name
+            )
+            if db_snap:
+                db_snap.status = SnapshotStatus.creating.name
 
     def shut_off_vm(self, data: Dict) -> Dict:
         """Shut off a virtual machine by ID.
@@ -1637,6 +1669,12 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_snap.status,
                 [SnapshotStatus.running.name]
             )
+            current_snap = self.uow.virtual_machines.get_current_snapshot(vm_id)
+            if current_snap:
+                self._check_snapshot_status(
+                    current_snap.status,
+                    [SnapshotStatus.running.name]
+                )
             db_snap.status = SnapshotStatus.reverting.name
             db_vm.power_state = VmPowerState.paused.name
             self.uow.virtual_machines.set_current_snapshot(db_snap)
@@ -1751,7 +1789,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     db_snap.status,
                     [
                         SnapshotStatus.running.name,
-                        SnapshotStatus.error.name
+                        SnapshotStatus.error.name,
                     ]
                 )
                 result = DataSerializer.snapshot_to_web(db_snap)
