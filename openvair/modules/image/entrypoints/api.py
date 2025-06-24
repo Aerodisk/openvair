@@ -123,8 +123,8 @@ async def get_image(
     status_code=status.HTTP_200_OK,
 )
 async def upload_image(  # noqa: PLR0913 не возможно передать аргументы как Pydantic схему или Dict,
-    # потому что запрос в формате multipart/form-data тк используется File(...)
-    # для загрузки файла, a FastAPI не умеет автоматически парсить
+    # потому что запрос в формате multipart/form-data из-за использования
+    # File(...) для загрузки файла. FastAPI не умеет автоматически парсить
     # Pydantic-модель или Dict из тела запроса, если запрос multipart/form-data.
     storage_id: UUID,
     description: str = Query(
