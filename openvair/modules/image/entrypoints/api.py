@@ -122,7 +122,10 @@ async def get_image(
     response_model=schemas.Image,
     status_code=status.HTTP_200_OK,
 )
-async def upload_image(  # noqa: PLR0913 need create a schema for arguments
+async def upload_image(  # noqa: PLR0913 не возможно передать аргументы как Pydantic схему или Dict,
+    # потому что запрос в формате multipart/form-data тк используется File(...)
+    # для загрузки файла, a FastAPI не умеет автоматически парсить
+    # Pydantic-модель или Dict из тела запроса, если запрос multipart/form-data.
     storage_id: UUID,
     description: str = Query(
         default='',
