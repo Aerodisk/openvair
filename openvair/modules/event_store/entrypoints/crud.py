@@ -16,8 +16,14 @@ from collections import namedtuple
 
 from openvair.libs.log import get_logger
 from openvair.libs.validation.validators import Validator
-from openvair.modules.event_store.entrypoints import schemas, unit_of_work
+from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
+from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.modules.event_store.entrypoints import schemas
+from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
+from openvair.modules.event_store.service_layer.services import (
+    EventstoreServiceLayerManager,
+)
 
 LOG = get_logger(__name__)
 
@@ -38,6 +44,9 @@ class EventCrud:
         """
         self.module_name = module_name
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.service_layer_rpc = MessagingClient(
+            queue_name=API_SERVICE_LAYER_QUEUE_NAME
+        )
 
     def get_all_events(self) -> List:
         """Retrieve all events from the database.
@@ -49,49 +58,62 @@ class EventCrud:
         Returns:
             Page[schemas.Event]: A paginated list of all events.
         """
-        with self.uow:
-            web_events = [
-                DataSerializer.to_web(event)
-                for event in self.uow.events.get_all()
-            ]
-            return Validator.validate_objects(web_events, schemas.Event)
+        LOG.info('Call service layer on getting events.')
 
-    def get_all_events_by_module(self) -> List:
-        """Retrieve all events by module from the database.
+        result: List = self.service_layer_rpc.call(
+            EventstoreServiceLayerManager.get_all_events.__name__,
+            data_for_method={},
+        )
+        LOG.info('after service layer')
 
-        This method retrieves all events for a specific module from the
-        database, serializes them to web format, validates them against the
-        Event schema, and returns them in a paginated format.
+        return Validator.validate_objects(result, schemas.Event)
+        # return result
 
-        Returns:
-            Page[schemas.Event]: A paginated list of events filtered by module.
-        """
-        with self.uow:
-            web_events = [
-                DataSerializer.to_web(event)
-                for event in self.uow.events.get_all_by_module(self.module_name)
-            ]
-            return Validator.validate_objects(web_events, schemas.Event)
+        # with self.uow:
+        #     web_events = [
+        #         DataSerializer.to_web(event)
+        #         for event in self.uow.events.get_all()
+        #     ]
+        #     return Validator.validate_objects(web_events, schemas.Event)
 
-    def get_last_events(self, limit: int = 25) -> List:
-        """Retrieve the last N events from the database.
+    # def get_all_events_by_module(self) -> List:
+    #     """Retrieve all events by module from the database.
 
-        This method retrieves the last N events from the database, serializes
-        them to web format, validates them against the Event schema, and returns
-        them in a paginated format.
+    #     This method retrieves all events for a specific module from the
+    #     database, serializes them to web format, validates them against the
+    #     Event schema, and returns them in a paginated format.
 
-        Args:
-            limit (int): The number of events to retrieve. Defaults to 25.
+    #     Returns:
+    #         Page[schemas.Event]: A paginated list of events filtered by
+    # module.
+    #     """
+    #     with self.uow:
+    #         web_events = [
+    #             DataSerializer.to_web(event)
+    #             for event
+    # in self.uow.events.get_all_by_module(self.module_name)
+    #         ]
+    #         return Validator.validate_objects(web_events, schemas.Event)
 
-        Returns:
-            Page[schemas.Event]: A paginated list of the last N events.
-        """
-        with self.uow:
-            web_events = [
-                DataSerializer.to_web(event)
-                for event in self.uow.events.get_last_events(limit)
-            ]
-            return Validator.validate_objects(web_events, schemas.Event)
+    # def get_last_events(self, limit: int = 25) -> List:
+    #     """Retrieve the last N events from the database.
+
+    #     This method retrieves the last N events from the database, serializes
+    #     them to web format, validates them against the Event schema,
+    #     and returns them in a paginated format.
+
+    #     Args:
+    #         limit (int): The number of events to retrieve. Defaults to 25.
+
+    #     Returns:
+    #         Page[schemas.Event]: A paginated list of the last N events.
+    #     """
+    #     with self.uow:
+    #         web_events = [
+    #             DataSerializer.to_web(event)
+    #             for event in self.uow.events.get_last_events(limit)
+    #         ]
+    #         return Validator.validate_objects(web_events, schemas.Event)
 
     def add_event(
         self,
