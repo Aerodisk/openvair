@@ -103,6 +103,14 @@ class SnapshotNameExistsError(BaseCustomException):
         super().__init__(message, *args)
 
 
+class SnapshotLimitExceeded(BaseCustomException):
+    """Raised when the maximum number of snapshots per VM is exceeded."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize SnapshotLimitExceeded with optional arguments."""
+        super().__init__(message, *args)
+
+
 class SnapshotStatusException(BaseCustomException):
     """Raised when error with the status of the snapshot."""
 

@@ -1391,32 +1391,6 @@ class VMServiceLayerManager(BackgroundTasks):
             else:
                 return result
 
-    @periodic_task(interval=10)
-    def monitoring(self) -> None:
-        """Monitor the state of virtual machines periodically.
-
-        This task checks the state of VMs and updates their power state
-        and status in the database.
-
-        This method runs as a periodic task every 10 seconds.
-        """
-        LOG.info('Start monitoring.')
-        virsh_list = get_vms_state()
-        with self.uow:
-            with synchronized_session(self.uow.session):
-                for db_vm in self.uow.virtual_machines.get_all():
-                    db_vm_power_state = virsh_list.get(db_vm.name, '')
-                    if not db_vm_power_state:
-                        db_vm.power_state = VmPowerState.shut_off.name
-                    elif db_vm_power_state == VmPowerState.running.name:
-                        db_vm.power_state = VmPowerState[db_vm_power_state].name
-                        db_vm.status = VmStatus.available.name
-                        db_vm.information = ''
-                    else:
-                        db_vm.power_state = VmPowerState[db_vm_power_state].name
-            self.uow.commit()
-        LOG.info('Stop monitoring.')
-
     def get_snapshot(self, data: Dict) -> Dict:
         """Retrieve a specific snapshot by VM ID and snapshot ID.
 
@@ -1508,10 +1482,17 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_info', {})
         vm_id = str(data.pop('vm_id'))
         name = str(data.pop('name'))
-        description = data.pop('description')
-        if description is None:
-            description = 'Open vAIR'
+        description = data.pop('description') or 'Open vAIR'
+        max_snapshot_count = 10
         with self.uow:
+            snap_count = len(
+                self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            )
+            if snap_count >= max_snapshot_count:
+                message = (f"VM {vm_id} has already reached maximum snapshot "
+                           f"limit ({snap_count} > {max_snapshot_count}).")
+                LOG.error(message)
+                raise exceptions.SnapshotLimitExceeded(message)
             exist_snapshot = self.uow.virtual_machines.get_snapshot_by_name(
                 vm_id, name
             )
@@ -1904,25 +1885,12 @@ class VMServiceLayerManager(BackgroundTasks):
             self.uow.virtual_machines.delete_snapshot(db_snap)
             self.uow.commit()
 
-    @periodic_task(interval=10)
-    def snapshots_monitoring(self) -> None:
-        """Monitor the state of snapshots periodically.
-
-        This task checks the state of snapshots and updates their status and
-        'is_current' flag in the database.
-
-        This method runs as a periodic task every 10 seconds.
-        """
-        LOG.info('Start snapshot monitoring.')
-        with self.uow, synchronized_session(self.uow.session):
-            for db_vm in self.uow.virtual_machines.get_all():
-                if db_vm.power_state == VmPowerState.running.name:
-                    self._update_snapshots_statuses(db_vm)
-            self.uow.commit()
-        LOG.info('Stop snapshot monitoring.')
-
     def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
-        """Update snapshots statuses for a VM based on Libvirt API."""
+        """Update snapshots statuses for a VM based on Libvirt API.
+
+        Args:
+            db_vm: VirtualMachines database object to update snapshots for.
+        """
         libvirt_snaps, libvirt_current = get_vm_snapshots(db_vm.name)
         db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(str(db_vm.id))
         for db_snap in db_snaps:
@@ -1935,3 +1903,32 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_snap.status = SnapshotStatus.running.name
             if libvirt_current and db_snap.name == libvirt_current:
                 self.uow.virtual_machines.set_current_snapshot(db_snap)
+
+    @periodic_task(interval=10)
+    def monitoring(self) -> None:
+        """Monitor the state of virtual machines and snapshots periodically.
+
+        This task checks the state of VMs and updates their power state
+        and statuses in the database. For running VMs, also updates their
+        snapshot statuses and 'is_current' flag.
+
+        This method runs as a periodic task every 10 seconds.
+        """
+        LOG.info('Start monitoring.')
+        virsh_list = get_vms_state()
+        with self.uow:
+            with synchronized_session(self.uow.session):
+                for db_vm in self.uow.virtual_machines.get_all():
+                    db_vm_power_state = virsh_list.get(db_vm.name, '')
+                    if not db_vm_power_state:
+                        db_vm.power_state = VmPowerState.shut_off.name
+                    elif db_vm_power_state == VmPowerState.running.name:
+                        db_vm.power_state = VmPowerState[db_vm_power_state].name
+                        db_vm.status = VmStatus.available.name
+                        db_vm.information = ''
+                    else:
+                        db_vm.power_state = VmPowerState[db_vm_power_state].name
+                    if db_vm.power_state == VmPowerState.running.name:
+                        self._update_snapshots_statuses(db_vm)
+            self.uow.commit()
+        LOG.info('Stop monitoring.')
