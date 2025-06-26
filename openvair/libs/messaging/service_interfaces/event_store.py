@@ -1,11 +1,15 @@
 """Some description"""
 
-from typing import List, Protocol
+from typing import Dict, Protocol
 
 
 class EventstoreServiceLayerProtocolInterface(Protocol):
     """Interface for the EventstoreServiceLayerManager."""
 
-    def get_all_events(self) -> List:
+    # def get_all_events(self) -> List:
+    #     """Some description"""
+    #     ...
+
+    def add_event(self, data: Dict) -> None:
         """Some description"""
         ...

@@ -247,10 +247,7 @@ class EventCrud:
             data_for_method=data,
         )
         LOG.info('Event info was successfully added')
-        # with self.uow:
-        #     db_event = DataSerializer.to_db(event_info._asdict())
-        #     self.uow.events.add(db_event)
-        #     self.uow.commit()
+
         # except Exception as e:              # лучше потом убрать коммент здесь
         #     LOG.exception('An error occurred')
         #     LOG.debug(e)
