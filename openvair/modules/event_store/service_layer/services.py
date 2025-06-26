@@ -1,6 +1,6 @@
 """Some description"""
 
-from typing import List
+from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -30,4 +30,26 @@ class EventstoreServiceLayerManager(BackgroundTasks):
              DataSerializer.to_web(event)
              for event in self.uow.events.get_all()
          ]
-         # return web_events
+
+   def get_all_events_by_module(self, data: Dict) -> List:
+      """Some description"""
+      with self.uow:
+         return [
+             DataSerializer.to_web(event)
+             for event in self.uow.events.get_all_by_module(data['module_name'])
+         ]
+
+   def get_last_events(self, data: Dict) -> List:
+      """Some description"""
+      with self.uow:
+         return [
+             DataSerializer.to_web(event)
+             for event in self.uow.events.get_last_events(data['limit'])
+         ]
+
+   def add_event(self, data: Dict) -> None:
+      """Some description"""
+      with self.uow:
+         db_event = DataSerializer.to_db(data)
+         self.uow.events.add(db_event)
+         self.uow.commit()
