@@ -55,7 +55,7 @@ async def get_events(
     Raises:
         HTTPException: If any database error occurs or events are not found.
     """
-    result: List = crud.get_all_events()
+    result: List = crud.new_get_all_events()
     return cast(Page, paginate(result))
 
 
@@ -69,7 +69,7 @@ async def get_events_by_module(
     crud: EventCrud = Depends(EventCrud),
 ) -> Page[schemas.Event]:
     """Some description"""
-    result: List = crud.get_all_events_by_module()
+    result: List = crud.new_get_all_events_by_module()
     return cast(Page, paginate(result))
 
 
@@ -84,7 +84,7 @@ async def get_last_events(
     crud: EventCrud = Depends(EventCrud),
 ) -> Page[schemas.Event]:
     """Some description"""
-    result: List = crud.get_last_events(limit)
+    result: List = crud.new_get_last_events(limit)
     return cast(Page, paginate(result))
 
 
@@ -139,7 +139,7 @@ async def download_events(
     Returns:
         StreamingResponse: A streaming response with the CSV file content.
     """
-    result: List = crud.get_all_events()
+    result: List = crud.new_get_all_events()
     events_page: Page = paginate(
         result, params=Params(page=1, size=len(result))
     )

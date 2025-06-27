@@ -64,10 +64,10 @@ from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
     StorageServiceLayerRPCClient,
 )
 
-# from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import
-# (
-#     EventstoreServiceLayerRPCClient, # testing event_store service layer
-# )
+# testing event_store service layer
+from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import (
+    EventstoreServiceLayerRPCClient,
+)
 
 if TYPE_CHECKING:
     from openvair.abstracts.base_exception import BaseCustomException
@@ -174,8 +174,8 @@ class ImageServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.storage_service_client = StorageServiceLayerRPCClient()
-        #testing
-        # self.event_store_client = EventstoreServiceLayerRPCClient('image')
+        # testing
+        self.event_store_client = EventstoreServiceLayerRPCClient('image')
         self.event_store: EventCrud = EventCrud('image')
 
     def _call_domain_delete_from_tmp(
@@ -536,22 +536,23 @@ class ImageServiceLayerManager(BackgroundTasks):
 
         message = 'Image was uploaded successfully'
         LOG.info(message)
-        # try:
-        #     self.event_store_client.add_event( # trying new function
-        #         data = {
-        #             'object_id': str(db_image.id),
-        #             'user_id': user_id,
-        #             'event': self.upload_image.__name__,
-        #             'information': message
-        #             }
-        #     )
-        # except (RpcCallException, RpcCallTimeoutException) as err:
-        #     message = f'An error occurred while adding an event: {err!s}'
-        #     LOG.error(message)
-        self.event_store.add_event(
-            serialized_image.get('id', ''), user_id, self.upload_image.__name__,
-            message
+        try:
+            self.event_store_client.add_event( # trying new function
+                data = {
+                    'object_id': str(db_image.id),
+                    'user_id': user_id,
+                    'event': self.upload_image.__name__,
+                    'information': message
+                    }
             )
+        except (RpcCallException, RpcCallTimeoutException) as err:
+            message = f'An error occurred while adding an event: {err!s}'
+            LOG.error(message)
+        # self.event_store.add_event(
+        #     serialized_image.get('id', ''), user_id,
+        #     self.upload_image.__name__,
+        #     message
+        #     )
         return serialized_image
 
     def _create_image(self, image_info: Dict) -> None:
