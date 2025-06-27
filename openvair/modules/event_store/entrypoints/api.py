@@ -88,7 +88,7 @@ async def get_last_events(
     return cast(Page, paginate(result))
 
 
-@router.post(                              # trying out new add_event function
+@router.post(                              # trying out new_add_event function
     '/add_event',
     # response_model=schemas.Event,
     status_code=status.HTTP_200_OK,

@@ -20,6 +20,8 @@ from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.entrypoints import schemas
 from openvair.modules.event_store.service_layer import unit_of_work
+
+# from openvair.modules.event_store.service_layer import unit_of_work2 #testing
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 from openvair.modules.event_store.service_layer.services import (
     EventstoreServiceLayerManager,
@@ -44,6 +46,7 @@ class EventCrud:
         """
         self.module_name = module_name
         self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        # self.uow = unit_of_work2.EventstoreSqlAlchemyUnitOfWork()
         self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
@@ -106,6 +109,51 @@ class EventCrud:
         )
 
         return Validator.validate_objects(events, schemas.Event)
+
+    def new_add_event(
+        self,
+        object_id: str,
+        user_id: str,
+        event: str,
+        information: str,
+    ) -> None:
+        """Add a new event to the database.
+
+        This method creates a new event from the provided information,
+        serializes it to database format, and adds it to the database. It also
+        commits the transaction.
+
+        Args:
+            object_id (str): The ID of the related object.
+            user_id (str): The ID of the user creating the event.
+            event (str): The event description.
+            information (str): Additional information about the event.
+
+        Raises:
+            Exception: If an error occurs during the event creation or database
+                transaction.
+        """
+        try:
+            LOG.info('Starting add event')
+            event_info = CreateEventInfo(
+                module=self.module_name,
+                object_id=object_id,
+                user_id=uuid.UUID(user_id),
+                event=event,
+                information=information,
+            )
+            LOG.info(f'Event info: {event_info}')
+
+            data = event_info._asdict()
+            data['user_id'] = str(data['user_id'])
+            self.service_layer_rpc.call(
+                EventstoreServiceLayerManager.add_event.__name__,
+                data_for_method=data,
+            )
+            LOG.info('Event info was successfully added')
+        except Exception as e:
+            LOG.exception('An error occurred')
+            LOG.debug(e)
 
     def get_all_events(self) -> List:
         """Retrieve all events from the database.
@@ -199,51 +247,6 @@ class EventCrud:
                 db_event = DataSerializer.to_db(event_info._asdict())
                 self.uow.events.add(db_event)
                 self.uow.commit()
-            LOG.info('Event info was successfully added')
-        except Exception as e:
-            LOG.exception('An error occurred')
-            LOG.debug(e)
-
-    def new_add_event(
-        self,
-        object_id: str,
-        user_id: str,
-        event: str,
-        information: str,
-    ) -> None:
-        """Add a new event to the database.
-
-        This method creates a new event from the provided information,
-        serializes it to database format, and adds it to the database. It also
-        commits the transaction.
-
-        Args:
-            object_id (str): The ID of the related object.
-            user_id (str): The ID of the user creating the event.
-            event (str): The event description.
-            information (str): Additional information about the event.
-
-        Raises:
-            Exception: If an error occurs during the event creation or database
-                transaction.
-        """
-        try:
-            LOG.info('Starting add event')
-            event_info = CreateEventInfo(
-                module=self.module_name,
-                object_id=object_id,
-                user_id=uuid.UUID(user_id),
-                event=event,
-                information=information,
-            )
-            LOG.info(f'Event info: {event_info}')
-
-            data = event_info._asdict()
-            data['user_id'] = str(data['user_id'])
-            self.service_layer_rpc.call(
-                EventstoreServiceLayerManager.add_event.__name__,
-                data_for_method=data,
-            )
             LOG.info('Event info was successfully added')
         except Exception as e:
             LOG.exception('An error occurred')
