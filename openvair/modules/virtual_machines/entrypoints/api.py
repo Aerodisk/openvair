@@ -414,7 +414,7 @@ async def delete_snapshot(
     snap_id: UUID,
     user_info: Dict = Depends(get_current_user),
     crud: VMCrud = Depends(VMCrud),
-) -> JSONResponse:
+) -> schemas.SnapshotInfo:
     """Delete a snapshot of virtual machine.
 
     Args:
@@ -425,14 +425,14 @@ async def delete_snapshot(
         crud (VMCrud): The CRUD dependency for virtual machine operations.
 
     Returns:
-        JSONResponse: The response indicating the result of the deletion.
+        schemas.SnapshotInfo: The deleted snapshot data.
     """
     LOG.info(
         f'API handling request to delete snapshot (ID: {snap_id}) '
         f'from virtual machine with ID: {vm_id}.'
     )
-    result = await run_in_threadpool(
+    snapshot = await run_in_threadpool(
         crud.delete_snapshot, str(vm_id), str(snap_id), user_info
     )
     LOG.info('API request was successfully processed.')
-    return JSONResponse(result)
+    return schemas.SnapshotInfo(**snapshot)
