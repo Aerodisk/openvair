@@ -9,8 +9,6 @@ Classes:
         SQLAlchemy.
 """
 
-# import abc
-# from uuid import UUID
 from typing import TYPE_CHECKING, List
 
 from sqlalchemy import desc
@@ -24,7 +22,10 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 class EventstoreSqlAlchemyRepository(BaseSqlAlchemyRepository[Events]):
-    """Some description"""
+    """Repository for managing event entities.
+
+    This class provides CRUD operations for the Events model using SQLAlchemy.
+    """
 
     def __init__(self, session: 'Session') -> None:
         """Initialize the repository with a SQLAlchemy session.

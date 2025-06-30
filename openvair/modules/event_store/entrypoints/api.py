@@ -68,7 +68,17 @@ async def get_events(
 async def get_events_by_module(
     crud: EventCrud = Depends(EventCrud),
 ) -> Page[schemas.Event]:
-    """Some description"""
+    """Retrieve all events by modul from the database.
+
+    This endpoint retrieves all events by modul using the EventCrud class and
+    returns them in a paginated format.
+
+    Args:
+        crud (EventCrud): Instance of EventCrud for database operations.
+
+    Returns:
+        Page[schemas.Event]: A paginated list of events.
+    """
     result: List = crud.new_get_all_events_by_module()
     return cast(Page, paginate(result))
 
@@ -83,7 +93,18 @@ async def get_last_events(
     limit: int = 25,
     crud: EventCrud = Depends(EventCrud),
 ) -> Page[schemas.Event]:
-    """Some description"""
+    """Retrieve last events from the database.
+
+    This endpoint retrieves last events using the EventCrud class and returns
+    them in a paginated format.
+
+    Args:
+        crud (EventCrud): Instance of EventCrud for database operations.
+        limit: The number of last events
+
+    Returns:
+        Page[schemas.Event]: A paginated list of events.
+    """
     result: List = crud.new_get_last_events(limit)
     return cast(Page, paginate(result))
 
@@ -101,7 +122,21 @@ async def add_event(
     user_info: Dict = Depends(get_current_user),
     crud: EventCrud = Depends(EventCrud),
 ) -> None:
-    """Some description"""
+    """Adds an event to the database.
+
+    This endpoint retrieves last events using the EventCrud class and returns
+    None.
+
+    Args:
+        crud (EventCrud): Instance of EventCrud for database operations.
+        object_id (str): Id of the object
+        event (str): The name of the event
+        information (str): Extra information
+        user_info (Dict): Depends(get_current_user),
+
+    Returns:
+        None.
+    """
     try:
         LOG.info('API handling request to create a new virtual machine.')
         await run_in_threadpool(

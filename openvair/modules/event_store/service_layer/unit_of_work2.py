@@ -25,12 +25,25 @@ if TYPE_CHECKING:
 
 
 class EventstoreSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
-    """Some description"""
+    """Unit of Work for the event_store module.
+
+    This class manages database transactions for events, ensuring consistency
+    by committing or rolling back operations.
+
+    Attributes:
+        events (EventstoreSqlAlchemyRepository): Repository for eventstore
+            entities.
+    """
 
     def __init__(
         self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY
     ) -> None:
-        """Some description"""
+        """Initializes the Unit of Work with a session factory.
+
+        Args:
+            session_factory (sessionmaker): SQLAlchemy session factory.
+                Defaults to DEFAULT_SESSION_FACTORY.
+        """
         super().__init__(session_factory)
 
     def _init_repositories(self) -> None:
