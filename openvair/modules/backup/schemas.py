@@ -70,7 +70,7 @@ class ResticRestoreResult(BaseModel):
 
     total_files: int
     files_restored: int
-    files_skipped: int
+    files_skipped: Optional[int] = None # just to try
     total_bytes: Optional[int] = None
     bytes_restored: Optional[int] = None
     bytes_skipped: Optional[int] = None

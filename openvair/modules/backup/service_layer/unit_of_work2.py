@@ -12,7 +12,7 @@ from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 from openvair.modules.backup.adapters.repository import SqlAlchemyRepository
 
 
-class SqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
+class BackupSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """SQLAlchemy-based implementation of the Unit of Work pattern.
 
     This class manages database transactions using SQLAlchemy sessions.

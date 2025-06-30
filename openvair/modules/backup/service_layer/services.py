@@ -27,8 +27,12 @@ from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.backup.service_layer.exceptions import (
     WrongBackuperTypeError,
 )
-from openvair.modules.backup.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork,
+
+# from openvair.modules.backup.service_layer.unit_of_work import (
+#     SqlAlchemyUnitOfWork,
+# )
+from openvair.modules.backup.service_layer.unit_of_work2 import (
+    BackupSqlAlchemyUnitOfWork,
 )
 
 LOG = get_logger(__name__)
@@ -61,7 +65,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.uow = SqlAlchemyUnitOfWork
+        self.uow = BackupSqlAlchemyUnitOfWork
         self.event_store = EventCrud('networks')
         self.backup_file_name = 'backup.sql'
 
