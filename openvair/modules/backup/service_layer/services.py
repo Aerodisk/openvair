@@ -61,7 +61,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
-        self.uow = SqlAlchemyUnitOfWork()
+        self.uow = SqlAlchemyUnitOfWork
         self.event_store = EventCrud('networks')
         self.backup_file_name = 'backup.sql'
 
@@ -187,8 +187,8 @@ class BackupServiceLayerManager(BackgroundTasks):
             f'docker exec -t {DB_CONTAINER} '
             f'pg_dump -U {db_user} -d {db_name}'
         )
-        with self.uow:
-            self.uow.repository.terminate_all_connections(db_config['db_name'])
+        with self.uow() as uow:
+            uow.repository.terminate_all_connections(db_config['db_name'])
             try:
                 LOG.info('Dumping database...')
                 dump_result = execute(
@@ -248,10 +248,10 @@ class BackupServiceLayerManager(BackgroundTasks):
         backup_file = str(STORAGE_DATA / self.backup_file_name)
         db_name: str = db_config['db_name']
         db_user: str = db_config['user']
-        with self.uow:
-            self.uow.repository.drop_db(db_name)
+        with self.uow() as uow:
+            uow.repository.drop_db(db_name)
 
-            self.uow.repository.create_db(db_name)
+            uow.repository.create_db(db_name)
 
             restore_command = (
                 f'docker exec -i {DB_CONTAINER} psql -U {db_user} '
