@@ -24,13 +24,12 @@ Functions:
     shut_off_vm: Shut off a virtual machine by ID.
     edit_vm: Edit a virtual machine by ID.
     vnc: Access the VNC session of a virtual machine.
-    monitoring: Periodically monitor the state of virtual machines.
     get_snapshot: Retrieve a snapshot of a virtual machine.
     get_snapshots: Retrieve all snapshots of a virtual machine.
     create_snapshot: Create a new snapshot of a virtual machine.
     revert_snapshot: Revert a virtual machine to a snapshot.
     delete_snapshot: Delete a snapshot of a virtual machine.
-    snapshots_monitoring: Periodically monitor the statuses of snapshots.
+    monitoring: Periodically monitor states of virtual machines and snapshots.
 """
 
 from __future__ import annotations
@@ -130,6 +129,7 @@ class VmStatus(enum.Enum):
     starting = 10
     shut_offing = 11
     editing = 12
+    deleting_snapshots = 13
 
 
 class VmPowerState(enum.Enum):
@@ -868,9 +868,9 @@ class VMServiceLayerManager(BackgroundTasks):
                 to delete.
         """
         LOG.info('Handling response on _delete_vm.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         user_info = data.pop('user_info', {})
-
+        self._delete_all_vm_snapshots(vm_id, user_info)
         with self.uow:
             db_vm = self.uow.virtual_machines.get(vm_id)
             db_vm.status = VmStatus.detaching_disks.name
@@ -885,7 +885,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     str(db_vm.id),
                     user_info.get('id'),
                     self._delete_vm.__name__,
-                    f'VM {db_vm.name} was succesfully deleted.',
+                    f'VM {db_vm.name} was successfully deleted.',
                 )
                 LOG.info('Response on _delete_vm was successfully processed.')
             except exceptions.UnexpectedDataArguments as err:
@@ -1522,6 +1522,7 @@ class VMServiceLayerManager(BackgroundTasks):
             }
             db_snap = DataSerializer.snapshot_to_db(snapshot_data)
             self.uow.virtual_machines.add_snapshot(db_snap)
+            db_snap.status = SnapshotStatus.creating.name
             db_vm.power_state = VmPowerState.paused.name
             self.uow.virtual_machines.set_current_snapshot(db_snap)
             self.uow.commit()
@@ -1780,17 +1781,18 @@ class VMServiceLayerManager(BackgroundTasks):
                 result['status'] = SnapshotStatus.deleting.name
                 if db_snap.status == SnapshotStatus.error.name:
                     self._delete_snapshot_from_db(vm_id, snapshot_id)
+                    self.event_store.add_event(
+                        vm_id,
+                        user_info.get('id'),
+                        self.delete_snapshot.__name__,
+                        f"Successfully deleted snapshot "
+                        f"{db_snap.name} from the database.",
+                    )
                     LOG.info('Snapshot with status "error" was deleted from '
                              'the database')
                     return result
                 db_snap.status = SnapshotStatus.deleting.name
                 self.uow.commit()
-                self.event_store.add_event(
-                    vm_id,
-                    user_info.get('id'),
-                    self.delete_snapshot.__name__,
-                    f"Starting deletion of snapshot {db_snap.name}",
-                )
             except exceptions.NoResultFound as err:
                 message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
@@ -1813,7 +1815,7 @@ class VMServiceLayerManager(BackgroundTasks):
             data (Dict): The data containing the virtual machine ID and the ID
             of the snapshot to delete.
         """
-        LOG.info('Handling response on _delete_vm.')
+        LOG.info('Handling response on _delete_snapshot.')
         vm_id = str(data.pop('vm_id'))
         snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
@@ -1885,13 +1887,48 @@ class VMServiceLayerManager(BackgroundTasks):
             self.uow.virtual_machines.delete_snapshot(db_snap)
             self.uow.commit()
 
+    def _delete_all_vm_snapshots(self, vm_id: str, user_info: Dict) -> None:
+        """Delete all snapshots of the virtual machine (while deleting VM).
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            user_info (Dict): The data containing information about user.
+        """
+        LOG.info('Starting deleting all snapshots of the VM')
+        snapshots = []
+        with self.uow:
+            db_vm = self.uow.virtual_machines.get(vm_id)
+            db_vm.status = VmStatus.deleting_snapshots.name
+            self.uow.commit()
+            db_snapshots = self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            snapshots = [DataSerializer.snapshot_to_web(snapshot)
+                         for snapshot in db_snapshots]
+        for snapshot in snapshots:
+            if snapshot['status'] == SnapshotStatus.error.name:
+                self._delete_snapshot_from_db(
+                    vm_id,
+                    snapshot['id']
+                )
+                LOG.info('Snapshot with status "error" was deleted '
+                         'from the database')
+                continue
+            self._delete_snapshot(
+                {
+                    'vm_id': vm_id,
+                    'snapshot_id': snapshot['id'],
+                    'user_info': user_info
+                }
+            )
+            LOG.info(f'Snapshot {snapshot["name"]} deleted.')
+        LOG.info('Snapshots of the VM successfully deleted.')
+
     def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
         """Update snapshots statuses for a VM based on Libvirt API.
 
         Args:
             db_vm: VirtualMachines database object to update snapshots for.
         """
-        libvirt_snaps, libvirt_current = get_vm_snapshots(db_vm.name)
+        libvirt_snaps, libvirt_current_snap = get_vm_snapshots(db_vm.name)
         db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(str(db_vm.id))
         for db_snap in db_snaps:
             if (db_snap.name not in libvirt_snaps and
@@ -1899,9 +1936,9 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_snap.status = SnapshotStatus.error.name
             if (db_snap.status == SnapshotStatus.creating.name or
                     (db_snap.status == SnapshotStatus.reverting.name and
-                     db_snap.name == libvirt_current)):
+                     db_snap.name == libvirt_current_snap)):
                 db_snap.status = SnapshotStatus.running.name
-            if libvirt_current and db_snap.name == libvirt_current:
+            if libvirt_current_snap and db_snap.name == libvirt_current_snap:
                 self.uow.virtual_machines.set_current_snapshot(db_snap)
 
     @periodic_task(interval=10)
