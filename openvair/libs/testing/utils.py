@@ -271,7 +271,7 @@ def wait_full_deleting(
                 return
             time.sleep(interval)
     message = (
-        f'Object with id "{object_id}" at "{path}" did not deleted '
+        f'Object with id "{object_id}" at "{path}" was not deleted '
         f'within {timeout} seconds.'
     )
     raise TimeoutError(message)
