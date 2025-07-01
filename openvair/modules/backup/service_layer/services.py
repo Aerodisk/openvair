@@ -44,7 +44,7 @@ class BackupServiceLayerManager(BackgroundTasks):
     Attributes:
         domain_rpc (MessagingClient): Client for interacting with the domain
             layer.
-        uow (SqlAlchemyUnitOfWork): Unit of work for managing database
+        uow (BackupSqlAlchemyUnitOfWork): Unit of work for managing database
             operations.
         event_store (EventCrud): Event store for recording and retrieving
             events.
