@@ -97,7 +97,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         volume and storage services.
         """
         super().__init__()
-        self.uow = TemplateSqlAlchemyUnitOfWork()
+        self.uow = TemplateSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -116,7 +116,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer handle request on getting templates')
 
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_templates = uow.templates.get_all()
 
         api_templates: List[Dict[str, Any]] = [
@@ -147,7 +147,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         template_id = getting_command.id
         LOG.info(f'template_id: {template_id}')
 
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(template_id)
 
         api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
@@ -191,7 +191,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             is_backing=creating_command.is_backing,
         )
         orm_template = CreateSerializer.to_orm(new_template_model)
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.add(orm_template)
             uow.commit()
         self._update_and_log_event(
@@ -226,7 +226,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         edit_command = EditTemplateServiceCommandDTO.model_validate(
             updating_data
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(edit_command.id)
         self._ensure_template_not_in_use(orm_template)
 
@@ -253,7 +253,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             deleting_data
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(delete_command.id)
         self._ensure_template_not_in_use(orm_template)
 
@@ -286,7 +286,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
                 prepared_create_command_data
             )
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(async_creating_command.id)
 
         self._update_and_log_event(
@@ -336,7 +336,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             edit_command_data
         )
 
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(edit_command.id)
 
         try:
@@ -382,7 +382,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             delete_command_data
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(delete_command.id)
         try:
             data_for_manager = DomainSerializer.to_dto(orm_template)
@@ -404,7 +404,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             LOG.error('Error while deleting template', exc_info=True)
             return
 
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.delete(orm_template)
             uow.commit()
 
@@ -444,7 +444,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         """
         orm_template.status = status
         orm_template.information = message
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.update(orm_template)
             uow.commit()
 
