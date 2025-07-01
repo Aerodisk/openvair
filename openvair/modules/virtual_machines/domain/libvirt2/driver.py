@@ -393,7 +393,10 @@ class LibvirtDriver(BaseLibvirtDriver):
             try:
                 with child_file.open('r', encoding='utf-8') as f:
                     child_xml = f.read()
-                updated_xml = self._update_child_xml(child_xml, parent_name)
+                updated_xml = self._update_snapshot_child_xml(
+                    child_xml,
+                    parent_name
+                )
                 with child_file.open('w', encoding='utf-8') as f:
                     f.write(updated_xml)
                 LOG.debug(f"Updated parent reference in {child_file}")
@@ -454,7 +457,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             snap_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{snap_name}.xml")
             with snap_file.open('r', encoding='utf-8') as f:
                 snap_xml = f.read()
-            disk_path = self._get_snap_disk_path_from_xml(snap_xml)
+            disk_path = self._get_snapshot_disk_path_from_xml(snap_xml)
             execute(
                 'qemu-img',
                 'snapshot',

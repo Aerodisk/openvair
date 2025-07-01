@@ -352,6 +352,30 @@ class BaseLibvirtDriver(BaseVMDriver):
         raise NotImplementedError
 
     @staticmethod
+    def _get_snapshot_name_from_xml(xml_str: str) -> Optional[str]:
+        """Extract snapshot name from Libvirt XML.
+
+        Args:
+            xml_str (str): XML string from Libvirt (snapshot).
+
+        Returns:
+            (Optional[str]): Snapshot name.
+        """
+        try:
+            data = deserialize_xml(xml_str)
+            name = data.get('domainsnapshot', {}).get('name')
+            return str(name) if name is not None else None
+        except (
+                KeyError,
+                AttributeError,
+                TypeError,
+                XMLDeserializationError
+        ) as e:
+            message = f"XML parsing snapshot name failed: {e}"
+            LOG.error(message)
+            raise SnapshotXmlError(message)
+
+    @staticmethod
     def _get_snapshot_parent_from_xml(snapshot_xml: str) -> Optional[str]:
         """Extract parent snapshot name from XML description.
 
@@ -381,42 +405,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             return str(parent) if parent else None
 
     @staticmethod
-    def _update_child_xml(child_xml: str, new_parent: Optional[str]) -> str:
-        """Update child snapshot XML with new parent reference.
-
-        Args:
-            child_xml: Original child snapshot XML
-            new_parent: Name of the new parent snapshot (None to remove parent)
-
-        Returns:
-            new_snapshot_xml (str): Updated XML string
-
-        Raises:
-            SnapshotXmlError: If the XML is invalid or cannot be updated
-        """
-        try:
-            parsed_xml = deserialize_xml(child_xml)
-            domainsnapshot = parsed_xml['domainsnapshot']
-            if new_parent:
-                domainsnapshot['parent'] = {'name': new_parent}
-            elif 'parent' in domainsnapshot:
-                del domainsnapshot['parent']
-            new_snapshot_xml = serialize_xml({'domainsnapshot': domainsnapshot})
-        except (
-            KeyError,
-            AttributeError,
-            TypeError,
-            XMLDeserializationError,
-            XMLSerializationError
-        ) as e:
-            message = f"Failed to update child snapshot XML: {e}"
-            LOG.error(message)
-            raise SnapshotXmlError(message)
-        else:
-            return new_snapshot_xml
-
-    @staticmethod
-    def _get_snap_disk_path_from_xml(snapshot_xml: str) -> str:
+    def _get_snapshot_disk_path_from_xml(snapshot_xml: str) -> str:
         """Extract disk path from snapshot XML description.
 
         Args:
@@ -481,25 +470,39 @@ class BaseLibvirtDriver(BaseVMDriver):
             raise SnapshotXmlError(message)
 
     @staticmethod
-    def _get_snapshot_name_from_xml(xml_str: str) -> Optional[str]:
-        """Extract snapshot name from Libvirt XML.
+    def _update_snapshot_child_xml(
+            child_xml: str,
+            new_parent: Optional[str]
+    ) -> str:
+        """Update child snapshot XML with new parent reference.
 
         Args:
-            xml_str (str): XML string from Libvirt (snapshot).
+            child_xml: Original child snapshot XML
+            new_parent: Name of the new parent snapshot (None to remove parent)
 
         Returns:
-            (Optional[str]): Snapshot name.
+            new_snapshot_xml (str): Updated XML string
+
+        Raises:
+            SnapshotXmlError: If the XML is invalid or cannot be updated
         """
         try:
-            data = deserialize_xml(xml_str)
-            name = data.get('domainsnapshot', {}).get('name')
-            return str(name) if name is not None else None
+            parsed_xml = deserialize_xml(child_xml)
+            domainsnapshot = parsed_xml['domainsnapshot']
+            if new_parent:
+                domainsnapshot['parent'] = {'name': new_parent}
+            elif 'parent' in domainsnapshot:
+                del domainsnapshot['parent']
+            new_snapshot_xml = serialize_xml({'domainsnapshot': domainsnapshot})
         except (
-                KeyError,
-                AttributeError,
-                TypeError,
-                XMLDeserializationError
+            KeyError,
+            AttributeError,
+            TypeError,
+            XMLDeserializationError,
+            XMLSerializationError
         ) as e:
-            message = f"XML parsing snapshot name failed: {e}"
+            message = f"Failed to update child snapshot XML: {e}"
             LOG.error(message)
             raise SnapshotXmlError(message)
+        else:
+            return new_snapshot_xml
