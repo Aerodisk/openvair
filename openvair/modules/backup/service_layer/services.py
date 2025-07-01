@@ -27,11 +27,7 @@ from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.backup.service_layer.exceptions import (
     WrongBackuperTypeError,
 )
-
-# from openvair.modules.backup.service_layer.unit_of_work import (
-#     SqlAlchemyUnitOfWork,
-# )
-from openvair.modules.backup.service_layer.unit_of_work2 import (
+from openvair.modules.backup.service_layer.unit_of_work import (
     BackupSqlAlchemyUnitOfWork,
 )
 
