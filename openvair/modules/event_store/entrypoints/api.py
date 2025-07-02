@@ -11,12 +11,11 @@ Attributes:
 
 import io
 import csv
-from typing import Dict, List, cast
+from typing import List, cast
 
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, status
 from fastapi.responses import StreamingResponse
 from fastapi_pagination import Page, Params, paginate
-from starlette.concurrency import run_in_threadpool
 
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import get_current_user
@@ -57,100 +56,6 @@ async def get_events(
     """
     result: List = crud.new_get_all_events()
     return cast(Page, paginate(result))
-
-
-@router.get(
-    '/by_module',
-    response_model=Page[schemas.Event],
-    status_code=status.HTTP_200_OK,
-    dependencies=[Depends(get_current_user)],
-)
-async def get_events_by_module(
-    crud: EventCrud = Depends(EventCrud),
-) -> Page[schemas.Event]:
-    """Retrieve all events by modul from the database.
-
-    This endpoint retrieves all events by modul using the EventCrud class and
-    returns them in a paginated format.
-
-    Args:
-        crud (EventCrud): Instance of EventCrud for database operations.
-
-    Returns:
-        Page[schemas.Event]: A paginated list of events.
-    """
-    result: List = crud.new_get_all_events_by_module()
-    return cast(Page, paginate(result))
-
-
-@router.get(
-    '/last',
-    response_model=Page[schemas.Event],
-    status_code=status.HTTP_200_OK,
-    dependencies=[Depends(get_current_user)],
-)
-async def get_last_events(
-    limit: int = 25,
-    crud: EventCrud = Depends(EventCrud),
-) -> Page[schemas.Event]:
-    """Retrieve last events from the database.
-
-    This endpoint retrieves last events using the EventCrud class and returns
-    them in a paginated format.
-
-    Args:
-        crud (EventCrud): Instance of EventCrud for database operations.
-        limit: The number of last events
-
-    Returns:
-        Page[schemas.Event]: A paginated list of events.
-    """
-    result: List = crud.new_get_last_events(limit)
-    return cast(Page, paginate(result))
-
-
-@router.post(                              # trying out new_add_event function
-    '/add_event',
-    # response_model=schemas.Event,
-    status_code=status.HTTP_200_OK,
-
-)
-async def add_event(
-    object_id: str,
-    event: str,
-    information: str,
-    user_info: Dict = Depends(get_current_user),
-    crud: EventCrud = Depends(EventCrud),
-) -> None:
-    """Adds an event to the database.
-
-    This endpoint retrieves last events using the EventCrud class and returns
-    None.
-
-    Args:
-        crud (EventCrud): Instance of EventCrud for database operations.
-        object_id (str): Id of the object
-        event (str): The name of the event
-        information (str): Extra information
-        user_info (Dict): Depends(get_current_user),
-
-    Returns:
-        None.
-    """
-    try:
-        LOG.info('API handling request to create a new virtual machine.')
-        await run_in_threadpool(
-            crud.new_add_event,
-            object_id,
-            user_info.get('id', ''),
-            event,
-            information,
-        )
-        LOG.info('API request was successfully processed.')
-    except Exception as err:  # noqa: BLE001
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
-        )
 
 
 @router.get(
