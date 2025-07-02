@@ -95,13 +95,14 @@ class NetplanInterface(BaseOVSBridge):
         """Prepare interfaces for bridge configuration.
 
         This method retrieves and updates the configuration of network
-        interfaces that will be attached to the bridge. It also backs up
-        existing YAML configuration files or creates new ones if necessary.
+        interfaces that will be attached to the bridge. It ensures that
+        the main network interface is configured with a static IP and
+        moves its parameters into the bridge configuration.
 
         Args:
             bridge_data (Dict): The data of the bridge.
         """
-        LOG.info('Prepairing interfaces...')
+        LOG.info('Preparing interfaces...')
         for interface in self.interfaces:
             iface_name: str = interface['name']
             try:
@@ -114,8 +115,23 @@ class NetplanInterface(BaseOVSBridge):
                 iface_name,
                 iface_file,
             )
-            if self.main_port == iface_name:
-                LOG.info(f'Bridge containing main inetrface: {iface_name}')
+
+            if iface_name == self.main_port:
+                LOG.info(
+                    'Configuring static IP explicitly for '
+                    f'main interface: {iface_name}'
+                )
+
+                current_ip = self.ip_manager.get_iface_ip(iface_name)
+                default_gateway = self.ip_manager.get_default_gateway_ip()
+
+                iface_data.update({
+                    'dhcp4': False,
+                    'addresses': [f'{current_ip}/24'],
+                    'routes': [{'to': 'default', 'via': default_gateway}],
+                    'nameservers': {'addresses': [default_gateway]}
+                })
+
                 self._move_main_port_params_into_bridge(bridge_data, iface_data)
 
             self.netplan_manager.change_iface_yaml_file(
@@ -123,7 +139,8 @@ class NetplanInterface(BaseOVSBridge):
                 iface_file,
                 iface_data,
             )
-        LOG.info('Interfaces prepaired!')
+
+        LOG.info('Interfaces prepared!')
 
     def _prepare_ifaces_for_deleting(self, bridge_data: Dict) -> None:
         """Restore the network interfaces before bridge deletion.
@@ -136,9 +153,6 @@ class NetplanInterface(BaseOVSBridge):
         """
         for iface_name in bridge_data['interfaces']:
             try:
-                # I think it will be necessary to work on stability in this bloc
-                # May be need to check if file have another ifaces and check
-                # configuration for this iface in antoher files
                 LOG.info(f'Restoring backup file for {iface_name}')
                 iface_file = self.netplan_manager.get_path_yaml(iface_name)
             except NetplanFileNotFoundException as err:
@@ -192,16 +206,22 @@ class NetplanInterface(BaseOVSBridge):
         LOG.info('Start moving params into bridge config...')
         try:
             bridge_data['nameservers'] = main_iface_data.pop('nameservers', [])
-            if main_iface_data.get('dhcp4'):
-                bridge_data['dhcp4'] = 'yes'
-            bridge_data['routes'] = main_iface_data.pop('routes', None)
+
+            bridge_data['dhcp4'] = main_iface_data.pop('dhcp4', False)
+            bridge_data['routes'] = main_iface_data.pop('routes', [])
+            gateway4 = main_iface_data.pop('gateway4', None)
+            if gateway4:
+                bridge_data['routes'].append({'to': 'default', 'via': gateway4})
+
             bridge_data['addresses'] = list(
                 set(
                     bridge_data.pop('addresses', [])
                     + main_iface_data.pop('addresses', [])
                 )
             )
+
             main_iface_data['dhcp4'] = False
+
         except Exception as err:
             LOG.error(err)
             raise
@@ -277,9 +297,7 @@ class NetplanInterface(BaseOVSBridge):
         if not dhcp4:
             iface_info['addresses'] = [f'{ip}/24'] if ip else None
             if iface_name == self.main_port:
-                iface_info['routes'] = [
-                    {'to': 'default', 'via': self.default_route}
-                ]
+                iface_info['gateway4'] = self.default_route
                 iface_info['nameservers'] = {'addresses': [self.default_route]}
 
         LOG.info(f'Info from {iface_name}: {iface_info}')
