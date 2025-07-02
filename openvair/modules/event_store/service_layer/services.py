@@ -17,8 +17,6 @@ from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
 from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
-
-# from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.service_layer import unit_of_work2
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 
@@ -44,7 +42,6 @@ class EventstoreServiceLayerManager(BackgroundTasks):
       Sets up messaging client and unit of work.
       """
       super().__init__()
-      # self.uow = unit_of_work.SqlAlchemyUnitOfWork()
       self.uow = unit_of_work2.EventstoreSqlAlchemyUnitOfWork
       self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME

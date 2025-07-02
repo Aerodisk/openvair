@@ -16,8 +16,6 @@ from typing import TYPE_CHECKING
 
 from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 from openvair.modules.event_store.config import DEFAULT_SESSION_FACTORY
-
-# from openvair.modules.event_store.adapters import repository
 from openvair.modules.event_store.adapters import repository2
 
 if TYPE_CHECKING:
@@ -48,5 +46,4 @@ class EventstoreSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
 
     def _init_repositories(self) -> None:
         """Initializes repositories for the event_store module."""
-        # self.events = repository.SqlAlchemyRepository(self.session)
         self.events = repository2.EventstoreSqlAlchemyRepository(self.session)

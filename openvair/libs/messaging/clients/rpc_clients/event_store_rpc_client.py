@@ -71,7 +71,7 @@ class EventstoreServiceLayerRPCClient(EventstoreServiceLayerProtocolInterface):
             None.
         """
         data.update({'module': self.module_name})
-        self.service_rpc_client.call(
+        self.service_rpc_client.cast(
             EventstoreServiceLayerProtocolInterface.add_event.__name__,
             data_for_method=data,
         )
