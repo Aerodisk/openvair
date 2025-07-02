@@ -26,6 +26,22 @@ class EventstoreServiceLayerProtocolInterface(Protocol):
         """
         ...
 
+    def get_all_events_by_module(self, data: Dict) -> List:
+        """Retrieve all events by module from the database.
+
+        Returns:
+            List: List of serialized event data.
+        """
+        ...
+
+    def get_last_events(self, data: Dict) -> List:
+        """Retrieve last events from the database.
+
+        Returns:
+            List: List of serialized event data.
+        """
+        ...
+
     def add_event(self, data: Dict) -> None:
         """Add a new event to the db.
 

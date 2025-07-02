@@ -61,6 +61,30 @@ class EventstoreServiceLayerRPCClient(EventstoreServiceLayerProtocolInterface):
         )
         return events
 
+    def get_all_events_by_module(self, data: Dict) -> List:
+        """Retrieve all events by module from the database.
+
+        Returns:
+            List: List of serialized event data.
+        """
+        events: List = self.service_rpc_client.call(
+            EventstoreServiceLayerProtocolInterface.get_all_events_by_module.__name__,
+            data_for_method=data,
+        )
+        return events
+
+    def get_last_events(self, data: Dict) -> List:
+        """Retrieve last events from the database.
+
+        Returns:
+            List: List of serialized event data.
+        """
+        events: List = self.service_rpc_client.call(
+            EventstoreServiceLayerProtocolInterface.get_last_events.__name__,
+            data_for_method=data,
+        )
+        return events
+
     def add_event(self, data: Dict) -> None:
         """Add a new event to the db.
 
