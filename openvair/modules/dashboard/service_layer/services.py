@@ -38,7 +38,7 @@ class DashboardServiceLayerManager(BackgroundTasks):
         unit of work for Prometheus interactions.
         """
         super(DashboardServiceLayerManager, self).__init__()
-        self.uow = unit_of_work.PrometheusUnitOfWork()
+        self.uow = unit_of_work.PrometheusUnitOfWork
 
     def get_data(self) -> Dict:
         """Retrieve data from the node.
@@ -50,7 +50,7 @@ class DashboardServiceLayerManager(BackgroundTasks):
             Dict: The data retrieved from the node.
         """
         LOG.info('Start getting data from node.')
-        with self.uow:
-            data = self.uow.prometheus.get_data()
+        with self.uow() as uow:
+            data = uow.prometheus.get_data()
         LOG.info('Getting data from node finished successfully.')
         return data
