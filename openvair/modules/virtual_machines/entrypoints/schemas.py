@@ -91,7 +91,7 @@ class VirtualInterface(BaseModel):
     portgroup: Optional[str] = None
     interface: str
     mac: str = '6C:4A:74:B4:FD:59'  # default start 6C:4A:74:
-    model: Literal['virtio'] = 'virtio'
+    model: Literal['virtio', 'bridge'] = 'virtio'
     order: Optional[int] = None
 
 
