@@ -280,7 +280,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
         with self.uow() as uow:
-            image = uow.images.get(image_id)
+            image = uow.images.get_image(image_id)
             serialized_image = DataSerializer.to_web(image)
             LOG.debug(f'Got image from db: {serialized_image}.')
         LOG.info('Service Layer method get image was successfully processed.')
@@ -566,7 +566,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         storage_info = self._get_storage_info(str(storage_id))
 
         with self.uow() as uow:
-            db_image = uow.images.get(uuid.UUID(image_id))
+            db_image = uow.images.get_image(uuid.UUID(image_id))
             LOG.info('Got image from db: %s.' % db_image)
 
             try:
@@ -646,7 +646,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         image_id = data.get('image_id', '')
 
         with self.uow() as uow:
-            db_image = uow.images.get(image_id)
+            db_image = uow.images.get_image(image_id)
             available_statuses = [
                 ImageStatus.available.name,
                 ImageStatus.error.name,
@@ -703,7 +703,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         user_id = user_info.get('id', '')
 
         with self.uow() as uow:
-            db_image = uow.images.get(image_id)
+            db_image = uow.images.get_image(image_id)
 
             try:
                 if db_image.storage_type:
@@ -783,7 +783,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Starting attach image to vm.')
         with self.uow() as uow:
-            db_image = uow.images.get(data.get('image_id'))  # type: ignore
+            db_image = uow.images.get_image(data.get('image_id'))  # type: ignore
             available_statuses = [ImageStatus.available.name]
             try:
                 self._check_image_status(db_image.status, available_statuses)
@@ -838,7 +838,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         image_id = data.get('image_id', '')
         vm_id = data.get('vm_id', '')
         with self.uow() as uow:
-            db_image = uow.images.get(image_id)
+            db_image = uow.images.get_image(image_id)
             available_statuses = [
                 ImageStatus.available.name,
                 ImageStatus.error.name,

@@ -25,15 +25,14 @@ if TYPE_CHECKING:
 class ImageSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """SQLAlchemy-based implementation of the Unit of Work pattern.
 
-    This class manages database transactions using SQLAlchemy and provides
-    concrete implementations of the methods defined in AbstractUnitOfWork.
+    This class manages database transactions using SQLAlchemy.
 
     Attributes:
-        images (SqlAlchemyRepository): Repository for image entities.
+        images (ImageSqlAlchemyRepository): Repository for image entities.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
-        """Initialize the SqlAlchemyUnitOfWork with a session factory.
+        """Initialize the ImageSqlAlchemyUnitOfWork with a session factory.
 
         Args:
             session_factory (sessionmaker): SQLAlchemy session factory.
@@ -43,4 +42,4 @@ class ImageSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
 
     def _init_repositories(self) -> None:
         """Initializes repositories for the template module."""
-        self.images = repository.SqlAlchemyRepository(self.session)
+        self.images = repository.ImageSqlAlchemyRepository(self.session)
