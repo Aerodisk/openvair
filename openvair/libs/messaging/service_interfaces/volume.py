@@ -54,6 +54,17 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
+    def clone_volume(self, data: Dict) -> Dict:
+        """Clone an existing volume.
+
+        Args:
+            data (Dict): Data containing the source volume information.
+
+        Returns:
+            Dict: Serialized cloned volume data.
+        """
+        ...
+
     def create_from_template(self, data: Dict) -> Dict:
         """Create a new volume from a template.
 

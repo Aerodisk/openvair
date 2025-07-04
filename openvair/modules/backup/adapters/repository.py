@@ -1,59 +1,18 @@
-"""Repository module for managing PostgreSQL databases.
+"""SQLAlchemy repository for the backup module.
 
-This module defines an abstract base class for database repositories and
-provides a concrete implementation using SQLAlchemy to manage PostgreSQL
-databases. It includes methods for terminating connections, dropping databases,
-creating databases
+This module implements BaseSqlAlchemyRepository repository pattern.
 """
 
-from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING
-
 from sqlalchemy import text, create_engine
+from sqlalchemy.orm import Session, DeclarativeBase
 
 from openvair.config import database, get_postgres_uri
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-
-
-class AbstractRepository(metaclass=ABCMeta):
-    """Abstract base class for database repositories.
-
-    Defines the interface for database operations such as terminating
-    connections, dropping databases, creating databases, and restoring data.
-    """
-
-    @abstractmethod
-    def terminate_all_connections(self, db_name: str) -> None:
-        """Terminate all active connections to a specified database.
-
-        Args:
-            db_name (str): Name of the database whose connections should be
-                terminated.
-        """
-        ...
-
-    @abstractmethod
-    def drop_db(self, db_name: str) -> None:
-        """Drop a specified database.
-
-        Args:
-            db_name (str): Name of the database to drop.
-        """
-        ...
-
-    @abstractmethod
-    def create_db(self, db_name: str) -> None:
-        """Create a new database.
-
-        Args:
-            db_name (str): Name of the database to create.
-        """
-        ...
+from openvair.common.repositories.base_sqlalchemy import (
+    BaseSqlAlchemyRepository,
+)
 
 
-class SqlAlchemyRepository(AbstractRepository):
+class BackupSqlAlchemyRepository(BaseSqlAlchemyRepository[DeclarativeBase]):
     """SQLAlchemy implementation of a database repository.
 
     This class provides concrete implementations of database operations
@@ -70,6 +29,7 @@ class SqlAlchemyRepository(AbstractRepository):
             session (Session): SQLAlchemy session for database interactions.
         """
         self.session: Session = session
+        self.model_cls = DeclarativeBase
         self.engine = create_engine(
             get_postgres_uri().replace(
                 database['db_name'], 'postgres'
@@ -134,4 +94,3 @@ class SqlAlchemyRepository(AbstractRepository):
             isolation_level='AUTOCOMMIT'
         ) as conn:  # Connect without transaction
             conn.execute(text(f'CREATE DATABASE "{db_name}";'))
-

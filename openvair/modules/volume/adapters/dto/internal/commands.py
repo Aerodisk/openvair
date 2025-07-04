@@ -13,6 +13,12 @@ class CreateVolumeFromTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     read_only: Optional[bool]
     user_id: UUID
 
+
 class CreateVolumeFromTemplateDomainCommandDTO(BaseModel):  # noqa: D101
     template_path: Path
     is_backing: bool
+
+
+class CloneVolumeDomainCommandDTO(BaseModel):  # noqa: D101
+    mount_point: Path
+    new_id: UUID

@@ -249,6 +249,6 @@ class VolumeCrud:
         )
         volume = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.create_from_template.__name__,
-            data_for_method=command.model_dump(mode='json')
+            data_for_method=command.model_dump(mode='json'),
         )
         return Volume.model_validate(volume)

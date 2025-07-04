@@ -33,13 +33,16 @@ from openvair.modules.template.adapters.serializer import (
     DomainSerializer,
 )
 from openvair.modules.template.service_layer.exceptions import (
+    VMRetrievalException,
     VolumeRetrievalException,
     StorageRetrievalException,
+    BaseVolumeAttachToActiveVmException,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
 )
 from openvair.modules.template.adapters.dto.external.models import (
+    VMModelDTO,
     VolumeModelDTO,
     StorageModelDTO,
 )
@@ -47,6 +50,7 @@ from openvair.modules.template.adapters.dto.internal.models import (
     CreateTemplateModelDTO,
 )
 from openvair.modules.template.adapters.dto.external.commands import (
+    GetVmCommandDTO,
     GetVolumeCommandDTO,
     GetStorageCommandDTO,
 )
@@ -58,6 +62,9 @@ from openvair.modules.template.adapters.dto.internal.commands import (
     CreateTemplateServiceCommandDTO,
     DeleteTemplateServiceCommandDTO,
     AsyncCreateTemplateServiceCommandDTO,
+)
+from openvair.libs.messaging.clients.rpc_clients.vm_rpc_client import (
+    VMServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
@@ -105,6 +112,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.volume_service_client = VolumeServiceLayerRPCClient()
+        self.vm_service_client = VMServiceLayerRPCClient()
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
@@ -174,6 +182,8 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
         volume = self._get_volume_info(creating_command.base_volume_id)
+        self._check_volume_not_attached_to_active_vm(volume)
+
         storage = self._get_storage_info(creating_command.storage_id)
 
         path = (
@@ -564,3 +574,26 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             message = f'Failed to get storage with id {storage_id}'
             raise StorageRetrievalException(message) from rpc_storage_err
+
+    def _get_vm_info(self, vm_id: UUID) -> VMModelDTO:
+        vm_query_payload = GetVmCommandDTO(vm_id=vm_id).model_dump(mode='json')
+        try:
+            vm_data = self.vm_service_client.get_vm(vm_query_payload)
+            return VMModelDTO.model_validate(vm_data)
+        except RpcException as rpc_vm_err:
+            LOG.error(
+                f'Error while getting vm with id: ' f'{vm_id}',
+                exc_info=True,
+            )
+            message = f'Failed to get vm with id {vm_id}'
+            raise VMRetrievalException(message) from rpc_vm_err
+
+    def _check_volume_not_attached_to_active_vm(
+        self, volume: VolumeModelDTO
+    ) -> None:
+        for attachment in volume.attachments:
+            vm_id = attachment.vm_id
+            vm = self._get_vm_info(vm_id)
+            if vm.power_state != 'shut_off':
+                message = f'\nvm_id: {vm_id} \nvolume_id: {volume.id}'
+                raise BaseVolumeAttachToActiveVmException(message)

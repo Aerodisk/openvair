@@ -18,7 +18,7 @@ exceptiongroup==1.2.2
 fastapi==0.115.5
 fastapi-pagination==0.12.32
 greenlet==3.0.3
-h11==0.14.0
+h11==0.16.0
 httptools==0.6.1
 httpx==0.28.1
 idna==3.7

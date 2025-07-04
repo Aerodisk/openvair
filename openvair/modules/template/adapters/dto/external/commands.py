@@ -47,3 +47,23 @@ class GetStorageCommandDTO(BaseDTOModel):
     """  # noqa: E501
 
     storage_id: UUID
+
+
+class GetVmCommandDTO(BaseDTOModel):
+    """DTO for querying a virtual machine by its ID.
+
+    This model is used to create a JSON-serializable payload for RPC calls
+    that require a virtual machine identifier. It leverages the JSON encoders
+    defined in DTOConfig to automatically convert UUID values to strings.
+
+    Attributes:
+        vm_id (UUID): Unique identifier of the virtual machine.
+
+    Example:
+        >>> from uuid import UUID
+        >>> query = GetVmCommandDTO(vm_id=UUID('123e4567-e89b-12d3-a456-426614174000'))
+        >>> payload = query.model_dump(mode='json')
+        >>> print(payload)  # {'vm_id': '123e4567-e89b-12d3-a456-426614174000'}
+    """  # noqa: E501
+
+    vm_id: UUID

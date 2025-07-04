@@ -123,7 +123,9 @@ def execute(
                 if params.raise_on_error and returncode != 0:
                     message = (
                         f"Command '{cmd_str}' failed with return code "
-                        f'{returncode}'
+                        f'{returncode}\n'
+                        f"stdout: {stdout.rstrip()}\n"
+                        f"stderr: {stderr.rstrip()}"
                     )
                     LOG.error(message)
                     raise UnsuccessReturnCodeError(message)

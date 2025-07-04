@@ -142,3 +142,52 @@ def test_create_template_with_nonexistent_base_volume(
     }
     response = client.post('/templates/', json=request_data)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+def test_create_with_attached_volume_to_deactivated_vm(
+    client: TestClient, deactivated_virtual_machine: Dict
+) -> None:
+    """Test creation from attached volume to deactivated vm ."""
+    volume_id = deactivated_virtual_machine['disks'][0]['disk_id']
+    volume_response = client.get(f'/volumes/{volume_id}/')
+    volume_data = volume_response.json()
+
+    request = RequestCreateTemplate(
+        base_volume_id=volume_id,
+        name=generate_test_entity_name('template'),
+        description='Test template',
+        storage_id=volume_data['storage_id'],
+        is_backing=False,
+    )
+    template_response = client.post(
+        '/templates/', json=request.model_dump(mode='json')
+    )
+    assert (
+        template_response.status_code == status.HTTP_201_CREATED
+    ), template_response.text
+    template_data = template_response.json()['data']
+    assert template_data['name'] == request.name
+    assert template_data['storage_id'] == str(request.storage_id)
+    assert not template_data['is_backing']
+
+
+def test_create_with_attached_volume_to_activated_vm(
+    client: TestClient, activated_virtual_machine: Dict
+) -> None:
+    """Test creation from attached volume to activated vm."""
+    volume_id = activated_virtual_machine['disks'][0]['disk_id']
+    volume_response = client.get(f'/volumes/{volume_id}/')
+    volume_data = volume_response.json()
+    request = RequestCreateTemplate(
+        base_volume_id=volume_id,
+        name=generate_test_entity_name('template'),
+        description='Test template',
+        storage_id=volume_data['storage_id'],
+        is_backing=False,
+    )
+    template_response = client.post(
+        '/templates/', json=request.model_dump(mode='json')
+    )
+    assert (
+        template_response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    )

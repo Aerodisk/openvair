@@ -30,6 +30,7 @@ from __future__ import annotations
 import enum
 import uuid
 from typing import Dict, List, Optional, cast
+from pathlib import Path
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
@@ -61,6 +62,7 @@ from openvair.modules.volume.adapters.dto.internal.models import (
     CreateVolumeFromTemplateModelDTO,
 )
 from openvair.modules.volume.adapters.dto.internal.commands import (
+    CloneVolumeDomainCommandDTO,
     CreateVolumeFromTemplateDomainCommandDTO,
     CreateVolumeFromTemplateServiceCommandDTO,
 )
@@ -129,6 +131,7 @@ class VolumeStatus(enum.Enum):
     error = 4
     deleting = 5
     extending = 6
+    cloning = 7
 
 
 class VolumeServiceLayerManager(BackgroundTasks):
@@ -576,6 +579,90 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info(
             'Service layer method _create_volume was' 'successfully processed'
         )
+
+    def clone_volume(self, clone_volume_info: Dict) -> Dict:
+        """Create a new volume by cloning an existing one.
+
+        Args:
+            clone_volume_info (Dict): A dictionary containing the information
+                - name: name of the new volume
+                - volume_id: ID of the volume to clone
+                - vm_id: ID of the VM to which the volume will be attached
+                - user_info: User information
+
+        Returns:
+            Dict: Serialized representation of the cloned volume.
+
+        Raises:
+            VolumeNotFoundException: If the specified volume to clone does
+                not exist.
+        """
+        LOG.info('Service layer start handling response on clone_volume.')
+        source_volume_id = clone_volume_info['volume_id']
+        target_storage_id = clone_volume_info['target_storage_id']
+        target_storage_info = self._get_storage_info(target_storage_id)
+        user_id = clone_volume_info.pop('user_info', {}).get('id')
+
+        with self.uow:
+            db_source_volume = self.uow.volumes.get(source_volume_id)
+            db_source_volume.status = VolumeStatus.cloning.name
+            self.uow.commit()
+
+        self._check_storage_on_availability(target_storage_info)
+        self._check_available_space_on_storage(
+            int(db_source_volume.size), target_storage_info
+        )
+        self._check_volume_exists_on_storage(
+            clone_volume_info['name'], str(db_source_volume.storage_id)
+        )
+
+        try:
+            LOG.info('Calling domain layer to clone the volume.')
+            data_for_manager = DataSerializer.to_domain(db_source_volume)
+            data_for_manager['storage_type'] = target_storage_info.storage_type
+            data_for_method = CloneVolumeDomainCommandDTO(
+                mount_point=Path(target_storage_info.mount_point),
+                new_id=uuid.uuid4(),
+            )
+            new_volume: Dict = self.domain_rpc.call(
+                BaseVolume.clone.__name__,
+                data_for_manager=data_for_manager,
+                data_for_method=data_for_method.model_dump(mode='json'),
+            )
+            new_volume['name'] = clone_volume_info['name']
+            new_volume['user_id'] = user_id
+            new_volume['storage_id'] = target_storage_id
+        except (RpcCallException, RpcCallTimeoutException) as err:
+            message = (
+                f'An error occurred when calling the '
+                f'domain layer while cloning volume: {err!s}'
+            )
+            with self.uow:
+                db_source_volume = self.uow.volumes.get(source_volume_id)
+                db_source_volume.status = VolumeStatus.available.name
+                self.uow.commit()
+            raise exceptions.CreateVolumeDataException(message)
+
+        new_db_volume = cast(Volume, DataSerializer.to_db(new_volume))
+        new_db_volume.status = VolumeStatus.available.name
+        with self.uow:
+            self.uow.volumes.add(new_db_volume)
+            db_source_volume = self.uow.volumes.get(source_volume_id)
+            db_source_volume.status = VolumeStatus.available.name
+            self.uow.commit()
+
+        self.event_store.add_event(
+            str(new_db_volume.id),
+            user_id,
+            self.clone_volume.__name__,
+            (
+                f'Volume {source_volume_id} successfully cloned. '
+                f'New volume id: {new_db_volume.id}'
+            ),
+        )
+
+        LOG.info('Service layer method clone_volume was successfully processed')
+        return DataSerializer.to_web(new_db_volume)
 
     def _check_vm_power_state(self, vm_id: str) -> None:
         """Check if a VM is in the 'shut_off' power state.
@@ -1323,4 +1410,3 @@ class VolumeServiceLayerManager(BackgroundTasks):
         with self.uow:
             self.uow.volumes.bulk_update(updated_db_volumes)
             self.uow.commit()
-

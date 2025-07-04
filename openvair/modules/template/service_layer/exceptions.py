@@ -18,3 +18,15 @@ class StorageRetrievalException(BaseTemplateServiceLayerException):
     """Raised when a storage entity cannot be retrieved for a template."""
 
     ...
+
+
+class VMRetrievalException(BaseTemplateServiceLayerException):
+    """Raised when a virtual machine cannot be retrieved."""
+
+    ...
+
+
+class BaseVolumeAttachToActiveVmException(BaseTemplateServiceLayerException):
+    """Raised when base volume attached to active vm while template creating."""
+
+    ...

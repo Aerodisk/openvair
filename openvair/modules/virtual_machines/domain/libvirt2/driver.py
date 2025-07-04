@@ -139,9 +139,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                 vnc_port,
                 f'localhost:{port}',
                 params=ExecuteParams(  # noqa: S604
-                    run_as_root=True,
-                    shell=True,
-                    raise_on_error=True
+                    run_as_root=True, shell=True, raise_on_error=True
                 ),
             )
         except (ExecuteError, OSError) as err:
