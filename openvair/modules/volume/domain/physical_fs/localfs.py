@@ -155,7 +155,7 @@ class LocalFSVolume(BaseVolume):
 
         new_volume = LocalFSVolume(**self.__dict__)
         new_volume.id = str(cloning_data.new_id)
-        new_volume.path = str(target_path)
+        new_volume.path = str(cloning_data.mount_point)
 
         return new_volume.__dict__
 

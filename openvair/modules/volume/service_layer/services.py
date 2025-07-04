@@ -624,7 +624,6 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 mount_point=Path(target_storage_info.mount_point),
                 new_id=uuid.uuid4(),
             )
-
             new_volume: Dict = self.domain_rpc.call(
                 BaseVolume.clone.__name__,
                 data_for_manager=data_for_manager,
@@ -632,6 +631,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             )
             new_volume['name'] = clone_volume_info['name']
             new_volume['user_id'] = user_id
+            new_volume['storage_id'] = target_storage_id
         except (RpcCallException, RpcCallTimeoutException) as err:
             message = (
                 f'An error occurred when calling the '
@@ -647,6 +647,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         new_db_volume.status = VolumeStatus.available.name
         with self.uow:
             self.uow.volumes.add(new_db_volume)
+            db_source_volume = self.uow.volumes.get(source_volume_id)
+            db_source_volume.status = VolumeStatus.available.name
             self.uow.commit()
 
         self.event_store.add_event(

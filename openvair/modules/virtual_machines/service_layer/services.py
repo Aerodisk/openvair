@@ -1448,18 +1448,11 @@ class VMServiceLayerManager(BackgroundTasks):
             for key in ('id', 'status', 'power_state', 'information'):
                 data.pop(key, None)
 
-            for section in ('cpu', 'ram', 'os'):
+            for section in ('cpu', 'ram', 'os', 'graphic_interface'):
                 if section in data:
                     data[section] = self._strip_keys(
                         data[section], ['id', 'vm_id']
                     )
-
-            # graphic_interface: Dict = data.get("graphic_interface", {})
-            # data["graphic_interface"] = {
-            #     "login": graphic_interface.get("login"),
-            #     "password": graphic_interface.get("password"),
-            #     "connect_type": graphic_interface.get("connect_type"),
-            # }
 
             virtual_interfaces: List[Dict] = []
             for vif in vm.get('virtual_interfaces', []):
