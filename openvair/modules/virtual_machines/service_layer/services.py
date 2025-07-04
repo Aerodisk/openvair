@@ -1437,10 +1437,6 @@ class VMServiceLayerManager(BackgroundTasks):
             unnecessary fields and ensuring the data structure is compatible
             with the expected input for creating a new VM.
         """
-        LOG.warning(
-            f'Starting to transform VM data for cloning: {vm} '
-            f'with suffix: {suffix}'
-        )
         try:
             data = deepcopy(vm)
             data['user_info'] = user_info
@@ -1468,9 +1464,6 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
             data['virtual_interfaces'] = virtual_interfaces
 
-            LOG.warning(f'Transformed VM data for cloning: {data}')
-
-            # Клонирование дисков
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get('disks', []),
                 user_info,
@@ -1512,9 +1505,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 ready for cloning, with unique names.
         """
         attach_disks: List[Dict] = []
-        LOG.warning(f'Preparing disks for cloning with suffix: {suffix}')
         for disk in disks_list:
-            LOG.warning(f'Original disk before transform: {disk}')
             new_disk = {
                 'name': (
                     f'{disk["name"]}{suffix}'
@@ -1551,16 +1542,6 @@ class VMServiceLayerManager(BackgroundTasks):
                     msg = f'Error cloning volume: {err}'
                     LOG.exception(msg)
                     raise exceptions.VolumeCloneException(msg)
-                # volume_info = self.volume_service_client.get_volume(new_disk)
-                # new_disk['storage_id'] = volume_info.get('storage_id', '')
-                # new_disk['volume_id'] = disk.get('disk_id', '')
-                # try:
-                #     LOG.info(f'RPC call to clone volume: {new_disk}')
-                #     self.volume_service_client.clone_volume(new_disk)
-                # except exceptions.VolumeCloneException as err:
-                #     msg = f'Error cloning volume: {err}'
-                #     LOG.exception(msg)
-                #     raise
             elif disk.get('type') == DiskType.image.value:
                 new_disk['image_id'] = disk['disk_id']
 
