@@ -118,10 +118,15 @@ class EventCrud:
         """
         try:
             LOG.info('Starting add event')
+            try:
+                user_uuid = uuid.UUID(user_id)
+            except (ValueError, TypeError):
+                LOG.warning(f'Invalid user_id for event: {user_id!r}. Setting user_id to None.')
+                user_uuid = None
             event_info = CreateEventInfo(
                 module=self.module_name,
                 object_id=object_id,
-                user_id=uuid.UUID(user_id),
+                user_id=user_uuid,
                 event=event,
                 information=information,
             )
