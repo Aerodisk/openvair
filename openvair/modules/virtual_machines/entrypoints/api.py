@@ -27,8 +27,19 @@ Endpoints:
         Edit a virtual machine by ID.
     GET /virtual-machines/{vm_id}/vnc/:
         Access the VNC session of a virtual machine by ID.
+    GET /virtual-machines/{vm_id}/snapshots/:
+        Get a list of snapshots of virtual machine.
+    GET /virtual-machines/{vm_id}/snapshots/{snap_id}/:
+        Get an info about specific snapshot by ID.
+    POST /virtual-machines/{vm_id}/snapshots/:
+        Create a new snapshot of virtual machine.
+    POST /virtual-machines/{vm_id}/snapshots/{snap_id}/revert/:
+        Revert to snapshot of virtual machine.
+    DELETE /virtual-machines/{vm_id}/snapshots/{snap_id}/:
+        Delete a snapshot of virtual machine.
 """
 
+from uuid import UUID
 from typing import Dict, cast
 
 from fastapi import Path, Depends, APIRouter, status
@@ -261,3 +272,167 @@ async def vnc_vm(
     """
     result = await run_in_threadpool(crud.vnc, vm_id, user_info)
     return schemas.Vnc(**result)
+
+
+@router.get(
+    '/{vm_id}/snapshots/',
+    response_model=schemas.ListOfSnapshots,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_user)],
+)
+async def get_snapshots(
+    vm_id: UUID,
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> schemas.ListOfSnapshots:
+    """Retrieve all snapshots of the specific virtual machine.
+
+    Args:
+        vm_id (UUID): The ID of the virtual machine.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        schemas.ListOfSnapshots: A list of all snapshots of the specific
+        virtual machine.
+    """
+    LOG.info(f'API handling request to get snapshots of '
+             f'virtual machine with ID: {vm_id}.')
+    snapshots = await run_in_threadpool(
+        crud.get_snapshots, str(vm_id), user_info
+    )
+    LOG.info('API request was successfully processed.')
+    return schemas.ListOfSnapshots(snapshots=snapshots)
+
+
+@router.get(
+    '/{vm_id}/snapshots/{snap_id}',
+    response_model=schemas.SnapshotInfo,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_user)],
+)
+async def get_snapshot(
+    vm_id: UUID,
+    snap_id: UUID,
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> schemas.SnapshotInfo:
+    """Retrieve a snapshot of a specific virtual machine by snapshot ID.
+
+    Args:
+        vm_id (UUID): The ID of the virtual machine.
+        snap_id (UUID): The ID of the snapshot.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        schemas.SnapshotInfo: The snapshot data.
+    """
+    LOG.info(f'API handling request to get a snapshot with ID: {snap_id} '
+             f'of virtual machine with ID: {vm_id}.')
+    snapshot = await run_in_threadpool(
+        crud.get_snapshot, str(vm_id), str(snap_id), user_info
+    )
+    LOG.info('API request was successfully processed.')
+    return schemas.SnapshotInfo(**snapshot)
+
+
+@router.post(
+    '/{vm_id}/snapshots/',
+    response_model=schemas.SnapshotInfo,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_snapshot(
+    vm_id: UUID,
+    data: schemas.CreateSnapshot,
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> schemas.SnapshotInfo:
+    """Create a new snapshot of the virtual machine.
+
+    Args:
+        vm_id (UUID): The ID of the virtual machine where the snapshot will be
+        created.
+        data (schemas.CreateSnapshot): The data required to create a new
+        snapshot of the virtual machine.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        Dict: The created snapshot data.
+    """
+    LOG.info(f'API handling request to create a snapshot '
+             f'of virtual machine with ID: {vm_id}.')
+    snapshot = await run_in_threadpool(
+        crud.create_snapshot,
+        str(vm_id),
+        data.model_dump(mode='json'),
+        user_info
+    )
+    LOG.info('API request was successfully processed.')
+    return schemas.SnapshotInfo(**snapshot)
+
+
+@router.post(
+    '/{vm_id}/snapshots/{snap_id}/revert',
+    response_model=schemas.SnapshotInfo,
+    status_code=status.HTTP_200_OK,
+)
+async def revert_snapshot(
+    vm_id: UUID,
+    snap_id: UUID,
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> schemas.SnapshotInfo:
+    """Revert a virtual machine to a snapshot.
+
+    Args:
+        vm_id (UUID): The ID of the virtual machine where the snapshot will be
+        reverted.
+        snap_id (UUID): The ID of the snapshot to revert.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        schemas.SnapshotInfo: The reverted snapshot data.
+    """
+    LOG.info(f'API handling request to revert snapshot (ID: {snap_id}) '
+             f'of virtual machine with ID: {vm_id}')
+    snapshot = await run_in_threadpool(
+        crud.revert_snapshot, str(vm_id), str(snap_id), user_info
+    )
+    LOG.info('API request was successfully processed.')
+    return schemas.SnapshotInfo(**snapshot)
+
+
+@router.delete(
+    '/{vm_id}/snapshots/{snap_id}',
+    status_code=status.HTTP_200_OK,
+)
+async def delete_snapshot(
+    vm_id: UUID,
+    snap_id: UUID,
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> schemas.SnapshotInfo:
+    """Delete a snapshot of virtual machine.
+
+    Args:
+        vm_id (UUID): The ID of the virtual machine where snapshot will be
+        deleted.
+        snap_id (UUID): The ID of the snapshot to delete.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        schemas.SnapshotInfo: The deleted snapshot data.
+    """
+    LOG.info(
+        f'API handling request to delete snapshot (ID: {snap_id}) '
+        f'from virtual machine with ID: {vm_id}.'
+    )
+    snapshot = await run_in_threadpool(
+        crud.delete_snapshot, str(vm_id), str(snap_id), user_info
+    )
+    LOG.info('API request was successfully processed.')
+    return schemas.SnapshotInfo(**snapshot)
