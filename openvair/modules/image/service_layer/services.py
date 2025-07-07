@@ -280,7 +280,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
         with self.uow() as uow:
-            image = uow.images.get_image(image_id)
+            image = uow.images.get_or_fail(image_id)
             serialized_image = DataSerializer.to_web(image)
             LOG.debug(f'Got image from db: {serialized_image}.')
         LOG.info('Service Layer method get image was successfully processed.')
@@ -339,24 +339,24 @@ class ImageServiceLayerManager(BackgroundTasks):
             LOG.info(message)
             raise exceptions.ImageStatusError(message)
 
-    @staticmethod
-    def _check_image_has_not_attachment(image: Image) -> None:
-        """Check if an image has no attachments.
+    # @staticmethod
+    # def _check_image_has_not_attachment(image: Image) -> None:
+    #     """Check if an image has no attachments.
 
-        This method verifies if the provided image has no attachments
-        (e.g., virtual machines). If the image has attachments, it raises
-        an ImageHasAttachmentError exception.
+    #     This method verifies if the provided image has no attachments
+    #     (e.g., virtual machines). If the image has attachments, it raises
+    #     an ImageHasAttachmentError exception.
 
-        Args:
-            image (Image): The image to check for attachments.
+    #     Args:
+    #         image (Image): The image to check for attachments.
 
-        Raises:
-            exceptions.ImageHasAttachmentError: If the image has attachments.
-        """
-        if image.attachments:
-            message = f'Image {image.id} has attachments.'
-            LOG.error(message)
-            raise exceptions.ImageHasAttachmentError(message)
+    #     Raises:
+    #         exceptions.ImageHasAttachmentError: If the image has attachments.
+    #     """
+    #     if image.attachments:
+    #         message = f'Image {image.id} has attachments.'
+    #         LOG.error(message)
+    #         raise exceptions.ImageHasAttachmentError(message)
 
     def _get_storage_info(self, storage_id: str) -> StorageInfo:
         """Retrieve information about a storage.
@@ -566,7 +566,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         storage_info = self._get_storage_info(str(storage_id))
 
         with self.uow() as uow:
-            db_image = uow.images.get_image(uuid.UUID(image_id))
+            db_image = uow.images.get_or_fail(uuid.UUID(image_id))
             LOG.info('Got image from db: %s.' % db_image)
 
             try:
@@ -646,14 +646,14 @@ class ImageServiceLayerManager(BackgroundTasks):
         image_id = data.get('image_id', '')
 
         with self.uow() as uow:
-            db_image = uow.images.get_image(image_id)
+            db_image = uow.images.get_or_fail(image_id)
             available_statuses = [
                 ImageStatus.available.name,
                 ImageStatus.error.name,
             ]
             try:
                 self._check_image_status(db_image.status, available_statuses)
-                self._check_image_has_not_attachment(db_image)
+                # self._check_image_has_not_attachment(db_image)
 
                 db_image.status = ImageStatus.deleting.name
                 uow.commit()
@@ -667,8 +667,8 @@ class ImageServiceLayerManager(BackgroundTasks):
                 )
                 return DataSerializer.to_web(db_image)
             except (
-                exceptions.ImageStatusError,
-                exceptions.ImageHasAttachmentError,
+                exceptions.ImageStatusError
+                # exceptions.ImageHasAttachmentError,
             ) as err:
                 message = (
                     'An error occurred when deleting the ' f'image: {err!s}'
@@ -703,7 +703,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         user_id = user_info.get('id', '')
 
         with self.uow() as uow:
-            db_image = uow.images.get_image(image_id)
+            db_image = uow.images.get_or_fail(image_id)
 
             try:
                 if db_image.storage_type:
@@ -783,7 +783,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Starting attach image to vm.')
         with self.uow() as uow:
-            db_image = uow.images.get_image(data.get('image_id'))  # type: ignore
+            db_image = uow.images.get_or_fail(data.get('image_id'))  # type: ignore
             available_statuses = [ImageStatus.available.name]
             try:
                 self._check_image_status(db_image.status, available_statuses)
@@ -838,7 +838,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         image_id = data.get('image_id', '')
         vm_id = data.get('vm_id', '')
         with self.uow() as uow:
-            db_image = uow.images.get_image(image_id)
+            db_image = uow.images.get_or_fail(image_id)
             available_statuses = [
                 ImageStatus.available.name,
                 ImageStatus.error.name,

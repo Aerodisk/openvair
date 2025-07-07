@@ -42,22 +42,6 @@ class ImageSqlAlchemyRepository(BaseSqlAlchemyRepository[Image]):
         """
         super().__init__(session, Image)
 
-    def get_image(self, image_id: UUID) -> Image:
-        """Retrieve an image by its ID.
-
-        Args:
-            image_id (UUID): The unique identifier of the image.
-
-        Returns:
-            Image: The image entity matching the given ID.
-        """
-        return (
-            self.session.query(Image)
-            .options(joinedload(Image.attachments))
-            .filter_by(id=image_id)
-            .one()
-        )
-
     def get_by_name(self, image_name: str) -> List[Image]:
         """Retrieve images by their name.
 
