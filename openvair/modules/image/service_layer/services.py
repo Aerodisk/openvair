@@ -339,24 +339,24 @@ class ImageServiceLayerManager(BackgroundTasks):
             LOG.info(message)
             raise exceptions.ImageStatusError(message)
 
-    # @staticmethod
-    # def _check_image_has_not_attachment(image: Image) -> None:
-    #     """Check if an image has no attachments.
+    @staticmethod
+    def _check_image_has_not_attachment(image: Image) -> None:
+        """Check if an image has no attachments.
 
-    #     This method verifies if the provided image has no attachments
-    #     (e.g., virtual machines). If the image has attachments, it raises
-    #     an ImageHasAttachmentError exception.
+        This method verifies if the provided image has no attachments
+        (e.g., virtual machines). If the image has attachments, it raises
+        an ImageHasAttachmentError exception.
 
-    #     Args:
-    #         image (Image): The image to check for attachments.
+        Args:
+            image (Image): The image to check for attachments.
 
-    #     Raises:
-    #         exceptions.ImageHasAttachmentError: If the image has attachments.
-    #     """
-    #     if image.attachments:
-    #         message = f'Image {image.id} has attachments.'
-    #         LOG.error(message)
-    #         raise exceptions.ImageHasAttachmentError(message)
+        Raises:
+            exceptions.ImageHasAttachmentError: If the image has attachments.
+        """
+        if image.attachments:
+            message = f'Image {image.id} has attachments.'
+            LOG.error(message)
+            raise exceptions.ImageHasAttachmentError(message)
 
     def _get_storage_info(self, storage_id: str) -> StorageInfo:
         """Retrieve information about a storage.
@@ -653,7 +653,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             ]
             try:
                 self._check_image_status(db_image.status, available_statuses)
-                # self._check_image_has_not_attachment(db_image)
+                self._check_image_has_not_attachment(db_image)
 
                 db_image.status = ImageStatus.deleting.name
                 uow.commit()
@@ -667,8 +667,8 @@ class ImageServiceLayerManager(BackgroundTasks):
                 )
                 return DataSerializer.to_web(db_image)
             except (
-                exceptions.ImageStatusError
-                # exceptions.ImageHasAttachmentError,
+                exceptions.ImageStatusError,
+                exceptions.ImageHasAttachmentError,
             ) as err:
                 message = (
                     'An error occurred when deleting the ' f'image: {err!s}'
