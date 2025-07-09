@@ -60,10 +60,15 @@ def get_vm_snapshots(vm_name: str) -> Tuple[Set[str], Optional[str]]:
         try:
             domain = conn.lookupByName(vm_name)
             snapshots = domain.listAllSnapshots()
+            snap_names = {snap.getName() for snap in snapshots}
             if not snapshots:
                 return set(), None
-            current_snap = domain.snapshotCurrent()
-            current_name = current_snap.getName() if current_snap else None
-            return {snap.getName() for snap in snapshots}, current_name
+            try:
+                current_snap = domain.snapshotCurrent()
+                current_name = current_snap.getName() if current_snap else None
+            except libvirt.libvirtError:
+                current_name = None
         except libvirt.libvirtError:
             return set(), None
+        else:
+            return snap_names, current_name

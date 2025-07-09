@@ -462,7 +462,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                 'qemu-img',
                 'snapshot',
                 '-d',
-                snap_name,
+                f'"{snap_name}"',
                 disk_path,
                 params=ExecuteParams(  # noqa: S604
                     shell=True,

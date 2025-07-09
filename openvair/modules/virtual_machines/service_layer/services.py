@@ -1481,7 +1481,7 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Handling call on create snapshot of vm.')
         user_info = data.pop('user_info', {})
         vm_id = str(data.pop('vm_id'))
-        name = str(data.pop('name'))
+        name = str(data.pop('name')).strip()
         description = data.pop('description') or 'Open vAIR'
         max_snapshot_count = 10
         with self.uow:
@@ -1929,16 +1929,37 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm: VirtualMachines database object to update snapshots for.
         """
         libvirt_snaps, libvirt_current_snap = get_vm_snapshots(db_vm.name)
-        db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(str(db_vm.id))
+        vm_id = str(db_vm.id)
+        db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
         for db_snap in db_snaps:
             if (db_snap.name not in libvirt_snaps and
                     db_snap.status != SnapshotStatus.creating.name):
                 db_snap.status = SnapshotStatus.error.name
-            if (db_snap.status == SnapshotStatus.creating.name or
+            elif (db_snap.status == SnapshotStatus.creating.name or
                     (db_snap.status == SnapshotStatus.reverting.name and
                      db_snap.name == libvirt_current_snap)):
                 db_snap.status = SnapshotStatus.running.name
-            if libvirt_current_snap and db_snap.name == libvirt_current_snap:
+        self._update_current_snapshot(db_snaps, vm_id, libvirt_current_snap)
+
+    def _update_current_snapshot(
+            self,
+            db_snaps: List,
+            vm_id: str,
+            libvirt_current_snap: Optional[str]
+    ) -> None:
+        """Update is_current flag for VM snapshots.
+
+        Args:
+            db_snaps (List): List of snapshots of VM from the database.
+            vm_id (str): The ID of the virtual machine.
+            libvirt_current_snap (Optional[str]): The current snapshot from
+            libvirt.
+        """
+        if libvirt_current_snap is None:
+            self.uow.virtual_machines.unset_current_snapshot(vm_id)
+            return
+        for db_snap in db_snaps:
+            if db_snap.name == libvirt_current_snap:
                 self.uow.virtual_machines.set_current_snapshot(db_snap)
 
     @periodic_task(interval=10)

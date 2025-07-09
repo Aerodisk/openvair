@@ -221,6 +221,14 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         """
         return self._set_current_snapshot(snapshot)
 
+    def unset_current_snapshot(self, vm_id: str) -> None:
+        """Unset current snapshot flag for all snapshots of a VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
+        """
+        return self._unset_current_snapshot(vm_id)
+
     def get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
         """Get all child snapshots for given parent snapshot.
 
@@ -457,6 +465,18 @@ class AbstractRepository(metaclass=abc.ABCMeta):
 
         Args:
             snapshot: The snapshot entity to mark as current.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _unset_current_snapshot(self, vm_id: str) -> None:
+        """Unset current snapshot flag for all snapshots of a VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
 
         Raises:
             NotImplementedError: If the method is not implemented by a subclass.
@@ -731,6 +751,18 @@ class SqlAlchemyRepository(AbstractRepository):
         )
 
         snapshot.is_current = True
+
+    def _unset_current_snapshot(self, vm_id: str) -> None:
+        """Unset current snapshot flag for all snapshots of a VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
+        """
+        self.session.execute(
+            update(Snapshots)
+            .where(Snapshots.vm_id == vm_id)
+            .values(is_current=False)
+        )
 
     def _get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
         """Get all child snapshots for given snapshot.
