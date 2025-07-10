@@ -21,6 +21,9 @@ Classes:
         or invalid.
     MaxTriesError: Raised when the maximum number of tries for an operation
         is exceeded.
+    SnapshotNameExistsError: Raised when a snapshot with the same name already
+     exists for the VM.
+    NoResultFound: Raised when a database query returns no results.
 """
 
 from typing import Any
@@ -89,4 +92,36 @@ class MaxTriesError(BaseCustomException):
 
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize MaxTriesError with optional arguments."""
+        super().__init__(message, *args)
+
+
+class SnapshotNameExistsError(BaseCustomException):
+    """Raised when a snapshot with the same name already exists for the VM."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize SnapshotNameExistsError with optional arguments."""
+        super().__init__(message, *args)
+
+
+class SnapshotLimitExceeded(BaseCustomException):
+    """Raised when the maximum number of snapshots per VM is exceeded."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize SnapshotLimitExceeded with optional arguments."""
+        super().__init__(message, *args)
+
+
+class SnapshotStatusException(BaseCustomException):
+    """Raised when error with the status of the snapshot."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the SnapshotStatusError with a message."""
+        super().__init__(message, *args)
+
+
+class NoResultFound(BaseCustomException):
+    """Raised when a database query returns no results."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize NoResultFound with optional arguments."""
         super().__init__(message, *args)

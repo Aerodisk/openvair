@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-04-22 12:12:45.756388
+Create Date: 2025-06-27 13:26:25.896838
 
 """
 
@@ -206,6 +206,32 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
+        'snapshots',
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('vm_id', sa.UUID(), nullable=False),
+        sa.Column('name', sa.String(length=60), nullable=False),
+        sa.Column('parent_id', sa.UUID(), nullable=True),
+        sa.Column('description', sa.String(length=255), nullable=True),
+        sa.Column('status', sa.String(length=30), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
+        sa.Column('is_current', sa.Boolean(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ['parent_id'],
+            ['snapshots.id'],
+        ),
+        sa.ForeignKeyConstraint(
+            ['vm_id'],
+            ['virtual_machines.id'],
+        ),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(
+        op.f('ix_snapshots_is_current'),
+        'snapshots',
+        ['is_current'],
+        unique=False,
+    )
+    op.create_table(
         'virtual_interface',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('interface', sa.String(length=60), nullable=True),
@@ -347,6 +373,8 @@ def downgrade() -> None:
     op.drop_table('image_attach_vm')
     op.drop_table('images')
     op.drop_table('virtual_interface')
+    op.drop_index(op.f('ix_snapshots_is_current'), table_name='snapshots')
+    op.drop_table('snapshots')
     op.drop_table('ram')
     op.drop_table('protocol_graphic_interface')
     op.drop_table('os')
