@@ -180,7 +180,10 @@ class EventCrud:
             try:
                 user_uuid = uuid.UUID(user_id)
             except (ValueError, TypeError):
-                LOG.warning(f'Invalid user_id for event: {user_id!r}. Setting user_id to None.')
+                LOG.warning(
+                    f'Invalid user_id for event: {user_id!r}. '
+                    f'Setting user_id to None.'
+                )
                 user_uuid = None
             event_info = CreateEventInfo(
                 module=self.module_name,

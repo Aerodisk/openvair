@@ -42,7 +42,7 @@ Classes:
 from uuid import UUID
 from typing import List, Union, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import Field, BaseModel
 
 
 class Cpu(BaseModel):
@@ -266,6 +266,15 @@ class EditVm(BaseModel):
     graphic_interface: GraphicInterfaceBase
     disks: EditVmDisks
     virtual_interfaces: EditVirtualInterfaces
+
+
+class CloneVm(BaseModel):
+    """Schema for cloning a virtual machine."""
+
+    count: int = Field(1, description='Number of clones')
+    target_storage_id: UUID = Field(
+        ..., description='ID of storage where the volume will be created'
+    )
 
 
 class Vnc(BaseModel):
