@@ -18,7 +18,7 @@ Exceptions:
 """
 
 import abc
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import update
 from sqlalchemy.exc import OperationalError
@@ -27,6 +27,7 @@ from sqlalchemy.orm import joinedload
 from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.modules.virtual_machines.adapters.orm import (
     Disk,
+    Snapshots,
     VirtualMachines,
     VirtualInterface,
 )
@@ -137,6 +138,107 @@ class AbstractRepository(metaclass=abc.ABCMeta):
                 delete.
         """
         self._delete_virtual_interfaces(virt_interfaces)
+
+    def add_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Add a new snapshot to the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to add.
+        """
+        self._add_snapshot(snapshot)
+
+    def get_snapshot(
+            self, vm_id: str, snapshot_id: str
+    ) -> Snapshots:
+        """Retrieve a snapshot by VM ID and snapshot ID.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            snapshot_id (str): The ID of the snapshot to retrieve.
+
+        Returns:
+            Snapshots: The retrieved snapshot entity.
+        """
+        return self._get_snapshot(vm_id, snapshot_id)
+
+    def get_snapshot_by_name(
+            self, vm_id: str, name: str
+    ) -> Optional[Snapshots]:
+        """Retrieve a snapshot by VM ID and snapshot name.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            name (str): The name of the snapshot to retrieve.
+
+        Returns:
+            Snapshots: The retrieved snapshot entity.
+        """
+        return self._get_snapshot_by_name(vm_id, name)
+
+    def get_snapshots_by_vm(self, vm_id: str) -> List[Snapshots]:
+        """Retrieve all snapshots for a virtual machine.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+
+        Returns:
+            List[Snapshots]: A list of snapshot entities.
+        """
+        return self._get_snapshots_by_vm(vm_id)
+
+    def delete_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Delete a snapshot from the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to delete.
+        """
+        self._delete_snapshot(snapshot)
+
+    def update_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Update a snapshot in the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to update.
+        """
+        self._update_snapshot(snapshot)
+
+    def get_current_snapshot(self, vm_id: str) -> Optional[Snapshots]:
+        """Get current snapshot for VM.
+
+        Args:
+            vm_id: ID of the virtual machine
+
+        Returns:
+            Snapshots: The retrieved current snapshot entity.
+        """
+        return self._get_current_snapshot(vm_id)
+
+    def set_current_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Mark snapshot as current (and unmark others for this VM).
+
+        Args:
+            snapshot: Snapshot to mark as current
+        """
+        return self._set_current_snapshot(snapshot)
+
+    def unset_current_snapshot(self, vm_id: str) -> None:
+        """Unset current snapshot flag for all snapshots of a VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
+        """
+        return self._unset_current_snapshot(vm_id)
+
+    def get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+        """Get all child snapshots for given parent snapshot.
+
+        Args:
+            snapshot (Snapshots): The parent snapshot entity.
+
+        Returns:
+            List[Snapshots]: A list of children snapshot entities.
+        """
+        return self._get_child_snapshots(snapshot)
 
     @abc.abstractmethod
     def _add(self, virtual_machine: VirtualMachines) -> None:
@@ -249,6 +351,147 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         Args:
             virt_interfaces (List): A list of virtual interface entities to
                 delete.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _add_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Add a new snapshot to the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to add.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _get_snapshot(
+            self, vm_id: str, snapshot_id: str
+    ) -> Snapshots:
+        """Retrieve a snapshot by VM ID and snapshot ID.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            snapshot_id (str): The ID of the snapshot to retrieve.
+
+        Returns:
+            Snapshots: The retrieved snapshot entity.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _get_snapshot_by_name(
+            self, vm_id: str, name: str
+    ) -> Optional[Snapshots]:
+        """Retrieve a snapshot by VM ID and snapshot ID.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            name (str): The name of the snapshot to retrieve.
+
+        Returns:
+            Snapshots: The retrieved snapshot entity.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _get_snapshots_by_vm(self, vm_id: str) -> List[Snapshots]:
+        """Retrieve all snapshots for a virtual machine.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+
+        Returns:
+            List[Snapshots]: A list of snapshot entities.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _delete_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Delete a snapshot from the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to delete.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _update_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Update a snapshot in the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to update.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _get_current_snapshot(self, vm_id: str) -> Optional[Snapshots]:
+        """Get current snapshot for VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
+
+        Returns:
+            Snapshots: The retrieved current snapshot entity.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _set_current_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Mark snapshot as current.
+
+        Args:
+            snapshot: The snapshot entity to mark as current.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _unset_current_snapshot(self, vm_id: str) -> None:
+        """Unset current snapshot flag for all snapshots of a VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+        """Get all child snapshots for given parent snapshot.
+
+        Args:
+            snapshot (Snapshots): The parent snapshot entity.
+
+        Returns:
+            List[Snapshots]: A list of children snapshot entities.
 
         Raises:
             NotImplementedError: If the method is not implemented by a subclass.
@@ -399,4 +642,139 @@ class SqlAlchemyRepository(AbstractRepository):
                 )
             )
             .delete()
+        )
+
+    def _add_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Add a new snapshot to the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to add.
+        """
+        self.session.add(snapshot)
+
+    def _get_snapshot(
+            self, vm_id: str, snapshot_id: str
+    ) -> Snapshots:
+        """Retrieve a snapshot by its ID.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            snapshot_id (str): The ID of the snapshot to retrieve.
+
+        Returns:
+            Snapshots: The retrieved snapshot entity.
+        """
+        return (
+            self.session.query(Snapshots)
+            .options(joinedload(Snapshots.parent))
+            .filter_by(vm_id=vm_id, id=snapshot_id)
+            .one()
+        )
+
+    def _get_snapshot_by_name(
+            self, vm_id: str, name: str
+    ) -> Optional[Snapshots]:
+        """Retrieve a snapshot by its ID.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+            name (str): The name of the snapshot to retrieve.
+
+        Returns:
+            Optional(Snapshots): The retrieved snapshot entity if existed.
+        """
+        return (
+            self.session.query(Snapshots)
+            .options(joinedload(Snapshots.parent))
+            .filter_by(vm_id=vm_id, name=name)
+            .first()
+        )
+
+    def _get_snapshots_by_vm(self, vm_id: str) -> List[Snapshots]:
+        """Retrieve all snapshots for a virtual machine.
+
+        Args:
+            vm_id (str): The ID of the virtual machine.
+
+        Returns:
+            List[Snapshots]: A list of snapshot entities.
+        """
+        return (
+            self.session.query(Snapshots)
+            .options(joinedload(Snapshots.parent))
+            .filter_by(vm_id=vm_id)
+            .order_by(Snapshots.created_at)
+            .all()
+        )
+
+    def _delete_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Delete a snapshot from the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to delete.
+        """
+        self.session.delete(snapshot)
+
+    def _update_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Update a snapshot in the repository.
+
+        Args:
+            snapshot (Snapshots): The snapshot entity to update.
+        """
+        self.session.merge(snapshot)
+
+    def _get_current_snapshot(self, vm_id: str) -> Optional[Snapshots]:
+        """Get current snapshot for VM (marked as is_current=True).
+
+        Args:
+            vm_id: ID of the virtual machine
+
+        Returns:
+            Snapshots or None if no current snapshot exists
+        """
+        return (
+            self.session.query(Snapshots)
+            .filter_by(vm_id=vm_id, is_current=True)
+            .first()
+        )
+
+    def _set_current_snapshot(self, snapshot: 'Snapshots') -> None:
+        """Mark snapshot as current (and unmark others for this VM).
+
+        Args:
+            snapshot: Snapshot to mark as current
+        """
+        self.session.execute(
+            update(Snapshots)
+            .where(Snapshots.vm_id == snapshot.vm_id)
+            .values(is_current=(Snapshots.id == snapshot.id))
+        )
+
+        snapshot.is_current = True
+
+    def _unset_current_snapshot(self, vm_id: str) -> None:
+        """Unset current snapshot flag for all snapshots of a VM.
+
+        Args:
+            vm_id: ID of the virtual machine.
+        """
+        self.session.execute(
+            update(Snapshots)
+            .where(Snapshots.vm_id == vm_id)
+            .values(is_current=False)
+        )
+
+    def _get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+        """Get all child snapshots for given snapshot.
+
+        Args:
+            snapshot (Snapshots): The parent snapshot entity.
+
+        Returns:
+            List[Snapshots]: A list of children snapshot entities.
+        """
+        return (
+            self.session.query(Snapshots)
+            .filter_by(parent_id=snapshot.id)
+            .all()
         )

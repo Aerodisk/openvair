@@ -172,3 +172,65 @@ class DataSerializer(AbstractDataSerializer):
             }
         )
         return vm_dict
+
+    @classmethod
+    def snapshot_to_db(
+            cls,
+            data: Dict,
+            orm_class: Type[orm.Snapshots] = orm.Snapshots,
+    ) -> orm.Snapshots:
+        """Convert a dictionary to a Snapshots ORM model.
+
+        Args:
+            data (Dict): A dictionary containing snapshot data to populate the
+            ORM model.
+            orm_class (Type[orm.Snapshots]): The ORM class to instantiate
+            (default: orm.Snapshots).
+
+        Returns:
+            orm.Snapshots: An instance of Snapshots ORM class populated with
+            the provided data.
+        """
+        orm_dict = {}
+        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        for column in list(inspected_orm_class.columns):
+            column_name = column.__dict__['key']
+            if data.get(column_name) is None:
+                continue
+            orm_dict[column_name] = data.get(column_name)
+        return orm_class(**orm_dict)
+
+    @classmethod
+    def snapshot_to_web(
+            cls,
+            snapshot: orm.Snapshots,
+    ) -> Dict:
+        """Convert a Snapshots ORM model to a detailed web representation.
+
+        Args:
+            snapshot (orm.Snapshots): The snapshot ORM model instance
+            to convert.
+
+        Returns:
+            Dict: A dictionary representing the web model of snapshot
+        """
+        if not snapshot:
+            return {}
+        data = snapshot.__dict__.copy()
+        data.pop('_sa_instance_state', None)
+        data.pop('created_at', None)
+        data['id'] = str(data.get('id', ''))
+        data['vm_id'] = str(data.get('vm_id', ''))
+        data['created_at'] = snapshot.created_at.isoformat()
+        parent_data = None
+        if hasattr(snapshot, 'parent') and snapshot.parent:
+            parent_data = {
+                'id': str(snapshot.parent.id),
+                'name': snapshot.parent.name,
+                'status': snapshot.parent.status
+            }
+        data.pop('parent', None)
+        data['parent'] = parent_data
+        data.pop('parent_id', None)
+        data.pop('virtual_machine', None)
+        return data

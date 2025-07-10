@@ -34,6 +34,9 @@ Classes:
     EditVirtualInterfaces: Schema for editing virtual machine interfaces.
     EditVm: Schema for editing a virtual machine.
     Vnc: Schema for VNC session details.
+    SnapshotInfo: Schema for detailed snapshot information.
+    ListOfSnapshots: Schema for a list of snapshots of specific virtual machine.
+    CreateSnapshot: Schema for creating a snapshot of virtual machine.
 """
 
 from uuid import UUID
@@ -278,3 +281,51 @@ class Vnc(BaseModel):
     """Schema for VNC session details."""
 
     url: str = ''  # http://matrix:6900/vnc.html?host=matrix&port=6900
+
+
+class SnapshotInfo(BaseModel):
+    """Schema for detailed snapshot information.
+
+    Attributes:
+        vm_id (UUID): The ID of the virtual machine.
+        id (UUID): The ID of the snapshot.
+        vm_name (str): The name of the virtual machine.
+        name (str): The name of the snapshot.
+        parent (Optional[str]): The optional name of the parent snapshot.
+        description (Optional[str]): The optional description of the snapshot.
+        created_at (str): The creation time of the snapshot.
+        is_current (bool): The flag of the current snapshot.
+        status (str): The status of the snapshot.
+    """
+
+    vm_id: UUID
+    id: UUID
+    vm_name: str
+    name: str
+    parent: Optional[str] = None
+    description: Optional[str] = None
+    created_at: str
+    is_current: bool
+    status: str
+
+
+class ListOfSnapshots(BaseModel):
+    """Schema for a list of snapshots of specific virtual machine.
+
+    Attributes:
+        snapshots(List[Optional[SnapshotInfo]]): The list of snapshots.
+    """
+
+    snapshots: List[Optional[SnapshotInfo]]
+
+
+class CreateSnapshot(BaseModel):
+    """Schema for creating a snapshot of the virtual machine.
+
+    Attributes:
+        name (str): The name of the new snapshot.
+        description (Optional[str]): The optional description of the snapshot.
+    """
+
+    name: str
+    description: Optional[str] = None

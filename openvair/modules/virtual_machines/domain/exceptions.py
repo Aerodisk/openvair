@@ -39,3 +39,19 @@ class VNCSessionError(BaseCustomException):
     def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the VNCSessionError with a message."""
         super().__init__(message, *args)
+
+
+class SnapshotError(BaseCustomException):
+    """Raised when getting error while operating snapshots in Libvirt API"""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the SnapshotError with a message."""
+        super().__init__(message, *args)
+
+
+class SnapshotXmlError(BaseCustomException):
+    """Raised when getting error while operating snapshots XML files"""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the SnapshotXMLError with a message."""
+        super().__init__(message, *args)
