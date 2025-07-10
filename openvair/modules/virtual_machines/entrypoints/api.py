@@ -271,7 +271,7 @@ async def vnc_vm(
 )
 async def clone_vm(
     data: schemas.CloneVm,
-    vm_id: str = Path(description='Id of vm that will be cloned '),
+    vm_id: str = Path(description='Id of vm that will be cloned'),
     user_info: Dict = Depends(get_current_user),
     crud: VMCrud = Depends(VMCrud),
 ) -> List[schemas.VirtualMachineInfo]:

@@ -270,7 +270,7 @@ class CloneVm(BaseModel):
 
     count: int = Field(1, description='Number of clones')
     target_storage_id: UUID = Field(
-        ..., description='ID of storage where the volume will be created '
+        ..., description='ID of storage where the volume will be created'
     )
 
 
