@@ -131,7 +131,7 @@ class ImageServiceLayerManager(BackgroundTasks):
     or background operations related to image management.
 
     Attributes:
-        uow (SqlAlchemyUnitOfWork): Unit of work for managing database
+        uow (ImageSqlAlchemyUnitOfWork): Unit of work for managing database
             transactions.
         domain_rpc (RabbitRPCClient): RPC client for communicating with the
             domain layer.
@@ -161,7 +161,7 @@ class ImageServiceLayerManager(BackgroundTasks):
         with other parts of the system.
         """
         super().__init__()
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.ImageSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -279,8 +279,8 @@ class ImageServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
-            image = self.uow.images.get(image_id)
+        with self.uow() as uow:
+            image = uow.images.get_or_fail(image_id)
             serialized_image = DataSerializer.to_web(image)
             LOG.debug(f'Got image from db: {serialized_image}.')
         LOG.info('Service Layer method get image was successfully processed.')
@@ -302,11 +302,11 @@ class ImageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service Layer start handling response on get images.')
         storage_id = data.pop('storage_id', None)
-        with self.uow:
+        with self.uow() as uow:
             if storage_id:
-                images = self.uow.images.get_all_by_storage(storage_id)
+                images = uow.images.get_all_by_storage(storage_id)
             else:
-                images = self.uow.images.get_all()
+                images = uow.images.get_all()
             LOG.debug(f'Got images from db: {images}')
             serialized_images = [
                 DataSerializer.to_web(image) for image in images
@@ -505,19 +505,19 @@ class ImageServiceLayerManager(BackgroundTasks):
         image_info.update({'user_id': user_id})
         image = self._prepare_image_data(image_info)
 
-        with self.uow:
+        with self.uow() as uow:
             LOG.info('Preparing image_info for db table Image.')
 
             # check if image with this name already exists
-            if self.uow.images.get_by_name(image.name):
+            if uow.images.get_by_name(image.name):
                 self._delete_image_from_tmp(name)
                 raise exceptions.ImageNameExistsException(image.name)
 
             db_image: Image = cast(Image, DataSerializer.to_db(image._asdict()))
             db_image.status = ImageStatus.new.name
             LOG.info('Start inserting image into db with status new.')
-            self.uow.images.add(db_image)
-            self.uow.commit()
+            uow.images.add(db_image)
+            uow.commit()
             serialized_image = DataSerializer.to_web(db_image)
             LOG.debug(
                 'Serialized image ready for other steps: %s' % serialized_image
@@ -565,8 +565,8 @@ class ImageServiceLayerManager(BackgroundTasks):
         storage_id = image_info.get('storage_id', '')
         storage_info = self._get_storage_info(str(storage_id))
 
-        with self.uow:
-            db_image = self.uow.images.get(uuid.UUID(image_id))
+        with self.uow() as uow:
+            db_image = uow.images.get_or_fail(uuid.UUID(image_id))
             LOG.info('Got image from db: %s.' % db_image)
 
             try:
@@ -580,7 +580,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 db_image.status = ImageStatus.uploading.name
                 db_image.path = storage_info.mount_point
                 db_image.storage_type = storage_info.storage_type
-                self.uow.commit()
+                uow.commit()
 
                 domain_image = DataSerializer.to_domain(db_image)
                 LOG.info(
@@ -624,7 +624,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             finally:
                 self._delete_image_from_tmp(image_info.get('name', ''))
                 db_image.status = ImageStatus.available.name
-                self.uow.commit()
+                uow.commit()
                 LOG.debug('Image status was updated on %s.' % db_image.status)
 
         LOG.info(
@@ -645,8 +645,8 @@ class ImageServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_info', {})
         image_id = data.get('image_id', '')
 
-        with self.uow:
-            db_image = self.uow.images.get(image_id)
+        with self.uow() as uow:
+            db_image = uow.images.get_or_fail(image_id)
             available_statuses = [
                 ImageStatus.available.name,
                 ImageStatus.error.name,
@@ -656,7 +656,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 self._check_image_has_not_attachment(db_image)
 
                 db_image.status = ImageStatus.deleting.name
-                self.uow.commit()
+                uow.commit()
 
                 domain_image = DataSerializer.to_domain(db_image)
                 domain_image.update({'user_info': user_info})
@@ -678,7 +678,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 LOG.error(message)
                 raise exceptions.ImageDeletingError(message)
             finally:
-                self.uow.commit()
+                uow.commit()
 
     def _delete_image(self, image_info: Dict) -> None:
         """Deletes an image and its associated data from the database.
@@ -702,16 +702,16 @@ class ImageServiceLayerManager(BackgroundTasks):
         user_info = image_info.pop('user_info')
         user_id = user_info.get('id', '')
 
-        with self.uow:
-            db_image = self.uow.images.get(image_id)
+        with self.uow() as uow:
+            db_image = uow.images.get_or_fail(image_id)
 
             try:
                 if db_image.storage_type:
                     self.domain_rpc.call(
                         BaseImage.delete.__name__, data_for_manager=image_info
                     )
-                self.uow.session.delete(db_image)
-                self.uow.commit()
+                uow.session.delete(db_image)
+                uow.commit()
             except (RpcCallException, RpcCallTimeoutException) as err:
                 message = (
                     'An error occurred when calling the '
@@ -726,7 +726,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                     if message
                     else ImageStatus.available.name
                 )
-                self.uow.commit()
+                uow.commit()
                 LOG.error(message)
                 raise exceptions.ImageDeletingError(message)
 
@@ -782,8 +782,8 @@ class ImageServiceLayerManager(BackgroundTasks):
             Dict: The result of the domain layer call for attaching the image.
         """
         LOG.info('Starting attach image to vm.')
-        with self.uow:
-            db_image = self.uow.images.get(data.get('image_id'))  # type: ignore
+        with self.uow() as uow:
+            db_image = uow.images.get_or_fail(data.get('image_id'))  # type: ignore
             available_statuses = [ImageStatus.available.name]
             try:
                 self._check_image_status(db_image.status, available_statuses)
@@ -814,7 +814,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             else:
                 db_image.status = ImageStatus.available.name
                 db_image.information = ''
-                self.uow.commit()
+                uow.commit()
                 LOG.info('Image was successfully attached.')
                 return attach_result
 
@@ -837,8 +837,8 @@ class ImageServiceLayerManager(BackgroundTasks):
         LOG.info('Starting detaching image from vm.')
         image_id = data.get('image_id', '')
         vm_id = data.get('vm_id', '')
-        with self.uow:
-            db_image = self.uow.images.get(image_id)
+        with self.uow() as uow:
+            db_image = uow.images.get_or_fail(image_id)
             available_statuses = [
                 ImageStatus.available.name,
                 ImageStatus.error.name,
@@ -848,7 +848,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 for attachment in db_image.attachments:
                     if str(attachment.vm_id) == vm_id:
                         db_image.attachments.remove(attachment)
-                        self.uow.session.delete(attachment)
+                        uow.session.delete(attachment)
                 LOG.info('Image was successfully detached.')
             except exceptions.ImageStatusError as err:
                 message = 'An error occurred while detaching ' f'image: {err!s}'
@@ -857,7 +857,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 LOG.exception(message)
                 raise err  # noqa: TRY201 need to handle concrete exception
             finally:
-                self.uow.commit()
+                uow.commit()
         return DataSerializer.to_web(db_image)
 
     def _get_all_storages_info(self) -> List[StorageInfo]:
@@ -976,8 +976,8 @@ class ImageServiceLayerManager(BackgroundTasks):
 
     def _get_domain_images(self) -> List[Dict]:
         """Get all images from the database and convert to domain objects."""
-        with self.uow:
-            db_images = self.uow.images.get_all()
+        with self.uow() as uow:
+            db_images = uow.images.get_all()
             return [DataSerializer.to_domain(img) for img in db_images]
 
     def _get_available_storages(self) -> Dict[str, StorageInfo]:
@@ -1069,6 +1069,6 @@ class ImageServiceLayerManager(BackgroundTasks):
 
     def _update_images_in_db(self, updated_images: List[Dict]) -> None:
         """Update the image information in the database."""
-        with self.uow:
-            self.uow.images.bulk_update(updated_images)
-            self.uow.commit()
+        with self.uow() as uow:
+            uow.images.bulk_update(updated_images)
+            uow.commit()
