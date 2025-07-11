@@ -51,4 +51,3 @@ class VMRenderer(BaseTemplateRenderer):
 
     def _postprocess_result(self, rendered_str: str) -> str:
         return rendered_str
-

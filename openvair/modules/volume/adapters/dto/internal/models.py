@@ -10,8 +10,8 @@ class ApiAttachmentModelDTO(BaseModel):  # noqa: D101
     vm_id: UUID
     target: Optional[Path] = None
 
-class ApiVolumeModelDTO(BaseModel):  # noqa: D101
 
+class ApiVolumeModelDTO(BaseModel):  # noqa: D101
     id: UUID
     name: str
     description: Optional[str] = None

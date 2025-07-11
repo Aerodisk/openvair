@@ -78,6 +78,18 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def clone(self, data: Dict) -> Dict:
+        """Clone an existing volume.
+
+        Args:
+            data (Dict): A dictionary containing the necessary data for cloning.
+
+        Returns:
+            Dict: A dictionary representation of the cloned volume's attributes.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def attach_volume_info(self) -> Dict:
         """Get information about an existing volume.
 
