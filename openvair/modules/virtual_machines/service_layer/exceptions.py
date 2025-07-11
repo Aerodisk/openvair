@@ -21,6 +21,9 @@ Classes:
         or invalid.
     MaxTriesError: Raised when the maximum number of tries for an operation
         is exceeded.
+    SnapshotNameExistsError: Raised when a snapshot with the same name already
+     exists for the VM.
+    NoResultFound: Raised when a database query returns no results.
 """
 
 from typing import Any
@@ -31,7 +34,7 @@ from openvair.abstracts.base_exception import BaseCustomException
 class UnexpectedDataArguments(BaseCustomException):
     """Raised when unexpected arguments are passed to a function."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize UnexpectedDataArguments with optional arguments."""
         super().__init__(message, *args)
 
@@ -39,7 +42,7 @@ class UnexpectedDataArguments(BaseCustomException):
 class CreateVMDataException(BaseCustomException):
     """Raised when error with the data for creating a virtual machine."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize CreateVMDataException with optional arguments."""
         super().__init__(message, *args)
 
@@ -47,7 +50,7 @@ class CreateVMDataException(BaseCustomException):
 class VMStatusException(BaseCustomException):
     """Raised when there is an error with the status of a virtual machine."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize VMStatusException with optional arguments."""
         super().__init__(message, *args)
 
@@ -55,7 +58,7 @@ class VMStatusException(BaseCustomException):
 class VMPowerStateException(BaseCustomException):
     """Raised when error with the power state of a virtual machine."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize VMPowerStateException with optional arguments."""
         super().__init__(message, *args)
 
@@ -63,7 +66,7 @@ class VMPowerStateException(BaseCustomException):
 class ValidateArgumentsError(BaseCustomException):
     """Raised when argument validation fails."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize ValidateArgumentsError with optional arguments."""
         super().__init__(message, *args)
 
@@ -71,7 +74,7 @@ class ValidateArgumentsError(BaseCustomException):
 class VolumeStatusIsError(BaseCustomException):
     """Raised when there is an issue with the status of a volume."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize VolumeStatusIsError with optional arguments."""
         super().__init__(message, *args)
 
@@ -79,7 +82,7 @@ class VolumeStatusIsError(BaseCustomException):
 class ComesEmptyVolumeInfo(BaseCustomException):
     """Raised when the volume information is empty or invalid."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize ComesEmptyVolumeInfo with optional arguments."""
         super().__init__(message, *args)
 
@@ -87,6 +90,51 @@ class ComesEmptyVolumeInfo(BaseCustomException):
 class MaxTriesError(BaseCustomException):
     """Raised when the maximum number of tries for an operation is exceeded."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize MaxTriesError with optional arguments."""
+        super().__init__(message, *args)
+
+
+class VMNotFoundException(BaseCustomException):
+    """Raised when a virtual machine is not found."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VMNotFoundException with optional arguments."""
+        super().__init__(message, *args)
+
+
+class VolumeCloneException(BaseCustomException):
+    """Raised when there is an error with volume cloning."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize VolumeCloneException with optional arguments."""
+class SnapshotNameExistsError(BaseCustomException):
+    """Raised when a snapshot with the same name already exists for the VM."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize SnapshotNameExistsError with optional arguments."""
+        super().__init__(message, *args)
+
+
+class SnapshotLimitExceeded(BaseCustomException):
+    """Raised when the maximum number of snapshots per VM is exceeded."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize SnapshotLimitExceeded with optional arguments."""
+        super().__init__(message, *args)
+
+
+class SnapshotStatusException(BaseCustomException):
+    """Raised when error with the status of the snapshot."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the SnapshotStatusError with a message."""
+        super().__init__(message, *args)
+
+
+class NoResultFound(BaseCustomException):
+    """Raised when a database query returns no results."""
+
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize NoResultFound with optional arguments."""
         super().__init__(message, *args)

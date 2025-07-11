@@ -106,9 +106,14 @@ class QemuImgAdapter:
         Raises:
             QemuImgError: If convert fails.
         """
+        LOG.info(
+            f'Creating copy from {source_path} to '
+            f'{target_path} with format {fmt}'
+        )
         result = self.executor.execute(
             f'{self.CONVERT_SUBCOMMAND} {fmt} {source_path} {target_path}'
         )
+        LOG.info(f'Result of conversion: {result}')
         self._check_result(self.CONVERT_SUBCOMMAND, result)
 
     def _check_result(
@@ -125,10 +130,16 @@ class QemuImgAdapter:
         Raises:
             QemuImgError: If the command failed.
         """
+        LOG.info(
+            f'Checking result of subcommand "{subcommand}" with '
+            f'return code {result.returncode}'
+        )
         if result.returncode != 0:
             message: str = (
                 f'Operation "{subcommand}" failed with code '
                 f'{result.returncode}.'
                 f'\n\tstderr: {result.stderr}'
             )
+            LOG.error(message)
             raise QemuImgError(message)
+        LOG.info('Command executed successfully.')
