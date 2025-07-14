@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 from fastapi import status
-from schemas.requests import RequestCreateTemplate
 from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
 
@@ -24,6 +23,9 @@ from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
     LocalFSStorageExtraSpecsCreate,
+)
+from openvair.modules.template.entrypoints.schemas.requests import (
+    RequestCreateTemplate,
 )
 
 LOG = get_logger(__name__)

@@ -20,7 +20,7 @@ import pytest
 from openvair.libs.log import get_logger
 from openvair.modules.volume.adapters.orm import VolumeAttachVM
 from openvair.modules.volume.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork,
+    VolumeSqlAlchemyUnitOfWork,
 )
 
 LOG = get_logger(__name__)
@@ -32,8 +32,8 @@ def attached_volume(volume: dict) -> Generator[dict, None, None]:
     volume_id = UUID(volume['id'])
     vm_id = uuid4()
 
-    with SqlAlchemyUnitOfWork() as uow:
-        db_volume = uow.volumes.get(volume_id)
+    with VolumeSqlAlchemyUnitOfWork() as uow:
+        db_volume = uow.volumes.get_or_fail(volume_id)
         attachment = VolumeAttachVM(vm_id=vm_id, volume_id=volume_id)
         db_volume.attachments.append(attachment)
         uow.session.add(attachment)
@@ -44,8 +44,8 @@ def attached_volume(volume: dict) -> Generator[dict, None, None]:
         'vm_id': vm_id,
     }
 
-    with SqlAlchemyUnitOfWork() as uow:
-        db_volume = uow.volumes.get(volume_id)
+    with VolumeSqlAlchemyUnitOfWork() as uow:
+        db_volume = uow.volumes.get_or_fail(volume_id)
         db_volume.attachments.clear()
         uow.session.query(VolumeAttachVM).filter_by(
             volume_id=volume_id

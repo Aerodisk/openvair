@@ -143,7 +143,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
     or background operations related to volume management.
 
     Attributes:
-        uow (SqlAlchemyUnitOfWork): Unit of work for managing database
+        uow (VolumeSqlAlchemyUnitOfWork): Unit of work for managing database
             transactions.
         domain_rpc (RabbitRPCClient): RPC client for communicating with the
             domain layer.
@@ -171,7 +171,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         with other parts of the system.
         """
         super(VolumeServiceLayerManager, self).__init__()
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.VolumeSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -210,8 +210,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume_id)
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_id)
             web_volume = DataSerializer.to_web(db_volume)
             LOG.debug('Got volume from db: %s.' % web_volume)
         LOG.info('Service layer method get volume was successfully processed')
@@ -234,11 +234,11 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer start handling response on get volumes.')
         storage_id = data.pop('storage_id', None)
         free_volumes = data.pop('free_volumes', False)
-        with self.uow:
+        with self.uow() as uow:
             if storage_id:
-                db_volumes = self.uow.volumes.get_all_by_storage(storage_id)
+                db_volumes = uow.volumes.get_all_by_storage(storage_id)
             else:
-                db_volumes = self.uow.volumes.get_all()
+                db_volumes = uow.volumes.get_all()
             web_volumes = []
             for db_volume in db_volumes:
                 if free_volumes and db_volume.attachments:
@@ -299,15 +299,17 @@ class VolumeServiceLayerManager(BackgroundTasks):
             VolumeExistsOnStorageException: If a volume with the given name
                 already exists on the specified storage.
         """
-        db_volume = self.uow.volumes.get_by_name_and_storage(
-            volume_name, storage_id
-        )
-        if db_volume:
-            message = (
-                f'Volume with current name {volume_name} ' f'exists on storage.'
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_by_name_and_storage(
+                volume_name, storage_id
             )
-            LOG.error(message)
-            raise exceptions.VolumeExistsOnStorageException(message)
+            if db_volume:
+                message = (
+                    f'Volume with current name {volume_name} '
+                    f'exists on storage.'
+                )
+                LOG.error(message)
+                raise exceptions.VolumeExistsOnStorageException(message)
 
     @staticmethod
     def _check_volume_status(
@@ -366,14 +368,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         except (RpcCallException, RpcCallTimeoutException) as err:
             message = f'An error occurred when getting storages: {err!s}'
             LOG.error(message)
-            return StorageInfo(
-                id='',
-                name='',
-                storage_type='',
-                status='',
-                available_space=0,
-                mount_point='',
-            )
+            raise exceptions.StorageUnavailableException(message)
 
         storage_extra_specs = storage_info.get('storage_extra_specs', {})
         return StorageInfo(
@@ -456,18 +451,38 @@ class VolumeServiceLayerManager(BackgroundTasks):
         user_info = volume_info.pop('user_info', {})
         volume_info.update({'user_id': user_info.get('id', '')})
         volume = self._prepare_volume_data(volume_info)
-        with self.uow:
-            self._check_volume_exists_on_storage(volume.name, volume.storage_id)
-            db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
-            db_volume.status = VolumeStatus.new.name
-            LOG.info('Start inserting volume into db with status new.')
-            self.uow.volumes.add(db_volume)
-            self.uow.commit()
-            serialized_volume = DataSerializer.to_web(db_volume)
-            LOG.debug(
-                'Serialized volume ready for other steps: %s'
-                % serialized_volume
-            )
+        with self.uow() as uow:
+            try:
+                self._check_volume_exists_on_storage(
+                    volume.name,
+                    volume.storage_id
+                )
+                db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
+                self._get_storage_info(volume.storage_id)
+                db_volume.status = VolumeStatus.new.name
+                LOG.info('Start inserting volume into db with status new.')
+                uow.volumes.add(db_volume)
+                serialized_volume = DataSerializer.to_web(db_volume)
+                LOG.debug(
+                    'Serialized volume ready for other steps: %s'
+                    % serialized_volume
+                )
+            except (
+                    exceptions.VolumeExistsOnStorageException,
+                    exceptions.StorageUnavailableException,
+            ) as err:
+                message = f'An error occurred while creating volume: {err!s}'
+                db_volume.status = VolumeStatus.error.name
+                db_volume.information = message
+                self.event_store.add_event(
+                    str(db_volume.id),
+                    str(db_volume.user_id),
+                    self.create_volume.__name__,
+                    message,
+                )
+                raise
+            finally:
+                uow.commit()
         LOG.info('Cast _create_volume for other steps.')
         serialized_volume.update({'user_info': user_info})
         self.service_layer_rpc.cast(
@@ -504,22 +519,40 @@ class VolumeServiceLayerManager(BackgroundTasks):
             message = 'Volume id was not received.'
             LOG.error(message)
             raise exceptions.CreateVolumeDataException(message)
-        storage_info = self._get_storage_info(storage_id)
-        with self.uow:
-            db_volume = self.uow.volumes.get(uuid.UUID(volume_id))
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(uuid.UUID(volume_id))
             try:
+                storage_info = self._get_storage_info(storage_id)
                 self._check_volume_status(
                     db_volume.status, [VolumeStatus.new.name]
                 )
                 db_volume.status = VolumeStatus.creating.name
                 db_volume.path = storage_info.mount_point
                 db_volume.storage_type = storage_info.storage_type
-                self.uow.commit()
                 self._check_storage_on_availability(storage_info)
                 self._check_available_space_on_storage(
                     int(db_volume.size), storage_info
                 )
-
+            except (
+                    exceptions.VolumeStatusException,
+                    exceptions.ValidateArgumentsError,
+                    exceptions.StorageUnavailableException,
+            ) as err:
+                message = f'An error occurred while creating volume: {err!s}'
+                db_volume.status = VolumeStatus.error.name
+                db_volume.information = message
+                self.event_store.add_event(
+                    str(db_volume.id),
+                    str(db_volume.user_id),
+                    self.create_volume.__name__,
+                    message,
+                )
+                raise
+            finally:
+                uow.commit()
+        with self.uow() as uow:
+            try:
+                db_volume = uow.volumes.get_or_fail(uuid.UUID(volume_id))
                 domain_volume = DataSerializer.to_domain(db_volume)
                 LOG.info(
                     'Serialized volume which will call to domain '
@@ -531,8 +564,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 LOG.debug('Result of rpc call to domain: %s.' % result)
                 db_volume.status = VolumeStatus.available.name
                 LOG.debug(
-                    'Volume status was updated on %s.'
-                    % VolumeStatus.available.name
+                    'Volume status was updated on '
+                    '%s.' % VolumeStatus.available.name
                 )
                 self.event_store.add_event(
                     str(db_volume.id),
@@ -554,25 +587,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                     message,
                 )
                 raise
-            except (
-                exceptions.VolumeStatusException,
-                exceptions.ValidateArgumentsError,
-                exceptions.StorageUnavailableException,
-            ) as err:
-                message = (
-                    f'An error occurred while creating ' f'volume: {err!s}'
-                )
-                db_volume.status = VolumeStatus.error.name
-                db_volume.information = message
-                self.event_store.add_event(
-                    str(db_volume.id),
-                    str(db_volume.user_id),
-                    self.create_volume.__name__,
-                    message,
-                )
-                raise
             finally:
-                self.uow.commit()
+                uow.commit()
         LOG.info(
             'Service layer method _create_volume was' 'successfully processed'
         )
@@ -631,8 +647,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
 
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume_id)
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_id)
             try:
                 self._check_volume_status(
                     db_volume.status, [VolumeStatus.available.name]
@@ -662,7 +678,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 )
                 raise
             finally:
-                self.uow.commit()
+                uow.commit()
 
         LOG.info('Cast _extend_volume for other steps.')
 
@@ -716,8 +732,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         new_size = int(data.get('new_size', ''))
         data.pop('user_info', {})
 
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume.get('id'))
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume.get('id'))
             try:
                 storage = self._get_storage_info(str(db_volume.storage_id))
                 self._check_storage_on_availability(storage)
@@ -778,7 +794,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 )
                 raise
             finally:
-                self.uow.commit()
+                uow.commit()
 
         self.event_store.add_event(
             volume.get('id'),
@@ -811,8 +827,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer start handling response on delete volume.')
         user_info = data.pop('user_info', {})
         volume_id = data.get('volume_id', '')
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume_id)
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_id)
             available_statuses = [
                 VolumeStatus.available.name,
                 VolumeStatus.error.name,
@@ -820,9 +836,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             try:
                 self._check_volume_status(db_volume.status, available_statuses)
                 self._check_volume_has_not_attachment(db_volume)
-
                 db_volume.status = VolumeStatus.deleting.name
-                self.uow.commit()
                 domain_volume = DataSerializer.to_domain(db_volume)
                 domain_volume.update({'user_info': user_info})
                 self.service_layer_rpc.cast(
@@ -851,7 +865,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 )
                 raise
             finally:
-                self.uow.commit()
+                uow.commit()
         return DataSerializer.to_web(db_volume)
 
     def _delete_volume(self, volume_info: Dict) -> None:
@@ -871,14 +885,14 @@ class VolumeServiceLayerManager(BackgroundTasks):
             deletion operation and logs the result.
         """
         volume_info.pop('user_info')
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume_info.get('id', ''))
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_info.get('id', ''))
             try:
                 if db_volume.storage_type:
                     self.domain_rpc.call(
                         BaseVolume.delete.__name__, data_for_manager=volume_info
                     )
-                self.uow.session.delete(db_volume)
+                uow.session.delete(db_volume)
                 self.event_store.add_event(
                     str(volume_info.get('id')),
                     str(db_volume.user_id),
@@ -904,7 +918,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 )
                 raise
             finally:
-                self.uow.commit()
+                uow.commit()
 
     def edit_volume(self, data: Dict) -> Dict:
         """Edit the metadata of an existing volume.
@@ -926,8 +940,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         new_volume_name = data.get('name', '')
         new_read_only = data.get('read_only', False)
         new_volume_description = data.get('description', '')
-        with self.uow:
-            db_volume = self.uow.volumes.get(data.get('volume_id', ''))
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(data.get('volume_id', ''))
             self._check_volume_status(
                 db_volume.status, [VolumeStatus.available.name]
             )
@@ -938,7 +952,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             db_volume.name = new_volume_name
             db_volume.read_only = new_read_only
             db_volume.description = new_volume_description
-            self.uow.commit()
+            uow.commit()
         serialized_volume = DataSerializer.to_web(db_volume)
         LOG.info('Service layer method edit_volume was successfully processed')
         return serialized_volume
@@ -961,8 +975,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 attachment.
         """
         LOG.info('Starting attach volume to vm.')
-        with self.uow:
-            db_volume = self.uow.volumes.get(data.get('volume_id', ''))
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(data.get('volume_id', ''))
             available_statuses = [VolumeStatus.available.name]
             try:
                 self._check_volume_status(db_volume.status, available_statuses)
@@ -995,7 +1009,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             else:
                 return result
             finally:
-                self.uow.commit()
+                uow.commit()
 
     def detach_volume(self, data: Dict) -> Dict:
         """Detach a volume from a virtual machine.
@@ -1016,8 +1030,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Starting detaching volume.')
         volume_id = data.get('volume_id', '')
         vm_id = data.get('vm_id', '')
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume_id)
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_id)
             available_statuses = [
                 VolumeStatus.available.name,
                 VolumeStatus.error.name,
@@ -1027,7 +1041,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 for attachment in db_volume.attachments:
                     if str(attachment.vm_id) == vm_id:
                         db_volume.attachments.remove(attachment)
-                        self.uow.session.delete(attachment)
+                        uow.session.delete(attachment)
                 LOG.info('Volume was successfully detached.')
             except exceptions.VolumeStatusException as err:
                 message = (
@@ -1037,7 +1051,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.information = message
                 raise
             finally:
-                self.uow.commit()
+                uow.commit()
         return DataSerializer.to_web(db_volume)
 
     def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
@@ -1071,7 +1085,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             is_backing=template.is_backing,
             **creation_dto.model_dump(),
         )
-        with self.uow:
+        with self.uow() as uow:
             self._check_volume_exists_on_storage(
                 volume_info.name, str(volume_info.storage_id)
             )
@@ -1079,8 +1093,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 Volume, DataSerializer.to_db(volume_info.model_dump())
             )
             db_volume.status = VolumeStatus.new.name
-            self.uow.volumes.add(db_volume)
-            self.uow.commit()
+            uow.volumes.add(db_volume)
+            uow.commit()
             web_volume = VolumeWebSerializer.to_dict(db_volume)
             self.service_layer_rpc.cast(
                 self._create_from_template.__name__,
@@ -1097,23 +1111,24 @@ class VolumeServiceLayerManager(BackgroundTasks):
         creating_dto = CreateVolumeFromTemplateModelDTO.model_validate(
             creating_from_tmp_data
         )
-        with self.uow:
-            db_volume = self.uow.volumes.get(volume_id)
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_id)
             db_volume.status = VolumeStatus.creating.name
-            self.uow.commit()
+            uow.commit()
             data_for_manager = VolumeDomainSerializer.to_dto(db_volume)
             data_for_method = CreateVolumeFromTemplateDomainCommandDTO(
                 template_path=creating_dto.template_path,
                 is_backing=creating_dto.is_backing,
             )
-
-            self.domain_rpc.call(
-                BaseVolume.create_from_template.__name__,
-                data_for_manager=data_for_manager.model_dump(mode='json'),
-                data_for_method=data_for_method.model_dump(mode='json'),
-            )
+        self.domain_rpc.call(
+            BaseVolume.create_from_template.__name__,
+            data_for_manager=data_for_manager.model_dump(mode='json'),
+            data_for_method=data_for_method.model_dump(mode='json'),
+        )
+        with self.uow() as uow:
+            db_volume = uow.volumes.get_or_fail(volume_id)
             db_volume.status = VolumeStatus.available.name
-            self.uow.commit()
+            uow.commit()
 
     def _get_template(self, template_id: uuid.UUID) -> TemplateModelDTO:
         return TemplateModelDTO.model_validate(
@@ -1201,10 +1216,10 @@ class VolumeServiceLayerManager(BackgroundTasks):
         Returns:
             List[Dict]: A list of domain objects representing volumes.
         """
-        with self.uow:
+        with self.uow() as uow:
             return [
                 DataSerializer.to_domain(vol)
-                for vol in self.uow.volumes.get_all()
+                for vol in uow.volumes.get_all()
             ]
 
     def _get_storages_dict(self) -> Dict[str, StorageInfo]:
@@ -1320,7 +1335,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         Args:
             updated_db_volumes (List[Dict]): A list of updated volume data.
         """
-        with self.uow:
-            self.uow.volumes.bulk_update(updated_db_volumes)
-            self.uow.commit()
+        with self.uow() as uow:
+            uow.volumes.bulk_update(updated_db_volumes)
+            uow.commit()
 

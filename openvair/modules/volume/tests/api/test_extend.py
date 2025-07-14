@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import wait_for_field_value
 from openvair.modules.volume.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork,
+    VolumeSqlAlchemyUnitOfWork,
 )
 
 if TYPE_CHECKING:
@@ -91,8 +91,8 @@ def test_extend_volume_status_not_available(
     - HTTP 500 with 'VolumeStatusException'.
     """
     volume_id = volume['id']
-    with SqlAlchemyUnitOfWork() as uow:
-        db_volume: ORMVolume = uow.volumes.get(volume_id)
+    with VolumeSqlAlchemyUnitOfWork() as uow:
+        db_volume: ORMVolume = uow.volumes.get_or_fail(volume_id)
         db_volume.status = 'extending'
         uow.commit()
 

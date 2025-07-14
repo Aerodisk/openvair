@@ -23,7 +23,7 @@ from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
 from openvair.modules.volume.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork as VolumeUOW,
+    VolumeSqlAlchemyUnitOfWork as VolumeUOW,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
