@@ -1367,8 +1367,9 @@ class VolumeServiceLayerManager(BackgroundTasks):
             )
 
         self._check_storage_on_availability(volume_storage)
+        monitoring_statuses = [status.name for status in VolumeStatus]
         self._check_volume_status(
-            domain_volume.get('status', ''), self._get_monitoring_statuses()
+            domain_volume.get('status', ''), monitoring_statuses
         )
 
         result = self.domain_rpc.call(
@@ -1383,20 +1384,6 @@ class VolumeServiceLayerManager(BackgroundTasks):
             'status': VolumeStatus.available.name,
             'information': '',
         }
-
-    def _get_monitoring_statuses(self) -> List[str]:
-        """Get the list of statuses for monitoring.
-
-        Returns:
-            List[str]: A list of volume statuses to be monitored.
-        """
-        return [
-            VolumeStatus.available.name,
-            VolumeStatus.error.name,
-            VolumeStatus.creating.name,
-            VolumeStatus.deleting.name,
-            VolumeStatus.extending.name,
-        ]
 
     def _update_volumes_in_db(self, updated_db_volumes: List[Dict]) -> None:
         """Update volume information in the database.
