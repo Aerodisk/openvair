@@ -10,62 +10,34 @@ Classes:
 
 from __future__ import annotations
 
-import abc
-from typing import Any, Optional
+from typing import TYPE_CHECKING
 
-from typing_extensions import Self
-
+from openvair.modules.dashboard.config import DEFAULT_SESSION_FACTORY
+from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 from openvair.modules.dashboard.adapters import repository
 
-
-class AbstractUnitOfWork(metaclass=abc.ABCMeta):
-    """Abstract base class for unit of work.
-
-    This class defines the interface for a unit of work, which manages
-    interactions with repositories and ensures proper resource management.
-    """
-
-    prometheus: repository.PrometheusRepository
-
-    def __enter__(self) -> Self:
-        """Enter the runtime context for the unit of work."""
-        return self
-
-    @abc.abstractmethod
-    def __exit__(self, *args: Any) -> Optional[bool]:  # noqa: ANN401 # TODO need to specify logic for method and arguments
-        """Exit the runtime context for the unit of work."""
-        ...
+if TYPE_CHECKING:
+    from sqlalchemy.orm import sessionmaker
 
 
-class PrometheusUnitOfWork(AbstractUnitOfWork):
+class PrometheusUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """Concrete unit of work for Prometheus.
 
     This class provides the implementation for managing Prometheus repository
     interactions, ensuring proper initialization and cleanup of resources.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY
+    ) -> None:
         """Initialize the PrometheusUnitOfWork.
 
         This constructor sets up the necessary components for the
         PrometheusUnitOfWork, ensuring proper initialization of the base
         class.
         """
-        super().__init__()
+        super().__init__(session_factory)
 
-    def __enter__(self) -> Self:
-        """Enter the runtime context for the unit of work.
-
-        This method initializes the Prometheus repository and returns the
-        instance of the unit of work.
-        """
+    def _init_repositories(self) -> None:
+        """Initializes prometheus repository for the dashboard module."""
         self.prometheus = repository.PrometheusRepository()
-        return super().__enter__()
-
-    def __exit__(self, *args: Any) -> Optional[bool]:  # noqa: ANN401 # TODO need to specify logic for method and arguments
-        """Exit the runtime context for the unit of work.
-
-        This method ensures proper cleanup of resources when exiting the
-        context.
-        """
-        pass

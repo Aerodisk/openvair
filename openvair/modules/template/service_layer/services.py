@@ -33,13 +33,16 @@ from openvair.modules.template.adapters.serializer import (
     DomainSerializer,
 )
 from openvair.modules.template.service_layer.exceptions import (
+    VMRetrievalException,
     VolumeRetrievalException,
     StorageRetrievalException,
+    BaseVolumeAttachToActiveVmException,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
 )
 from openvair.modules.template.adapters.dto.external.models import (
+    VMModelDTO,
     VolumeModelDTO,
     StorageModelDTO,
 )
@@ -47,6 +50,7 @@ from openvair.modules.template.adapters.dto.internal.models import (
     CreateTemplateModelDTO,
 )
 from openvair.modules.template.adapters.dto.external.commands import (
+    GetVmCommandDTO,
     GetVolumeCommandDTO,
     GetStorageCommandDTO,
 )
@@ -58,6 +62,9 @@ from openvair.modules.template.adapters.dto.internal.commands import (
     CreateTemplateServiceCommandDTO,
     DeleteTemplateServiceCommandDTO,
     AsyncCreateTemplateServiceCommandDTO,
+)
+from openvair.libs.messaging.clients.rpc_clients.vm_rpc_client import (
+    VMServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
@@ -97,7 +104,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         volume and storage services.
         """
         super().__init__()
-        self.uow = TemplateSqlAlchemyUnitOfWork()
+        self.uow = TemplateSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -105,6 +112,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.volume_service_client = VolumeServiceLayerRPCClient()
+        self.vm_service_client = VMServiceLayerRPCClient()
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
@@ -116,7 +124,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer handle request on getting templates')
 
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_templates = uow.templates.get_all()
 
         api_templates: List[Dict[str, Any]] = [
@@ -147,7 +155,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         template_id = getting_command.id
         LOG.info(f'template_id: {template_id}')
 
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(template_id)
 
         api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
@@ -174,6 +182,8 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
         volume = self._get_volume_info(creating_command.base_volume_id)
+        self._check_volume_not_attached_to_active_vm(volume)
+
         storage = self._get_storage_info(creating_command.storage_id)
 
         path = (
@@ -191,7 +201,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             is_backing=creating_command.is_backing,
         )
         orm_template = CreateSerializer.to_orm(new_template_model)
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.add(orm_template)
             uow.commit()
         self._update_and_log_event(
@@ -226,7 +236,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         edit_command = EditTemplateServiceCommandDTO.model_validate(
             updating_data
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(edit_command.id)
         self._ensure_template_not_in_use(orm_template)
 
@@ -253,7 +263,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             deleting_data
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(delete_command.id)
         self._ensure_template_not_in_use(orm_template)
 
@@ -286,7 +296,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
                 prepared_create_command_data
             )
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(async_creating_command.id)
 
         self._update_and_log_event(
@@ -336,7 +346,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             edit_command_data
         )
 
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(edit_command.id)
 
         try:
@@ -382,7 +392,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             delete_command_data
         )
-        with self.uow as uow:
+        with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(delete_command.id)
         try:
             data_for_manager = DomainSerializer.to_dto(orm_template)
@@ -404,7 +414,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             LOG.error('Error while deleting template', exc_info=True)
             return
 
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.delete(orm_template)
             uow.commit()
 
@@ -444,7 +454,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         """
         orm_template.status = status
         orm_template.information = message
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.update(orm_template)
             uow.commit()
 
@@ -564,3 +574,26 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             message = f'Failed to get storage with id {storage_id}'
             raise StorageRetrievalException(message) from rpc_storage_err
+
+    def _get_vm_info(self, vm_id: UUID) -> VMModelDTO:
+        vm_query_payload = GetVmCommandDTO(vm_id=vm_id).model_dump(mode='json')
+        try:
+            vm_data = self.vm_service_client.get_vm(vm_query_payload)
+            return VMModelDTO.model_validate(vm_data)
+        except RpcException as rpc_vm_err:
+            LOG.error(
+                f'Error while getting vm with id: ' f'{vm_id}',
+                exc_info=True,
+            )
+            message = f'Failed to get vm with id {vm_id}'
+            raise VMRetrievalException(message) from rpc_vm_err
+
+    def _check_volume_not_attached_to_active_vm(
+        self, volume: VolumeModelDTO
+    ) -> None:
+        for attachment in volume.attachments:
+            vm_id = attachment.vm_id
+            vm = self._get_vm_info(vm_id)
+            if vm.power_state != 'shut_off':
+                message = f'\nvm_id: {vm_id} \nvolume_id: {volume.id}'
+                raise BaseVolumeAttachToActiveVmException(message)
