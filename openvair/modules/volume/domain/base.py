@@ -16,7 +16,6 @@ from pathlib import Path
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.volume.domain.exceptions import (
     VolumeDoesNotExistOnStorage,
 )
