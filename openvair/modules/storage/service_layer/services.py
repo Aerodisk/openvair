@@ -1034,11 +1034,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             StorageStatusError: If the storage status is not valid for
                 monitoring.
         """
-        ...
-        monitoring_statuses = [
-            StorageStatus.available.name,
-            StorageStatus.error.name,
-        ]
+        monitoring_statuses = [status.name for status in StorageStatus]
         self._check_storage_status(
             domain_storage.get('status', ''), monitoring_statuses
         )
