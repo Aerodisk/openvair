@@ -133,18 +133,26 @@ class BaseVolume(metaclass=abc.ABCMeta):
                     timeout=1,
                 ),
             )
-        except (ExecuteError, OSError) as err:
-            write_lock_warning_pattern = re.compile(
-                r'Failed to get shared "write" lock'
-            )
-            if write_lock_warning_pattern.search(str(err)):
-                LOG.warning(err)
-            else:
-                LOG.error(f'Error executing `qemu-img info`: {err}')
-            return {}
 
-        try:
+            if exec_result.returncode != 0:
+                write_lock_warning_pattern = re.compile(
+                    r'Failed to get shared "write" lock'
+                )
+                if write_lock_warning_pattern.search(exec_result.stderr or ''):
+                    LOG.warning(exec_result.stderr)
+                else:
+                    LOG.error(
+                        'Error executing `qemu-img info`: '
+                        f'{exec_result.stderr or exec_result.stdout}'
+                    )
+                return {}
+
+            # Если stdout пустой, смысла парсить тоже нет
+            if not exec_result.stdout:
+                LOG.error('`qemu-img info` returned empty output.')
+                return {}
+
             return cast(Dict, deserialize_json(exec_result.stdout))
-        except ValueError as err:
-            LOG.error(f'Failed to parse JSON output: {err}')
+        except Exception as err:  # noqa: BLE001
+            LOG.error(f'Unexpected error in _get_info_about_volume: {err}')
             return {}
