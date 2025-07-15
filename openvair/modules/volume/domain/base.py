@@ -129,7 +129,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
                 str(volume_path),
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
-                    raise_on_error=True,
+                    raise_on_error=False,
                     timeout=1,
                 ),
             )
