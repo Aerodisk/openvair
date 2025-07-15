@@ -453,11 +453,11 @@ class VolumeServiceLayerManager(BackgroundTasks):
         volume = self._prepare_volume_data(volume_info)
         with self.uow() as uow:
             try:
+                db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
                 self._check_volume_exists_on_storage(
                     volume.name,
                     volume.storage_id
                 )
-                db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
                 self._get_storage_info(volume.storage_id)
                 db_volume.status = VolumeStatus.new.name
                 LOG.info('Start inserting volume into db with status new.')
