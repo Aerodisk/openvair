@@ -363,6 +363,10 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         Returns:
             StorageInfo: An object containing the retrieved storage information.
+
+        Raises:
+            StorageNotFoundException: If error occurred when getting
+                storage info.
         """
         try:
             storage_info = self.storage_service_client.get_storage(
@@ -371,7 +375,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         except (RpcCallException, RpcCallTimeoutException) as err:
             message = f'An error occurred when getting storages: {err!s}'
             LOG.error(message)
-            raise exceptions.StorageUnavailableException(message)
+            raise exceptions.StorageNotFoundException(message)
 
         storage_extra_specs = storage_info.get('storage_extra_specs', {})
         return StorageInfo(
@@ -553,6 +557,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 raise
             finally:
                 uow.commit()
+
         with self.uow() as uow:
             try:
                 db_volume = uow.volumes.get_or_fail(uuid.UUID(volume_id))
@@ -619,10 +624,10 @@ class VolumeServiceLayerManager(BackgroundTasks):
         target_storage_info = self._get_storage_info(target_storage_id)
         user_id = clone_volume_info.pop('user_info', {}).get('id')
 
-        with self.uow:
-            db_source_volume = self.uow.volumes.get(source_volume_id)
+        with self.uow() as uow:
+            db_source_volume = uow.volumes.get_or_fail(source_volume_id)
             db_source_volume.status = VolumeStatus.cloning.name
-            self.uow.commit()
+            uow.commit()
 
         self._check_storage_on_availability(target_storage_info)
         self._check_available_space_on_storage(
@@ -653,19 +658,19 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 f'An error occurred when calling the '
                 f'domain layer while cloning volume: {err!s}'
             )
-            with self.uow:
-                db_source_volume = self.uow.volumes.get(source_volume_id)
+            with self.uow() as uow:
+                db_source_volume = uow.volumes.get_or_fail(source_volume_id)
                 db_source_volume.status = VolumeStatus.available.name
-                self.uow.commit()
+                uow.commit()
             raise exceptions.CreateVolumeDataException(message)
 
         new_db_volume = cast(Volume, DataSerializer.to_db(new_volume))
         new_db_volume.status = VolumeStatus.available.name
-        with self.uow:
-            self.uow.volumes.add(new_db_volume)
-            db_source_volume = self.uow.volumes.get(source_volume_id)
+        with self.uow() as uow:
+            uow.volumes.add(new_db_volume)
+            db_source_volume = uow.volumes.get_or_fail(source_volume_id)
             db_source_volume.status = VolumeStatus.available.name
-            self.uow.commit()
+            uow.commit()
 
         self.event_store.add_event(
             str(new_db_volume.id),
@@ -1422,7 +1427,6 @@ class VolumeServiceLayerManager(BackgroundTasks):
         Args:
             updated_db_volumes (List[Dict]): A list of updated volume data.
         """
-
         with self.uow() as uow:
             uow.volumes.bulk_update(updated_db_volumes)
             uow.commit()

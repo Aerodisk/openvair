@@ -109,3 +109,10 @@ class VolumeNotFoundException(BaseCustomException):
     def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize VolumeNotFoundException"""
         super().__init__(message, *args)
+
+class StorageNotFoundException(BaseCustomException):
+    """Raised when can't get info about the storage."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize StorageNotFoundException"""
+        super().__init__(message, *args)
