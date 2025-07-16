@@ -146,7 +146,6 @@ class BaseVolume(metaclass=abc.ABCMeta):
                     )
                 return {}
 
-            # Если stdout пустой, смысла парсить тоже нет
             if not exec_result.stdout:
                 LOG.error('`qemu-img info` returned empty output.')
                 return {}
