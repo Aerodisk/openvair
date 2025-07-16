@@ -1367,7 +1367,10 @@ class VolumeServiceLayerManager(BackgroundTasks):
             )
 
         self._check_storage_on_availability(volume_storage)
-        monitoring_statuses = [status.name for status in VolumeStatus]
+        monitoring_statuses = [
+            status.name for status in VolumeStatus
+            if status.name != VolumeStatus.new.name
+        ]
         self._check_volume_status(
             domain_volume.get('status', ''), monitoring_statuses
         )
