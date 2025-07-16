@@ -1034,7 +1034,6 @@ class StorageServiceLayerManager(BackgroundTasks):
             StorageStatusError: If the storage status is not valid for
                 monitoring.
         """
-        ...
         monitoring_statuses = [
             StorageStatus.available.name,
             StorageStatus.error.name,
