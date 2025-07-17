@@ -112,7 +112,7 @@ class Disk(BaseModel):
     """Schema for disk information."""
 
     name: Optional[str] = None
-    emulation: Literal['virtio', 'ide', 'scsi'] = 'virtio'
+    emulation: Literal['virtio', 'ide', 'scsi', 'sata'] = 'virtio'
     format: Literal['qcow2', 'raw'] = 'qcow2'
     qos: QOS
     boot_order: int
