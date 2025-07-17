@@ -23,7 +23,7 @@ from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
 from openvair.modules.volume.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork as VolumeUOW,
+    VolumeSqlAlchemyUnitOfWork as VolumeUOW,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
@@ -136,12 +136,10 @@ def cleanup_all_volumes() -> None:
         with unit_of_work as uow:
             volumes = uow.volumes.get_all()
             for orm_volume in volumes:
-                if not orm_volume.storage_type:  # Need to be delete after fix https://github.com/Aerodisk/openvair/issues/143
-                    orm_volume.storage_type = 'localfs'
                 volume_instance = VolumeFactory().get_volume(
                     VolumeSerializer.to_domain(orm_volume)
                 )
-                uow.volumes.delete(orm_volume.id)
+                uow.volumes.delete(orm_volume)
                 volume_instance.delete()
             uow.commit()
     except Exception as err:  # noqa: BLE001

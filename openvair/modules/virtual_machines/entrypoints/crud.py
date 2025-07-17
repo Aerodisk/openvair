@@ -213,6 +213,7 @@ class VMCrud:
             },
         )
         LOG.debug(f'Response from service layer: {result}')
+        return result
 
     def get_snapshots(self, vm_id: str, user_info: Dict) -> List:
         """Retrieve all snapshots of a virtual machine.

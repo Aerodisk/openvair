@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import wait_for_field_value
 from openvair.modules.volume.service_layer.unit_of_work import (
-    SqlAlchemyUnitOfWork,
+    VolumeSqlAlchemyUnitOfWork,
 )
 
 if TYPE_CHECKING:
@@ -57,8 +57,8 @@ def test_delete_volume_invalid_status(client: TestClient, volume: dict) -> None:
         client, f'/volumes/{volume["id"]}/', 'status', 'available'
     )
 
-    with SqlAlchemyUnitOfWork() as uow:
-        orm_volume: ORMVolume = uow.volumes.get(volume['id'])
+    with VolumeSqlAlchemyUnitOfWork() as uow:
+        orm_volume: ORMVolume = uow.volumes.get_or_fail(volume['id'])
         orm_volume.status = 'extending'
         uow.commit()
 

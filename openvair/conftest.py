@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 from fastapi import status
-from schemas.requests import RequestCreateTemplate
 from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
 
@@ -37,6 +36,9 @@ from openvair.modules.virtual_machines.entrypoints.schemas import (
     VirtualInterface,
     CreateVirtualMachine,
     GraphicInterfaceBase,
+)
+from openvair.modules.template.entrypoints.schemas.requests import (
+    RequestCreateTemplate,
 )
 
 LOG = get_logger(__name__)

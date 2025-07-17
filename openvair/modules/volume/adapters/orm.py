@@ -109,6 +109,7 @@ class Volume(Base):
         'VolumeAttachVM',
         back_populates='volume',
         uselist=True,
+        lazy='selectin',
     )
 
 
