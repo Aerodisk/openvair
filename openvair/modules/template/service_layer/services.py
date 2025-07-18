@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID, uuid4
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -33,20 +33,24 @@ from openvair.modules.template.adapters.serializer import (
     DomainSerializer,
 )
 from openvair.modules.template.service_layer.exceptions import (
+    VMRetrievalException,
     VolumeRetrievalException,
     StorageRetrievalException,
+    BaseVolumeAttachToActiveVmException,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
 )
 from openvair.modules.template.adapters.dto.external.models import (
-    VolumeDTO,
-    StorageDTO,
+    VMModelDTO,
+    VolumeModelDTO,
+    StorageModelDTO,
 )
 from openvair.modules.template.adapters.dto.internal.models import (
-    CreateDTO,
+    CreateTemplateModelDTO,
 )
 from openvair.modules.template.adapters.dto.external.commands import (
+    GetVmCommandDTO,
     GetVolumeCommandDTO,
     GetStorageCommandDTO,
 )
@@ -57,6 +61,10 @@ from openvair.modules.template.adapters.dto.internal.commands import (
     CreateTemplateDomainCommandDTO,
     CreateTemplateServiceCommandDTO,
     DeleteTemplateServiceCommandDTO,
+    AsyncCreateTemplateServiceCommandDTO,
+)
+from openvair.libs.messaging.clients.rpc_clients.vm_rpc_client import (
+    VMServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
@@ -69,26 +77,34 @@ LOG = get_logger(__name__)
 
 
 class TemplateServiceLayerManager(BackgroundTasks):
-    """Manager for handling template service operations.
+    """Manager for coordinating template operations in the service layer.
 
-    This class handles database interactions, messaging, and event logging.
+    This class orchestrates template-related tasks such as creation,
+    updating, and deletion. It handles RPC communication, database transactions,
+    domain delegation, and event logging.
 
     Attributes:
         uow (TemplateSqlAlchemyUnitOfWork): Unit of Work for template
             transactions.
-        domain_rpc (MessagingClient): RPC client for domain layer communication.
-        service_layer_rpc (MessagingClient): RPC client for service layer
-            communication.
-        event_store (EventCrud): Event store manager for templates.
+        domain_rpc (MessagingClient): RPC client for communicating with the
+            domain layer.
+        service_layer_rpc (MessagingClient): RPC client for internal task
+            delegation.
+        volume_service_client (VolumeServiceLayerRPCClient): RPC client for
+            volume queries.
+        storage_service_client (StorageServiceLayerRPCClient): RPC client for
+            storage queries.
+        event_store (EventCrud): Event logger for template operations.
     """
 
     def __init__(self) -> None:
-        """Initializes the service layer manager.
+        """Initialize the TemplateServiceLayerManager.
 
-        Sets up the Unit of Work, messaging clients, and event store.
+        Sets up messaging clients, unit of work, and RPC clients for
+        volume and storage services.
         """
         super().__init__()
-        self.uow = TemplateSqlAlchemyUnitOfWork()
+        self.uow = TemplateSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -96,84 +112,133 @@ class TemplateServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.volume_service_client = VolumeServiceLayerRPCClient()
+        self.vm_service_client = VMServiceLayerRPCClient()
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
-    def get_all_templates(self) -> List[Dict]:
-        """Retrieves all template records from the database.
+    def get_all_templates(self) -> List[Dict[str, Any]]:
+        """Retrieve all templates from the database.
 
         Returns:
-            List: A list of serialized templates in JSON-compatible format.
+            List[Dict[str, Any]]: A list of serialized template representations.
         """
-        with self.uow as uow:
+        LOG.info('Service layer handle request on getting templates')
+
+        with self.uow() as uow:
             orm_templates = uow.templates.get_all()
-        return [
+
+        api_templates: List[Dict[str, Any]] = [
             ApiSerializer.to_dict(orm_template)
             for orm_template in orm_templates
         ]
 
+        LOG.info(
+            'Service layer request on getting templates '
+            'was successfully processed'
+        )
+        return api_templates
+
     def get_template(self, getting_data: Dict) -> Dict:
-        """Retrieves a single template by its ID.
+        """Retrieve a single template by its ID.
 
         Args:
-            getting_data (Dict): A dictionary containing the 'id' of the
-                template.
+            getting_data (Dict): A dictionary with the 'id' of the template.
 
         Returns:
-            Dict: A JSON-serializable representation of the template.
+            Dict: A serialized representation of the retrieved template.
         """
-        dto = GetTemplateServiceCommandDTO.model_validate(getting_data)
-        LOG.info(dto.id)
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(dto.id)
-        return ApiSerializer.to_dict(orm_template)
+        LOG.info('Service layer handle request on getting template')
 
-    def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
-        input_dto = CreateTemplateServiceCommandDTO.model_validate(
+        getting_command = GetTemplateServiceCommandDTO.model_validate(
+            getting_data
+        )
+        template_id = getting_command.id
+        LOG.info(f'template_id: {template_id}')
+
+        with self.uow() as uow:
+            orm_template = uow.templates.get_or_fail(template_id)
+
+        api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
+
+        LOG.info(
+            f'Service layer request on getting template {template_id} '
+            'was successfully processed'
+        )
+        return api_template
+
+    def create_template(self, creating_data: Dict) -> Dict:
+        """Create a new template, persist it in the db, start async creation.
+
+        Args:
+            creating_data (Dict): A dictionary with template creation fields.
+
+        Returns:
+            Dict: A serialized representation of the newly created template.
+        """
+        LOG.info('Service layer handle request on creating template')
+
+        creating_command = CreateTemplateServiceCommandDTO.model_validate(
             creating_data
         )
 
-        # 2. Получаем volume и storage
-        volume = self._get_volume_info(input_dto.base_volume_id)
-        storage = self._get_storage_info(input_dto.storage_id)
-        create_dto = CreateDTO(
-            name=input_dto.name,
-            description=input_dto.description,
-            path=(
-                storage.mount_point
-                / f'template-{input_dto.name}.{volume.format}'
-            ),
-            tmp_format=volume.format,
-            storage_id=input_dto.storage_id,
-            is_backing=input_dto.is_backing,
+        volume = self._get_volume_info(creating_command.base_volume_id)
+        self._check_volume_not_attached_to_active_vm(volume)
+
+        storage = self._get_storage_info(creating_command.storage_id)
+
+        path = (
+            storage.mount_point
+            / f'template-{creating_command.name}.{volume.format}'
+        )
+        tmp_format = volume.format
+
+        new_template_model = CreateTemplateModelDTO(
+            name=creating_command.name,
+            description=creating_command.description,
+            path=path,
+            tmp_format=tmp_format,
+            storage_id=creating_command.storage_id,
+            is_backing=creating_command.is_backing,
+        )
+        orm_template = CreateSerializer.to_orm(new_template_model)
+        with self.uow() as uow:
+            uow.templates.add(orm_template)
+            uow.commit()
+        self._update_and_log_event(
+            orm_template, TemplateStatus.NEW, 'TemplateCreationPrepared'
+        )
+
+        async_creating_command = AsyncCreateTemplateServiceCommandDTO(
+            id=orm_template.id,
             source_disk_path=volume.path / f'volume-{volume.id}',
         )
-        orm = CreateSerializer.to_orm(create_dto)
-        with self.uow as uow:
-            uow.templates.add(orm)
-            uow.commit()
-
-        self._update_and_log_event(
-            orm, TemplateStatus.NEW, 'TemplateCreationPrepared'
-        )
-
         self.service_layer_rpc.cast(
             self._create_template.__name__,
-            data_for_method={
-                'id': str(orm.id),
-                **create_dto.model_dump(mode='json'),
-            },
+            data_for_method=async_creating_command.model_dump(mode='json'),
         )
 
-        return ApiSerializer.to_dict(orm)
+        LOG.info(
+            'Service layer request on creating template'
+            'was successfully processed'
+        )
+        api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
+        return api_template
 
-    def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
-        edit_command_dto = EditTemplateServiceCommandDTO.model_validate(
+    def edit_template(self, updating_data: Dict) -> Dict:
+        """Initiate the editing process for an existing template.
+
+        Args:
+            updating_data (Dict): A dictionary with updated template fields.
+
+        Returns:
+            Dict: A serialized representation of the template being edited.
+        """
+        edit_command = EditTemplateServiceCommandDTO.model_validate(
             updating_data
         )
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(edit_command_dto.id)
-        self._ensure_not_in_use(orm_template)
+        with self.uow() as uow:
+            orm_template = uow.templates.get_or_fail(edit_command.id)
+        self._ensure_template_not_in_use(orm_template)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.EDITING, 'TemplateEditingStarted'
@@ -181,17 +246,26 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         self.service_layer_rpc.cast(
             self._edit_template.__name__,
-            data_for_method=edit_command_dto.model_dump(mode='json'),
+            data_for_method=edit_command.model_dump(mode='json'),
         )
         return ApiSerializer.to_dict(orm_template)
 
-    def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
-        delete_command_dto = DeleteTemplateServiceCommandDTO.model_validate(
+    def delete_template(self, deleting_data: Dict) -> Dict:
+        """Initiate the deletion process for a template.
+
+        Args:
+            deleting_data (Dict): A dictionary containing the template ID.
+
+        Returns:
+            Dict: A serialized representation of the template marked for
+                deletion.
+        """
+        delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             deleting_data
         )
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(delete_command_dto.id)
-        self._ensure_not_in_use(orm_template)
+        with self.uow() as uow:
+            orm_template = uow.templates.get_or_fail(delete_command.id)
+        self._ensure_template_not_in_use(orm_template)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.DELETING, 'TemplateDeletingStarted'
@@ -199,50 +273,47 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         self.service_layer_rpc.cast(
             self._delete_template.__name__,
-            data_for_method=delete_command_dto.model_dump(mode='json'),
+            data_for_method=delete_command.model_dump(mode='json'),
         )
 
         return ApiSerializer.to_dict(orm_template)
 
-    # def create_volume_from_template(
-    #     self, volume_from_template_data: Dict
-    # ) -> None:
-    #     dto = DTOCreateVolumeFromTemplate.model_validate(
-    #         volume_from_template_data
-    #     )
-    #     volume = dto.volume_info
-    #     with self.uow as uow:
-    #         orm_template = uow.templates.get_or_fail(dto.template_id)
-    #     create_volume_data = DTOCreateVolume(
-    #         name=volume.name,
-    #         description=volume.description,
-    #         storage_id=volume.storage_id,
-    #         format=orm_template.tmp_format,
-    #         size=orm_template.size,
-    #         read_only=volume.read_only,
-    #     )
-    #     self.volume_service_client.create_volume(
-    #         create_volume_data.model_dump(mode='json')
-    #     )
+    def _create_template(self, prepared_create_command_data: Dict) -> None:
+        """Perform the async creation of a template file via the domain layer.
 
-    def _create_template(self, create_command_data: Dict) -> None:
-        template_id = UUID(create_command_data.pop('id'))
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(template_id)
+        This method is invoked via cast-RPC after initial template DB
+        registration.
+
+        Args:
+            prepared_create_command_data (Dict): Data containing template ID and
+                source volume path.
+
+        Raises:
+            RpcException: If domain RPC call fails.
+        """
+        async_creating_command = (
+            AsyncCreateTemplateServiceCommandDTO.model_validate(
+                prepared_create_command_data
+            )
+        )
+        with self.uow() as uow:
+            orm_template = uow.templates.get_or_fail(async_creating_command.id)
 
         self._update_and_log_event(
             orm_template, TemplateStatus.CREATING, 'TemplateCreationStarted'
         )
 
         try:
-            data_for_manager = DomainSerializer.to_dto(orm_template)
-            data_for_method = CreateTemplateDomainCommandDTO.model_validate(
-                create_command_data
+            domain_template = DomainSerializer.to_dto(orm_template)
+            creation_domain_command_dto = CreateTemplateDomainCommandDTO(
+                source_disk_path=async_creating_command.source_disk_path
             )
-            domain_result = self.domain_rpc.call(
+            domain_result: Dict = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
-                data_for_manager=data_for_manager.model_dump(mode='json'),
-                data_for_method=data_for_method.model_dump(mode='json'),
+                data_for_manager=domain_template.model_dump(mode='json'),
+                data_for_method=creation_domain_command_dto.model_dump(
+                    mode='json'
+                ),
             )
         except RpcException as err:
             self._update_and_log_event(
@@ -262,12 +333,21 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
     def _edit_template(self, edit_command_data: Dict) -> None:
-        edit_dto = EditTemplateServiceCommandDTO.model_validate(
+        """Perform the async renaming/editing of a template via the domain layer
+
+        Args:
+            edit_command_data (Dict): Serialized DTO with updated name and
+                description.
+
+        Raises:
+            RpcException: If domain RPC call fails.
+        """
+        edit_command = EditTemplateServiceCommandDTO.model_validate(
             edit_command_data
         )
 
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(edit_dto.id)
+        with self.uow() as uow:
+            orm_template = uow.templates.get_or_fail(edit_command.id)
 
         try:
             data_for_manager = DomainSerializer.to_dto(orm_template)
@@ -287,7 +367,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._update_and_log_event(
                 orm_template,
                 TemplateStatus.ERROR,
-                'TemplateEditingFaild',
+                'TemplateEditingFailed',
                 str(err),
             )
             LOG.error('Error while editing template', exc_info=True)
@@ -301,11 +381,19 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
 
     def _delete_template(self, delete_command_data: Dict) -> None:
-        delete_dto = DeleteTemplateServiceCommandDTO.model_validate(
+        """Delete a template file from the filesystem and remove the DB record.
+
+        Args:
+            delete_command_data (Dict): Dictionary containing the template ID.
+
+        Raises:
+            RpcException: If domain RPC call fails.
+        """
+        delete_command = DeleteTemplateServiceCommandDTO.model_validate(
             delete_command_data
         )
-        with self.uow as uow:
-            orm_template = uow.templates.get_or_fail(delete_dto.id)
+        with self.uow() as uow:
+            orm_template = uow.templates.get_or_fail(delete_command.id)
         try:
             data_for_manager = DomainSerializer.to_dto(orm_template)
             data_for_manager.related_volumes = self._get_related_volumes(
@@ -320,17 +408,25 @@ class TemplateServiceLayerManager(BackgroundTasks):
             self._update_and_log_event(
                 orm_template,
                 TemplateStatus.ERROR,
-                'TemplateDeletingFaild',
+                'TemplateDeletingFailed',
                 str(err),
             )
             LOG.error('Error while deleting template', exc_info=True)
             return
 
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.delete(orm_template)
             uow.commit()
 
-    def _ensure_not_in_use(self, orm_template: Template) -> None:
+    def _ensure_template_not_in_use(self, orm_template: Template) -> None:
+        """Check if the template is safe to edit or delete.
+
+        Args:
+            orm_template (Template): ORM instance of the template.
+
+        Raises:
+            Exception: If template is still referenced by volumes.
+        """
         data_for_manager = DomainSerializer.to_dto(orm_template)
         data_for_manager.related_volumes = self._get_related_volumes(
             orm_template.id,
@@ -348,9 +444,17 @@ class TemplateServiceLayerManager(BackgroundTasks):
         event_type: str,
         message: str = '',
     ) -> None:
+        """Update template status and persist an audit event.
+
+        Args:
+            orm_template (Template): Template ORM object to update.
+            status (TemplateStatus): New status to apply.
+            event_type (str): Type of event to log.
+            message (str, optional): Additional context or error message.
+        """
         orm_template.status = status
         orm_template.information = message
-        with self.uow as uow:
+        with self.uow() as uow:
             uow.templates.update(orm_template)
             uow.commit()
 
@@ -364,7 +468,18 @@ class TemplateServiceLayerManager(BackgroundTasks):
         }
         self.event_store.add_event(**event)
 
-    def _get_volume_info(self, volume_id: UUID) -> VolumeDTO:
+    def _get_volume_info(self, volume_id: UUID) -> VolumeModelDTO:
+        """Fetch detailed information about a volume via RPC.
+
+        Args:
+            volume_id (UUID): ID of the base volume.
+
+        Returns:
+            VolumeModelDTO: Volume model containing metadata.
+
+        Raises:
+            VolumeRetrievalException: If RPC fails or volume is not found.
+        """
         volume_query_payload = GetVolumeCommandDTO(
             volume_id=volume_id
         ).model_dump(mode='json')
@@ -372,7 +487,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             volume_data = self.volume_service_client.get_volume(
                 volume_query_payload
             )
-            return VolumeDTO.model_validate(volume_data)
+            return VolumeModelDTO.model_validate(volume_data)
 
         except RpcException as rpc_volume_err:
             LOG.error(
@@ -384,7 +499,20 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
     def _get_volumes(
         self, storage_id: Optional[UUID] = None
-    ) -> List[VolumeDTO]:
+    ) -> List[VolumeModelDTO]:
+        """Retrieve all volumes from the volume service.
+
+        Optionally filtered by storage.
+
+        Args:
+            storage_id (Optional[UUID]): Filter volumes by this storage.
+
+        Returns:
+            List[VolumeModelDTO]: List of validated volume models.
+
+        Raises:
+            VolumeRetrievalException: If RPC call fails.
+        """
         LOG.info('Getting all volumes...')
         try:
             volumes_info = self.volume_service_client.get_all_volumes(
@@ -394,11 +522,22 @@ class TemplateServiceLayerManager(BackgroundTasks):
             LOG.error('Error while getting volumes', exc_info=True)
             message = 'Failed to get volumes'
             raise VolumeRetrievalException(message) from rpc_volume_err
-        return [VolumeDTO.model_validate(vol_info) for vol_info in volumes_info]
+        return [
+            VolumeModelDTO.model_validate(vol_info) for vol_info in volumes_info
+        ]
 
     def _get_related_volumes(
         self, template_id: UUID, storage_id: UUID
     ) -> List[str]:
+        """Get names of volumes that were created from the given template.
+
+        Args:
+            template_id (UUID): Template UUID to search references for.
+            storage_id (UUID): Storage ID to limit volume search.
+
+        Returns:
+            List[str]: Names of volumes referencing the template.
+        """
         LOG.info(f'Filtering volumes with reff on template {template_id}...')
         related_volumes = list(
             filter(
@@ -408,7 +547,18 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return [volume.name for volume in related_volumes]
 
-    def _get_storage_info(self, storage_id: UUID) -> StorageDTO:
+    def _get_storage_info(self, storage_id: UUID) -> StorageModelDTO:
+        """Fetch metadata about a specific storage via RPC.
+
+        Args:
+            storage_id (UUID): ID of the storage to retrieve.
+
+        Returns:
+            StorageModelDTO: Storage information object.
+
+        Raises:
+            StorageRetrievalException: If storage is not found or RPC fails.
+        """
         storage_query_payload = GetStorageCommandDTO(
             storage_id=storage_id
         ).model_dump(mode='json')
@@ -416,7 +566,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             storage_data = self.storage_service_client.get_storage(
                 storage_query_payload
             )
-            return StorageDTO.model_validate(storage_data)
+            return StorageModelDTO.model_validate(storage_data)
         except RpcException as rpc_storage_err:
             LOG.error(
                 f'Error while getting base storage with id: ' f'{storage_id}',
@@ -424,3 +574,26 @@ class TemplateServiceLayerManager(BackgroundTasks):
             )
             message = f'Failed to get storage with id {storage_id}'
             raise StorageRetrievalException(message) from rpc_storage_err
+
+    def _get_vm_info(self, vm_id: UUID) -> VMModelDTO:
+        vm_query_payload = GetVmCommandDTO(vm_id=vm_id).model_dump(mode='json')
+        try:
+            vm_data = self.vm_service_client.get_vm(vm_query_payload)
+            return VMModelDTO.model_validate(vm_data)
+        except RpcException as rpc_vm_err:
+            LOG.error(
+                f'Error while getting vm with id: ' f'{vm_id}',
+                exc_info=True,
+            )
+            message = f'Failed to get vm with id {vm_id}'
+            raise VMRetrievalException(message) from rpc_vm_err
+
+    def _check_volume_not_attached_to_active_vm(
+        self, volume: VolumeModelDTO
+    ) -> None:
+        for attachment in volume.attachments:
+            vm_id = attachment.vm_id
+            vm = self._get_vm_info(vm_id)
+            if vm.power_state != 'shut_off':
+                message = f'\nvm_id: {vm_id} \nvolume_id: {volume.id}'
+                raise BaseVolumeAttachToActiveVmException(message)

@@ -18,6 +18,7 @@ from openvair.libs.cli.exceptions import ExecuteError
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.adapters.dto.internal.commands import (
+    CloneVolumeDomainCommandDTO,
     CreateVolumeFromTemplateDomainCommandDTO,
 )
 
@@ -31,9 +32,9 @@ class LocalFSVolume(BaseVolume):
     filesystem volumes.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a LocalFSVolume instance."""
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = False
         self.provisioning = 'metadata'
 
@@ -127,6 +128,36 @@ class LocalFSVolume(BaseVolume):
             raise
 
         return self.__dict__
+
+    def clone(self, data: Dict) -> Dict:
+        """Clone an existing volume.
+
+        Args:
+            data (Dict): A dictionary containing the necessary data for cloning.
+
+        Returns:
+            Dict: A dictionary representation of the cloned volume's attributes.
+        """
+        LOG.info(
+            f'Cloning volume with id={self.id}, path={self.path},'
+            f'size={self.size}, format={self.format}'
+        )
+        qemu_img_adapter = QemuImgAdapter()
+
+        cloning_data = CloneVolumeDomainCommandDTO.model_validate(data)
+        target_path = (
+            cloning_data.mount_point
+        ) / f'volume-{cloning_data.new_id}'
+
+        qemu_img_adapter.create_copy(
+            Path(f'{self.path}/volume-{self.id}'), target_path, fmt=self.format
+        )
+
+        new_volume = LocalFSVolume(**self.__dict__)
+        new_volume.id = str(cloning_data.new_id)
+        new_volume.path = str(cloning_data.mount_point)
+
+        return new_volume.__dict__
 
     def attach_volume_info(self) -> Dict:
         """Get information about an existing volume.

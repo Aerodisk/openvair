@@ -1,20 +1,19 @@
-# noqa: D100
+"""DTOs for external volume and storage service responses.
+
+Defines strongly typed models representing volumes and storages as returned
+by external services. These DTOs are used in service layer validation and logic.
+"""
+
 from uuid import UUID
-from typing import Any, Dict, Literal, ClassVar, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pathlib import Path
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    model_validator,
-)
+from pydantic import model_validator
 
-from openvair.common.configs.pydantic_config import (
-    lenient_dto_config,
-)
+from openvair.common.base_pydantic_models import BaseDTOModel
 
 
-class VolumeDTO(BaseModel):
+class VolumeModelDTO(BaseDTOModel):
     """Schema representing a volume.
 
     Attributes:
@@ -34,6 +33,22 @@ class VolumeDTO(BaseModel):
         read_only (Optional[bool]): Whether the volume is read-only.
     """
 
+    class VolumeAttachment(BaseDTOModel):
+        """Schema representing a volume attachment to a virtual machine.
+
+        This model defines the association between a volume and a virtual
+        machine, including the target device path inside the VM.
+
+        Attributes:
+            vm_id (UUID): The unique identifier of the virtual machine to which
+             the volume is attached.
+            target (Path): The target path or device name inside the virtual
+                machine where the volume is attached.
+        """
+
+        vm_id: UUID
+        target: Optional[Path]
+
     id: UUID
     name: str
     description: Optional[str] = None
@@ -47,10 +62,10 @@ class VolumeDTO(BaseModel):
     read_only: Optional[bool] = False
     path: Path
     template_id: Optional[UUID]
-    model_config: ClassVar[ConfigDict] = lenient_dto_config
+    attachments: List[VolumeAttachment]
 
 
-class StorageDTO(BaseModel):
+class StorageModelDTO(BaseDTOModel):
     """Schema representing a storage entity.
 
     Attributes:
@@ -63,12 +78,7 @@ class StorageDTO(BaseModel):
         available (int): The available size of the storage in bytes.
         user_id (Optional[UUID]): The ID of the user who owns the storage.
         information (Optional[str]): Additional information about the storage.
-        storage_extra_specs (Union[NfsStorageExtraSpecsInfo,
-            LocalFSStorageExtraSpecsInfo]): Additional specifications for the
-            storage.
     """
-
-    model_config: ClassVar[ConfigDict] = lenient_dto_config
 
     id: UUID
     name: str
@@ -110,3 +120,22 @@ class StorageDTO(BaseModel):
                     mount if isinstance(mount, Path) else Path(mount)
                 )
         return values
+
+
+class VMModelDTO(BaseDTOModel):
+    """Schema representing a virtual machine entity.
+
+    This model is used to validate and represent virtual machine data received
+    from external services.
+
+    Attributes:
+        id (str): The unique identifier of the virtual machine.
+        name (str): The name of the virtual machine.
+        power_state (str): The current power state (e.g., 'running', 'stopped').
+        status (str): The general status of the virtual machine.
+    """
+
+    id: str
+    name: str
+    power_state: str
+    status: str

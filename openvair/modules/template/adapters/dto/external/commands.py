@@ -1,12 +1,15 @@
-from uuid import UUID  # noqa: D100
-from typing import ClassVar
+"""DTOs for external service-layer command requests.
 
-from pydantic import BaseModel, ConfigDict
+This module provides typed command DTOs used for RPC-based communication with
+external systems, such as volume and storage services.
+"""
 
-from openvair.common.configs.pydantic_config import dto_config
+from uuid import UUID
+
+from openvair.common.base_pydantic_models import BaseDTOModel
 
 
-class GetVolumeCommandDTO(BaseModel):
+class GetVolumeCommandDTO(BaseDTOModel):
     """DTO for querying a volume by its ID.
 
     This model is used to create a JSON-serializable payload for RPC calls
@@ -24,10 +27,9 @@ class GetVolumeCommandDTO(BaseModel):
     """  # noqa: E501
 
     volume_id: UUID
-    model_config: ClassVar[ConfigDict] = dto_config
 
 
-class GetStorageCommandDTO(BaseModel):
+class GetStorageCommandDTO(BaseDTOModel):
     """DTO for querying a storage by its ID.
 
     This model is used to create a JSON-serializable payload for RPC calls
@@ -45,4 +47,23 @@ class GetStorageCommandDTO(BaseModel):
     """  # noqa: E501
 
     storage_id: UUID
-    model_config: ClassVar[ConfigDict] = dto_config
+
+
+class GetVmCommandDTO(BaseDTOModel):
+    """DTO for querying a virtual machine by its ID.
+
+    This model is used to create a JSON-serializable payload for RPC calls
+    that require a virtual machine identifier. It leverages the JSON encoders
+    defined in DTOConfig to automatically convert UUID values to strings.
+
+    Attributes:
+        vm_id (UUID): Unique identifier of the virtual machine.
+
+    Example:
+        >>> from uuid import UUID
+        >>> query = GetVmCommandDTO(vm_id=UUID('123e4567-e89b-12d3-a456-426614174000'))
+        >>> payload = query.model_dump(mode='json')
+        >>> print(payload)  # {'vm_id': '123e4567-e89b-12d3-a456-426614174000'}
+    """  # noqa: E501
+
+    vm_id: UUID

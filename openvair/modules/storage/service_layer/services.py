@@ -22,6 +22,7 @@ an event store for logging significant events related to storage operations.
 from __future__ import annotations
 
 import enum
+import uuid
 from typing import Dict, List, cast
 
 from openvair.libs.log import get_logger
@@ -34,6 +35,7 @@ from openvair.modules.storage.config import (
 from openvair.modules.storage.domain import base
 from openvair.modules.storage.adapters import orm
 from openvair.libs.messaging.exceptions import (
+    RpcException,
     RpcCallException,
     RpcCallTimeoutException,
 )
@@ -52,6 +54,9 @@ from openvair.libs.messaging.clients.rpc_clients.image_rpc_client import (
 )
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
+)
+from openvair.libs.messaging.clients.rpc_clients.template_prc_client import (
+    TemplateServiceLayerRPCClient,
 )
 
 LOG = get_logger(__name__)
@@ -139,6 +144,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         )
         self.volume_service_client = VolumeServiceLayerRPCClient()
         self.image_service_client = ImageServiceLayerRPCClient()
+        self.template_service_client = TemplateServiceLayerRPCClient()
         self.event_store = EventCrud('storages')
 
     def get_storage(self, data: Dict) -> Dict:
@@ -159,7 +165,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                 ID.
         """
         LOG.info('Service layer start handling response on get storage.')
-        storage_id = data.pop('storage_id', None)
+        storage_id = data['storage_id']
         LOG.debug('Get storage id from request: %s.' % storage_id)
         if not storage_id:
             message = (
@@ -286,45 +292,32 @@ class StorageServiceLayerManager(BackgroundTasks):
             and storage_spec.value == specs.get('path')
         )
 
-    def _check_spec_exists_for_localfs_storage(self, specs: Dict) -> None:
+    def _check_specs_localfs_storage(self, specs_to_check: Dict) -> None:
         """Check if a storage with the given spec for LocalFS already exists.
 
         Args:
-            specs (Dict): A dictionary containing the specifications for the
-                LocalFS storage.
+            specs_to_check (Dict): A dictionary containing the specifications
+                for the LocalFS storage.
 
         Raises:
             StorageExistsError: If a storage with the given specifications
                 already exists.
         """
         LOG.info('Checking if storage with the given specs exists...')
-        for key, value in specs.items():
-            db_spec = self.uow.storages.get_spec_by_key_value(key, value)
-            if db_spec:
-                self._check_storage_path(db_spec, specs)
-
-    def _check_storage_path(
-        self,
-        db_spec: orm.StorageExtraSpecs,
-        specs: Dict,
-    ) -> None:
-        """Check if the storage path matches the given specs.
-
-        Args:
-            db_spec: The database specification object.
-            specs (Dict): A dictionary containing the specifications for the
-                LocalFS storage.
-
-        Raises:
-            StorageExistsError: If a storage with the given path already exists.
-        """
-        if db_spec.key == 'path' and db_spec.value == specs.get('path', ''):
-            message = (
-                f'Storage {db_spec.storage.id} exists '
-                f'with current specs {specs}.'
-            )
-            LOG.error(message)
-            raise exceptions.StorageExistsError(message)
+        unique_specs = ['path']
+        for unique_spec_key in unique_specs:
+            spec_to_check_value = specs_to_check.get(unique_spec_key)
+            if spec_to_check_value is not None:
+                existing_db_spec = self.uow.storages.get_spec_by_key_value(
+                    unique_spec_key, spec_to_check_value
+                )
+                if existing_db_spec:
+                    message = (
+                        f'Storage {existing_db_spec.storage.id} already exists '
+                        f'with {unique_spec_key}: {spec_to_check_value!r}.'
+                    )
+                    LOG.error(message)
+                    raise exceptions.StorageExistsError(message)
 
     def _check_spec_exists_for_storage(
         self, specs: Dict, storage_type: str
@@ -344,78 +337,75 @@ class StorageServiceLayerManager(BackgroundTasks):
         if storage_type == 'nfs':
             self._check_spec_exists_for_nfs_storage(specs)
         elif storage_type == 'localfs':
-            self._check_spec_exists_for_localfs_storage(specs)
+            self._check_specs_localfs_storage(specs)
         else:
             msg = f'Invalid storage type: {storage_type}'
             raise ValueError(msg)
 
-    def _check_storage_has_not_volumes_and_images(
-        self, storage_id: str
-    ) -> None:
-        """Check if the storage has any associated volumes or images.
+    def _check_storage_has_no_objects(self, storage_id: str) -> None:
+        """Check if the storage has any associated objects.
 
         Args:
             storage_id (str): The ID of the storage object to check.
 
         Raises:
-            StorageHasVolumesOrImages: If the storage has associated volumes
-                or images.
+            StorageHasObjects: If the storage contains at least one associated
+            object.
         """
-        if not storage_id:
-            return
+        volumes = self._get_volumes(storage_id)
+        images = self._get_images(storage_id)
+        templates = self._get_templates(storage_id)
+        storage_objects = [
+            ('volumes', [vol['name'] for vol in volumes]),
+            ('images', [img['name'] for img in images]),
+            ('templates', [tmp['name'] for tmp in templates]),
+        ]
 
-        volumes, images = self._get_volumes_and_images(storage_id)
-        self._raise_if_storage_has_volumes_or_images(
-            storage_id, volumes, images
-        )
+        existing_objects = [
+            (entities_type, names)
+            for entities_type, names in storage_objects
+            if names
+        ]
+        if existing_objects:
+            details = '\n'.join(
+                f'{name}: {" ".join(names)}' for name, names in existing_objects
+            )
+            message: str = f'Storage {storage_id} has {details}'
+            raise exceptions.StorageHasObjects(message)
 
-    def _get_volumes_and_images(self, storage_id: str) -> tuple:
-        """Retrieve volumes and images associated with the storage.
-
-        Args:
-            storage_id (str): The ID of the storage object to check.
-
-        Returns:
-            tuple: A tuple containing lists of volumes and images.
-        """
+    def _get_volumes(self, storage_id: str) -> List[Dict]:
+        """Retrieve and return all volumes by storage id"""
         try:
             volumes = self.volume_service_client.get_all_volumes(
                 {'storage_id': storage_id}
             )
+        except RpcException as err:
+            LOG.error(f'Error retrieving volumes: {err!s}')
+            raise
+        return volumes
+
+    def _get_images(self, storage_id: str) -> List[Dict]:
+        """Retrieve and return all images by storage id"""
+        try:
             images = self.image_service_client.get_all_images(
                 {'storage_id': storage_id}
             )
-        except RpcCallException as err:
-            LOG.error(f'Error retrieving volumes or images: {err!s}')
+        except RpcException as err:
+            LOG.error(f'Error retrieving images: {err!s}')
             raise
-        else:
-            return volumes, images
+        return images
 
-    def _raise_if_storage_has_volumes_or_images(
-        self, storage_id: str, volumes: List, images: List
-    ) -> None:
-        """Raise an error if the storage has associated volumes or images.
-
-        Args:
-            storage_id (str): The ID of the storage object.
-            volumes (List): List of volumes associated with the storage.
-            images (List): List of images associated with the storage.
-
-        Raises:
-            StorageHasVolumesOrImages: If the storage has associated volumes
-                or images.
-        """
-        if volumes and images:
-            message: str = f'Storage {storage_id} has volumes and images.'
-        elif volumes:
-            message = f'Storage {storage_id} has volumes.'
-        elif images:
-            message = f'Storage {storage_id} has images.'
-        else:
-            return
-
-        LOG.error(message)
-        raise exceptions.StorageHasVolumesOrImages(message)
+    def _get_templates(self, storage_id: str) -> List[Dict]:
+        """Retrieve and return all templates by storage id"""
+        try:
+            all_templates = self.template_service_client.get_all_templates()
+            storages_templates = [
+                tmp for tmp in all_templates if tmp['storage_id'] == storage_id
+            ]
+        except RpcException as err:
+            LOG.error(f'Error retrieving templates: {err!s}')
+            raise
+        return storages_templates
 
     def _check_device(self, device_path: str) -> None:
         """Check if the given device path is valid and not a system disk or part
@@ -863,13 +853,13 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on delete storage.')
         user_info = data.pop('user_data', {})
-        storage_id = data.get('storage_id', '')
+        storage_id: str = data['storage_id']
 
         with self.uow:
-            db_storage = self.uow.storages.get(storage_id)
+            db_storage = self.uow.storages.get(uuid.UUID(storage_id))
             try:
-                self._check_storage_has_not_volumes_and_images(str(storage_id))
-            except exceptions.StorageHasVolumesOrImages as err:
+                self._check_storage_has_no_objects(storage_id)
+            except exceptions.StorageHasObjects as err:
                 LOG.error(str(err))
                 self.event_store.add_event(
                     str(db_storage.id),
@@ -913,7 +903,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             db_storage = self.uow.storages.get(storage_id)
             LOG.debug('Got storage: %s from db.' % domain_storage)
             try:
-                self._check_storage_has_not_volumes_and_images(str(storage_id))
+                self._check_storage_has_no_objects(str(storage_id))
                 LOG.info('Call domain layer on delete storage.')
                 result = self.domain_rpc.call(
                     base.BaseStorage.delete.__name__,
@@ -1044,7 +1034,6 @@ class StorageServiceLayerManager(BackgroundTasks):
             StorageStatusError: If the storage status is not valid for
                 monitoring.
         """
-        ...
         monitoring_statuses = [
             StorageStatus.available.name,
             StorageStatus.error.name,

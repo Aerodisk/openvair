@@ -1,39 +1,39 @@
 """Serializers for the Template module.
 
-This module defines serializers for converting between Template ORM
-models and various DTOs used in different layers of the system.
+Provides conversion logic between ORM models and DTOs used at API and domain
+layers.
 
 Classes:
-    - TemplateViewSerializer: ORM <-> ViewDTO
-    - TemplateCreateSerializer: CreateCommandDTO -> ORM
-    - TemplateEditSerializer: Applies MethodData to ORM instance
+    - ApiSerializer: ORM <-> API DTO
+    - DomainSerializer: ORM <-> Domain DTO
+    - CreateSerializer: Create DTO -> ORM
 """
 
 from openvair.modules.template.adapters.orm import Template as TemplateORM
 from openvair.common.serialization.base_serializer import BaseSerializer
 from openvair.modules.template.adapters.dto.internal.models import (
-    ApiDTO,
-    CreateDTO,
-    DomainDTO,
+    ApiTemplateModelDTO,
+    CreateTemplateModelDTO,
+    DomainTemplateModelDTO,
 )
 
 
-class ApiSerializer(BaseSerializer[ApiDTO, TemplateORM]):
-    """Converts Template ORM <-> ViewDTO."""
+class ApiSerializer(BaseSerializer[ApiTemplateModelDTO, TemplateORM]):
+    """Serializer for converting between Template ORM and API DTO."""
 
-    dto_class = ApiDTO
+    dto_class = ApiTemplateModelDTO
     orm_class = TemplateORM
 
 
-class DomainSerializer(  # noqa: D101
-    BaseSerializer[DomainDTO, TemplateORM]
-):
-    dto_class = DomainDTO
+class DomainSerializer(BaseSerializer[DomainTemplateModelDTO, TemplateORM]):
+    """Serializer for converting between Template ORM and Domain DTO."""
+
+    dto_class = DomainTemplateModelDTO
     orm_class = TemplateORM
 
 
-class CreateSerializer(BaseSerializer[CreateDTO, TemplateORM]):
-    """Converts CreateTemplateDTO -> ORM object for creation."""
+class CreateSerializer(BaseSerializer[CreateTemplateModelDTO, TemplateORM]):
+    """Serializer for converting creation DTO into ORM Template model."""
 
-    dto_class = CreateDTO
+    dto_class = CreateTemplateModelDTO
     orm_class = TemplateORM

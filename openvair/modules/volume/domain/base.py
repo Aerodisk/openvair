@@ -16,7 +16,6 @@ from pathlib import Path
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import ExecuteError
 from openvair.modules.volume.domain.exceptions import (
     VolumeDoesNotExistOnStorage,
 )
@@ -78,6 +77,18 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def clone(self, data: Dict) -> Dict:
+        """Clone an existing volume.
+
+        Args:
+            data (Dict): A dictionary containing the necessary data for cloning.
+
+        Returns:
+            Dict: A dictionary representation of the cloned volume's attributes.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def attach_volume_info(self) -> Dict:
         """Get information about an existing volume.
 
@@ -117,22 +128,29 @@ class BaseVolume(metaclass=abc.ABCMeta):
                 str(volume_path),
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
-                    raise_on_error=True,
+                    raise_on_error=False,
                     timeout=1,
                 ),
             )
-        except (ExecuteError, OSError) as err:
-            write_lock_warning_pattern = re.compile(
-                r'Failed to get shared "write" lock'
-            )
-            if write_lock_warning_pattern.search(str(err)):
-                LOG.warning(err)
-            else:
-                LOG.error(f'Error executing `qemu-img info`: {err}')
-            return {}
 
-        try:
+            if exec_result.returncode != 0:
+                write_lock_warning_pattern = re.compile(
+                    r'Failed to get shared "write" lock'
+                )
+                if write_lock_warning_pattern.search(exec_result.stderr or ''):
+                    LOG.warning(exec_result.stderr)
+                else:
+                    LOG.error(
+                        'Error executing `qemu-img info`: '
+                        f'{exec_result.stderr or exec_result.stdout}'
+                    )
+                return {}
+
+            if not exec_result.stdout:
+                LOG.error('`qemu-img info` returned empty output.')
+                return {}
+
             return cast(Dict, deserialize_json(exec_result.stdout))
-        except ValueError as err:
-            LOG.error(f'Failed to parse JSON output: {err}')
+        except Exception as err:  # noqa: BLE001
+            LOG.error(f'Unexpected error in _get_info_about_volume: {err}')
             return {}
