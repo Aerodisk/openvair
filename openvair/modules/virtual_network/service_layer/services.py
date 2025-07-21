@@ -60,7 +60,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             the domain layer.
         service_layer_rpc (RabbitRPCClient): The RabbitMQ client for
             communication with the API service layer.
-        uow (SqlAlchemyUnitOfWork): The unit of work for database operations.
+        uow (VirtualNetworkSqlAlchemyUnitOfWork): The unit of work for database
+            operations.
         event_store (EventCrud): The event store for logging operations related
             to virtual networks.
     """
@@ -74,7 +75,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.VirtualNetworkSqlAlchemyUnitOfWork
         self.event_store = EventCrud('virtual_networks')
         self.virsh_net_adapter = LibvirtNetworkAdapter()
 
@@ -85,8 +86,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             Dict: A dictionary containing information about all virtual networks
         """
         LOG.info('Start getting all virtual networks from db...')
-        with self.uow:
-            db_networks = self.uow.virtual_networks.get_all()
+        with self.uow() as uow:
+            db_networks = uow.virtual_networks.get_all()
             web_networks = {
                 'virtual_networks': [
                     DataSerializer.to_web(db_network)
@@ -107,8 +108,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         """
         LOG.info(f"Start getting virtual network {data.get('id')} from db...")
         vn_id = data.pop('id')
-        with self.uow:
-            db_network = self.uow.virtual_networks.get(vn_id)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_or_fail(vn_id)
             web_network = DataSerializer.to_web(db_network)
         LOG.info(f'End of getting virtual network {vn_id} from db.')
         return web_network
@@ -128,8 +129,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             f"from db..."
         )
         vn_name = data.pop('virtual_network_name')
-        with self.uow:
-            db_network = self.uow.virtual_networks.get_by_name(vn_name)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_by_name(vn_name)
             if db_network is None:
                 raise VirtualNetworkDoesNotExist(vn_name)
             web_network = DataSerializer.to_web(db_network)
@@ -207,8 +208,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             event=self.delete_virtual_network.__name__,
         )
 
-        with self.uow:
-            db_network = self.uow.virtual_networks.get(vn_id)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_or_fail(vn_id)
             domain_network = DataSerializer.to_domain(db_network)
 
         LOG.info(
@@ -228,9 +229,9 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         self.event_store.add_event(**event_message)
 
         LOG.info('Deleting virtual network from db...')
-        with self.uow:
-            self.uow.virtual_networks.delete(vn_id)
-            self.uow.commit()
+        with self.uow() as uow:
+            uow.virtual_networks.delete(db_network)
+            uow.commit()
 
         message = (
             f"Virtual network {domain_network.get('network_name')} deleted"
@@ -305,8 +306,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             db_port_group, BridgePortGroup
         )
 
-        with self.uow:
-            db_network = self.uow.virtual_networks.get(vn_id)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_or_fail(vn_id)
             domain_network = DataSerializer.to_domain(db_network)
 
             for pg in domain_network.get('port_groups', []):
@@ -341,7 +342,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
             db_network.port_groups.append(db_port_group)
             self._add_virsh_data_for_db_network(db_network, virsh_data)
-            self.uow.commit()
+            uow.commit()
 
         web_network = DataSerializer.to_web(db_network)
         LOG.info(f'Port group successfully added to virtual network {vn_id}')
@@ -368,8 +369,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             event=self.add_port_group.__name__,
         )
 
-        with self.uow:
-            db_network = self.uow.virtual_networks.get(vn_id)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_or_fail(vn_id)
 
             if len(db_network.port_groups) <= 1:
                 message = (
@@ -391,7 +392,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                 if pg.port_group_name == pg_name:
                     db_network.port_groups.remove(pg)
             self._add_virsh_data_for_db_network(db_network, virsh_data)
-            self.uow.commit()
+            uow.commit()
 
         message = (
             f'Port group {pg_name} successfully deleted from'
@@ -423,8 +424,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             event=self.add_port_group.__name__,
         )
 
-        with self.uow:
-            db_network = self.uow.virtual_networks.get(vn_id)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_or_fail(vn_id)
             domain_network = DataSerializer.to_domain(db_network)
 
             domain_data = self.domain_client.call(
@@ -445,7 +446,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             db_network.port_groups.append(db_port_group)
 
             self._add_virsh_data_for_db_network(db_network, virsh_data)
-            self.uow.commit()
+            uow.commit()
 
         web_port_group = DataSerializer.to_web(db_port_group, schemas.PortGroup)
 
@@ -457,15 +458,15 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
     @periodic_task(interval=30)
     def monitoring(self) -> None:
-        """Check virtual netwok in system and append to db for manipulating
+        """Check virtual network in system and append to db for manipulating
 
         This method get list of virsh virtual networks, compare their with
         db list of virsh network and if network not exit in db, append this
         into db
         """
         LOG.info('Start monitoring')
-        with self.uow:
-            db_networks = self.uow.virtual_networks.get_all()
+        with self.uow() as uow:
+            db_networks = uow.virtual_networks.get_all()
             db_net_names = [db_net.network_name for db_net in db_networks]
             virsh_net_names = self.virsh_net_adapter.get_virt_network_names()
             for virsh_name in virsh_net_names:
@@ -475,8 +476,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                     db_network = cast(
                         VirtualNetwork, DataSerializer.to_db(network_data)
                     )
-                    self.uow.virtual_networks.add(db_network)
-            self.uow.commit()
+                    uow.virtual_networks.add(db_network)
+            uow.commit()
         LOG.info('End monitoring')
 
     def _collect_virsh_virt_net_data(self, net_name: str) -> Dict:
@@ -577,8 +578,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         Returns:
             bool: True if the network exists in the database, False otherwise.
         """
-        with self.uow:
-            db_network = self.uow.virtual_networks.get_by_name(vn_name)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_by_name(vn_name)
             if db_network and db_network.network_name == vn_name:
                 return True
         return False
@@ -614,9 +615,9 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         network_name = db_network.network_name
         LOG.info(f'Writing network {network_name} into database...')
         try:
-            with self.uow:
-                self.uow.virtual_networks.add(db_network)
-                self.uow.commit()
+            with self.uow() as uow:
+                uow.virtual_networks.add(db_network)
+                uow.commit()
             LOG.info(f'Network {network_name} written in database')
         except SQLAlchemyError as err:
             msg = f'SQLAlchemyError {err}. network_name: {network_name}'
@@ -634,8 +635,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             vn_id: The ID of the virtual network.
             action: The action to be performed ('on' or 'off').
         """
-        with self.uow:
-            db_network = self.uow.virtual_networks.get(vn_id)
+        with self.uow() as uow:
+            db_network = uow.virtual_networks.get_or_fail(vn_id)
             domain_network = DataSerializer.to_domain(db_network)
 
             if action == 'on':
@@ -650,7 +651,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                     data_for_manager=domain_network,
                 )
 
-            self.uow.commit()
+            uow.commit()
 
     def __prepare_event_message(
         self,
