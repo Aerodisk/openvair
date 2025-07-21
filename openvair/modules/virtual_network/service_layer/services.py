@@ -158,7 +158,8 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
         port_group_names = [pg.get('port_group_name') for pg in port_groups]
         if len(port_group_names) != len(set(port_group_names)):
-            message = 'Duplicate port group names.'
+            message = ('Error while creating virtual network: '
+                       'duplicate port group names.')
             raise PortGroupException(message)
 
         db_port_groups = [
