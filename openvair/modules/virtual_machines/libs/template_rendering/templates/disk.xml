@@ -1,4 +1,4 @@
-<disk type='file' device={% if disk.type == 1 %}'disk'{% else %}'cdrom'{% endif %}>
+<disk type='file' device={% if disk.type == 'volume' %}'disk'{% else %}'cdrom'{% endif %}>
     <driver name='qemu' type='{{ disk.format }}'/>
 
     <source file='{{ disk.path }}'/>
