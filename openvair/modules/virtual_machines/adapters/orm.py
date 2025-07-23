@@ -253,7 +253,7 @@ class Disk(Base):
         String(30),
         nullable=True,
     )
-    type: Mapped[int] = mapped_column(
+    type: Mapped[str] = mapped_column(
         String(30),
         nullable=True,
     )
