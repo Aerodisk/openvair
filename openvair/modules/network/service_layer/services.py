@@ -212,7 +212,15 @@ class NetworkServiceLayerManager(BackgroundTasks):
         """
         self._check_existance_and_port_compabilities(data)
         create_iface_info = self._validate_create_interface_info(data)
-        web_iface = self._create_interface_in_db(create_iface_info._asdict())
+        try:
+            web_iface = self._create_interface_in_db(
+                create_iface_info._asdict()
+            )
+        except SQLAlchemyError as e:
+            message = f'Failed to create interface in db: {e}.'
+            LOG.error(message)
+            raise exceptions.InterfaceInsertionError(message)
+
         data.update({'iface_id': web_iface.get('id', '')})
         self.service_layer_rpc.cast(
             self._create_bridge.__name__, data_for_method=data
