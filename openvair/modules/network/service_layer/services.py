@@ -692,40 +692,42 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
         LOG.debug('Got interfaces from system %s' % interfaces_from_os)
         with self.uow() as uow:
-            db_interfaces = {
-                iface.name: iface for iface in uow.interfaces.get_all()
-            }
+            db_interfaces = [
+                iface.name for iface in uow.interfaces.get_all()
+            ]
             LOG.debug('Got interfaces from db %s' % db_interfaces)
 
-        if db_interfaces:
-            for (os_iface_name), os_iface_data in interfaces_from_os.items():
-                with self.uow() as uow:
-                    db_interface = self.__synchronize_os_to_db_info(
-                        os_iface_data,
-                        db_interfaces.get(os_iface_name),
-                    )
-                    db_interface.status = InterfaceStatus.available.name
-                    uow.interfaces.add(db_interface)
-                    db_interfaces.pop(os_iface_name, None)
-                    uow.commit()
+        for (os_iface_name), os_iface_data in interfaces_from_os.items():
+            with self.uow() as uow:
+                db_iface_now = uow.interfaces.get_by_name(os_iface_name)
+                db_interface = self.__synchronize_os_to_db_info(
+                    os_iface_data,
+                    db_iface_now,
+                )
+                db_interface.status = InterfaceStatus.available.name
+                uow.interfaces.add(db_interface)
+                if os_iface_name in db_interfaces:
+                    db_interfaces.remove(os_iface_name)
+                uow.commit()
 
-            prefixes_to_delete = ['vnet', 'veth']
-            for db_iface_name, db_iface in db_interfaces.items():
-                with self.uow() as uow:
-                    if db_iface_name.startswith('ovs-system') or any(
-                        db_iface_name.startswith(prefix) for prefix
-                        in prefixes_to_delete
-                    ):
-                        uow.interfaces.delete(db_iface)
-                    # Set the status to 'error' for all other interfaces
-                    else:
-                        LOG.info(
-                            f'Interface {db_iface_name!r} not found in os. '
-                            f'Setting status to error for '
-                            f'interface {db_iface!r}.'
-                        )
-                        db_iface.status = InterfaceStatus.error.name
-                    uow.commit()
+        prefixes_to_delete = ['vnet', 'veth']
+        for db_iface_name in db_interfaces:
+            with self.uow() as uow:
+                db_iface = uow.interfaces.get_by_name(db_iface_name)
+                if db_iface_name.startswith('ovs-system') or any(
+                    db_iface_name.startswith(prefix) for prefix
+                    in prefixes_to_delete
+                ):
+                    uow.interfaces.delete(db_iface)
+                # Set the status to 'error' for all other interfaces
+                else:
+                    LOG.info(
+                        f'Interface {db_iface_name!r} not found in os. '
+                        f'Setting status to error for '
+                        f'interface {db_iface!r}.'
+                    )
+                    db_iface.status = InterfaceStatus.error.name
+                uow.commit()
 
         LOG.info('Stop monitoring')
 
