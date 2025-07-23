@@ -2,8 +2,8 @@
     <driver name='qemu' type='{{ disk.format }}'/>
 
     <source file='{{ disk.path }}'/>
-    <target dev='{{ disk.target }}' bus={% if disk.type == 1 %}'{{ disk.emulation }}'{% else %}'sata'{% endif %}/>
-    {% if disk.type == 1 %}
+    <target dev='{{ disk.target }}' bus='{{ disk.emulation }}'/>
+    {% if disk.type == 'volume' %}
         <iotune>
             <read_bytes_sec>{{ (disk.qos.mb_read | int) * 1024 * 1024 }}</read_bytes_sec>
             <write_bytes_sec>{{ (disk.qos.mb_write | int) * 1024 * 1024 }}</write_bytes_sec>
