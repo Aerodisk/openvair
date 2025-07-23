@@ -254,7 +254,7 @@ class Disk(Base):
         nullable=True,
     )
     type: Mapped[int] = mapped_column(
-        Integer,
+        String(30),
         nullable=True,
     )
     order: Mapped[int] = mapped_column(
