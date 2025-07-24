@@ -467,6 +467,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 except SQLAlchemyError as e:
                     message = f'Failed to delete interface from DB: {e}.'
                     LOG.error(message)
+                    raise exceptions.InterfaceDeletingError(message)
 
     def _edit_interface_in_db(self, data: Dict) -> Dict:
         """Edit a network interface and its extra specs in the database.
