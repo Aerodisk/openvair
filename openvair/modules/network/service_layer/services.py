@@ -526,7 +526,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
     def _check_existance_and_port_compabilities(self, data: Dict) -> None:
         interfaces = self.get_all_interfaces(data)
         if data['name'] in [bridge['name'] for bridge in interfaces]:
-            error = exceptions.InterfaceAllreadyExistException(data['name'])
+            error = exceptions.InterfaceAlreadyExistException(data['name'])
             LOG.error(error)
             raise error
 

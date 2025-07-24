@@ -95,9 +95,9 @@ class NestedOVSBridgeNotAllowedError(BaseCustomException):
         super().__init__(message, *args)
 
 
-class InterfaceAllreadyExistException(BaseCustomException):
+class InterfaceAlreadyExistException(BaseCustomException):
     """Raised when try create interface with existing name"""
 
     def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Initialize InterfaceAllreadyExistException"""
+        """Initialize InterfaceAlreadyExistException"""
         super().__init__(message, *args)
