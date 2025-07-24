@@ -46,6 +46,9 @@ class UserManager(BackgroundTasks):
     coordinating interactions between the API layer, domain layer, and database.
     It handles tasks such as user authentication, creation, deletion, and
     password management.
+
+    Attributes:
+        uow (UserSqlAlchemyUnitOfWork): Unit of Work for user transactions.
     """
 
     def __init__(self) -> None:
@@ -54,7 +57,7 @@ class UserManager(BackgroundTasks):
         This constructor sets up the necessary components for the UserManager,
         including:
         - Initializing the parent BackgroundTasks class
-        - Setting up the unit of work for database operations
+        - Declaring the unit of work class for database operations.
         """
         super().__init__()
         self.uow = unit_of_work.UserSqlAlchemyUnitOfWork

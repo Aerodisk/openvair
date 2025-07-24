@@ -1,14 +1,10 @@
 """Unit of Work pattern implementation for user management.
 
-This module defines an abstract base class and a SQLAlchemy-based concrete
-implementation of the Unit of Work pattern. The Unit of Work pattern helps
-manage database transactions and ensures that all operations within a
-transaction are completed successfully before committing.
+This module defines a SQLAlchemy-based Unit of Work for managing database
+transactions and repositories.
 
 Classes:
-    AbstractUnitOfWork: Abstract base class defining the Unit of Work interface.
-    SqlAlchemyUnitOfWork: Concrete implementation of the Unit of Work interface
-        using SQLAlchemy for database transactions.
+    UserSqlAlchemyUnitOfWork: Unit of Work for the User module.
 """
 
 from __future__ import annotations
@@ -23,22 +19,25 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
 class UserSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
-    """SQLAlchemy-based implementation of the Unit of Work pattern.
+    """Unit of Work for User module.
 
-    This class manages database transactions using SQLAlchemy and provides
-    concrete implementations of the methods defined in AbstractUnitOfWork.
+    This class manages database transactions for users, ensuring consistency
+    by committing or rolling back operations.
+
+    Attributes:
+        users (UserSqlAlchemyRepository): Repository for user entities.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
-        """Initialize the SqlAlchemyUnitOfWork with a session factory.
+        """Initialize the Unit of Work with a session factory.
 
         Args:
             session_factory (sessionmaker): The SQLAlchemy session factory to
-                use.
+                use. Defaults to DEFAULT_SESSION_FACTORY.
         """
         super().__init__(session_factory)
 
     def _init_repositories(self) -> None:
-        """Initializes repositories for the template module."""
-        self.users = repository.SqlAlchemyRepository(self.session)
+        """Initializes repositories for the user module."""
+        self.users = repository.UserSqlAlchemyRepository(self.session)
 
