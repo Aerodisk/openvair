@@ -67,7 +67,7 @@ class NotificationServiceLayerManager(BackgroundTasks):
     def __init__(self) -> None:
         """Initialize the NotificationServiceLayerManager.
 
-        This constructor sets up the unit of work and RPC protocols for
+        This constructor declares the unit of work and sets up RPC protocols for
         interacting with the domain layer and service layer queues.
         """
         super().__init__()

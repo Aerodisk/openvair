@@ -41,4 +41,6 @@ class NotificationSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
 
     def _init_repositories(self) -> None:
         """Initializes repositories for the notification module."""
-        self.notifications = repository.SqlAlchemyRepository(self.session)
+        self.notifications = repository.NotificationSqlAlchemyRepository(
+            self.session
+        )
