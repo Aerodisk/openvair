@@ -22,7 +22,7 @@ Classes:
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 from collections import namedtuple
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -47,6 +47,8 @@ from openvair.modules.event_store.entrypoints.crud import EventCrud
 from openvair.modules.block_device.adapters.serializer import DataSerializer
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from openvair.modules.block_device.adapters.orm import ISCSIInterface
 
 LOG = get_logger(__name__)
@@ -85,8 +87,8 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
             domain layer.
         service_layer_rpc (RabbitRPCClient): RPC client for communicating
             with the API service layer.
-        uow (SqlAlchemyUnitOfWork): Unit of work for managing database
-            transactions.
+        uow (BlockDeviceSqlAlchemyUnitOfWork): Unit of work for managing
+            database transactions.
         event_store (EventCrud): Event store for handling block device-related
             events.
     """
@@ -105,7 +107,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.BlockDeviceSqlAlchemyUnitOfWork()
         self.event_store: EventCrud = EventCrud('block_devices')
 
     def get_host_iqn(self) -> Dict:
@@ -131,20 +133,20 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         else:
             return {'iqn': result}
 
-    def get_all_sessions(self) -> List:
+    def get_all_sessions(self) -> List[Dict[str, Any]]:
         """Gets all the ISCSI sessions from database
 
         Returns:
-            List: List of all ISCSI sessions
+            List[Dict[str, Any]]: List of all ISCSI sessions
         """
         LOG.info('Getting all sessions from database')
         with self.uow:
             iscsi_sessions = self.uow.interfaces.get_all()
-            iscsi_sessions = [
+            result: List[Dict[str, Any]] = [
                 DataSerializer.to_web(session) for session in iscsi_sessions
             ]
-            LOG.info(f'ISCSI sessions list: {iscsi_sessions}')
-        return iscsi_sessions
+            LOG.info(f'ISCSI sessions list: {result}')
+        return result
 
     def login(self, data: Dict) -> Dict:
         """Logs in to the specified ISCSI block device.
@@ -199,7 +201,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
                     data_for_manager=web_interface,
                 )
                 LOG.info('Updating interface DB state on available')
-                db_interface = self.uow.interfaces.get(str(db_interface.id))
+                db_interface = self.uow.interfaces.get_or_fail(db_interface.id)
                 db_interface.port = result.get('port', '')
                 db_interface.status = ISCSIInterfaceStatus.available.name
                 self.uow.commit()
@@ -216,7 +218,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
                     f'device: {err}.'
                 )
                 LOG.error(message)
-                self._rollback(str(db_interface.id))
+                self._rollback(db_interface.id)
                 raise exceptions.ISCSILoginException(message)
             else:
                 message = 'Successfully logged into the ISCSI block device.'
@@ -281,7 +283,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
             finally:
                 # deleting interface from database
                 with self.uow:
-                    self.uow.interfaces.delete(str(db_interface.id))
+                    self.uow.interfaces.delete_by_id(db_interface.id)
                     self.uow.commit()
                     message = 'ISCSI interface deleted from db'
                     LOG.info(message)
@@ -318,16 +320,16 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         else:
             return str(result)
 
-    def _rollback(self, interface_id: str) -> None:
+    def _rollback(self, interface_id: UUID) -> None:
         """Rollbacks the operation by deleting the interface record from the db.
 
         Args:
-            interface_id (str): The ID of the interface to be deleted.
+            interface_id (UUID): The ID of the interface to be deleted.
         """
         with self.uow:
-            db_interface = self.uow.interfaces.get(interface_id)
+            db_interface = self.uow.interfaces.get_or_fail(interface_id)
             if db_interface:
-                self.uow.interfaces.delete(interface_id)
+                self.uow.interfaces.delete_by_id(interface_id)
                 self.uow.commit()
                 LOG.info(
                     f'Rollback: Deleted interface {interface_id} '
