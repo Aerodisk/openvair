@@ -27,7 +27,7 @@ class NotificationSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
 
     Attributes:
         notifications (NotificationSqlAlchemyRepository): Repository for
-            notification entities.
+            Notification entities.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):

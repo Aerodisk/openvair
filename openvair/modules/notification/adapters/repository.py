@@ -1,8 +1,7 @@
 """Repository pattern implementation for notifications.
 
-This module defines abstract and concrete repositories for managing
-notifications in the database. It includes functionality for adding, retrieving,
-updating, and deleting notifications.
+This module implements the repository pattern to manage Notification entities
+in the database using SQLAlchemy.
 """
 
 from typing import TYPE_CHECKING, Dict, List, Optional, cast
@@ -21,7 +20,7 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
     """SQLAlchemy-based implementation of the notification repository."""
 
     def __init__(self, session: 'Session'):
-        """Initialize the SqlAlchemyRepository.
+        """Repository for managing Notification entities.
 
         Args:
             session (Session): The SQLAlchemy session to use for database
@@ -38,7 +37,8 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
             notifications_type (str): The type of notifications to retrieve.
 
         Returns:
-            List[Notification]: A list of notifications of the specified type.
+            Optional[Notification]: A list of notifications of the specified
+            type or None.
         """
         return (
             self.session.query(Notification)
@@ -56,8 +56,8 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
                 retrieve.
 
         Returns:
-            List[Notification]: A list of notifications with the specified
-                subject.
+            Optional[Notification]: A list of notifications with the specified
+                subject or None.
         """
         return (
             self.session.query(Notification)
