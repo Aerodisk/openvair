@@ -376,14 +376,12 @@ class NetworkServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_iface = uow.interfaces.get_or_fail(iface_id)
             LOG.info("Changing interface state on 'new'")
-            # write a new state in database
             db_iface.status = InterfaceStatus.creating.name
             uow.commit()
 
         with self.uow() as uow:
             db_iface = uow.interfaces.get_or_fail(iface_id)
             try:
-                # Actually create a new bridge
                 LOG.info('Start calling domain layer to create a new bridge.')
                 result = self.domain_rpc.call(
                     BaseBridge.create.__name__,
@@ -391,7 +389,6 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     data_for_method=data,
                 )
                 LOG.info('Result of rpc call to domain: %s.' % result)
-                # Set state as available
                 db_iface.status = InterfaceStatus.available.name
                 LOG.info(
                     'Interface state was updated on %s.'
