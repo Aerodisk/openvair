@@ -155,9 +155,17 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             event=self.create_virtual_network.__name__,
         )
 
+        port_groups = data.pop('port_groups', [])
+
+        port_group_names = [pg.get('port_group_name') for pg in port_groups]
+        if len(port_group_names) != len(set(port_group_names)):
+            message = ('Error while creating virtual network: '
+                       'duplicate port group names.')
+            raise PortGroupException(message)
+
         db_port_groups = [
             cast(PortGroup, DataSerializer.to_db(port_group, PortGroup))
-            for port_group in data.pop('port_groups')
+            for port_group in port_groups
         ]
         db_network = cast(VirtualNetwork, DataSerializer.to_db(data))
         db_network.port_groups = db_port_groups
@@ -481,7 +489,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info('End monitoring')
 
     def _collect_virsh_virt_net_data(self, net_name: str) -> Dict:
-        """Collectin virtual network info from virhs
+        """Collectin virtual network info from virsh
 
         For collecting port group info this method use xml_to_jsonable from
         tools.utils
@@ -494,12 +502,12 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         autostart = self.virsh_net_adapter.get_network_autostart(uuid)
         persistent = self.virsh_net_adapter.get_network_persistent(uuid)
 
-        virhs_network_data = cast(
+        virsh_network_data = cast(
             Dict, deserialize_xml(xml, attr_prefix='', cdata_key='')
         )
-        pg_info = virhs_network_data['network'].get('portgroup', [])
+        pg_info = virsh_network_data['network'].get('portgroup', [])
         if isinstance(pg_info, Dict):
-            pg_info = [virhs_network_data['network']['portgroup']]
+            pg_info = [virsh_network_data['network']['portgroup']]
         port_groups = self._prepare_port_groups(pg_info)
 
         return {
