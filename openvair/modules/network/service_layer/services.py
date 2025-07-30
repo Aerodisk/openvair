@@ -726,21 +726,21 @@ class NetworkServiceLayerManager(BackgroundTasks):
         for db_iface_name in db_interfaces:
             with self.uow() as uow:
                 db_iface = uow.interfaces.get_by_name(db_iface_name)
-                if db_iface:
-                    if db_iface_name.startswith('ovs-system') or any(
-                        db_iface_name.startswith(prefix) for prefix
-                        in prefixes_to_delete
-                    ):
-                        uow.interfaces.delete(db_iface)
-                    # Set the status to 'error' for all other interfaces
-                    else:
-                        LOG.info(
-                            f'Interface {db_iface_name!r} not found in os. '
-                            f'Setting status to error for '
-                            f'interface {db_iface!r}.'
-                        )
-                        db_iface.status = InterfaceStatus.error.name
-                    uow.commit()
+                if not db_iface:
+                    continue
+                if db_iface_name.startswith('ovs-system') or any(
+                    db_iface_name.startswith(prefix) for prefix
+                    in prefixes_to_delete
+                ):
+                    uow.interfaces.delete(db_iface)
+                else:
+                    LOG.info(
+                        f'Interface {db_iface_name!r} not found in os. '
+                        f'Setting status to error for '
+                        f'interface {db_iface!r}.'
+                    )
+                    db_iface.status = InterfaceStatus.error.name
+                uow.commit()
 
         LOG.info('Stop monitoring')
 
