@@ -80,7 +80,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             layer.
         service_layer_rpc (Protocol): RPC protocol for communicating within the
             service layer.
-        uow (SqlAlchemyUnitOfWork): Unit of work instance for managing
+        uow (NetworkSqlAlchemyUnitOfWork): Unit of work instance for managing
             database transactions.
         event_store (EventCrud): Event store for logging events related to
             network operations.
@@ -101,7 +101,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.NetworkSqlAlchemyUnitOfWork
         self.event_store = EventCrud('networks')
 
     def get_all_interfaces(
@@ -125,9 +125,9 @@ class NetworkServiceLayerManager(BackgroundTasks):
         LOG.info('Start getting all interfaces from db.')
         is_need_filter = data.pop('is_need_filter', None)
         filterable_ifaces_names = ['lo']
-        with self.uow:
+        with self.uow() as uow:
             web_interfaces = []
-            db_interfaces = self.uow.interfaces.get_all()
+            db_interfaces = uow.interfaces.get_all()
             for db_iface in db_interfaces:
                 if not (
                     is_need_filter and db_iface.name in filterable_ifaces_names
@@ -162,8 +162,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
-            db_iface = self.uow.interfaces.get(iface_id)
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_or_fail(iface_id)
             web_iface = DataSerializer.to_web(db_iface)
             LOG.debug('Got interface from db: %s.' % web_iface)
         LOG.info(
@@ -213,30 +213,20 @@ class NetworkServiceLayerManager(BackgroundTasks):
         self._check_existance_and_port_compabilities(data)
         create_iface_info = self._validate_create_interface_info(data)
         try:
-            with self.uow:
-                db_iface = cast(
-                    orm.Interface,
-                    DataSerializer.to_db(create_iface_info._asdict()),
-                )
-                LOG.info('Start inserting interface into db.')
-                self.uow.interfaces.add(db_iface)
-                self.uow.commit()
-                serialized_iface = DataSerializer.to_web(db_iface)
-                LOG.debug(
-                    'Serialized interface ready for other steps: %s'
-                    % serialized_iface
-                )
+            web_iface = self._create_interface_in_db(
+                create_iface_info._asdict()
+            )
         except SQLAlchemyError as e:
-            message = f'Failed to insert interface into db: {e}.'
+            message = f'Failed to create interface in DB: {e}.'
             LOG.error(message)
             raise exceptions.InterfaceInsertionError(message)
 
-        data.update({'iface_id': serialized_iface.get('id', '')})
+        data.update({'iface_id': web_iface.get('id', '')})
         self.service_layer_rpc.cast(
             self._create_bridge.__name__, data_for_method=data
         )
         LOG.info('Service layer start creating bridge.')
-        return serialized_iface
+        return web_iface
 
     def delete_bridge(self, data: Dict) -> Dict:
         """Delete a network bridge.
@@ -265,17 +255,15 @@ class NetworkServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
 
-        with self.uow:
-            db_iface = self.uow.interfaces.get(iface_id)
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_or_fail(iface_id)
             data['name'] = db_iface.name
             try:
                 db_iface.status = InterfaceStatus.deleting.name
-                self.uow.commit()
+                uow.commit()
                 serialized_iface = DataSerializer.to_web(db_iface)
             except SQLAlchemyError as e:
                 message = f'Failed to delete interface from db: {e}.'
-                db_iface.status = InterfaceStatus.error.name
-                self.uow.commit()
                 LOG.error(message)
                 raise exceptions.InterfaceDeletingError(message)
 
@@ -301,8 +289,13 @@ class NetworkServiceLayerManager(BackgroundTasks):
         iface_name = data.get('name', '')
         LOG.info(f'Interface name: {iface_name}')
 
-        with self.uow:
-            db_iface = self.uow.interfaces.get_by_name(iface_name)
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_by_name(iface_name)
+            if not db_iface:
+                message = (f'Error while turning on interface: '
+                           f'interface {iface_name} not found in DB.')
+                LOG.error(message)
+                raise exceptions.InterfaceNotFoundError(message)
             domain_iface = DataSerializer.to_domain(db_iface)
 
         LOG.info('Sending enable interface command to domain layer...')
@@ -333,8 +326,13 @@ class NetworkServiceLayerManager(BackgroundTasks):
         LOG.info(f'Interface name: {iface_name}')
 
         LOG.info('Sending disable interface command to domain layer...')
-        with self.uow:
-            db_iface = self.uow.interfaces.get_by_name(iface_name)
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_by_name(iface_name)
+            if not db_iface:
+                message = (f'Error while turning off interface: '
+                           f'interface {iface_name} not found in DB.')
+                LOG.error(message)
+                raise exceptions.InterfaceNotFoundError(message)
             domain_iface = DataSerializer.to_domain(db_iface)
 
         self.domain_rpc.cast(
@@ -375,14 +373,15 @@ class NetworkServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.CreateInterfaceDataException(message)
 
-        with self.uow:
-            db_iface = self.uow.interfaces.get(iface_id)
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_or_fail(iface_id)
+            LOG.info("Changing interface state on 'new'")
+            db_iface.status = InterfaceStatus.creating.name
+            uow.commit()
+
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_or_fail(iface_id)
             try:
-                LOG.info("Changing interface state on 'new'")
-                # write a new state in database
-                db_iface.status = InterfaceStatus.creating.name
-                self.uow.commit()
-                # Actually create a new bridge
                 LOG.info('Start calling domain layer to create a new bridge.')
                 result = self.domain_rpc.call(
                     BaseBridge.create.__name__,
@@ -390,7 +389,6 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     data_for_method=data,
                 )
                 LOG.info('Result of rpc call to domain: %s.' % result)
-                # Set state as available
                 db_iface.status = InterfaceStatus.available.name
                 LOG.info(
                     'Interface state was updated on %s.'
@@ -415,7 +413,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 )
                 raise exceptions.InterfaceInsertionError(message)
             finally:
-                self.uow.commit()
+                uow.commit()
 
     def _delete_bridge(self, data: Dict) -> None:
         """Helper method to delete a network bridge.
@@ -435,8 +433,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
         user_id = user_info.get('id', '')
         iface_id = data.get('id', '')
 
-        with self.uow:
-            db_iface = self.uow.interfaces.get(iface_id)
+        with self.uow() as uow:
+            db_iface = uow.interfaces.get_or_fail(iface_id)
             try:
                 self.domain_rpc.call(
                     BaseBridge.delete.__name__,
@@ -454,15 +452,19 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     f'domain layer while deleting the bridge: {err!s}'
                 )
                 db_iface.status = InterfaceStatus.error.name
-                self.uow.commit()
                 LOG.error(message)
                 self.event_store.add_event(
                     iface_id, user_id, self._delete_bridge.__name__, message
                 )
                 raise exceptions.InterfaceDeletingError(message)
             finally:
-                self.uow.interfaces.delete(iface_id)
-                self.uow.commit()
+                uow.commit()
+                try:
+                    self._delete_interface_from_db(data)
+                except SQLAlchemyError as e:
+                    message = f'Failed to delete interface from DB: {e}.'
+                    LOG.error(message)
+                    raise exceptions.InterfaceDeletingError(message)
 
     def _edit_interface_in_db(self, data: Dict) -> Dict:
         """Edit a network interface and its extra specs in the database.
@@ -484,8 +486,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on edit interface.')
         interface_name = data.get('name', '')
-        with self.uow:
-            db_interface = self.uow.interfaces.get_by_name(interface_name)
+        with self.uow() as uow:
+            db_interface = uow.interfaces.get_by_name(interface_name)
             if not db_interface:
                 message = (
                     'Interface with name %s is not found in DB.'
@@ -514,15 +516,15 @@ class NetworkServiceLayerManager(BackgroundTasks):
             specs = data.get('specs', {})
             self._update_extra_specs(db_interface, specs)
 
-            self.uow.interfaces.add(db_interface)
-            self.uow.commit()
+            uow.interfaces.add(db_interface)
+            uow.commit()
 
             return DataSerializer.to_web(db_interface)
 
     def _check_existance_and_port_compabilities(self, data: Dict) -> None:
         interfaces = self.get_all_interfaces(data)
         if data['name'] in [bridge['name'] for bridge in interfaces]:
-            error = exceptions.InerfaceAllreadyExistException(data['name'])
+            error = exceptions.InterfaceAlreadyExistException(data['name'])
             LOG.error(error)
             raise error
 
@@ -547,7 +549,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 data.
         """
         LOG.info('Service layer start handling response on create interface.')
-        with self.uow:
+        with self.uow() as uow:
             db_interface = cast(orm.Interface, DataSerializer.to_db(data))
             for key, value in data.get('specs', {}).items():
                 spec = {
@@ -561,8 +563,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
                         DataSerializer.to_db(spec, orm.InterfaceExtraSpec),
                     )
                 )
-            self.uow.interfaces.add(db_interface)
-            self.uow.commit()
+            uow.interfaces.add(db_interface)
+            uow.commit()
             LOG.info('Interface inserted into db: %s.' % db_interface)
 
         web_interface = DataSerializer.to_web(db_interface)
@@ -588,8 +590,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on delete interface.')
         interface_id = data.get('id', '')
-        with self.uow:
-            db_interface = self.uow.interfaces.get(interface_id)
+        with self.uow() as uow:
+            db_interface = uow.interfaces.get_or_fail(interface_id)
             if not db_interface:
                 message = (
                     'Interface with id %s is not found in DB.' % interface_id
@@ -599,10 +601,9 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
             domain_interface = DataSerializer.to_domain(db_interface)
             LOG.debug('Got interface: %s from db.' % domain_interface)
-            self.uow.interfaces.delete_extra_specs(interface_id)
-            self.uow.interfaces.delete(interface_id)
+            uow.interfaces.delete(db_interface)
             LOG.info('Interface: %s deleted from db.' % interface_id)
-            self.uow.commit()
+            uow.commit()
         LOG.info(
             'Service layer method delete interface was successfully processed'
         )
@@ -688,7 +689,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         ]
 
     @periodic_task(interval=10)
-    def monitoring(self) -> None:
+    def monitoring(self) -> None:  # noqa: C901 because all checking is needed; TODO: refactor to multiple methods
         """Monitor and synchronize network interfaces with the system.
 
         This periodic task refreshes the state of all network interfaces in the
@@ -702,36 +703,44 @@ class NetworkServiceLayerManager(BackgroundTasks):
         }
 
         LOG.debug('Got interfaces from system %s' % interfaces_from_os)
-        with self.uow:
-            db_interfaces = {
-                iface.name: iface for iface in self.uow.interfaces.get_all()
-            }
-
+        with self.uow() as uow:
+            db_interfaces = [
+                iface.name for iface in uow.interfaces.get_all()
+            ]
             LOG.debug('Got interfaces from db %s' % db_interfaces)
-            for (os_iface_name), os_iface_data in interfaces_from_os.items():
+
+        for (os_iface_name), os_iface_data in interfaces_from_os.items():
+            with self.uow() as uow:
+                db_iface_now = uow.interfaces.get_by_name(os_iface_name)
                 db_interface = self.__synchronize_os_to_db_info(
                     os_iface_data,
-                    db_interfaces.get(os_iface_name),
+                    db_iface_now,
                 )
                 db_interface.status = InterfaceStatus.available.name
-                self.uow.interfaces.add(db_interface)
-                db_interfaces.pop(os_iface_name, None)
+                uow.interfaces.add(db_interface)
+                if os_iface_name in db_interfaces:
+                    db_interfaces.remove(os_iface_name)
+                uow.commit()
 
-            prefixes_to_delete = ['vnet', 'veth']
-            for db_iface_name, db_iface in db_interfaces.items():
+        prefixes_to_delete = ['vnet', 'veth']
+        for db_iface_name in db_interfaces:
+            with self.uow() as uow:
+                db_iface = uow.interfaces.get_by_name(db_iface_name)
+                if not db_iface:
+                    continue
                 if db_iface_name.startswith('ovs-system') or any(
                     db_iface_name.startswith(prefix) for prefix
                     in prefixes_to_delete
                 ):
-                    self.uow.interfaces.delete(db_iface.id)
-                # Set the status to 'error' for all other interfaces
+                    uow.interfaces.delete(db_iface)
                 else:
                     LOG.info(
                         f'Interface {db_iface_name!r} not found in os. '
-                        f'Setting status to error for interface {db_iface!r}.'
+                        f'Setting status to error for '
+                        f'interface {db_iface!r}.'
                     )
                     db_iface.status = InterfaceStatus.error.name
-            self.uow.commit()
+                uow.commit()
 
         LOG.info('Stop monitoring')
 

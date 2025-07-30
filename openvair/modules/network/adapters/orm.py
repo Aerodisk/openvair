@@ -68,9 +68,14 @@ class Interface(Base):
         Integer,
         nullable=True,
     )
-    power_state: Mapped[str] = mapped_column(String(20), nullable=False)
+    power_state: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False
+    )
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default='available'
+        String(20),
+        nullable=False,
+        default='available'
     )
 
     extra_specs: Mapped[List['InterfaceExtraSpec']] = relationship(
@@ -78,6 +83,7 @@ class Interface(Base):
         back_populates='interface',
         uselist=True,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
 
