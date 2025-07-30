@@ -110,7 +110,7 @@ class StorageServiceLayerManager(BackgroundTasks):
     management.
 
     Attributes:
-        uow (SqlAlchemyUnitOfWork): Unit of work for managing database
+        uow (StorageSqlAlchemyUnitOfWork): Unit of work for managing database
             transactions.
         domain_rpc (RabbitRPCClient): RPC client for communicating with the
             domain layer.
@@ -135,7 +135,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         with other parts of the system.
         """
         super().__init__()
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.StorageSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -174,8 +174,8 @@ class StorageServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.StorageAttributeError(message)
-        with self.uow:
-            db_storage = self.uow.storages.get(storage_id)
+        with self.uow() as uow:
+            db_storage = uow.storages.get_or_fail(storage_id)
             web_storage = DataSerializer.to_web(db_storage)
             LOG.debug('Got storage from db: %s.' % web_storage)
         LOG.info('Service layer method get storage was successfully processed')
@@ -192,9 +192,9 @@ class StorageServiceLayerManager(BackgroundTasks):
                 storages with their metadata.
         """
         LOG.info('Start getting storages from db.')
-        with self.uow:
+        with self.uow() as uow:
             web_storages = []
-            db_storages = self.uow.storages.get_all()
+            db_storages = uow.storages.get_all()
             for db_storage in db_storages:
                 web_storage = DataSerializer.to_web(db_storage)
                 web_storages.append(web_storage)
@@ -219,8 +219,8 @@ class StorageServiceLayerManager(BackgroundTasks):
         if not storage_name:
             msg = 'Storage name should not be empty.'
             raise ValueError(msg)
-        with self.uow:
-            storage = self.uow.storages.get_storage_by_name(storage_name)
+        with self.uow() as uow:
+            storage = uow.storages.get_storage_by_name(storage_name)
             if storage:
                 message = f'Storage with current name {storage_name} exists.'
                 LOG.error(message)
@@ -238,10 +238,11 @@ class StorageServiceLayerManager(BackgroundTasks):
                 already exists.
         """
         LOG.info('Checking if storage with the given specs exists...')
-        for key, value in specs.items():
-            db_spec = self.uow.storages.get_spec_by_key_value(key, value)
-            if db_spec:
-                self._check_storage_specs(db_spec, specs)
+        with self.uow() as uow:
+            for key, value in specs.items():
+                db_spec = uow.storages.get_spec_by_key_value(key, value)
+                if db_spec:
+                    self._check_storage_specs(db_spec, specs)
 
     def _check_storage_specs(
         self,
@@ -305,19 +306,21 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Checking if storage with the given specs exists...')
         unique_specs = ['path']
-        for unique_spec_key in unique_specs:
-            spec_to_check_value = specs_to_check.get(unique_spec_key)
-            if spec_to_check_value is not None:
-                existing_db_spec = self.uow.storages.get_spec_by_key_value(
-                    unique_spec_key, spec_to_check_value
-                )
-                if existing_db_spec:
-                    message = (
-                        f'Storage {existing_db_spec.storage.id} already exists '
-                        f'with {unique_spec_key}: {spec_to_check_value!r}.'
+        with self.uow() as uow:
+            for unique_spec_key in unique_specs:
+                spec_to_check_value = specs_to_check.get(unique_spec_key)
+                if spec_to_check_value is not None:
+                    existing_db_spec = uow.storages.get_spec_by_key_value(
+                        unique_spec_key, spec_to_check_value
                     )
-                    LOG.error(message)
-                    raise exceptions.StorageExistsError(message)
+                    if existing_db_spec:
+                        message = (
+                            f'Storage {existing_db_spec.storage.id} already '
+                            f'exists with {unique_spec_key}: '
+                            f'{spec_to_check_value!r}.'
+                        )
+                        LOG.error(message)
+                        raise exceptions.StorageExistsError(message)
 
     def _check_spec_exists_for_storage(
         self, specs: Dict, storage_type: str
@@ -639,8 +642,8 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         partition_path = f'{disk_path}{part_num}'
         partition_storages = []
-        with self.uow:
-            db_storages = self.uow.storages.get_all()
+        with self.uow() as uow:
+            db_storages = uow.storages.get_all()
             for db_storage in db_storages:
                 storage_extra_specs = db_storage.extra_specs
                 for storage_spec in storage_extra_specs:
@@ -705,7 +708,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             raise ValueError(msg)
 
         self._check_storage_exists_with_current_name(name)
-        with self.uow:
+        with self.uow() as uow:
             self._check_spec_exists_for_storage(
                 data.get('specs', {}), data.get('storage_type', '')
             )
@@ -722,8 +725,8 @@ class StorageServiceLayerManager(BackgroundTasks):
                     DataSerializer.to_db(spec, orm.StorageExtraSpecs),
                 )
                 db_storage.extra_specs.append(db_spec)
-            self.uow.storages.add(db_storage)
-            self.uow.commit()
+            uow.storages.add(db_storage)
+            uow.commit()
             LOG.info(f'Storage {name} inserted into db: {db_storage}.')
 
         domain_storage = DataSerializer.to_domain(db_storage)
@@ -775,18 +778,22 @@ class StorageServiceLayerManager(BackgroundTasks):
         that it can be handled further upstream.
         """
         LOG.info('Service layer is handling response on _create_storage.')
-        with self.uow:
-            db_storage = self.uow.storages.get(storage_info.get('id', ''))
+        with self.uow() as uow:
+            db_storage = uow.storages.get_or_fail(storage_info.get('id', ''))
             self._check_storage_status(
                 db_storage.status, [StorageStatus.new.name]
             )
             db_storage.status = StorageStatus.creating.name
-            self.uow.commit()
+            uow.commit()
             LOG.info(
                 'Db storage status was updated on %s.'
                 % StorageStatus.creating.name
             )
+        with self.uow() as uow:
             try:
+                db_storage = uow.storages.get_or_fail(
+                    storage_info.get('id', '')
+                )
                 domain_storage = self.domain_rpc.call(
                     base.BaseStorage.create.__name__,
                     data_for_manager=storage_info,
@@ -832,7 +839,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                 )
                 raise
             finally:
-                self.uow.commit()
+                uow.commit()
         LOG.info(
             'Service layer method _create_storage was ' 'successfully processed'
         )
@@ -855,8 +862,8 @@ class StorageServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_data', {})
         storage_id: str = data['storage_id']
 
-        with self.uow:
-            db_storage = self.uow.storages.get(uuid.UUID(storage_id))
+        with self.uow() as uow:
+            db_storage = uow.storages.get_or_fail(uuid.UUID(storage_id))
             try:
                 self._check_storage_has_no_objects(storage_id)
             except exceptions.StorageHasObjects as err:
@@ -870,7 +877,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                 raise
             db_storage.status = StorageStatus.deleting.name
             domain_storage = DataSerializer.to_domain(db_storage)
-            self.uow.commit()
+            uow.commit()
             domain_storage.update({'user_info': user_info})
         LOG.info('Cast service layer on _delete_storage asynchronous.')
         self.service_layer_rpc.cast(
@@ -899,8 +906,8 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer start handling response on _delete storage.')
         domain_storage.pop('user_info', {})
         storage_id = domain_storage.get('id', '')
-        with self.uow:
-            db_storage = self.uow.storages.get(storage_id)
+        with self.uow() as uow:
+            db_storage = uow.storages.get_or_fail(storage_id)
             LOG.debug('Got storage: %s from db.' % domain_storage)
             try:
                 self._check_storage_has_no_objects(str(storage_id))
@@ -913,7 +920,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                 )
                 LOG.debug('Domain manager return result: %s.' % result)
                 LOG.info('Storage: %s deleted from system.' % storage_id)
-                self.uow.storages.delete(storage_id)
+                uow.storages.delete(db_storage)
                 LOG.info('Storage: %s deleted from db.' % storage_id)
                 self.event_store.add_event(
                     str(db_storage.id),
@@ -932,7 +939,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                     str(err),
                 )
             finally:
-                self.uow.commit()
+                uow.commit()
         LOG.info(
             'Service layer method _delete storage ' 'was successfully processed'
         )
@@ -953,9 +960,9 @@ class StorageServiceLayerManager(BackgroundTasks):
         flag_free_local_disks = data.get('free_local_disks', False)
         system_disks = get_system_disks()
         available_disks = []
-        with self.uow:
+        with self.uow() as uow:
             for disk in system_disks:
-                spec = self.uow.storages.filter_extra_specs(
+                spec = uow.storages.filter_extra_specs(
                     all_rows=False, value=disk['path']
                 )
                 if flag_free_local_disks:
@@ -1138,8 +1145,8 @@ class StorageServiceLayerManager(BackgroundTasks):
             List: A list of dictionaries representing the serialized storages.
         """
         serialized_storages = []
-        with self.uow:
-            for db_storage in self.uow.storages.get_all():
+        with self.uow() as uow:
+            for db_storage in uow.storages.get_all():
                 domain_storage = DataSerializer.to_domain(db_storage)
                 if db_storage.storage_type == 'localfs':
                     fs_uuid = domain_storage.get('fs_uuid', '')
@@ -1211,9 +1218,9 @@ class StorageServiceLayerManager(BackgroundTasks):
                         'storage_id': storage.get('id'),
                     }
                 )
-        with self.uow:
-            with synchronized_session(self.uow.session):
-                self.uow.storages.bulk_update(storages)
+        with self.uow() as uow:
+            with synchronized_session(uow.session):
+                uow.storages.bulk_update(storages)
                 for spec in list_of_extra_specs:
-                    self.uow.storages.update_spec_by_key_for_storage(**spec)
-            self.uow.commit()
+                    uow.storages.update_spec_by_key_for_storage(**spec)
+            uow.commit()

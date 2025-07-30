@@ -88,7 +88,11 @@ class Storage(Base):
         nullable=True,
     )
     extra_specs: Mapped[List['StorageExtraSpecs']] = relationship(
-        'StorageExtraSpecs', back_populates='storage', uselist=True
+        'StorageExtraSpecs',
+        back_populates='storage',
+        uselist=True,
+        lazy='selectin',
+        cascade='all, delete-orphan',
     )
 
 
