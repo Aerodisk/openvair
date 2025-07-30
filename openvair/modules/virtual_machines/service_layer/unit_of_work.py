@@ -47,6 +47,5 @@ class VMSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
 
     def _init_repositories(self) -> None:
         """Initializes repositories for the virtual machines module."""
-        self.virtual_machines = repository.VMSqlAlchemyRepository(
-            self.session
-        )
+        self.virtual_machines = repository.VMSqlAlchemyRepository(self.session)
+        self.snapshots = repository.SnapshotSqlAlchemyRepository(self.session)

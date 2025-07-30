@@ -956,7 +956,7 @@ class VMServiceLayerManager(BackgroundTasks):
             else:
                 disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'ide'})
         with self.uow() as uow:
-            current_snap = uow.virtual_machines.get_current_snapshot(vm_id)
+            current_snap = uow.snapshots.get_current(vm_id)
             data['snapshot_info'] = {
                 'current_snap_name': current_snap.name if current_snap else ""
             }
@@ -1009,10 +1009,7 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         for snap_name in redefined_snaps:
             with self.uow() as uow:
-                db_snap = uow.virtual_machines.get_snapshot_by_name(
-                    vm_id,
-                    snap_name
-                )
+                db_snap = uow.snapshots.get_by_name(vm_id, snap_name)
                 if db_snap:
                     db_snap.status = SnapshotStatus.creating.name
                 uow.commit()
@@ -1658,7 +1655,7 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
-                db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
             except NoResultFound as err:
                 message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
@@ -1696,7 +1693,7 @@ class VMServiceLayerManager(BackgroundTasks):
             raise exceptions.UnexpectedDataArguments(message)
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-            db_snapshots = uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            db_snapshots = uow.snapshots.get_all_by_vm(vm_id)
             serialized_snapshots = []
             for snap in db_snapshots:
                 snap_data = DataSerializer.snapshot_to_web(snap)
@@ -1727,16 +1724,14 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             snap_count = len(
-                uow.virtual_machines.get_snapshots_by_vm(vm_id)
+                uow.snapshots.get_all_by_vm(vm_id)
             )
             if snap_count >= max_snapshot_count:
                 message = (f"VM {vm_id} has already reached maximum snapshot "
                            f"limit ({snap_count+1} > {max_snapshot_count}).")
                 LOG.error(message)
                 raise exceptions.SnapshotLimitExceeded(message)
-            exist_snapshot = uow.virtual_machines.get_snapshot_by_name(
-                vm_id, name
-            )
+            exist_snapshot = uow.snapshots.get_by_name(vm_id, name)
             if exist_snapshot is not None:
                 message = (f"Snapshot with name '{name}' already exists "
                            f"for VM {vm_id}")
@@ -1747,13 +1742,13 @@ class VMServiceLayerManager(BackgroundTasks):
                 [VmPowerState.running.name]
             )
             db_vm.power_state = VmPowerState.paused.name
-            current_snap = uow.virtual_machines.get_current_snapshot(vm_id)
+            current_snap = uow.snapshots.get_current(vm_id)
             if current_snap:
                 self._check_snapshot_status(
                     current_snap.status,
                     [SnapshotStatus.running.name]
                 )
-                uow.virtual_machines.unset_current_snapshot(vm_id)
+                uow.snapshots.unset_current(vm_id)
             snapshot_data = {
                 'vm_id': vm_id,
                 'name': name,
@@ -1763,7 +1758,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 'status': SnapshotStatus.creating.name,
             }
             db_snap = DataSerializer.snapshot_to_db(snapshot_data)
-            uow.virtual_machines.add_snapshot(db_snap)
+            uow.snapshots.add(db_snap)
             uow.commit()
             result = DataSerializer.snapshot_to_web(db_snap)
             result['vm_name'] = db_vm.name
@@ -1795,7 +1790,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_id = str(user_info.get('id', ''))
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-            db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             prepared_data = {
                 **serialized_vm,
@@ -1869,7 +1864,7 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
-                db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
             except NoResultFound as err:
                 message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
@@ -1882,7 +1877,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_snap.status,
                 [SnapshotStatus.running.name]
             )
-            current_snap = uow.virtual_machines.get_current_snapshot(vm_id)
+            current_snap = uow.snapshots.get_current(vm_id)
             if current_snap:
                 self._check_snapshot_status(
                     current_snap.status,
@@ -1890,7 +1885,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
             db_snap.status = SnapshotStatus.reverting.name
             db_vm.power_state = VmPowerState.paused.name
-            uow.virtual_machines.set_current_snapshot(db_snap)
+            uow.snapshots.set_current(db_snap)
             uow.commit()
             result = DataSerializer.snapshot_to_web(db_snap)
             result['vm_name'] = db_vm.name
@@ -1927,7 +1922,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_id = str(user_info.get('id', ''))
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-            db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             prepared_data = {
                 **serialized_vm,
@@ -1977,7 +1972,7 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
-                db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
             except NoResultFound as err:
                 message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
@@ -2001,7 +1996,7 @@ class VMServiceLayerManager(BackgroundTasks):
             if result.get('parent'):
                 result['parent'] = result['parent']['name']
             if db_snap.status == SnapshotStatus.error.name:
-                self._delete_snapshot_from_db(vm_id, snapshot_id)
+                self._delete_snapshot_from_db(snapshot_id)
                 self.event_store.add_event(
                     vm_id,
                     user_info.get('id'),
@@ -2040,10 +2035,8 @@ class VMServiceLayerManager(BackgroundTasks):
         user_id = str(user_info.get('id', ''))
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-            db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
-            child_snapshots = uow.virtual_machines.get_child_snapshots(
-                db_snap
-            )
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            child_snapshots = uow.snapshots.get_children(db_snap)
             children_names = [child.name for child in child_snapshots]
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             prepared_data = {
@@ -2060,42 +2053,35 @@ class VMServiceLayerManager(BackgroundTasks):
                 BaseVMDriver.delete_snapshot.__name__,
                 data_for_manager=prepared_data,
             )
-            self._delete_snapshot_from_db(vm_id, snapshot_id)
+        except (RpcCallException, RpcServerInitializedException) as err:
+            message = f'Handle error: {err!s} while deleting snapshot'
+            LOG.error(message)
+            with self.uow() as uow:
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+                db_snap.status = SnapshotStatus.error.name
+                uow.commit()
+        else:
+            self._delete_snapshot_from_db(snapshot_id)
             self.event_store.add_event(
                 vm_id,
                 user_id,
                 self._delete_snapshot.__name__,
                 f"Successfully deleted snapshot {db_snap.name}",
             )
-            LOG.info('Response on _delete_snapshot was successfully '
-                     'processed.')
-        except (RpcCallException, RpcServerInitializedException) as err:
-            message = f'Handle error: {err!s} while deleting snapshot'
-            LOG.error(message)
-            with self.uow() as uow:
-                db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
-                db_snap.status = SnapshotStatus.error.name
-                uow.commit()
+            LOG.info('Response on _delete_snapshot was successfully processed.')
 
-    def _delete_snapshot_from_db(
-            self,
-            vm_id: str,
-            snapshot_id: str
-    ) -> None:
+    def _delete_snapshot_from_db(self, snapshot_id: str) -> None:
         """Delete snapshot from the DB and update parents in children snapshots.
 
         Args:
-            vm_id (str): The ID of the virtual machine.
             snapshot_id (str): The ID of the snapshot to delete.
         """
         with self.uow() as uow:
-            db_snap = uow.virtual_machines.get_snapshot(vm_id, snapshot_id)
-            children_snapshots = uow.virtual_machines.get_child_snapshots(
-                db_snap
-            )
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            children_snapshots = uow.snapshots.get_children(db_snap)
             for child_snap in children_snapshots:
                 child_snap.parent_id = db_snap.parent_id
-            uow.virtual_machines.delete_snapshot(db_snap)
+            uow.snapshots.delete(db_snap)
             uow.commit()
 
     def _delete_all_vm_snapshots(self, vm_id: str, user_info: Dict) -> None:
@@ -2109,17 +2095,14 @@ class VMServiceLayerManager(BackgroundTasks):
         snapshots = []
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-            db_snapshots = uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            db_snapshots = uow.snapshots.get_all_by_vm(vm_id)
             db_vm.status = VmStatus.deleting_snapshots.name
             snapshots = [DataSerializer.snapshot_to_web(snapshot)
                          for snapshot in db_snapshots]
             uow.commit()
         for snapshot in snapshots:
             if snapshot['status'] == SnapshotStatus.error.name:
-                self._delete_snapshot_from_db(
-                    vm_id,
-                    snapshot['id']
-                )
+                self._delete_snapshot_from_db(snapshot['id'])
                 LOG.info(f'Snapshot {snapshot["name"]} with status "error" '
                          f'was deleted from the database.')
                 continue
@@ -2142,7 +2125,7 @@ class VMServiceLayerManager(BackgroundTasks):
         libvirt_snaps, libvirt_current_snap = get_vm_snapshots(db_vm.name)
         vm_id = str(db_vm.id)
         with self.uow() as uow:
-            db_snaps = uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            db_snaps = uow.snapshots.get_all_by_vm(vm_id)
             for db_snap in db_snaps:
                 if (db_snap.name not in libvirt_snaps and
                         db_snap.status != SnapshotStatus.creating.name):
@@ -2168,12 +2151,12 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         with self.uow() as uow:
             if libvirt_current_snap is None:
-                uow.virtual_machines.unset_current_snapshot(vm_id)
+                uow.snapshots.unset_current(vm_id)
                 return
-            db_snaps = uow.virtual_machines.get_snapshots_by_vm(vm_id)
+            db_snaps = uow.snapshots.get_all_by_vm(vm_id)
             for db_snap in db_snaps:
                 if db_snap.name == libvirt_current_snap:
-                    uow.virtual_machines.set_current_snapshot(db_snap)
+                    uow.snapshots.set_current(db_snap)
             uow.commit()
 
     @periodic_task(interval=10)

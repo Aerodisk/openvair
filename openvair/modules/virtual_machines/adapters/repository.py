@@ -7,10 +7,10 @@ the business logic. The concrete repository implementation uses SQLAlchemy
 for database interactions.
 
 Classes:
-    AbstractRepository: Abstract base class defining the repository interface
-        for virtual machine-related operations.
-    SqlAlchemyRepository: Concrete implementation of the repository interface
-        using SQLAlchemy for database operations.
+    VMSqlAlchemyRepository: Concrete implementation of the repository using
+        SQLAlchemy for virtual machine-related database operations.
+    SnapshotSqlAlchemyRepository: Concrete implementation of the repository
+        using SQLAlchemy for snapshot-related database operations.
 
 Exceptions:
     DBCannotBeConnectedError: Raised when a database connection cannot be
@@ -104,33 +104,24 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
             .delete()
         )
 
-    def add_snapshot(self, snapshot: 'Snapshots') -> None:
-        """Add a new snapshot to the repository.
+
+class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
+    """SQLAlchemy-based implementation of the snapshot repository.
+
+    This repository implementation uses SQLAlchemy ORM to perform database
+    operations for snapshots.
+    """
+
+    def __init__(self, session: 'Session'):
+        """Initialize the repository with a SQLAlchemy session.
 
         Args:
-            snapshot (Snapshots): The snapshot entity to add.
+            session (Session): The SQLAlchemy session used for database
+                operations.
         """
-        self.session.add(snapshot)
+        super().__init__(session, Snapshots)
 
-    def get_snapshot(
-            self, vm_id: str, snapshot_id: str
-    ) -> Snapshots:
-        """Retrieve a snapshot by its ID.
-
-        Args:
-            vm_id (str): The ID of the virtual machine.
-            snapshot_id (str): The ID of the snapshot to retrieve.
-
-        Returns:
-            Snapshots: The retrieved snapshot entity.
-        """
-        return (
-            self.session.query(Snapshots)
-            .filter_by(vm_id=vm_id, id=snapshot_id)
-            .one()
-        )
-
-    def get_snapshot_by_name(
+    def get_by_name(
             self, vm_id: str, name: str
     ) -> Optional[Snapshots]:
         """Retrieve a snapshot by its ID.
@@ -148,7 +139,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
             .first()
         )
 
-    def get_snapshots_by_vm(self, vm_id: str) -> List[Snapshots]:
+    def get_all_by_vm(self, vm_id: str) -> List[Snapshots]:
         """Retrieve all snapshots for a virtual machine.
 
         Args:
@@ -164,23 +155,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
             .all()
         )
 
-    def delete_snapshot(self, snapshot: 'Snapshots') -> None:
-        """Delete a snapshot from the repository.
-
-        Args:
-            snapshot (Snapshots): The snapshot entity to delete.
-        """
-        self.session.delete(snapshot)
-
-    def update_snapshot(self, snapshot: 'Snapshots') -> None:
-        """Update a snapshot in the repository.
-
-        Args:
-            snapshot (Snapshots): The snapshot entity to update.
-        """
-        self.session.merge(snapshot)
-
-    def get_current_snapshot(self, vm_id: str) -> Optional[Snapshots]:
+    def get_current(self, vm_id: str) -> Optional[Snapshots]:
         """Get current snapshot for VM (marked as is_current=True).
 
         Args:
@@ -195,7 +170,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
             .first()
         )
 
-    def set_current_snapshot(self, snapshot: 'Snapshots') -> None:
+    def set_current(self, snapshot: 'Snapshots') -> None:
         """Mark snapshot as current (and unmark others for this VM).
 
         Args:
@@ -209,7 +184,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
 
         snapshot.is_current = True
 
-    def unset_current_snapshot(self, vm_id: str) -> None:
+    def unset_current(self, vm_id: str) -> None:
         """Unset current snapshot flag for all snapshots of a VM.
 
         Args:
@@ -221,7 +196,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
             .values(is_current=False)
         )
 
-    def get_child_snapshots(self, snapshot: 'Snapshots') -> List[Snapshots]:
+    def get_children(self, snapshot: 'Snapshots') -> List[Snapshots]:
         """Get all child snapshots for given snapshot.
 
         Args:
