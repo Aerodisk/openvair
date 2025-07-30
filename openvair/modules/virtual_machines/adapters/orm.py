@@ -101,6 +101,7 @@ class VirtualMachines(Base):
         back_populates='virtual_machine',
         uselist=False,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
     os: Mapped['Os'] = relationship(
@@ -108,6 +109,7 @@ class VirtualMachines(Base):
         back_populates='virtual_machine',
         uselist=False,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
     disks: Mapped[List['Disk']] = relationship(
@@ -116,6 +118,7 @@ class VirtualMachines(Base):
         order_by='Disk.order',
         uselist=True,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
     virtual_interfaces: Mapped[List['VirtualInterface']] = relationship(
@@ -124,6 +127,7 @@ class VirtualMachines(Base):
         order_by='VirtualInterface.order',
         uselist=True,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
     graphic_interface: Mapped['ProtocolGraphicInterface'] = relationship(
@@ -131,6 +135,7 @@ class VirtualMachines(Base):
         back_populates='virtual_machine',
         uselist=False,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
     ram: Mapped['RAM'] = relationship(
@@ -138,6 +143,7 @@ class VirtualMachines(Base):
         back_populates='virtual_machine',
         uselist=False,
         cascade='all, delete-orphan',
+        lazy='selectin',
     )
 
     snapshots: Mapped[List['Snapshots']] = relationship(
@@ -423,9 +429,11 @@ class Snapshots(Base):
     virtual_machine: Mapped[VirtualMachines] = relationship(
         'VirtualMachines',
         back_populates='snapshots',
+        lazy='selectin',
     )
     parent: Mapped['Snapshots'] = relationship(
         'Snapshots',
         foreign_keys=[parent_id],
         remote_side=[id],
+        lazy='selectin',
     )
