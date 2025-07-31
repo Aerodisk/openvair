@@ -56,8 +56,8 @@ class NotificationServiceLayerManager(BackgroundTasks):
     the domain layer and manages database transactions.
 
     Attributes:
-        uow (SqlAlchemyUnitOfWork): The unit of work for managing database
-            transactions.
+        uow (NotificationSqlAlchemyUnitOfWork): The unit of work for managing
+            database transactions.
         domain_rpc (Protocol): The RPC client for interacting with the domain
             layer.
         service_layer_rpc (Protocol): The RPC client for interacting with the
@@ -67,11 +67,11 @@ class NotificationServiceLayerManager(BackgroundTasks):
     def __init__(self) -> None:
         """Initialize the NotificationServiceLayerManager.
 
-        This constructor sets up the unit of work and RPC protocols for
+        This constructor declares the unit of work and sets up RPC protocols for
         interacting with the domain layer and service layer queues.
         """
         super().__init__()
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.NotificationSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -147,9 +147,9 @@ class NotificationServiceLayerManager(BackgroundTasks):
         LOG.info('Handling call on write notification.')
         notification.status = status.name
         notification.create_datetime = datetime.datetime.now()
-        with self.uow:
-            self.uow.notifications.add(notification)
-            self.uow.commit()
+        with self.uow() as uow:
+            uow.notifications.add(notification)
+            uow.commit()
 
         LOG.info(
             'Handling call on write notification was successfully processed.'
