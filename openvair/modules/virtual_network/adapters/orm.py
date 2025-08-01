@@ -104,5 +104,9 @@ class VirtualNetwork(Base):
     )
 
     port_groups: Mapped[List[PortGroup]] = relationship(
-        'PortGroup', back_populates='virtual_network', uselist=True
+        'PortGroup',
+        back_populates='virtual_network',
+        uselist=True,
+        lazy='selectin',
+        cascade='all, delete-orphan',
     )

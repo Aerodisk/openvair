@@ -19,7 +19,7 @@ from openvair.libs.validation.validators import Validator
 from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.entrypoints import schemas
-from openvair.modules.event_store.service_layer import unit_of_work2
+from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 from openvair.modules.event_store.service_layer.services import (
     EventstoreServiceLayerManager,
@@ -43,7 +43,7 @@ class EventCrud:
             module_name (str): Name of the module. Defaults to 'event-store'.
         """
         self.module_name = module_name
-        self.uow = unit_of_work2.EventstoreSqlAlchemyUnitOfWork
+        self.uow = unit_of_work.EventStoreSqlAlchemyUnitOfWork
         self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )

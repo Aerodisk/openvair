@@ -1,102 +1,46 @@
 """Unit of Work pattern for the notification service layer.
 
-This module provides the `AbstractUnitOfWork` and `SqlAlchemyUnitOfWork`
-classes, which implement the Unit of Work pattern for managing database
+This module provides SQLAlchemy-based Unit of Work for managing database
 transactions in the notification service layer.
 
 Classes:
-    - AbstractUnitOfWork: Abstract base class for the Unit of Work pattern.
-    - SqlAlchemyUnitOfWork: Concrete implementation of the Unit of Work pattern
-        using SQLAlchemy.
+    - NotificationSqlAlchemyUnitOfWork: Unit of Work for the notification
+        module.
 """
 
 from __future__ import annotations
 
-import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from typing_extensions import Self
-
+from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 from openvair.modules.notification.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.notification.adapters import repository
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session, sessionmaker
+    from sqlalchemy.orm import sessionmaker
 
+class NotificationSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
+    """Unit of Work for the notification module.
 
-class AbstractUnitOfWork(metaclass=abc.ABCMeta):
-    """Abstract base class for the Unit of Work pattern."""
+    This class manages database transactions for notifications, ensuring
+    consistency by committing or rolling back operations.
 
-    notifications: repository.AbstractRepository
-
-    @abc.abstractmethod
-    def __enter__(self) -> AbstractUnitOfWork:
-        """Enter the runtime context related to this object.
-
-        Returns:
-            AbstractUnitOfWork: The unit of work instance.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Exit the runtime context related to this object.
-
-        This method is responsible for rolling back the transaction if an
-        exception occurs.
-        """
-        self.rollback()
-
-    @abc.abstractmethod
-    def commit(self) -> None:
-        """Commit the transaction."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def rollback(self) -> None:
-        """Rollback the transaction."""
-        raise NotImplementedError
-
-
-class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
-    """SQLAlchemy-based implementation of the Unit of Work pattern."""
+    Attributes:
+        notifications (NotificationSqlAlchemyRepository): Repository for
+            Notification entities.
+    """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
-        """Initialize the SqlAlchemyUnitOfWork.
+        """Initializes the Unit of Work with a session factory.
 
         Args:
             session_factory (sessionmaker): The session factory to use for
                 creating sessions. Defaults to DEFAULT_SESSION_FACTORY.
         """
-        self.session_factory = session_factory
-        self.session: Session
+        super().__init__(session_factory)
 
-    def __enter__(self) -> Self:
-        """Enter the runtime context related to this object.
-
-        This method creates a new session and sets up the notifications
-        repository.
-
-        Returns:
-            SqlAlchemyUnitOfWork: The unit of work instance.
-        """
-        self.session = self.session_factory()
-        self.notifications = repository.SqlAlchemyRepository(self.session)
-        return self
-
-    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Exit the runtime context related to this object.
-
-        This method closes the session and handles any exceptions by rolling
-        back the transaction.
-        """
-        super().__exit__(args)
-        self.session.close()
-
-    def commit(self) -> None:
-        """Commit the transaction."""
-        self.session.commit()
-
-    def rollback(self) -> None:
-        """Rollback the transaction."""
-        self.session.rollback()
+    def _init_repositories(self) -> None:
+        """Initializes repositories for the notification module."""
+        self.notifications = repository.NotificationSqlAlchemyRepository(
+            self.session
+        )

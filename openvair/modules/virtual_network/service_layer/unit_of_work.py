@@ -12,54 +12,17 @@ Classes:
 
 from __future__ import annotations
 
-import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
+from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 from openvair.modules.virtual_network.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.virtual_network.adapters import repository
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session, sessionmaker
+    from sqlalchemy.orm import sessionmaker
 
 
-class AbstractUnitOfWork(metaclass=abc.ABCMeta):
-    """Abstract base class for unit of work pattern.
-
-    This class defines the interface for implementing the unit of work pattern
-    in managing database operations related to virtual networks.
-
-    Attributes:
-        virtual_networks (AbstractRepository): Repository for managing virtual
-            network objects.
-        port_groups (AbstractRepository): Repository for managing port group
-            objects.
-        vlans (AbstractRepository): Repository for managing VLAN objects.
-    """
-
-    virtual_networks: repository.AbstractRepository
-    port_groups: repository.AbstractRepository
-    vlans: repository.AbstractRepository
-
-    def __enter__(self) -> AbstractUnitOfWork:
-        """Start a new database session and return the unit of work."""
-        return self
-
-    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Close the database session and rollback if necessary."""
-        self.rollback()
-
-    @abc.abstractmethod
-    def commit(self) -> None:
-        """Commit the current transaction."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def rollback(self) -> None:
-        """Rollback the current transaction."""
-        raise NotImplementedError
-
-
-class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
+class VirtualNetworkSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """SQLAlchemy-based implementation of the unit of work pattern.
 
     This class manages the lifecycle of database operations using SQLAlchemy,
@@ -67,8 +30,8 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
     or rolled back as a single unit of work.
 
     Attributes:
-        session_factory (sessionmaker): SQLAlchemy session factory.
-        session (Session): SQLAlchemy session.
+        virtual_networks (VirtualNetworkSqlAlchemyRepository): Repository
+            for virtual network entities.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
@@ -77,24 +40,10 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         Args:
             session_factory (sessionmaker): SQLAlchemy session factory.
         """
-        self.session_factory = session_factory
-        self.session: Session
+        super().__init__(session_factory)
 
-    def __enter__(self) -> AbstractUnitOfWork:
-        """Start a new database session and return the unit of work."""
-        self.session = self.session_factory()
-        self.virtual_networks = repository.SqlAlchemyRepository(self.session)
-        return super(SqlAlchemyUnitOfWork, self).__enter__()
-
-    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Close the database session and rollback if necessary."""
-        super(SqlAlchemyUnitOfWork, self).__exit__(*args)
-        self.session.close()
-
-    def commit(self) -> None:
-        """Commit the current transaction."""
-        self.session.commit()
-
-    def rollback(self) -> None:
-        """Rollback the current transaction."""
-        self.session.rollback()
+    def _init_repositories(self) -> None:
+        """Initializes repositories for the virtual network module."""
+        self.virtual_networks = repository.VirtualNetworkSqlAlchemyRepository(
+            self.session
+        )
