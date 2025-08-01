@@ -34,6 +34,7 @@ Functions:
 
 from __future__ import annotations
 
+import re
 import enum
 import time
 import string
@@ -1393,6 +1394,43 @@ class VMServiceLayerManager(BackgroundTasks):
             else:
                 return result
 
+    def get_max_clone_number(
+        self,
+        base_name: str,
+        existing_names: list[str],
+        count: int
+    ) -> int:
+        """Gets max clone suffix number matching '<base_name>_clone_<NN>'.
+
+        Checks that creating new clones won't exceed the maximum suffix of 99.
+        Raises an exception if there are no available names.
+
+        Args:
+            base_name (str): The base name of the object to clone.
+            existing_names (list[str]): List of existing object names.
+            count (int): Number of clones to create.
+
+        Raises:
+            exceptions.NoAvailableNameForClone: If there is no available suffix.
+
+        Returns:
+            int: The highest existing clone suffix number.
+        """
+        pattern = re.compile(rf'^{re.escape(base_name)}_clone_(\d+)$')
+        max_num = 0
+        for name in existing_names:
+            match = pattern.match(name)
+            if match:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+        max_suff = 99
+        if max_num >= max_suff or max_num + count > max_suff:
+            msg = 'No available name for clone'
+            LOG.error(msg)
+            raise exceptions.NoAvailableNameForClone(msg)
+        return max_num
+
     def clone_vm(self, data: Dict) -> List[Dict]:
         """Clone a virtual machine.
 
@@ -1428,16 +1466,40 @@ class VMServiceLayerManager(BackgroundTasks):
 
         LOG.info(f'Original VM power_state: {original_vm["power_state"]}')
 
+        volumes = self.volume_service_client.get_all_volumes(
+            {'storage_id': target_storage_id}
+        )
+        disk_names = [volume["name"] for volume in volumes]
+
+        max_numbers = {}
+        for disk in disk_names:
+            max_number = self.get_max_clone_number(
+                disk,
+                disk_names,
+                count
+            )
+            max_numbers[disk] = max_number
+
+        vms = self.get_all_vms()
+
+        vm_names = [vm["name"] for vm in vms]
+        max_vm_number = self.get_max_clone_number(
+            original_vm["name"],
+            vm_names,
+            count
+        )
+
         # Create *count* of clones
         for i in range(count):
-            suffix = f'_clone_{i + 1}'
+            suffix = self._create_suffix(max_vm_number + i + 1)
 
             # 1. Build minimal create_VM payload
             clone_payload = self._transform_clone_vm_data(
                 original_vm,
                 user_info,
                 target_storage_id,
-                suffix,
+                max_numbers,
+                i
             )
             clone_payload['name'] = f'{original_vm["name"]}{suffix}'
 
@@ -1466,7 +1528,8 @@ class VMServiceLayerManager(BackgroundTasks):
         vm: Dict,
         user_info: Dict,
         target_storage_id: UUID,
-        suffix: str = '',
+        max_numbers: Dict,
+        current_copy: int
     ) -> Dict:
         """Convert VM data for cloning.
 
@@ -1479,10 +1542,9 @@ class VMServiceLayerManager(BackgroundTasks):
             user_info (Dict): User information to be included in the new VM.
             target_storage_id (UUID): ID of storage where the volume will be
                 created
-            suffix (str): A suffix to append to the names of the cloned
-                virtual machine and its disks. This is used to ensure that
-                the new resources do not clash with the originals.
-
+            max_numbers (Dict): Dictionary of disk names and max suffix number
+            for each disk
+            current_copy (int): current copy number
         Returns:
             Dict: The transformed VM data ready for cloning.
             This function prepares the VM data for cloning by removing
@@ -1519,8 +1581,9 @@ class VMServiceLayerManager(BackgroundTasks):
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get('disks', []),
                 user_info,
-                suffix,
+                max_numbers,
                 target_storage_id,
+                current_copy
             )
 
             data['disks'] = {'attach_disks': attach_disks}
@@ -1531,33 +1594,42 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return data
 
-    def _vm_clone_disks_payload(
+    def _create_suffix(self, num: int) -> str:
+        nulable = 10
+        return f'_clone_{num:02d}' if num < nulable else f'_clone_{num}'
+
+    def _vm_clone_disks_payload( # диски копируются
         self,
         disks_list: List,
         user_info: Dict,
-        suffix: str,
+        max_numbers: Dict,
         target_storage_id: UUID,
+        current_copy: int
     ) -> List[Dict]:
         """Transform VM disks for cloning.
 
         This function prepares the disks of a virtual machine for cloning
         by transforming the disk data into a format suitable for attaching
-        to a new VM. It ensures that the disk names are unique by appending
-        a suffix to the names of the disks that are being cloned.
+        to a new VM. It uses max_numbers dict for getting unic suffixes and
+        increments this number by current_copy.
 
         Args:
             disks_list (List): A list of disk dictionaries from the original VM.
             user_info (Dict): User information to be included in the new VM.
-            suffix (str): A suffix to append to the names of the disks.
+            max_numbers (Dict): Dictionary of disks name and max suffix number
             target_storage_id (UUID): ID of storage where the volume will be
                 created
-
+            current_copy (int): current copy number
         Returns:
             List[Dict]: A list of dictionaries representing the disks
                 ready for cloning, with unique names.
         """
         attach_disks: List[Dict] = []
         for disk in disks_list:
+            suffix = self._create_suffix(
+                max_numbers[disk["name"]] + current_copy + 1
+            )
+
             new_disk = {
                 'name': (
                     f'{disk["name"]}{suffix}'
