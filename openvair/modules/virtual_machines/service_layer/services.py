@@ -1502,7 +1502,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 i
             )
 
-            clone_payload['name'] = self._create_new_name(
+            clone_payload['name'] = self._create_new_clone_name(
                 original_vm["name"],
                 max_vm_number + i + 1,
                 cast(String, orm.VirtualMachines.__table__.c.name.type).length
@@ -1599,7 +1599,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return data
 
-    def _create_new_name(
+    def _create_new_clone_name(
         self,
         name: str,
         num: int,
@@ -1641,7 +1641,7 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         attach_disks: List[Dict] = []
         for disk in disks_list:
-            new_name = self._create_new_name(
+            new_name = self._create_new_clone_name(
                 disk["name"],
                 max_numbers[disk["name"]] + current_copy + 1,
                 cast(String, Volume.__table__.c.name.type).length
