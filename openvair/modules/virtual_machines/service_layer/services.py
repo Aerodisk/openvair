@@ -1595,8 +1595,7 @@ class VMServiceLayerManager(BackgroundTasks):
         return data
 
     def _create_suffix(self, num: int) -> str:
-        nulable = 10
-        return f'_clone_{num:02d}' if num < nulable else f'_clone_{num}'
+        return f'_clone_{num:02d}'
 
     def _vm_clone_disks_payload( # диски копируются
         self,
