@@ -1470,9 +1470,10 @@ class VMServiceLayerManager(BackgroundTasks):
             {'storage_id': target_storage_id}
         )
         disk_names = [volume["name"] for volume in volumes]
+        attached_disks = [disk["name"] for disk in original_vm.get('disks', [])]
 
         max_numbers = {}
-        for disk in disk_names:
+        for disk in attached_disks:
             max_number = self.get_max_clone_number(
                 disk,
                 disk_names,
