@@ -40,8 +40,10 @@ import time
 import string
 from copy import deepcopy
 from uuid import UUID, uuid4
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import Dict, List, Optional, cast
 from collections import namedtuple
+
+from sqlalchemy import String
 
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.vm import get_vms_state, get_vm_snapshots
@@ -52,6 +54,7 @@ from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcServerInitializedException,
 )
+from openvair.modules.volume.adapters.orm import Volume
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.adapters import orm
 from openvair.libs.data_handlers.json.serializer import serialize_json
@@ -68,9 +71,6 @@ from openvair.libs.messaging.clients.rpc_clients.image_rpc_client import (
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
 )
-
-if TYPE_CHECKING:
-    from openvair.modules.virtual_machines.adapters.orm import VirtualMachines
 
 LOG = get_logger(__name__)
 
@@ -1492,7 +1492,6 @@ class VMServiceLayerManager(BackgroundTasks):
 
         # Create *count* of clones
         for i in range(count):
-            suffix = self._create_suffix(max_vm_number + i + 1)
 
             # 1. Build minimal create_VM payload
             clone_payload = self._transform_clone_vm_data(
@@ -1502,7 +1501,12 @@ class VMServiceLayerManager(BackgroundTasks):
                 max_numbers,
                 i
             )
-            clone_payload['name'] = f'{original_vm["name"]}{suffix}'
+
+            clone_payload['name'] = self._create_new_name(
+                original_vm["name"],
+                max_vm_number + i + 1,
+                cast(String, orm.VirtualMachines.__table__.c.name.type).length
+            )
 
             # 2. Prepare & insert stub record into DB
             create_info = self._prepare_create_vm_info(clone_payload)
@@ -1595,8 +1599,19 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return data
 
-    def _create_suffix(self, num: int) -> str:
-        return f'_clone_{num:02d}'
+    def _create_new_name(
+        self,
+        name: str,
+        num: int,
+        max_len: Optional[int]
+    ) -> str:
+        """Creates a name of a clone."""
+        if max_len and len(name) + 9 > max_len:
+            msg = f'VM or disk name is too long: len {name} > {max_len - 9}'
+            LOG.error(msg)
+            raise exceptions.CloneNameTooLong(msg)
+
+        return f'{name}_clone_{num:02d}'
 
     def _vm_clone_disks_payload( # диски копируются
         self,
@@ -1626,13 +1641,15 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         attach_disks: List[Dict] = []
         for disk in disks_list:
-            suffix = self._create_suffix(
-                max_numbers[disk["name"]] + current_copy + 1
+            new_name = self._create_new_name(
+                disk["name"],
+                max_numbers[disk["name"]] + current_copy + 1,
+                cast(String, Volume.__table__.c.name.type).length
             )
 
             new_disk = {
                 'name': (
-                    f'{disk["name"]}{suffix}'
+                    new_name
                     if disk.get('type') == DiskType.volume.value
                     else disk['name']
                 ),
@@ -2217,7 +2234,7 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.info(f'Snapshot {snapshot["name"]} deleted.')
         LOG.info('Snapshots of the VM successfully deleted.')
 
-    def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
+    def _update_snapshots_statuses(self, db_vm: orm.VirtualMachines) -> None:
         """Update snapshots statuses for a VM based on Libvirt API.
 
         Args:
