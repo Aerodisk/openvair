@@ -12,54 +12,25 @@ Classes:
 
 from __future__ import annotations
 
-import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from openvair.modules.network.config import DEFAULT_SESSION_FACTORY
 from openvair.modules.network.adapters import repository
+from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session, sessionmaker
+    from sqlalchemy.orm import sessionmaker
 
 
-class AbstractUnitOfWork(metaclass=abc.ABCMeta):
-    """Abstract base class defining the interface for unit of work.
-
-    This class provides the interface for implementing the Unit of Work
-    pattern, including methods for committing and rolling back transactions,
-    as well as entering and exiting the unit of work context.
-    """
-
-    interfaces: repository.AbstractRepository
-    interface_extra_specs: repository.AbstractRepository
-
-    def __enter__(self) -> AbstractUnitOfWork:
-        """Enter the unit of work context."""
-        return self
-
-    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Exit the unit of work context, rolling back if necessary."""
-        self.rollback()
-
-    @abc.abstractmethod
-    def commit(self) -> None:
-        """Commit the current transaction."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def rollback(self) -> None:
-        """Rollback the current transaction."""
-        raise NotImplementedError
-
-
-class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
+class NetworkSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """SQLAlchemy implementation of the unit of work pattern.
 
     This class provides an implementation of the Unit of Work pattern using
     SQLAlchemy, managing transactions for network operations.
 
     Attributes:
-        session (Session): The SQLAlchemy session used for database operations.
+        interfaces (NetworkSqlAlchemyRepository): Repository for interface
+            entities.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
@@ -70,24 +41,8 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 factory to use for creating sessions. Defaults to
                 DEFAULT_SESSION_FACTORY.
         """
-        self.session_factory = session_factory
-        self.session: Session
+        super().__init__(session_factory)
 
-    def __enter__(self) -> AbstractUnitOfWork:
-        """Enter the unit of work context, initializing repositories."""
-        self.session = self.session_factory()
-        self.interfaces = repository.SqlAlchemyRepository(self.session)
-        return super().__enter__()
-
-    def __exit__(self, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Exit the unit of work context, closing the session."""
-        super().__exit__(*args)
-        self.session.close()
-
-    def commit(self) -> None:
-        """Commit the current transaction."""
-        self.session.commit()
-
-    def rollback(self) -> None:
-        """Rollback the current transaction."""
-        self.session.rollback()
+    def _init_repositories(self) -> None:
+        """Initializes repositories for the network module."""
+        self.interfaces = repository.NetworkSqlAlchemyRepository(self.session)

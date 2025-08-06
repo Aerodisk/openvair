@@ -8,7 +8,7 @@ Classes:
 
 Dependencies:
     - MessagingClient: Handles message-based communication.
-    - EventstoreSqlAlchemyUnitOfWork: Unit of Work for event operations.
+    - EventStoreSqlAlchemyUnitOfWork: Unit of Work for event operations.
 """
 
 from typing import Dict, List
@@ -17,7 +17,7 @@ from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
 from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
-from openvair.modules.event_store.service_layer import unit_of_work2
+from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 
 LOG = get_logger(__name__)
@@ -30,7 +30,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
    get operations. It handles RPC communication and database transactions.
 
    Attributes:
-      uow (EventstoreSqlAlchemyUnitOfWork): Unit of Work for event
+      uow (EventStoreSqlAlchemyUnitOfWork): Unit of Work for event
          transactions.
       service_layer_rpc (MessagingClient): RPC client for internal task
          delegation.
@@ -42,7 +42,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
       Sets up messaging client and unit of work.
       """
       super().__init__()
-      self.uow = unit_of_work2.EventstoreSqlAlchemyUnitOfWork
+      self.uow = unit_of_work.EventStoreSqlAlchemyUnitOfWork
       self.service_layer_rpc = MessagingClient(
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
       )

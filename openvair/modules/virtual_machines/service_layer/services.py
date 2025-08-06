@@ -490,12 +490,15 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.VolumeStatusIsError(message)
 
-    def _create_volumes(self, vm_name: str, volumes: List) -> List:
+    def _create_volumes(
+        self, vm_name: str, volumes: List, user_info: Dict
+    ) -> List:
         """Create volumes for a virtual machine.
 
         Args:
             vm_name (str): The name of the virtual machine.
             volumes (List): A list of volume specifications.
+            user_info (Dict): The data containing information about user.
 
         Returns:
             List: A list of created volumes.
@@ -511,7 +514,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     'format': volume.get('format', 'qcow2'),
                     'size': volume.pop('size', '0'),
                     'storage_id': volume.pop('storage_id', ''),
-                    'user_info': volume.get('user_info'),
+                    'user_info': user_info,
                     'read_only': volume.pop('read_only'),
                 }
             )
@@ -664,7 +667,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
             if auto_create_volumes:
                 created_disks = self._create_volumes(
-                    db_vm.name, auto_create_volumes
+                    db_vm.name, auto_create_volumes, user_info
                 )
                 attach_volumes.extend(created_disks)
 
@@ -1307,7 +1310,7 @@ class VMServiceLayerManager(BackgroundTasks):
             data (Dict): The data containing the information to edit the VM.
         """
         LOG.info(f'Handling response on _edit_vm with data: {data}')
-        data.pop('user_info', {})
+        user_info = data.pop('user_info', {})
         vm_edit_info = self._prepare_vm_info_for_edit(data.pop('edit_info', {}))
         self._update_db_vm_info(vm_edit_info.id, vm_edit_info)
 
@@ -1319,7 +1322,7 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm.status = VmStatus.available.name
             db_vm.information = ''
             self.uow.commit()
-            self._process_vm_volumes(vm_edit_info, db_vm)
+            self._process_vm_volumes(vm_edit_info, db_vm, user_info)
         LOG.info('Response on _edit_vm was successfully processed.')
 
     def _process_vm_edit_disks(self, vm_edit_info: EditVmInfo) -> None:
@@ -1351,11 +1354,12 @@ class VMServiceLayerManager(BackgroundTasks):
         self,
         vm_edit_info: EditVmInfo,
         db_vm: orm.VirtualMachines,
+        user_info: Dict,
     ) -> None:
         """Process attaching volumes and creating new disks for the VM."""
         if vm_edit_info.auto_create_volumes:
             created_disks = self._create_volumes(
-                db_vm.name, vm_edit_info.auto_create_volumes
+                db_vm.name, vm_edit_info.auto_create_volumes, user_info
             )
             vm_edit_info.attach_volumes.extend(created_disks)
 
