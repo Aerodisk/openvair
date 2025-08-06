@@ -7,8 +7,7 @@ Defines:
 """
 from __future__ import annotations
 
-import json
-from typing import List, cast
+from typing import Any, List
 from pathlib import Path
 
 from pydantic import Field, field_validator
@@ -39,24 +38,18 @@ class NotificationSettings(BaseSettings):
         target_emails (List[str]): Email for test notifications.
         notification_type (str): Default type (email/sms/etc).
     """
-    target_emails: List[str] = Field(
-        default=['test@email.com'], alias="TEST_NOTIFICATION_EMAILS"
+    target_emails: Any = Field(
+        default=['test@email.com'], alias='TEST_NOTIFICATION_EMAILS'
     )
 
-    @classmethod
     @field_validator("target_emails", mode="before")
-    def parse_emails(cls, v: str | List[str]) -> List[str]:
+    @classmethod
+    def convert_to_list(cls, v: str) -> List[str]:
         """Validate the `target_emails` field parsing to list of emails"""
-        if isinstance(v, str):
-            try:
-                return cast(List[str], json.loads(v))
-            except json.JSONDecodeError:
-                pass
-            return [email.strip() for email in v.split(",") if email.strip()]
-        return v
+        return [email.strip() for email in v.split(',')]
 
     notification_type: str = Field(
-        default="email", alias="TEST_NOTIFICATION_TYPE"
+        default='email', alias='TEST_NOTIFICATION_TYPE'
     )
 
     model_config = SettingsConfigDict(
