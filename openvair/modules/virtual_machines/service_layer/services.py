@@ -661,8 +661,10 @@ class VMServiceLayerManager(BackgroundTasks):
         attach_volumes = data.pop('attach_volumes', [])
         attach_images = data.pop('attach_images', [])
         auto_create_volumes = data.pop('auto_create_volumes', [])
+
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
             LOG.info(f'VM info before processing: {db_vm.__dict__}')
 
             if auto_create_volumes:
@@ -676,13 +678,13 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             LOG.info(f'VM info after processing: {db_vm.__dict__}')
             db_vm.status = VmStatus.available.name
-            self.event_store.add_event(
-                vm_id,
-                user_info.get('id'),
-                self._create_vm.__name__,
-                f'VM {db_vm.name} was successfully created.',
-            )
             uow.commit()
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self._create_vm.__name__,
+            f'VM {vm_name} was successfully created.',
+        )
         LOG.info('Response on _create_vm was successfully processed.')
 
     @staticmethod
@@ -922,14 +924,15 @@ class VMServiceLayerManager(BackgroundTasks):
 
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
             db_vm.status = VmStatus.starting.name
-            self.event_store.add_event(
-                vm_id,
-                user_info.get('id'),
-                self.start_vm.__name__,
-                f'Set starting status for VM {db_vm.name}.',
-            )
             uow.commit()
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.start_vm.__name__,
+            f'Set starting status for VM {vm_name}.',
+        )
 
         serialized_vm = DataSerializer.vm_to_web(db_vm)
         serialized_vm['user_info'] = user_info
@@ -976,10 +979,11 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.information = message
                 uow.commit()
         else:
+            redefined_snaps = start_info.pop('redefined_snapshots')
+            self._set_recreated_snapshots_statuses(vm_id, redefined_snaps)
             with self.uow() as uow:
                 db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-                redefined_snaps = start_info.pop('redefined_snapshots')
-                self._set_recreated_snapshots_statuses(vm_id, redefined_snaps)
+                vm_name = db_vm.name
                 db_vm.power_state = VmPowerState(
                     start_info.get('power_state')
                 ).name
@@ -989,13 +993,13 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
                 db_vm.status = VmStatus.available.name
                 db_vm.information = ''
-                self.event_store.add_event(
-                    vm_id,
-                    user_info.get('id'),
-                    self._start_vm.__name__,
-                    f'VM {db_vm.name} was successfully started.',
-                )
                 uow.commit()
+            self.event_store.add_event(
+                vm_id,
+                user_info.get('id'),
+                self._start_vm.__name__,
+                f'VM {vm_name} was successfully started.',
+            )
             LOG.info('Response on _start_vm was successfully processed.')
 
     def _set_recreated_snapshots_statuses(
@@ -1035,6 +1039,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_info', {})
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
             self._check_vm_status(
                 db_vm.status, [VmStatus.available.name, VmStatus.error.name]
             )
@@ -1042,15 +1047,15 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.power_state, [VmPowerState.running.name]
             )
             db_vm.status = VmStatus.shut_offing.name
-            self.event_store.add_event(
-                str(db_vm.id),
-                user_info.get('id'),
-                self.shut_off_vm.__name__,
-                f'Set shut_off status for VM {db_vm.name}.',
-            )
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             serialized_vm['user_info'] = user_info
             uow.commit()
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.shut_off_vm.__name__,
+            f'Set shut_off status for VM {vm_name}.',
+        )
         self.service_layer_rpc.cast(
             self._shut_off_vm.__name__, data_for_method=serialized_vm
         )
@@ -1085,16 +1090,17 @@ class VMServiceLayerManager(BackgroundTasks):
         else:
             with self.uow() as uow:
                 db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                vm_name = db_vm.name
                 db_vm.status = VmStatus.available.name
                 db_vm.power_state = VmPowerState.shut_off.name
                 db_vm.graphic_interface.url = ''
-                self.event_store.add_event(
-                    vm_id,
-                    user_info.get('id'),
-                    self._shut_off_vm.__name__,
-                    f'VM {db_vm.name} was successfully shut off.',
-                )
                 uow.commit()
+            self.event_store.add_event(
+                vm_id,
+                user_info.get('id'),
+                self._shut_off_vm.__name__,
+                f'VM {vm_name} was successfully shut off.',
+            )
             LOG.info('Response on _shut_off_vm was successfully processed.')
 
     @staticmethod
@@ -1926,12 +1932,13 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            snap_name = db_snap.name
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             prepared_data = {
                 **serialized_vm,
                 'snapshot_info': {
                     'vm_name': db_vm.name,
-                    'snapshot_name': db_snap.name
+                    'snapshot_name': snap_name
                 }
             }
         self.domain_rpc.cast(
@@ -1942,7 +1949,7 @@ class VMServiceLayerManager(BackgroundTasks):
             vm_id,
             user_id,
             self._revert_snapshot.__name__,
-            f"Successfully reverted snapshot {db_snap.name}",
+            f"Successfully reverted snapshot {snap_name}",
         )
         LOG.info('Response on _revert_snapshot was successfully processed.')
 
@@ -2039,6 +2046,7 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            snap_name = db_snap.name
             child_snapshots = uow.snapshots.get_children(db_snap)
             children_names = [child.name for child in child_snapshots]
             serialized_vm = DataSerializer.vm_to_web(db_vm)
@@ -2046,8 +2054,8 @@ class VMServiceLayerManager(BackgroundTasks):
                 **serialized_vm,
                 'snapshot_info': {
                     'vm_name': db_vm.name,
-                    'snapshot_name': db_snap.name,
-                    'snapshot_id': str(db_snap.id),
+                    'snapshot_name': snap_name,
+                    'snapshot_id': snapshot_id,
                     'children_names': children_names,
                 }
             }
@@ -2069,7 +2077,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 vm_id,
                 user_id,
                 self._delete_snapshot.__name__,
-                f"Successfully deleted snapshot {db_snap.name}",
+                f"Successfully deleted snapshot {snap_name}",
             )
             LOG.info('Response on _delete_snapshot was successfully processed.')
 
