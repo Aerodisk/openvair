@@ -19,6 +19,9 @@ from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcCallTimeoutException,
 )
+from openvair.modules.notification.service_layer.unit_of_work import (
+    NotificationSqlAlchemyUnitOfWork,
+)
 
 LOG = get_logger(__name__)
 
@@ -32,6 +35,7 @@ def test_send_notification_email_success(
     Asserts:
     - Response is 200 OK.
     - Returned data matches request.
+    - Database data matches request.
     """
     response = client.post('/notifications/send/', json=notification)
     assert response.status_code == status.HTTP_200_OK, response.text
@@ -41,6 +45,19 @@ def test_send_notification_email_success(
     assert data["subject"] == notification["subject"]
     assert data["message"] == notification["message"]
     assert set(data.keys()) == {"msg_type", "recipients", "subject", "message"}
+
+    with NotificationSqlAlchemyUnitOfWork() as uow:
+        notifications = uow.notifications.get_all()
+        assert len(notifications) == 1
+        db_notification = notifications[0]
+
+        assert db_notification.msg_type == notification["msg_type"]
+        assert db_notification.recipients == notification["recipients"]
+        assert db_notification.subject == notification["subject"]
+        assert db_notification.message == notification["message"]
+
+        assert db_notification.status == "sent"
+        assert db_notification.create_datetime is not None
 
 
 def test_send_notification_unauthorized(
