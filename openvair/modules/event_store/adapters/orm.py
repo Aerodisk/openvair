@@ -39,19 +39,15 @@ class Events(Base):
         Integer(),
         primary_key=True,
     )
-    module: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    module: Mapped[str] = mapped_column(String(40), nullable=False)
     object_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        postgresql.UUID(as_uuid=True)
+        postgresql.UUID(as_uuid=False)
     )
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        postgresql.UUID(as_uuid=True)
-    )
-    event: Mapped[Optional[str]] = mapped_column(
-        String(50), default='', nullable=True
-    )
-    timestamp: Mapped[Optional[datetime.datetime]] = mapped_column(
+    user_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=False))
+    event: Mapped[str] = mapped_column(String(50), default='', nullable=False)
+    timestamp: Mapped[datetime.datetime] = mapped_column(
         DateTime,
         default=func.now(),
-        nullable=True,
+        nullable=False,
     )
-    information: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    information: Mapped[str] = mapped_column(Text, nullable=False)
