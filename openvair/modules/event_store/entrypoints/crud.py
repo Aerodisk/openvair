@@ -10,7 +10,7 @@ Classes:
     EventCrud: Class for managing CRUD operations on events.
 """
 
-import uuid
+from uuid import UUID
 from typing import List
 from collections import namedtuple
 
@@ -23,6 +23,9 @@ from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 from openvair.modules.event_store.service_layer.services import (
     EventstoreServiceLayerManager,
+)
+from openvair.modules.event_store.adapters.dto.internal.commands import (
+    CreateEventServiceCommandDTO,
 )
 
 LOG = get_logger(__name__)
@@ -109,8 +112,8 @@ class EventCrud:
 
     def new_add_event(
         self,
-        object_id: str,
-        user_id: str,
+        object_id: UUID,
+        user_id: UUID,
         event: str,
         information: str,
     ) -> None:
@@ -130,27 +133,20 @@ class EventCrud:
             Exception: If an error occurs during the event creation or database
                 transaction.
         """
-        try:
-            LOG.info('Starting add event')
-            event_info = CreateEventInfo(
-                module=self.module_name,
-                object_id=object_id,
-                user_id=uuid.UUID(user_id),
-                event=event,
-                information=information,
-            )
-            LOG.info(f'Event info: {event_info}')
-
-            data = event_info._asdict()
-            data['user_id'] = str(data['user_id'])
-            self.service_layer_rpc.call(
-                EventstoreServiceLayerManager.add_event.__name__,
-                data_for_method=data,
-            )
-            LOG.info('Event info was successfully added')
-        except Exception as e:
-            LOG.exception('An error occurred')
-            LOG.debug(e)
+        LOG.info('Starting add event')
+        creation_command = CreateEventServiceCommandDTO(
+            module=self.module_name,
+            object_id=object_id,
+            user_id=user_id,
+            event=event,
+            information=information,
+        )
+        LOG.info(f'Event info: {creation_command}')
+        self.service_layer_rpc.call(
+            EventstoreServiceLayerManager.add_event.__name__,
+            data_for_method=creation_command.model_dump(mode='json'),
+        )
+        LOG.info('Event info was successfully added')
 
     def add_event(
         self,
@@ -178,7 +174,7 @@ class EventCrud:
         try:
             LOG.info('Starting add event')
             try:
-                user_uuid = uuid.UUID(user_id)
+                user_uuid = UUID(user_id)
             except (ValueError, TypeError):
                 LOG.warning(
                     f'Invalid user_id for event: {user_id!r}. '
