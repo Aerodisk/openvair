@@ -681,6 +681,14 @@ class ImageServiceLayerManager(BackgroundTasks):
                 self.service_layer_rpc.cast(
                     self._delete_image.__name__, data_for_method=domain_image
                 )
+
+                message = 'Image deleting was started successfully'
+                self._send_event(
+                    object_id=uuid.UUID(image_id),
+                    user_id=uuid.UUID(user_info['user_id']),
+                    event=self._delete_image.__name__,
+                    information=message,
+                )
                 return DataSerializer.to_web(db_image)
             except (
                 exceptions.ImageStatusError,
@@ -692,6 +700,12 @@ class ImageServiceLayerManager(BackgroundTasks):
                 db_image.status = ImageStatus.error.name
                 db_image.information = message
                 LOG.error(message)
+                self._send_event(
+                    object_id=uuid.UUID(image_id),
+                    user_id=uuid.UUID(user_info['user_id']),
+                    event=self._delete_image.__name__,
+                    information=message,
+                )
                 raise exceptions.ImageDeletingError(message)
             finally:
                 uow.commit()
