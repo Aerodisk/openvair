@@ -25,9 +25,6 @@ from openvair.modules.event_store.adapters.serializer import (
 from openvair.modules.event_store.adapters.dto.internal.models import (
     CreateEventModelDTO,
 )
-from openvair.modules.event_store.adapters.dto.internal.commands import (
-    CreateEventServiceCommandDTO,
-)
 
 LOG = get_logger(__name__)
 
@@ -106,11 +103,8 @@ class EventstoreServiceLayerManager(BackgroundTasks):
            None
         """
         LOG.info('Adding event, service layer')
-        creating_command = CreateEventServiceCommandDTO.model_validate(
-            creating_data
-        )
         db_event = CreateSerializer.to_orm(
-            CreateEventModelDTO.model_validate(creating_command)
+            CreateEventModelDTO.model_validate(creating_data)
         )
         with self.uow() as uow:
             uow.events.add(db_event)
