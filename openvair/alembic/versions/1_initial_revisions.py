@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-08-07 14:26:34.407666
+Create Date: 2025-08-08 17:34:42.422476
 
 """
 
@@ -278,8 +278,8 @@ def upgrade() -> None:
         'events',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('module', sa.String(length=40), nullable=False),
-        sa.Column('object_id', sa.UUID(as_uuid=False), nullable=True),
-        sa.Column('user_id', sa.UUID(as_uuid=False), nullable=False),
+        sa.Column('object_id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('event', sa.String(length=50), nullable=False),
         sa.Column('timestamp', sa.DateTime(), nullable=False),
         sa.Column('information', sa.Text(), nullable=False),

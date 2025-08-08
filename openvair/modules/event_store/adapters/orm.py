@@ -12,7 +12,6 @@ Functions:
 
 import uuid
 import datetime
-from typing import Optional
 
 from sqlalchemy import Text, String, Integer, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
@@ -40,10 +39,8 @@ class Events(Base):
         primary_key=True,
     )
     module: Mapped[str] = mapped_column(String(40), nullable=False)
-    object_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        postgresql.UUID(as_uuid=False)
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=False))
+    object_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True))
+    user_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True))
     event: Mapped[str] = mapped_column(String(50), default='', nullable=False)
     timestamp: Mapped[datetime.datetime] = mapped_column(
         DateTime,
