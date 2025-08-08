@@ -944,7 +944,7 @@ class VMServiceLayerManager(BackgroundTasks):
             if disk.get('type') == DiskType.volume.name:
                 disk.update({'target': f'sd{alphabet[i]}'})
             else:
-                disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'ide'})
+                disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'sata'})
         with self.uow:
             db_vm = self.uow.virtual_machines.get(data.get('id', ''))
             current_snap = self.uow.virtual_machines.get_current_snapshot(
