@@ -19,7 +19,7 @@ from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import (
-    DataSerializer,
+    ApiSerializer,
     CreateSerializer,
 )
 from openvair.modules.event_store.adapters.dto.internal.models import (
@@ -62,7 +62,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
         LOG.info('Getting events, service layer')
         with self.uow() as uow:
             return [
-                DataSerializer.to_web(event) for event in uow.events.get_all()
+                ApiSerializer.to_dict(event) for event in uow.events.get_all()
             ]
 
     def get_all_events_by_module(self, data: Dict) -> List:
@@ -76,7 +76,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
         )
         with self.uow() as uow:
             return [
-                DataSerializer.to_web(event)
+                ApiSerializer.to_dict(event)
                 for event in uow.events.get_all_by_module(data['module_name'])
             ]
 
@@ -89,7 +89,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
         LOG.info('Getting last events, service layer')
         with self.uow() as uow:
             return [
-                DataSerializer.to_web(event)
+                ApiSerializer.to_dict(event)
                 for event in uow.events.get_last_events(data['limit'])
             ]
 
