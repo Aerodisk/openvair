@@ -280,22 +280,18 @@ class VMServiceLayerManager(BackgroundTasks):
         for attach_disk in disks.pop('attach_disks', []):
             attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
             if attach_disk.get('volume_id', ''):
-                attach_disk.update(
-                    {
-                        'type': DiskType.volume.value,
-                        'disk_id': attach_disk.get('volume_id', ''),
-                        'read_only': attach_disk.get('read_only', False),
-                    }
-                )
+                attach_disk.update({
+                    'type': DiskType.volume.name,
+                    'disk_id': attach_disk.get('volume_id', ''),
+                    'read_only': attach_disk.get('read_only', False),
+                })
                 create_vm_info.attach_volumes.append(attach_disk)
             elif attach_disk.get('image_id', ''):
-                attach_disk.update(
-                    {
-                        'type': DiskType.image.value,
-                        'disk_id': attach_disk.get('image_id', ''),
-                        'read_only': True,
-                    }
-                )
+                attach_disk.update({
+                    'type': DiskType.image.name,
+                    'disk_id': attach_disk.get('image_id', ''),
+                    'read_only': True,
+                })
                 create_vm_info.attach_images.append(attach_disk)
             elif attach_disk.get('storage_id', ''):
                 attach_disk.update({'user_info': user_info})
@@ -534,13 +530,11 @@ class VMServiceLayerManager(BackgroundTasks):
                 continue
 
             available_volume.update(volume)
-            available_volume.update(
-                {
-                    'disk_id': available_volume.get('id'),
-                    'type': DiskType.volume.value,
-                    'read_only': available_volume.get('read_only', False),
-                }
-            )
+            available_volume.update({
+                'disk_id': available_volume.get('id'),
+                'type': DiskType.volume.name,
+                'read_only': available_volume.get('read_only', False),
+            })
             available_volume.pop('id')
             auto_created_volumes.append(available_volume)
         LOG.info('Volumes was successfully created.')
@@ -595,11 +589,11 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Attaching disk to vm.')
         disk_type = disk.get('type', '')
-        if disk_type == DiskType.image.value:
+        if disk_type == DiskType.image.name:
             attach_info = self._attach_image_to_vm(
                 disk.get('image_id', ''), vm_id
             )
-        elif disk_type == DiskType.volume.value:
+        elif disk_type == DiskType.volume.name:
             attach_info = self._attach_volume_to_vm(
                 disk.get('disk_id', ''), vm_id
             )
@@ -607,13 +601,11 @@ class VMServiceLayerManager(BackgroundTasks):
             message = 'Unexpected disk type.'
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        disk.update(
-            {
-                'path': attach_info.get('path', ''),
-                'size': int(attach_info.get('size', 0)),
-                'provisioning': attach_info.get('provisioning', ''),
-            }
-        )
+        disk.update({
+            'path': attach_info.get('path', ''),
+            'size': int(attach_info.get('size', 0)),
+            'provisioning': attach_info.get('provisioning', ''),
+        })
         LOG.info('Disk was successfully attached to vm.')
         return disk
 
@@ -771,9 +763,9 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Detaching disk from vm.')
         disk_type = disk.get('type', '')
         disk_id = disk.get('disk_id', '')
-        if disk_type == DiskType.image.value:
+        if disk_type == DiskType.image.name:
             self._detach_image_from_vm(vm_id, disk_id)
-        elif disk_type == DiskType.volume.value:
+        elif disk_type == DiskType.volume.name:
             self._detach_volume_from_vm(vm_id, disk_id)
         else:
             message = 'Unexpected disk type.'
@@ -949,10 +941,10 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_info', {})
 
         for i, disk in enumerate(data.get('disks', [])):
-            if disk.get('type') == DiskType.volume.value:
+            if disk.get('type') == DiskType.volume.name:
                 disk.update({'target': f'sd{alphabet[i]}'})
             else:
-                disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'ide'})
+                disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'sata'})
         with self.uow:
             db_vm = self.uow.virtual_machines.get(data.get('id', ''))
             current_snap = self.uow.virtual_machines.get_current_snapshot(
@@ -1137,22 +1129,18 @@ class VMServiceLayerManager(BackgroundTasks):
         for attach_disk in disks.pop('attach_disks', []):
             attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
             if attach_disk.get('volume_id', ''):
-                attach_disk.update(
-                    {
-                        'type': DiskType.volume.value,
-                        'disk_id': attach_disk.get('volume_id', ''),
-                        'read_only': attach_disk.get('read_only', False),
-                    }
-                )
+                attach_disk.update({
+                    'type': DiskType.volume.name,
+                    'disk_id': attach_disk.get('volume_id', ''),
+                    'read_only': attach_disk.get('read_only', False),
+                })
                 edit_vm_info.attach_volumes.append(attach_disk)
             elif attach_disk.get('image_id', ''):
-                attach_disk.update(
-                    {
-                        'type': DiskType.image.value,
-                        'disk_id': attach_disk.get('image_id', ''),
-                        'read_only': True,
-                    }
-                )
+                attach_disk.update({
+                    'type': DiskType.image.name,
+                    'disk_id': attach_disk.get('image_id', ''),
+                    'read_only': True,
+                })
                 edit_vm_info.attach_images.append(attach_disk)
             elif attach_disk.get('storage_id', ''):
                 edit_vm_info.auto_create_volumes.append(attach_disk)
@@ -1565,7 +1553,7 @@ class VMServiceLayerManager(BackgroundTasks):
             new_disk = {
                 'name': (
                     f'{disk["name"]}{suffix}'
-                    if disk.get('type') == DiskType.volume.value
+                    if disk.get('type') == DiskType.volume.name
                     else disk['name']
                 ),
                 'emulation': disk['emulation'],
@@ -1577,7 +1565,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 'user_info': user_info,
             }
 
-            if disk.get('type') == DiskType.volume.value:
+            if disk.get('type') == DiskType.volume.name:
                 try:
                     clone_result = self.volume_service_client.clone_volume(
                         {
@@ -1618,6 +1606,7 @@ class VMServiceLayerManager(BackgroundTasks):
             Dict: A new dictionary with the specified keys removed.
         """
         return {k: v for k, v in src.items() if k not in keys}
+
     def get_snapshot(self, data: Dict) -> Dict:
         """Retrieve a specific snapshot by VM ID and snapshot ID.
 
