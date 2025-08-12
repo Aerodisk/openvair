@@ -250,7 +250,7 @@ class VMServiceLayerManager(BackgroundTasks):
         return serialized_vms
 
     @staticmethod
-    def _prepare_create_vm_info(vm_info: Dict) -> CreateVmInfo:
+    def _prepare_create_vm_info(vm_info: Dict) -> CreateVmInfo:  # noqa: C901
         """Prepare the information needed to create a virtual machine.
 
         Args:
@@ -279,29 +279,48 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         disks = vm_info.pop('disks', {})
+        disk_ids = set()
+
         for attach_disk in disks.pop('attach_disks', []):
-            attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
+            disk_id = None
             if attach_disk.get('volume_id', ''):
+                disk_id = attach_disk.get('volume_id', '')
                 attach_disk.update(
                     {
                         'type': DiskType.volume.value,
-                        'disk_id': attach_disk.get('volume_id', ''),
+                        'disk_id': disk_id,
                         'read_only': attach_disk.get('read_only', False),
                     }
                 )
-                create_vm_info.attach_volumes.append(attach_disk)
             elif attach_disk.get('image_id', ''):
+                disk_id = attach_disk.get('image_id', '')
                 attach_disk.update(
                     {
                         'type': DiskType.image.value,
-                        'disk_id': attach_disk.get('image_id', ''),
+                        'disk_id': disk_id,
                         'read_only': True,
                     }
                 )
-                create_vm_info.attach_images.append(attach_disk)
             elif attach_disk.get('storage_id', ''):
                 attach_disk.update({'user_info': user_info})
                 create_vm_info.auto_create_volumes.append(attach_disk)
+                continue
+
+            if disk_id:
+                if disk_id in disk_ids:
+                    message = (f'Multiple attachment of disk {disk_id} '
+                               f'in the request')
+                    LOG.error(message)
+                    raise exceptions.DuplicateDiskException(message)
+                disk_ids.add(disk_id)
+                attach_disk.update(
+                    {'qos': serialize_json(attach_disk.get('qos'))}
+                )
+                if attach_disk['type'] == DiskType.volume.value:
+                    create_vm_info.attach_volumes.append(attach_disk)
+                else:
+                    create_vm_info.attach_images.append(attach_disk)
+
         LOG.info('Vm information was successfully prepared for creating.')
         return create_vm_info
 
@@ -631,6 +650,13 @@ class VMServiceLayerManager(BackgroundTasks):
         )
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            existing_disk_ids = {str(d.disk_id) for d in db_vm.disks}
+            for disk in disks:
+                disk_id = disk.get('disk_id')
+                if disk_id and disk_id in existing_disk_ids:
+                    message = f"Disk {disk_id} is already attached to this VM"
+                    LOG.error(message)
+                    raise exceptions.DuplicateDiskException(message)
             for disk in disks:
                 try:
                     attached_disk = self._attach_disk_to_vm(vm_id, disk)
@@ -642,8 +668,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     )
                 except exceptions.UnexpectedDataArguments as err:
                     message = (
-                        'While attaching disks to vm '
-                        f'was raised err: {err!s}'
+                        f'While attaching disks to vm was raised err: {err!s}'
                     )
                     LOG.error(message)
             uow.commit()
@@ -960,7 +985,7 @@ class VMServiceLayerManager(BackgroundTasks):
             if disk.get('type') == DiskType.volume.value:
                 disk.update({'target': f'sd{alphabet[i]}'})
             else:
-                disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'ide'})
+                disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'sata'})
         with self.uow() as uow:
             current_snap = uow.snapshots.get_current(vm_id)
             data['snapshot_info'] = {
@@ -1104,7 +1129,7 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.info('Response on _shut_off_vm was successfully processed.')
 
     @staticmethod
-    def _prepare_vm_info_for_edit(vm_data: Dict) -> EditVmInfo:
+    def _prepare_vm_info_for_edit(vm_data: Dict) -> EditVmInfo:  # noqa: C901
         """Prepare the information needed to edit a virtual machine.
 
         Args:
@@ -1146,28 +1171,46 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         disks = vm_data.pop('disks', {})
+        disk_ids = set()
+
         for attach_disk in disks.pop('attach_disks', []):
-            attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
+            disk_id = None
             if attach_disk.get('volume_id', ''):
+                disk_id = attach_disk.get('volume_id', '')
                 attach_disk.update(
                     {
                         'type': DiskType.volume.value,
-                        'disk_id': attach_disk.get('volume_id', ''),
+                        'disk_id': disk_id,
                         'read_only': attach_disk.get('read_only', False),
                     }
                 )
-                edit_vm_info.attach_volumes.append(attach_disk)
             elif attach_disk.get('image_id', ''):
+                disk_id = attach_disk.get('image_id', '')
                 attach_disk.update(
                     {
                         'type': DiskType.image.value,
-                        'disk_id': attach_disk.get('image_id', ''),
+                        'disk_id': disk_id,
                         'read_only': True,
                     }
                 )
-                edit_vm_info.attach_images.append(attach_disk)
             elif attach_disk.get('storage_id', ''):
                 edit_vm_info.auto_create_volumes.append(attach_disk)
+                continue
+
+            if disk_id:
+                if disk_id in disk_ids:
+                    message = (f'Multiple attachment of disk {disk_id} '
+                               f'in the request')
+                    LOG.error(message)
+                    raise exceptions.DuplicateDiskException(message)
+                disk_ids.add(disk_id)
+                attach_disk.update(
+                    {'qos': serialize_json(attach_disk.get('qos'))}
+                )
+                if attach_disk['type'] == DiskType.volume.value:
+                    edit_vm_info.attach_volumes.append(attach_disk)
+                else:
+                    edit_vm_info.attach_images.append(attach_disk)
 
         edit_vm_info.detach_disks.extend(disks.pop('detach_disks', []))
         edit_vm_info.edit_disks.extend(disks.pop('edit_disks', []))
@@ -1294,18 +1337,20 @@ class VMServiceLayerManager(BackgroundTasks):
                 self._check_vm_power_state(
                     db_vm.power_state, available_power_states
                 )
+                vm_edit_info = self._prepare_vm_info_for_edit(edit_info)
                 db_vm.status = VmStatus.editing.name
                 if db_vm.power_state == VmPowerState.shut_off.name:
                     self.service_layer_rpc.cast(
                         self._edit_shut_offed_vm.__name__,
                         data_for_method={
-                            'edit_info': edit_info,
+                            'edit_info': vm_edit_info._asdict(),
                             'user_info': user_info,
                         },
                     )
             except (
                 exceptions.VMStatusException,
                 exceptions.VMPowerStateException,
+                exceptions.DuplicateDiskException,
             ) as err:
                 message = f'Handle error: {err!s} while editing VM.'
                 LOG.error(message)
@@ -1326,7 +1371,7 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info(f'Handling response on _edit_vm with data: {data}')
         user_info = data.pop('user_info', {})
-        vm_edit_info = self._prepare_vm_info_for_edit(data.pop('edit_info', {}))
+        vm_edit_info = EditVmInfo(**data.pop('edit_info', {}))
         vm_id = UUID(vm_edit_info.id)
         self._update_db_vm_info(vm_id, vm_edit_info)
 
@@ -1337,8 +1382,14 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm = uow.virtual_machines.get_or_fail(vm_id)
             db_vm.status = VmStatus.available.name
             db_vm.information = ''
-            self._process_vm_volumes(vm_edit_info, vm_id, user_info)
-            uow.commit()
+            try:
+                self._process_vm_volumes(vm_edit_info, vm_id, user_info)
+            except exceptions.DuplicateDiskException as err:
+                message = f'Handle error: {err!s} while editing VM disks.'
+                LOG.error(message)
+                db_vm.information = message
+            finally:
+                uow.commit()
         LOG.info('Response on _edit_vm was successfully processed.')
 
     def _process_vm_edit_disks(self, vm_edit_info: EditVmInfo) -> None:

@@ -140,3 +140,10 @@ class SnapshotNotFoundException(BaseCustomException):
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize SnapshotNotFoundException with optional arguments."""
         super().__init__(message, *args)
+
+
+class DuplicateDiskException(BaseCustomException):
+    """Raised when trying to attach duplicate disk to VM"""
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize DuplicateDiskException with optional arguments."""
+        super().__init__(message, *args)
