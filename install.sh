@@ -695,7 +695,7 @@ install_restic(){
 
 install_uv(){
   local install_uv_command="python3 -m pip install -U uv"
-  local insatll_message="Installing uv"
+  local install_message="Installing uv"
   execute "$install_uv_command" "$insatll_message"
 }
 
