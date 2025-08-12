@@ -693,12 +693,18 @@ install_restic(){
   execute "$self_update_command" "$update_message"
 }
 
+install_uv(){
+  local install_uv_command="python3 -m pip install -U uv"
+  local insatll_message="Installing uv"
+  execute "$install_uv_command" "$insatll_message"
+}
+
 install_documentation(){
   local doc_repo="https://github.com/Aerodisk/openvair-docs.git"
 
   local clone_docs_repo="git clone $doc_repo"
   local clone_message="Cloning documentation repository..."
-  
+
   local install_docs="bash $DOCS_PROJECT_PATH/install.sh"
   local install_docs_message="Installing documentation..."
 
@@ -706,9 +712,8 @@ install_documentation(){
     log $GREEN "Documentation repository already exists at $DOCS_PROJECT_PATH"
   else
     execute "$clone_docs_repo" "$clone_message"
-    execute "cd $DOCS_PROJECT_PATH" "Changing directory to $DOCS_PROJECT_PATH"
-    execute "$install_docs" "$install_docs_message"
   fi
+  execute "$install_docs" "$install_docs_message"
 
   go_to_home_dir
 }
@@ -862,6 +867,7 @@ main() {
     clear_home_dir
     make_hashed_password
     create_default_user
+    install_uv
     install_documentation
     restart_service 'web-app.service'
     print_final_message
