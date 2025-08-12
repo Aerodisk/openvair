@@ -174,7 +174,7 @@ class DiskInfo(BaseModel):
     size: Optional[int] = None
     provisioning: Optional[str] = None
     disk_id: Optional[str] = None
-    type: Optional[int] = None
+    type: Optional[str] = None
     read_only: bool = False
 
 
