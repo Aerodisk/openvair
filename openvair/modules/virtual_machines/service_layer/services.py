@@ -1378,7 +1378,7 @@ class VMServiceLayerManager(BackgroundTasks):
             try:
                 self._process_vm_volumes(vm_edit_info, vm_id, user_info)
             except exceptions.DuplicateDiskException as err:
-                message = f'Handle error: {err!s} while editing VM disks.'
+                message = f'Handle error while processing VM disks: {err!s}.'
                 LOG.error(message)
                 db_vm.information = message
             finally:
