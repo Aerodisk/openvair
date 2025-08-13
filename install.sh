@@ -694,8 +694,8 @@ install_restic(){
 }
 
 install_uv(){
-  local install_uv_command="sudo python3 -m pip install -U uv"
-  local install_message="Installing uv"
+  local install_uv_command="curl -LsSf https://astral.sh/uv/install.sh | sh"
+  local install_message="Installing uv via official installer"
   execute "$install_uv_command" "$install_message"
 }
 
