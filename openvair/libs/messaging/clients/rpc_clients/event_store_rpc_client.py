@@ -17,10 +17,18 @@ Classes:
         Eventstore service.
 """
 
-from typing import Dict, List
+from uuid import UUID
+from typing import List, Union
+
+from pydantic import ValidationError
 
 from openvair.rpc_queues import RPCQueueNames
 from openvair.libs.messaging.messaging_agents import MessagingClient
+from openvair.libs.contracts.event_store_service import (
+    CreateEventServiceCommand,
+    GetLastEventsServiceCommand,
+    GetEventsByModuleServiceCommand,
+)
 from openvair.libs.messaging.service_interfaces.event_store import (
     EventstoreServiceLayerProtocolInterface,
 )
@@ -61,7 +69,7 @@ class EventstoreServiceLayerRPCClient(EventstoreServiceLayerProtocolInterface):
         )
         return events
 
-    def get_all_events_by_module(self, data: Dict) -> List:
+    def get_all_events_by_module(self) -> List:
         """Retrieve all events by module from the database.
 
         Returns:
@@ -69,33 +77,62 @@ class EventstoreServiceLayerRPCClient(EventstoreServiceLayerProtocolInterface):
         """
         events: List = self.service_rpc_client.call(
             EventstoreServiceLayerProtocolInterface.get_all_events_by_module.__name__,
-            data_for_method=data,
+            data_for_method=GetEventsByModuleServiceCommand(
+                module_name=self.module_name
+            ).model_dump(mode='json'),
         )
         return events
 
-    def get_last_events(self, data: Dict) -> List:
+    def get_last_events(self, limit: int) -> List:
         """Retrieve last events from the database.
+
+        Args:
+            limit (int): The maximum number of recent events to retrieve.
 
         Returns:
             List: List of serialized event data.
         """
         events: List = self.service_rpc_client.call(
             EventstoreServiceLayerProtocolInterface.get_last_events.__name__,
-            data_for_method=data,
+            data_for_method=GetLastEventsServiceCommand(limit=limit).model_dump(
+                mode='json'
+            ),
         )
         return events
 
-    def add_event(self, data: Dict) -> None:
+    def add_event(
+        self,
+        object_id: Union[UUID, str],
+        user_id: Union[UUID, str],
+        event: str,
+        information: str,
+    ) -> None:
         """Add a new event to the db.
 
         Args:
-            data (Dict): Information about the event.
+            object_id (Union[UUID, str]): Unique identifier of the affected
+                object.
+            user_id (Union[UUID, str]): Unique identifier of the user who
+                triggered the event.
+            event (str): Type or name of the event.
+            information (str): Additional details or context about the event.
 
         Returns:
             None.
         """
-        data.update({'module': self.module_name})
+        payload = {
+            'module': self.module_name,
+            'object_id': object_id,
+            'user_id': user_id,
+            'event': event,
+            'information': information,
+        }
+        try:
+            validated = CreateEventServiceCommand.model_validate(payload)
+        except ValidationError as e:
+            msg = f'Invalid event payload: {e}'
+            raise ValueError(msg) from e
         self.service_rpc_client.cast(
             EventstoreServiceLayerProtocolInterface.add_event.__name__,
-            data_for_method=data,
+            data_for_method=validated.model_dump(mode='json'),
         )

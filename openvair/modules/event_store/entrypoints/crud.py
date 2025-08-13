@@ -16,16 +16,12 @@ from collections import namedtuple
 
 from openvair.libs.log import get_logger
 from openvair.libs.validation.validators import Validator
-from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
-from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.entrypoints import schemas
 from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
-from openvair.modules.event_store.service_layer.services import (
-    EventstoreServiceLayerManager,
-)
-from openvair.modules.event_store.adapters.dto.internal.commands import (
-    CreateEventServiceCommandDTO,
+from openvair.modules.event_store.entrypoints.schemas import Event
+from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import (
+    EventstoreServiceLayerRPCClient,
 )
 
 LOG = get_logger(__name__)
@@ -47,11 +43,11 @@ class EventCrud:
         """
         self.module_name = module_name
         self.uow = unit_of_work.EventStoreSqlAlchemyUnitOfWork
-        self.service_layer_rpc = MessagingClient(
-            queue_name=API_SERVICE_LAYER_QUEUE_NAME
+        self.service_layer_rpc_client = self.event_client = (
+            EventstoreServiceLayerRPCClient(module_name)
         )
 
-    def new_get_all_events(self) -> List:
+    def new_get_all_events(self) -> List[Event]:
         """Retrieve all events from the database.
 
         This method retrieves all events from the database, serializes them
@@ -62,13 +58,7 @@ class EventCrud:
             Page[schemas.Event]: A paginated list of all events.
         """
         LOG.info('Call service layer on getting events.')
-
-        events: List = self.service_layer_rpc.call(
-            EventstoreServiceLayerManager.get_all_events.__name__,
-            data_for_method={},
-        )
-        LOG.info('after service layer')
-
+        events: List = self.service_layer_rpc_client.get_all_events()
         return Validator.validate_objects(events, schemas.Event)
 
     def new_get_all_events_by_module(self) -> List:
@@ -82,14 +72,10 @@ class EventCrud:
             Page[schemas.Event]: A paginated list of events filtered by module.
         """
         LOG.info('Call service layer on getting events by module.')
-        events: List = self.service_layer_rpc.call(
-            EventstoreServiceLayerManager.get_all_events_by_module.__name__,
-            data_for_method={'module_name': self.module_name},
-        )
-
+        events: List = self.service_layer_rpc_client.get_all_events_by_module()
         return Validator.validate_objects(events, schemas.Event)
 
-    def new_get_last_events(self, limit: int) -> List:
+    def new_get_last_events(self, limit: int) -> List[Event]:
         """Retrieve the last N events from the database.
 
         This method retrieves the last N events from the database, serializes
@@ -103,9 +89,8 @@ class EventCrud:
             Page[schemas.Event]: A paginated list of the last N events.
         """
         LOG.info('Call service layer on getting events by module.')
-        events: List = self.service_layer_rpc.call(
-            EventstoreServiceLayerManager.get_last_events.__name__,
-            data_for_method={'limit': limit},
+        events: List = self.service_layer_rpc_client.get_last_events(
+            limit=limit,
         )
 
         return Validator.validate_objects(events, schemas.Event)
@@ -134,17 +119,11 @@ class EventCrud:
                 transaction.
         """
         LOG.info('Starting add event')
-        creation_command = CreateEventServiceCommandDTO(
-            module=self.module_name,
+        self.service_layer_rpc_client.add_event(
             object_id=object_id,
             user_id=user_id,
             event=event,
             information=information,
-        )
-        LOG.info(f'Event info: {creation_command}')
-        self.service_layer_rpc.call(
-            EventstoreServiceLayerManager.add_event.__name__,
-            data_for_method=creation_command.model_dump(mode='json'),
         )
         LOG.info('Event info was successfully added')
 

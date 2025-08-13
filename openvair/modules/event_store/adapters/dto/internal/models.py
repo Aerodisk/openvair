@@ -4,9 +4,9 @@ Includes models used to transfer event data between API, domain and service
 layers.
 """
 
-import datetime
 from uuid import UUID
 
+from openvair.common.pydantic_types import UTCDateTime
 from openvair.common.base_pydantic_models import BaseDTOModel
 
 
@@ -46,5 +46,5 @@ class ApiEventModelDTO(BaseDTOModel):
     object_id: UUID
     user_id: UUID
     event: str
-    timestamp: datetime.datetime
+    timestamp: UTCDateTime
     information: str
