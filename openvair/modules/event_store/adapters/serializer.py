@@ -13,7 +13,26 @@ from sqlalchemy import inspect
 from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
-from openvair.modules.event_store.adapters.orm import Events
+from openvair.modules.event_store.adapters.orm import Events as EventsORM
+from openvair.common.serialization.base_serializer import BaseSerializer
+from openvair.modules.event_store.adapters.dto.internal.models import (
+    ApiEventModelDTO,
+    CreateEventModelDTO,
+)
+
+
+class ApiSerializer(BaseSerializer[ApiEventModelDTO, EventsORM]):
+    """Serializer for converting between Template ORM and API DTO."""
+
+    dto_class = ApiEventModelDTO
+    orm_class = EventsORM
+
+
+class CreateSerializer(BaseSerializer[CreateEventModelDTO, EventsORM]):
+    """Serializer for converting creation DTO into ORM Template model."""
+
+    dto_class = CreateEventModelDTO
+    orm_class = EventsORM
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -27,8 +46,8 @@ class DataSerializer(AbstractDataSerializer):
     def to_db(
         cls,
         data: Dict,
-        orm_class: Type[Events] = Events,
-    ) -> Events:
+        orm_class: Type[EventsORM] = EventsORM,
+    ) -> EventsORM:
         """Convert web data to a database ORM object.
 
         This method inspects the ORM class columns and populates the ORM object
@@ -54,7 +73,7 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_web(
         cls,
-        orm_object: Events,
+        orm_object: EventsORM,
     ) -> Dict:
         """Convert a database ORM object to web data.
 
