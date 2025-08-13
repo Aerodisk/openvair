@@ -523,17 +523,22 @@ class VMServiceLayerManager(BackgroundTasks):
         auto_created_volumes = []
         for volume in volumes:
             volume_name = volume.get('name', None)
-            creating_volume = self.volume_service_client.create_volume(
-                {
-                    'name': volume_name or str(uuid4()),
-                    'description': f'auto created volume for {vm_name}.',
-                    'format': volume.get('format', 'qcow2'),
-                    'size': volume.pop('size', '0'),
-                    'storage_id': volume.pop('storage_id', ''),
-                    'user_info': user_info,
-                    'read_only': volume.pop('read_only'),
-                }
-            )
+            try:
+                creating_volume = self.volume_service_client.create_volume(
+                    {
+                        'name': volume_name or str(uuid4()),
+                        'description': f'auto created volume for {vm_name}.',
+                        'format': volume.get('format', 'qcow2'),
+                        'size': volume.pop('size', '0'),
+                        'storage_id': volume.pop('storage_id', ''),
+                        'user_info': user_info,
+                        'read_only': volume.pop('read_only'),
+                    }
+                )
+            except (RpcCallException, RpcServerInitializedException) as err:
+                message = f'While creating volume error occurred: {err!s}'
+                LOG.error(message)
+                continue
             try:
                 available_volume = self._expect_volume_availability(
                     creating_volume.get('id', '')
