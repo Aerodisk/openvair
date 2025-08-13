@@ -42,6 +42,8 @@ from uuid import UUID, uuid4
 from typing import TYPE_CHECKING, Dict, List, Optional, cast
 from collections import namedtuple
 
+from sqlalchemy.exc import NoResultFound
+
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.vm import get_vms_state, get_vm_snapshots
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
@@ -192,7 +194,7 @@ class VMServiceLayerManager(BackgroundTasks):
         and event store.
         """
         super(VMServiceLayerManager, self).__init__()
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.VMSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=config.SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -217,7 +219,7 @@ class VMServiceLayerManager(BackgroundTasks):
             UnexpectedDataArguments: If the VM ID is not provided.
         """
         LOG.info('Service layer start handling response on get vm.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         if not vm_id:
             message = (
                 f'Incorrect arguments were received'
@@ -225,8 +227,8 @@ class VMServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
-            db_virtual_machine = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_virtual_machine = uow.virtual_machines.get_or_fail(UUID(vm_id))
             serialized_vm = DataSerializer.vm_to_web(db_virtual_machine)
             LOG.info(f'Got vm from db: {serialized_vm}.')
         LOG.info('Service layer method get vm was successfully processed.')
@@ -239,8 +241,8 @@ class VMServiceLayerManager(BackgroundTasks):
             List: A list of serialized virtual machine data.
         """
         LOG.info('Service layer start handling response on get vms.')
-        with self.uow:
-            db_virtual_machines = self.uow.virtual_machines.get_all()
+        with self.uow() as uow:
+            db_virtual_machines = uow.virtual_machines.get_all()
             serialized_vms = [
                 DataSerializer.vm_to_web(vm) for vm in db_virtual_machines
             ]
@@ -310,55 +312,55 @@ class VMServiceLayerManager(BackgroundTasks):
             Dict: The serialized virtual machine data.
         """
         LOG.info('Inserting vm information into database.')
-        with self.uow:
-            db_vm = cast(
-                orm.VirtualMachines,
-                DataSerializer.to_db(
-                    create_vm_info._asdict(), orm.VirtualMachines
-                ),
-            )
+        db_vm = cast(
+            orm.VirtualMachines,
+            DataSerializer.to_db(
+                create_vm_info._asdict(), orm.VirtualMachines
+            ),
+        )
 
-            db_vm.cpu = cast(
+        db_vm.cpu = cast(
+            orm.CpuInfo,
+            DataSerializer.to_db(
+                create_vm_info.cpu,
                 orm.CpuInfo,
-                DataSerializer.to_db(
-                    create_vm_info.cpu,
-                    orm.CpuInfo,
-                ),
-            )
+            ),
+        )
 
-            db_vm.ram = cast(
-                orm.RAM,
-                DataSerializer.to_db(create_vm_info.ram, orm.RAM),
-            )
+        db_vm.ram = cast(
+            orm.RAM,
+            DataSerializer.to_db(create_vm_info.ram, orm.RAM),
+        )
 
-            db_vm.os = cast(
-                orm.Os,
-                DataSerializer.to_db(create_vm_info.os, orm.Os),
-            )
+        db_vm.os = cast(
+            orm.Os,
+            DataSerializer.to_db(create_vm_info.os, orm.Os),
+        )
 
-            db_vm.graphic_interface = cast(
+        db_vm.graphic_interface = cast(
+            orm.ProtocolGraphicInterface,
+            DataSerializer.to_db(
+                create_vm_info.graphic_interface,
                 orm.ProtocolGraphicInterface,
-                DataSerializer.to_db(
-                    create_vm_info.graphic_interface,
-                    orm.ProtocolGraphicInterface,
-                ),
-            )
-            LOG.info(f'Inserted graphic interface: {db_vm.graphic_interface}')
+            ),
+        )
+        LOG.info(f'Inserted graphic interface: {db_vm.graphic_interface}')
 
-            for virt_interface in create_vm_info.virtual_interfaces:
-                db_vm.virtual_interfaces.append(
-                    cast(
-                        orm.VirtualInterface,
-                        DataSerializer.to_db(
-                            virt_interface, orm.VirtualInterface
-                        ),
-                    )
+        for virt_interface in create_vm_info.virtual_interfaces:
+            db_vm.virtual_interfaces.append(
+                cast(
+                    orm.VirtualInterface,
+                    DataSerializer.to_db(
+                        virt_interface, orm.VirtualInterface
+                    ),
                 )
+            )
 
-            self.uow.virtual_machines.add(db_vm)
-            self.uow.commit()
-            LOG.info('Vm was successfully inserted into database.')
-            return DataSerializer.vm_to_web(db_vm)
+        with self.uow() as uow:
+            uow.virtual_machines.add(db_vm)
+            uow.commit()
+        LOG.info('Vm was successfully inserted into database.')
+        return DataSerializer.vm_to_web(db_vm)
 
     def create_vm(self, data: Dict) -> Dict:
         """Create a new virtual machine.
@@ -619,8 +621,8 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info(
             'Start requesting on attach disks to vm and insert it into db.'
         )
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             for disk in disks:
                 try:
                     attached_disk = self._attach_disk_to_vm(vm_id, disk)
@@ -636,7 +638,7 @@ class VMServiceLayerManager(BackgroundTasks):
                         f'was raised err: {err!s}'
                     )
                     LOG.error(message)
-            self.uow.commit()
+            uow.commit()
         LOG.info('Disks was successfully attached and inserted into db.')
 
     def _create_vm(self, data: Dict) -> None:
@@ -646,14 +648,15 @@ class VMServiceLayerManager(BackgroundTasks):
             data (Dict): The data required to create the virtual machine.
         """
         LOG.info('Handling response on _create_vm.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         user_info = data.pop('user_info', {})
         attach_volumes = data.pop('attach_volumes', [])
         attach_images = data.pop('attach_images', [])
         auto_create_volumes = data.pop('auto_create_volumes', [])
 
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
             LOG.info(f'VM info before processing: {db_vm.__dict__}')
 
             if auto_create_volumes:
@@ -663,18 +666,16 @@ class VMServiceLayerManager(BackgroundTasks):
                 attach_volumes.extend(created_disks)
 
         self._add_disks_to_vm(vm_id, attach_volumes + attach_images)
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             LOG.info(f'VM info after processing: {db_vm.__dict__}')
-
             db_vm.status = VmStatus.available.name
-            self.uow.commit()
-
+            uow.commit()
         self.event_store.add_event(
-            str(db_vm.id),
+            vm_id,
             user_info.get('id'),
             self._create_vm.__name__,
-            f'VM {db_vm.name} was successfully created.',
+            f'VM {vm_name} was successfully created.',
         )
         LOG.info('Response on _create_vm was successfully processed.')
 
@@ -782,19 +783,19 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info(
             'Start requesting on detach disks from vm and delete it from db.'
         )
-        with self.uow:
+        with self.uow() as uow:
             for disk in disks:
                 try:
-                    disk_data = self.uow.virtual_machines.get_disk_by_id(
+                    disk_data = uow.virtual_machines.get_disk_by_id(
                         disk.get('id')
                     )
                     self._detach_disk_from_vm(
                         str(disk_data.vm_id), DataSerializer.to_web(disk_data)
                     )
-                    self.uow.virtual_machines.delete_disk(disk_data)
+                    uow.virtual_machines.delete_disk(disk_data)
                 except exceptions.UnexpectedDataArguments as err:
                     LOG.error(str(err))
-            self.uow.commit()
+            uow.commit()
         LOG.info('Disks were successfully detached and deleted from db.')
 
     def delete_vm(self, data: Dict) -> Optional[Dict]:
@@ -813,12 +814,11 @@ class VMServiceLayerManager(BackgroundTasks):
                 for deletion.
         """
         LOG.info('Handling response on delete_vm.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         user_info = data.pop('user_info', {})
 
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
-
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             available_statuses = [VmStatus.available.name, VmStatus.error.name]
             available_power_statuses = [VmPowerState.shut_off.name]
             try:
@@ -855,7 +855,7 @@ class VMServiceLayerManager(BackgroundTasks):
             else:
                 return serialized_vm
             finally:
-                self.uow.commit()
+                uow.commit()
 
     def _delete_vm(self, data: Dict) -> None:
         """Delete a virtual machine from the database.
@@ -867,17 +867,21 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Handling response on _delete_vm.')
         vm_id = str(data.pop('vm_id', ''))
         user_info = data.pop('user_info', {})
+
         self._delete_all_vm_snapshots(vm_id, user_info)
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             db_vm.status = VmStatus.detaching_disks.name
-            self.uow.commit()
+            uow.commit()
+
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
                 for disk in db_vm.disks:
                     self._detach_disk_from_vm(
                         vm_id, DataSerializer.to_web(disk)
                     )
-                self.uow.virtual_machines.delete(db_vm)
+                uow.virtual_machines.delete(db_vm)
                 self.event_store.add_event(
                     str(db_vm.id),
                     user_info.get('id'),
@@ -891,7 +895,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.status = VmStatus.error.name
                 db_vm.information = message
             finally:
-                self.uow.commit()
+                uow.commit()
 
     def start_vm(self, data: Dict) -> Dict:
         """Start a virtual machine by ID.
@@ -907,18 +911,21 @@ class VMServiceLayerManager(BackgroundTasks):
             Dict: The serialized virtual machine data.
         """
         LOG.info('Handling response on start_vm.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         user_info = data.pop('user_info', {})
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
             db_vm.status = VmStatus.starting.name
-            self.uow.commit()
-            self.event_store.add_event(
-                str(db_vm.id),
-                user_info.get('id'),
-                self.start_vm.__name__,
-                f'Set starting status for VM {db_vm.name}.',
-            )
+            uow.commit()
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.start_vm.__name__,
+            f'Set starting status for VM {vm_name}.',
+        )
+
         serialized_vm = DataSerializer.vm_to_web(db_vm)
         serialized_vm['user_info'] = user_info
         self.service_layer_rpc.cast(
@@ -939,30 +946,36 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Handling response on _start_vm.')
         alphabet = list(string.ascii_lowercase)
         user_info = data.pop('user_info', {})
+        vm_id = str(data.get('id', ''))
 
         for i, disk in enumerate(data.get('disks', [])):
             if disk.get('type') == DiskType.volume.name:
                 disk.update({'target': f'sd{alphabet[i]}'})
             else:
                 disk.update({'target': f'sd{alphabet[i]}', 'emulation': 'sata'})
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(data.get('id', ''))
-            current_snap = self.uow.virtual_machines.get_current_snapshot(
-                str(db_vm.id)
-            )
+        with self.uow() as uow:
+            current_snap = uow.snapshots.get_current(vm_id)
             data['snapshot_info'] = {
                 'current_snap_name': current_snap.name if current_snap else ""
             }
-            try:
-                start_info = self.domain_rpc.call(
-                    BaseVMDriver.start.__name__, data_for_manager=data
-                )
-                redefined_snaps = start_info.pop('redefined_snapshots')
-                self._set_recreated_snapshots_statuses(
-                    str(db_vm.id),
-                    redefined_snaps
-                )
-                self.uow.commit()
+        try:
+            start_info = self.domain_rpc.call(
+                BaseVMDriver.start.__name__, data_for_manager=data
+            )
+        except (RpcCallException, RpcServerInitializedException) as err:
+            message = f'Handle error: {err!s} while starting vm.'
+            LOG.error(message)
+            with self.uow() as uow:
+                db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                db_vm.status = VmStatus.error.name
+                db_vm.information = message
+                uow.commit()
+        else:
+            redefined_snaps = start_info.pop('redefined_snapshots')
+            self._set_recreated_snapshots_statuses(vm_id, redefined_snaps)
+            with self.uow() as uow:
+                db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                vm_name = db_vm.name
                 db_vm.power_state = VmPowerState(
                     start_info.get('power_state')
                 ).name
@@ -972,21 +985,14 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
                 db_vm.status = VmStatus.available.name
                 db_vm.information = ''
-                self.uow.commit()
-                self.event_store.add_event(
-                    str(db_vm.id),
-                    user_info.get('id'),
-                    self._start_vm.__name__,
-                    f'VM {db_vm.name} was successfully started.',
-                )
-                LOG.info('Response on _start_vm was successfully processed.')
-            except (RpcCallException, RpcServerInitializedException) as err:
-                message = f'Handle error: {err!s} while starting vm.'
-                LOG.error(message)
-                db_vm.status = VmStatus.error.name
-                db_vm.information = message
-            finally:
-                self.uow.commit()
+                uow.commit()
+            self.event_store.add_event(
+                vm_id,
+                user_info.get('id'),
+                self._start_vm.__name__,
+                f'VM {vm_name} was successfully started.',
+            )
+            LOG.info('Response on _start_vm was successfully processed.')
 
     def _set_recreated_snapshots_statuses(
             self,
@@ -1001,12 +1007,11 @@ class VMServiceLayerManager(BackgroundTasks):
             redefined.
         """
         for snap_name in redefined_snaps:
-            db_snap = self.uow.virtual_machines.get_snapshot_by_name(
-                vm_id,
-                snap_name
-            )
-            if db_snap:
-                db_snap.status = SnapshotStatus.creating.name
+            with self.uow() as uow:
+                db_snap = uow.snapshots.get_by_name(vm_id, snap_name)
+                if db_snap:
+                    db_snap.status = SnapshotStatus.creating.name
+                uow.commit()
 
     def shut_off_vm(self, data: Dict) -> Dict:
         """Shut off a virtual machine by ID.
@@ -1022,10 +1027,11 @@ class VMServiceLayerManager(BackgroundTasks):
             Dict: The serialized virtual machine data.
         """
         LOG.info('Handling response on shut_off_vm.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         user_info = data.pop('user_info', {})
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
             self._check_vm_status(
                 db_vm.status, [VmStatus.available.name, VmStatus.error.name]
             )
@@ -1033,15 +1039,15 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_vm.power_state, [VmPowerState.running.name]
             )
             db_vm.status = VmStatus.shut_offing.name
-            self.uow.commit()
-            self.event_store.add_event(
-                str(db_vm.id),
-                user_info.get('id'),
-                self.shut_off_vm.__name__,
-                f'Set shut_off status for VM {db_vm.name}.',
-            )
-        serialized_vm = DataSerializer.vm_to_web(db_vm)
-        serialized_vm['user_info'] = user_info
+            serialized_vm = DataSerializer.vm_to_web(db_vm)
+            serialized_vm['user_info'] = user_info
+            uow.commit()
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.shut_off_vm.__name__,
+            f'Set shut_off status for VM {vm_name}.',
+        )
         self.service_layer_rpc.cast(
             self._shut_off_vm.__name__, data_for_method=serialized_vm
         )
@@ -1059,29 +1065,35 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Handling response on _shut_off_vm.')
         user_info = data.pop('user_info', {})
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(data.get('id', ''))
-            try:
-                self.domain_rpc.call(
-                    BaseVMDriver.turn_off.__name__, data_for_manager=data
-                )
+        vm_id = str(data.get('id', ''))
+
+        try:
+            self.domain_rpc.call(
+                BaseVMDriver.turn_off.__name__, data_for_manager=data
+            )
+        except (RpcCallException, RpcServerInitializedException) as err:
+            message = f'Handle error: {err!s} while shutting off VM.'
+            LOG.error(message)
+            with self.uow() as uow:
+                db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                db_vm.status = VmStatus.error.name
+                db_vm.information = message
+                uow.commit()
+        else:
+            with self.uow() as uow:
+                db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                vm_name = db_vm.name
                 db_vm.status = VmStatus.available.name
                 db_vm.power_state = VmPowerState.shut_off.name
                 db_vm.graphic_interface.url = ''
-                self.event_store.add_event(
-                    str(db_vm.id),
-                    user_info.get('id'),
-                    self._shut_off_vm.__name__,
-                    f'VM {db_vm.name} was successfully shut off.',
-                )
-                LOG.info('Response on _shut_off_vm was successfully processed.')
-            except (RpcCallException, RpcServerInitializedException) as err:
-                message = f'Handle error: {err!s} while shutting off VM.'
-                LOG.error(message)
-                db_vm.status = VmStatus.error.name
-                db_vm.information = message
-            finally:
-                self.uow.commit()
+                uow.commit()
+            self.event_store.add_event(
+                vm_id,
+                user_info.get('id'),
+                self._shut_off_vm.__name__,
+                f'VM {vm_name} was successfully shut off.',
+            )
+            LOG.info('Response on _shut_off_vm was successfully processed.')
 
     @staticmethod
     def _prepare_vm_info_for_edit(vm_data: Dict) -> EditVmInfo:
@@ -1150,16 +1162,16 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('VM information was successfully prepared for editing.')
         return edit_vm_info
 
-    def _update_db_vm_info(self, vm_id: str, edit_vm_info: EditVmInfo) -> None:
+    def _update_db_vm_info(self, vm_id: UUID, edit_vm_info: EditVmInfo) -> None:
         """Update the database with the new VM information.
 
         Args:
-            vm_id (str): The ID of the virtual machine to update.
+            vm_id (UUID): The ID of the virtual machine to update.
             edit_vm_info (EditVmInfo): The new virtual machine information.
         """
         LOG.info('Updating VM information in database.')
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(vm_id)
             db_vm.name = edit_vm_info.name
             db_vm.description = edit_vm_info.description
             for key, value in edit_vm_info.cpu.items():
@@ -1170,8 +1182,8 @@ class VMServiceLayerManager(BackgroundTasks):
                 setattr(db_vm.os, key, value)
             for key, value in edit_vm_info.graphic_interface.items():
                 setattr(db_vm.graphic_interface, key, value)
-            self.uow.commit()
-            LOG.info('VM was successfully updated in database.')
+            uow.commit()
+        LOG.info('VM was successfully updated in database.')
 
     def _edit_vm_disks(self, disks: List) -> None:
         """Update disks in the database.
@@ -1183,8 +1195,9 @@ class VMServiceLayerManager(BackgroundTasks):
             disks (List): A list of dictionaries representing the disks to edit.
         """
         LOG.info('Bulk update disks in database.')
-        self.uow.virtual_machines.bulk_update_disks(disks)
-        self.uow.commit()
+        with self.uow() as uow:
+            uow.virtual_machines.bulk_update_disks(disks)
+            uow.commit()
         LOG.info('Disks were successfully updated in database.')
 
     def _edit_virtual_interfaces(self, virtual_interfaces: List) -> None:
@@ -1195,10 +1208,11 @@ class VMServiceLayerManager(BackgroundTasks):
                 the virtual interfaces to edit.
         """
         LOG.info('Bulk update virtual interfaces in database.')
-        self.uow.virtual_machines.bulk_update_virtual_interfaces(
-            virtual_interfaces
-        )
-        self.uow.commit()
+        with self.uow() as uow:
+            uow.virtual_machines.bulk_update_virtual_interfaces(
+                virtual_interfaces
+            )
+            uow.commit()
         LOG.info('Virtual interfaces were successfully updated in database.')
 
     def _detach_virtual_interfaces_from_vm(self, virt_interfaces: List) -> None:
@@ -1208,8 +1222,9 @@ class VMServiceLayerManager(BackgroundTasks):
             virt_interfaces (List): A list of virtual interfaces to detach.
         """
         LOG.info('Bulk detaching virtual interfaces from database.')
-        self.uow.virtual_machines.delete_virtual_interfaces(virt_interfaces)
-        self.uow.commit()
+        with self.uow() as uow:
+            uow.virtual_machines.delete_virtual_interfaces(virt_interfaces)
+            uow.commit()
         LOG.info('Virtual interfaces were successfully detached from database.')
 
     def _add_virtual_interfaces_to_vm(
@@ -1222,8 +1237,8 @@ class VMServiceLayerManager(BackgroundTasks):
             virt_interfaces (List): A list of virtual interfaces to add.
         """
         LOG.info('Adding virtual interfaces into database for VM.')
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             for virt_interface in virt_interfaces:
                 db_vm.virtual_interfaces.append(
                     cast(
@@ -1233,7 +1248,7 @@ class VMServiceLayerManager(BackgroundTasks):
                         ),
                     )
                 )
-            self.uow.commit()
+            uow.commit()
         LOG.info(
             'Virtual interfaces were successfully added into database for VM.'
         )
@@ -1254,8 +1269,8 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Handling response on edit VM.')
         user_info = edit_info.pop('user_info', {})
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(edit_info.get('vm_id', ''))
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(edit_info.get('vm_id', ''))
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             available_states = [VmStatus.available.name, VmStatus.error.name]
             available_power_states = [
@@ -1268,7 +1283,6 @@ class VMServiceLayerManager(BackgroundTasks):
                     db_vm.power_state, available_power_states
                 )
                 db_vm.status = VmStatus.editing.name
-                self.uow.commit()
                 if db_vm.power_state == VmPowerState.shut_off.name:
                     self.service_layer_rpc.cast(
                         self._edit_shut_offed_vm.__name__,
@@ -1284,6 +1298,8 @@ class VMServiceLayerManager(BackgroundTasks):
                 message = f'Handle error: {err!s} while editing VM.'
                 LOG.error(message)
                 db_vm.information = message
+            finally:
+                uow.commit()
         LOG.info('Response on edit VM was successfully processed.')
         return serialized_vm
 
@@ -1299,17 +1315,18 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info(f'Handling response on _edit_vm with data: {data}')
         user_info = data.pop('user_info', {})
         vm_edit_info = self._prepare_vm_info_for_edit(data.pop('edit_info', {}))
-        self._update_db_vm_info(vm_edit_info.id, vm_edit_info)
+        vm_id = UUID(vm_edit_info.id)
+        self._update_db_vm_info(vm_id, vm_edit_info)
 
         self._process_vm_edit_disks(vm_edit_info)
         self._process_vm_edit_interfaces(vm_edit_info)
 
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_edit_info.id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(vm_id)
             db_vm.status = VmStatus.available.name
             db_vm.information = ''
-            self.uow.commit()
-            self._process_vm_volumes(vm_edit_info, db_vm, user_info)
+            self._process_vm_volumes(vm_edit_info, vm_id, user_info)
+            uow.commit()
         LOG.info('Response on _edit_vm was successfully processed.')
 
     def _process_vm_edit_disks(self, vm_edit_info: EditVmInfo) -> None:
@@ -1322,39 +1339,39 @@ class VMServiceLayerManager(BackgroundTasks):
 
     def _process_vm_edit_interfaces(self, vm_edit_info: EditVmInfo) -> None:
         """Process editing and detaching virtual interfaces for the VM."""
-        with self.uow:
-            if vm_edit_info.edit_virtual_interfaces:
-                self._edit_virtual_interfaces(
-                    vm_edit_info.edit_virtual_interfaces
-                )
+        if vm_edit_info.edit_virtual_interfaces:
+            self._edit_virtual_interfaces(
+                vm_edit_info.edit_virtual_interfaces
+            )
 
-            if vm_edit_info.detach_virtual_interfaces:
-                self._detach_virtual_interfaces_from_vm(
-                    vm_edit_info.detach_virtual_interfaces
-                )
-            if vm_edit_info.new_virtual_interfaces:
-                self._add_virtual_interfaces_to_vm(
-                    vm_edit_info.id, vm_edit_info.new_virtual_interfaces
-                )
+        if vm_edit_info.detach_virtual_interfaces:
+            self._detach_virtual_interfaces_from_vm(
+                vm_edit_info.detach_virtual_interfaces
+            )
+
+        if vm_edit_info.new_virtual_interfaces:
+            self._add_virtual_interfaces_to_vm(
+                vm_edit_info.id, vm_edit_info.new_virtual_interfaces
+            )
 
     def _process_vm_volumes(
-        self,
-        vm_edit_info: EditVmInfo,
-        db_vm: orm.VirtualMachines,
-        user_info: Dict,
+            self, vm_edit_info: EditVmInfo, vm_id: UUID, user_info: Dict
     ) -> None:
         """Process attaching volumes and creating new disks for the VM."""
-        if vm_edit_info.auto_create_volumes:
-            created_disks = self._create_volumes(
-                db_vm.name, vm_edit_info.auto_create_volumes, user_info
-            )
-            vm_edit_info.attach_volumes.extend(created_disks)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(vm_id)
 
-        if vm_edit_info.attach_volumes or vm_edit_info.attach_images:
-            self._add_disks_to_vm(
-                vm_edit_info.id,
-                vm_edit_info.attach_volumes + vm_edit_info.attach_images,
-            )
+            if vm_edit_info.auto_create_volumes:
+                created_disks = self._create_volumes(
+                    db_vm.name, vm_edit_info.auto_create_volumes, user_info
+                )
+                vm_edit_info.attach_volumes.extend(created_disks)
+
+            if vm_edit_info.attach_volumes or vm_edit_info.attach_images:
+                self._add_disks_to_vm(
+                    vm_edit_info.id,
+                    vm_edit_info.attach_volumes + vm_edit_info.attach_images,
+                )
 
     def vnc(self, data: Dict) -> Dict:
         """Access the VNC session of a virtual machine.
@@ -1369,21 +1386,21 @@ class VMServiceLayerManager(BackgroundTasks):
             RpcCallException: If an error occurs during the RPC call.
             RpcServerInitializedException: If the RPC server is not initialized.
         """
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         data.pop('user_info', '')
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             serialized_vm = DataSerializer.vm_to_web(db_vm)
-            try:
-                result: Dict = self.domain_rpc.call(
-                    BaseVMDriver.vnc.__name__, data_for_manager=serialized_vm
-                )
-            except (RpcCallException, RpcServerInitializedException) as err:
-                message = f'Handle error: {err!s} while accessing VNC.'
-                LOG.error(message)
-                raise
-            else:
-                return result
+        try:
+            result: Dict = self.domain_rpc.call(
+                BaseVMDriver.vnc.__name__, data_for_manager=serialized_vm
+            )
+        except (RpcCallException, RpcServerInitializedException) as err:
+            message = f'Handle error: {err!s} while accessing VNC.'
+            LOG.error(message)
+            raise
+        else:
+            return result
 
     def clone_vm(self, data: Dict) -> List[Dict]:
         """Clone a virtual machine.
@@ -1613,38 +1630,39 @@ class VMServiceLayerManager(BackgroundTasks):
         Args:
             data (Dict): The data containing:
                 - vm_id: ID of the virtual machine
-                - snap_id: ID of the snapshot to retrieve
+                - snapshot_id: ID of the snapshot to retrieve
 
         Returns:
             Dict: The serialized snapshot data
 
         Raises:
-            UnexpectedDataArguments: If vm_id or snap_id is not provided
+            UnexpectedDataArguments: If vm_id or snapshot_id is not provided
             NotFound: If the snapshot is not found
         """
         LOG.info('Service layer handling get snapshot request.')
-        vm_id = data.pop('vm_id', '')
-        snap_id = data.pop('snap_id', '')
-        if not (vm_id and snap_id):
+        vm_id = str(data.pop('vm_id', ''))
+        snapshot_id = str(data.pop('snap_id', ''))
+        if not (vm_id and snapshot_id):
             message = (
                 f'Incorrect arguments were received'
                 f'in the request get snapshots: {data}.'
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
-                db_snap = self.uow.virtual_machines.get_snapshot(vm_id, snap_id)
-                result = DataSerializer.snapshot_to_web(db_snap)
-                result['vm_name'] = db_vm.name
-                if result.get('parent'):
-                    result['parent'] = result['parent']['name']
-                else:
-                    result['parent'] = None
-            except exceptions.NoResultFound as err:
-                message = f'Handle error: {err!s} while searching snapshot.'
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            except NoResultFound as err:
+                message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
+                raise exceptions.SnapshotNotFoundException(message)
+            result = DataSerializer.snapshot_to_web(db_snap)
+            result['vm_name'] = db_vm.name
+            if result.get('parent'):
+                result['parent'] = result['parent']['name']
+            else:
+                result['parent'] = None
         LOG.info('Successfully processed get snapshot request.')
         return result
 
@@ -1662,7 +1680,7 @@ class VMServiceLayerManager(BackgroundTasks):
             UnexpectedDataArguments: If vm_id is not provided
         """
         LOG.info('Service layer handling get snapshots request.')
-        vm_id = data.pop('vm_id', '')
+        vm_id = str(data.pop('vm_id', ''))
         if not vm_id:
             message = (
                 f'Incorrect arguments were received'
@@ -1670,9 +1688,9 @@ class VMServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
-            db_snapshots = self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            db_snapshots = uow.snapshots.get_all_by_vm(vm_id)
             serialized_snapshots = []
             for snap in db_snapshots:
                 snap_data = DataSerializer.snapshot_to_web(snap)
@@ -1700,34 +1718,34 @@ class VMServiceLayerManager(BackgroundTasks):
         name = str(data.pop('name')).strip()
         description = data.pop('description') or 'Open vAIR'
         max_snapshot_count = 10
-        with self.uow:
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             snap_count = len(
-                self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
+                uow.snapshots.get_all_by_vm(vm_id)
             )
             if snap_count >= max_snapshot_count:
                 message = (f"VM {vm_id} has already reached maximum snapshot "
-                           f"limit ({snap_count} > {max_snapshot_count}).")
+                           f"limit ({snap_count+1} > {max_snapshot_count}).")
                 LOG.error(message)
                 raise exceptions.SnapshotLimitExceeded(message)
-            exist_snapshot = self.uow.virtual_machines.get_snapshot_by_name(
-                vm_id, name
-            )
+            exist_snapshot = uow.snapshots.get_by_name(vm_id, name)
             if exist_snapshot is not None:
                 message = (f"Snapshot with name '{name}' already exists "
                            f"for VM {vm_id}")
                 LOG.error(message)
                 raise exceptions.SnapshotNameExistsError(message)
-            db_vm = self.uow.virtual_machines.get(vm_id)
             self._check_vm_power_state(
                 db_vm.power_state,
                 [VmPowerState.running.name]
             )
-            current_snap = self.uow.virtual_machines.get_current_snapshot(vm_id)
+            db_vm.power_state = VmPowerState.paused.name
+            current_snap = uow.snapshots.get_current(vm_id)
             if current_snap:
                 self._check_snapshot_status(
                     current_snap.status,
                     [SnapshotStatus.running.name]
                 )
+                uow.snapshots.unset_current(vm_id)
             snapshot_data = {
                 'vm_id': vm_id,
                 'name': name,
@@ -1737,26 +1755,23 @@ class VMServiceLayerManager(BackgroundTasks):
                 'status': SnapshotStatus.creating.name,
             }
             db_snap = DataSerializer.snapshot_to_db(snapshot_data)
-            self.uow.virtual_machines.add_snapshot(db_snap)
-            db_snap.status = SnapshotStatus.creating.name
-            db_vm.power_state = VmPowerState.paused.name
-            self.uow.virtual_machines.set_current_snapshot(db_snap)
-            self.uow.commit()
+            uow.snapshots.add(db_snap)
+            uow.commit()
             result = DataSerializer.snapshot_to_web(db_snap)
             result['vm_name'] = db_vm.name
             if result.get('parent'):
                 result['parent'] = result['parent']['name']
-            self.event_store.add_event(
-                str(db_vm.id),
-                user_info.get('id'),
-                self.create_snapshot.__name__,
-                f"Started creation of snapshot {db_snap.name}",
-            )
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.create_snapshot.__name__,
+            f"Started creation of snapshot {result['name']}",
+        )
         self.service_layer_rpc.cast(
             self._create_snapshot.__name__,
             data_for_method={
-                'vm_id': str(vm_id),
-                'snapshot_id': str(db_snap.id),
+                'vm_id': vm_id,
+                'snapshot_id': result['id'],
                 'snapshot_name': name,
                 'user_info': user_info,
             }
@@ -1770,36 +1785,30 @@ class VMServiceLayerManager(BackgroundTasks):
         snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
-        with self.uow:
-            try:
-                db_vm = self.uow.virtual_machines.get(vm_id)
-                db_snap = self.uow.virtual_machines.get_snapshot(
-                    vm_id,
-                    snapshot_id
-                )
-                serialized_vm = DataSerializer.vm_to_web(db_vm)
-                prepared_data = {
-                    **serialized_vm,
-                    'snapshot_info': {
-                        'vm_name': db_vm.name,
-                        'snapshot_name': db_snap.name,
-                        'description': db_snap.description
-                    }
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            serialized_vm = DataSerializer.vm_to_web(db_vm)
+            prepared_data = {
+                **serialized_vm,
+                'snapshot_info': {
+                    'vm_name': db_vm.name,
+                    'snapshot_name': db_snap.name,
+                    'description': db_snap.description
                 }
-                self.domain_rpc.cast(
-                    BaseVMDriver.create_snapshot.__name__,
-                    data_for_manager=prepared_data,
-                )
-                self.event_store.add_event(
-                    vm_id,
-                    user_id,
-                    self._create_snapshot.__name__,
-                    f"Snapshot {db_snap.name} created",
-                )
-                LOG.info('Response on _create_snapshot was successfully '
-                         'processed.')
-            finally:
-                self.uow.commit()
+            }
+        self.domain_rpc.cast(
+            BaseVMDriver.create_snapshot.__name__,
+            data_for_manager=prepared_data,
+        )
+        self.event_store.add_event(
+            vm_id,
+            user_id,
+            self._create_snapshot.__name__,
+            f"Snapshot {db_snap.name} created",
+        )
+        LOG.info('Response on _create_snapshot was successfully '
+                 'processed.')
 
     @staticmethod
     def _check_snapshot_status(
@@ -1849,16 +1858,14 @@ class VMServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
-                db_vm = self.uow.virtual_machines.get(vm_id)
-                db_snap = self.uow.virtual_machines.get_snapshot(
-                    vm_id,
-                    snapshot_id
-                )
-            except exceptions.NoResultFound as err:
-                message = f'Handle error: {err!s} while searching snapshot.'
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            except NoResultFound as err:
+                message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
+                raise exceptions.SnapshotNotFoundException(message)
             self._check_vm_power_state(
                 db_vm.power_state,
                 [VmPowerState.running.name]
@@ -1867,7 +1874,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 db_snap.status,
                 [SnapshotStatus.running.name]
             )
-            current_snap = self.uow.virtual_machines.get_current_snapshot(vm_id)
+            current_snap = uow.snapshots.get_current(vm_id)
             if current_snap:
                 self._check_snapshot_status(
                     current_snap.status,
@@ -1875,18 +1882,18 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
             db_snap.status = SnapshotStatus.reverting.name
             db_vm.power_state = VmPowerState.paused.name
-            self.uow.virtual_machines.set_current_snapshot(db_snap)
-            self.uow.commit()
+            uow.snapshots.set_current(db_snap)
+            uow.commit()
             result = DataSerializer.snapshot_to_web(db_snap)
             result['vm_name'] = db_vm.name
             if result.get('parent'):
                 result['parent'] = result['parent']['name']
-            self.event_store.add_event(
-                vm_id,
-                user_info.get('id'),
-                self.revert_snapshot.__name__,
-                f"Starting revert to snapshot {db_snap.name}",
-            )
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.revert_snapshot.__name__,
+            f"Starting revert to snapshot {result['name']}",
+        )
         self.service_layer_rpc.cast(
             self._revert_snapshot.__name__,
             data_for_method={
@@ -1910,38 +1917,29 @@ class VMServiceLayerManager(BackgroundTasks):
         snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
-            db_snap = self.uow.virtual_machines.get_snapshot(
-                vm_id,
-                snapshot_id
-            )
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            snap_name = db_snap.name
             serialized_vm = DataSerializer.vm_to_web(db_vm)
             prepared_data = {
                 **serialized_vm,
                 'snapshot_info': {
                     'vm_name': db_vm.name,
-                    'snapshot_name': db_snap.name
+                    'snapshot_name': snap_name
                 }
             }
-            try:
-                self.domain_rpc.cast(
-                    BaseVMDriver.revert_snapshot.__name__,
-                    data_for_manager=prepared_data
-                )
-                self.event_store.add_event(
-                    vm_id,
-                    user_id,
-                    self._revert_snapshot.__name__,
-                    f"Successfully reverted snapshot {db_snap.name}",
-                )
-                LOG.info('Response on _revert_snapshot was successfully '
-                         'processed.')
-            except (RpcCallException, RpcServerInitializedException) as err:
-                message = f'Handle error: {err!s} while reverting snapshot'
-                LOG.error(message)
-            finally:
-                self.uow.commit()
+        self.domain_rpc.cast(
+            BaseVMDriver.revert_snapshot.__name__,
+            data_for_manager=prepared_data
+        )
+        self.event_store.add_event(
+            vm_id,
+            user_id,
+            self._revert_snapshot.__name__,
+            f"Successfully reverted snapshot {snap_name}",
+        )
+        LOG.info('Response on _revert_snapshot was successfully processed.')
 
     def delete_snapshot(self, data: Dict) -> Dict:
         """Delete a snapshot of the virtual machine.
@@ -1969,50 +1967,47 @@ class VMServiceLayerManager(BackgroundTasks):
             )
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        with self.uow:
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             try:
-                db_vm = self.uow.virtual_machines.get(vm_id)
-                db_snap = self.uow.virtual_machines.get_snapshot(
-                    vm_id,
-                    snapshot_id
-                )
-                self._check_vm_power_state(
-                    db_vm.power_state,
-                    [
-                        VmPowerState.running.name,
-                        VmPowerState.shut_off.name
-                    ]
-                )
-                self._check_snapshot_status(
-                    db_snap.status,
-                    [
-                        SnapshotStatus.running.name,
-                        SnapshotStatus.error.name,
-                    ]
-                )
-                result = DataSerializer.snapshot_to_web(db_snap)
-                result['vm_name'] = db_vm.name
-                if result.get('parent'):
-                    result['parent'] = result['parent']['name']
-                result['status'] = SnapshotStatus.deleting.name
-                if db_snap.status == SnapshotStatus.error.name:
-                    self._delete_snapshot_from_db(vm_id, snapshot_id)
-                    self.event_store.add_event(
-                        vm_id,
-                        user_info.get('id'),
-                        self.delete_snapshot.__name__,
-                        f"Successfully deleted snapshot "
-                        f"{db_snap.name} from the database.",
-                    )
-                    LOG.info('Snapshot with status "error" was deleted from '
-                             'the database')
-                    return result
-                db_snap.status = SnapshotStatus.deleting.name
-                self.uow.commit()
-            except exceptions.NoResultFound as err:
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            except NoResultFound as err:
                 message = f'Handle error: {err!s} while searching for snapshot.'
                 LOG.error(message)
-                raise
+                raise exceptions.SnapshotNotFoundException(message)
+            self._check_vm_power_state(
+                db_vm.power_state,
+                [
+                    VmPowerState.running.name,
+                    VmPowerState.shut_off.name
+                ]
+            )
+            self._check_snapshot_status(
+                db_snap.status,
+                [
+                    SnapshotStatus.running.name,
+                    SnapshotStatus.error.name,
+                ]
+            )
+            result = DataSerializer.snapshot_to_web(db_snap)
+            result['vm_name'] = db_vm.name
+            if result.get('parent'):
+                result['parent'] = result['parent']['name']
+            if db_snap.status == SnapshotStatus.error.name:
+                self._delete_snapshot_from_db(snapshot_id)
+                self.event_store.add_event(
+                    vm_id,
+                    user_info.get('id'),
+                    self.delete_snapshot.__name__,
+                    f"Successfully deleted snapshot "
+                    f"{db_snap.name} from the database.",
+                )
+                LOG.info('Snapshot with status "error" was deleted from '
+                         'the database')
+                return result
+            db_snap.status = SnapshotStatus.deleting.name
+            result['status'] = SnapshotStatus.deleting.name
+            uow.commit()
         self.service_layer_rpc.cast(
             self._delete_snapshot.__name__,
             data_for_method={
@@ -2036,72 +2031,57 @@ class VMServiceLayerManager(BackgroundTasks):
         snapshot_id = str(data.pop('snapshot_id'))
         user_info = data.pop('user_info', {})
         user_id = str(user_info.get('id', ''))
-        with self.uow:
-            try:
-                db_vm = self.uow.virtual_machines.get(vm_id)
-                db_snap = self.uow.virtual_machines.get_snapshot(
-                    vm_id,
-                    snapshot_id
-                )
-                child_snapshots = self.uow.virtual_machines.get_child_snapshots(
-                    db_snap
-                )
-                children_names = [child.name for child in child_snapshots]
-                serialized_vm = DataSerializer.vm_to_web(db_vm)
-                prepared_data = {
-                    **serialized_vm,
-                    'snapshot_info': {
-                        'vm_name': db_vm.name,
-                        'snapshot_name': db_snap.name,
-                        'snapshot_id': str(db_snap.id),
-                        'children_names': children_names,
-                    }
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            snap_name = db_snap.name
+            child_snapshots = uow.snapshots.get_children(db_snap)
+            children_names = [child.name for child in child_snapshots]
+            serialized_vm = DataSerializer.vm_to_web(db_vm)
+            prepared_data = {
+                **serialized_vm,
+                'snapshot_info': {
+                    'vm_name': db_vm.name,
+                    'snapshot_name': snap_name,
+                    'snapshot_id': snapshot_id,
+                    'children_names': children_names,
                 }
-                self.domain_rpc.call(
-                    BaseVMDriver.delete_snapshot.__name__,
-                    data_for_manager=prepared_data,
-                )
-                self._delete_snapshot_from_db(vm_id, snapshot_id)
-                self.event_store.add_event(
-                    vm_id,
-                    user_id,
-                    self._delete_snapshot.__name__,
-                    f"Successfully deleted snapshot {db_snap.name}",
-                )
-                LOG.info('Response on _delete_snapshot was successfully '
-                         'processed.')
-            except (RpcCallException, RpcServerInitializedException) as err:
-                message = f'Handle error: {err!s} while deleting snapshot'
-                LOG.error(message)
+            }
+        try:
+            self.domain_rpc.call(
+                BaseVMDriver.delete_snapshot.__name__,
+                data_for_manager=prepared_data,
+            )
+        except (RpcCallException, RpcServerInitializedException) as err:
+            message = f'Handle error: {err!s} while deleting snapshot'
+            LOG.error(message)
+            with self.uow() as uow:
+                db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
                 db_snap.status = SnapshotStatus.error.name
-                raise
-            finally:
-                self.uow.commit()
+                uow.commit()
+        else:
+            self._delete_snapshot_from_db(snapshot_id)
+            self.event_store.add_event(
+                vm_id,
+                user_id,
+                self._delete_snapshot.__name__,
+                f"Successfully deleted snapshot {snap_name}",
+            )
+            LOG.info('Response on _delete_snapshot was successfully processed.')
 
-    def _delete_snapshot_from_db(
-            self,
-            vm_id: str,
-            snapshot_id: str
-    ) -> None:
-        """Delete snapshot information from the database.
+    def _delete_snapshot_from_db(self, snapshot_id: str) -> None:
+        """Delete snapshot from the DB and update parents in children snapshots.
 
         Args:
-            vm_id (str): The ID of the virtual machine.
             snapshot_id (str): The ID of the snapshot to delete.
         """
-        with self.uow:
-            db_snap = self.uow.virtual_machines.get_snapshot(
-                vm_id,
-                snapshot_id
-            )
-            child_snapshots = self.uow.virtual_machines.get_child_snapshots(
-                db_snap
-            )
-            for child in child_snapshots:
-                child.parent_id = db_snap.parent_id
-                self.uow.virtual_machines.update_snapshot(child)
-            self.uow.virtual_machines.delete_snapshot(db_snap)
-            self.uow.commit()
+        with self.uow() as uow:
+            db_snap = uow.snapshots.get_or_fail(UUID(snapshot_id))
+            children_snapshots = uow.snapshots.get_children(db_snap)
+            for child_snap in children_snapshots:
+                child_snap.parent_id = db_snap.parent_id
+            uow.snapshots.delete(db_snap)
+            uow.commit()
 
     def _delete_all_vm_snapshots(self, vm_id: str, user_info: Dict) -> None:
         """Delete all snapshots of the virtual machine (while deleting VM).
@@ -2112,21 +2092,18 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Starting deleting all snapshots of the VM')
         snapshots = []
-        with self.uow:
-            db_vm = self.uow.virtual_machines.get(vm_id)
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            db_snapshots = uow.snapshots.get_all_by_vm(vm_id)
             db_vm.status = VmStatus.deleting_snapshots.name
-            self.uow.commit()
-            db_snapshots = self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
             snapshots = [DataSerializer.snapshot_to_web(snapshot)
                          for snapshot in db_snapshots]
+            uow.commit()
         for snapshot in snapshots:
             if snapshot['status'] == SnapshotStatus.error.name:
-                self._delete_snapshot_from_db(
-                    vm_id,
-                    snapshot['id']
-                )
-                LOG.info('Snapshot with status "error" was deleted '
-                         'from the database')
+                self._delete_snapshot_from_db(snapshot['id'])
+                LOG.info(f'Snapshot {snapshot["name"]} with status "error" '
+                         f'was deleted from the database.')
                 continue
             self._delete_snapshot(
                 {
@@ -2146,37 +2123,40 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         libvirt_snaps, libvirt_current_snap = get_vm_snapshots(db_vm.name)
         vm_id = str(db_vm.id)
-        db_snaps = self.uow.virtual_machines.get_snapshots_by_vm(vm_id)
-        for db_snap in db_snaps:
-            if (db_snap.name not in libvirt_snaps and
-                    db_snap.status != SnapshotStatus.creating.name):
-                db_snap.status = SnapshotStatus.error.name
-            elif (db_snap.status == SnapshotStatus.creating.name or
-                    (db_snap.status == SnapshotStatus.reverting.name and
-                     db_snap.name == libvirt_current_snap)):
-                db_snap.status = SnapshotStatus.running.name
-        self._update_current_snapshot(db_snaps, vm_id, libvirt_current_snap)
+        with self.uow() as uow:
+            db_snaps = uow.snapshots.get_all_by_vm(vm_id)
+            for db_snap in db_snaps:
+                if (db_snap.name not in libvirt_snaps and
+                        db_snap.status != SnapshotStatus.creating.name):
+                    db_snap.status = SnapshotStatus.error.name
+                elif (db_snap.status == SnapshotStatus.creating.name or
+                        (db_snap.status == SnapshotStatus.reverting.name and
+                         db_snap.name == libvirt_current_snap)):
+                    db_snap.status = SnapshotStatus.running.name
+            uow.commit()
+        self._update_current_snapshot(vm_id, libvirt_current_snap)
 
     def _update_current_snapshot(
             self,
-            db_snaps: List,
             vm_id: str,
             libvirt_current_snap: Optional[str]
     ) -> None:
         """Update is_current flag for VM snapshots.
 
         Args:
-            db_snaps (List): List of snapshots of VM from the database.
             vm_id (str): The ID of the virtual machine.
             libvirt_current_snap (Optional[str]): The current snapshot from
             libvirt.
         """
-        if libvirt_current_snap is None:
-            self.uow.virtual_machines.unset_current_snapshot(vm_id)
-            return
-        for db_snap in db_snaps:
-            if db_snap.name == libvirt_current_snap:
-                self.uow.virtual_machines.set_current_snapshot(db_snap)
+        with self.uow() as uow:
+            if libvirt_current_snap is None:
+                uow.snapshots.unset_current(vm_id)
+                return
+            db_snaps = uow.snapshots.get_all_by_vm(vm_id)
+            for db_snap in db_snaps:
+                if db_snap.name == libvirt_current_snap:
+                    uow.snapshots.set_current(db_snap)
+            uow.commit()
 
     @periodic_task(interval=10)
     def monitoring(self) -> None:
@@ -2190,19 +2170,18 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Start monitoring.')
         virsh_list = get_vms_state()
-        with self.uow:
-            with synchronized_session(self.uow.session):
-                for db_vm in self.uow.virtual_machines.get_all():
-                    db_vm_power_state = virsh_list.get(db_vm.name, '')
-                    if not db_vm_power_state:
-                        db_vm.power_state = VmPowerState.shut_off.name
-                    elif db_vm_power_state == VmPowerState.running.name:
-                        db_vm.power_state = VmPowerState[db_vm_power_state].name
-                        db_vm.status = VmStatus.available.name
-                        db_vm.information = ''
-                    else:
-                        db_vm.power_state = VmPowerState[db_vm_power_state].name
-                    if db_vm.power_state == VmPowerState.running.name:
-                        self._update_snapshots_statuses(db_vm)
-            self.uow.commit()
+        with self.uow() as uow, synchronized_session(uow.session):
+            for db_vm in uow.virtual_machines.get_all():
+                db_vm_power_state = virsh_list.get(db_vm.name, '')
+                if not db_vm_power_state:
+                    db_vm.power_state = VmPowerState.shut_off.name
+                elif db_vm_power_state == VmPowerState.running.name:
+                    db_vm.power_state = VmPowerState[db_vm_power_state].name
+                    db_vm.status = VmStatus.available.name
+                    db_vm.information = ''
+                else:
+                    db_vm.power_state = VmPowerState[db_vm_power_state].name
+                if db_vm.power_state == VmPowerState.running.name:
+                    self._update_snapshots_statuses(db_vm)
+            uow.commit()
         LOG.info('Stop monitoring.')
