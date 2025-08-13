@@ -154,7 +154,7 @@ def upgrade() -> None:
         sa.Column('path', sa.String(length=255), nullable=True),
         sa.Column('size', sa.BigInteger(), nullable=True),
         sa.Column('provisioning', sa.String(length=30), nullable=True),
-        sa.Column('type', sa.Integer(), nullable=True),
+        sa.Column('type', sa.String(length=30), nullable=True),
         sa.Column('order', sa.Integer(), nullable=True),
         sa.Column('vm_id', sa.UUID(), nullable=True),
         sa.Column('disk_id', sa.UUID(), nullable=True),
