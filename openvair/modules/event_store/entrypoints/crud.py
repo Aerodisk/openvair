@@ -61,7 +61,7 @@ class EventCrud:
         events: List = self.service_layer_rpc_client.get_all_events()
         return Validator.validate_objects(events, schemas.Event)
 
-    def new_get_all_events_by_module(self) -> List:
+    def new_get_all_events_by_module(self) -> List[Event]:
         """Retrieve all events by module from the database.
 
         This method retrieves all events for a specific module from the
