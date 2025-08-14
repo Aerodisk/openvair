@@ -78,6 +78,10 @@ class EventstoreServiceLayerManager(BackgroundTasks):
     ) -> List:
         """Retrieve all events by module from the database.
 
+        Args:
+            getting_data (GetLastEventsServiceCommand): Object with modul name
+                for filtering
+
         Returns:
            List: A list of serialized event representations.
         """
@@ -99,6 +103,10 @@ class EventstoreServiceLayerManager(BackgroundTasks):
     ) -> List[Dict[str, Any]]:
         """Retrieve a certain number of last events from the database.
 
+        Args:
+            getting_data (GetLastEventsServiceCommand): Object with limit num
+                for getting
+
         Returns:
            List: A list of serialized event representations.
         """
@@ -114,7 +122,8 @@ class EventstoreServiceLayerManager(BackgroundTasks):
         """Create a new event, persist it in the db, start async creation.
 
         Args:
-           creating_data (CreateEventModelDTO): Object with event data to add.
+           creating_data (CreateEventServiceCommand): Object with event data to
+            add.
 
         Returns:
            None
