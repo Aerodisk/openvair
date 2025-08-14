@@ -34,7 +34,6 @@ Functions:
 
 from __future__ import annotations
 
-import re
 import enum
 import time
 import string
@@ -47,6 +46,10 @@ from sqlalchemy import String
 
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.vm import get_vms_state, get_vm_snapshots
+from openvair.libs.clone.utils import (
+    get_max_clone_number,
+    create_new_clone_name,
+)
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.libs.context_managers import synchronized_session
 from openvair.modules.virtual_machines import config
@@ -54,7 +57,6 @@ from openvair.libs.messaging.exceptions import (
     RpcCallException,
     RpcServerInitializedException,
 )
-from openvair.modules.volume.adapters.orm import Volume
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.virtual_machines.adapters import orm
 from openvair.libs.data_handlers.json.serializer import serialize_json
@@ -1398,42 +1400,6 @@ class VMServiceLayerManager(BackgroundTasks):
             else:
                 return result
 
-    def get_max_clone_number(
-        self,
-        base_name: str,
-        existing_names: list[str],
-        count: int
-    ) -> int:
-        """Gets max clone suffix number matching '<base_name>_clone_<NN>'.
-
-        Checks that creating new clones won't exceed the maximum suffix of 99.
-        Raises an exception if there are no available names.
-
-        Args:
-            base_name (str): The base name of the object to clone.
-            existing_names (list[str]): List of existing object names.
-            count (int): Number of clones to create.
-
-        Raises:
-            exceptions.NoAvailableNameForClone: If there is no available suffix.
-
-        Returns:
-            int: The highest existing clone suffix number.
-        """
-        pattern = re.compile(rf'^{re.escape(base_name)}_clone_(\d+)$')
-        max_num = 0
-        for name in existing_names:
-            match = pattern.match(name)
-            if match:
-                num = int(match.group(1))
-                if num > max_num:
-                    max_num = num
-        max_suff = 99
-        if max_num >= max_suff or max_num + count > max_suff:
-            msg = 'No available name for clone'
-            LOG.error(msg)
-            raise exceptions.NoAvailableNameForClone(msg)
-        return max_num
 
     def clone_vm(self, data: Dict) -> List[Dict]:
         """Clone a virtual machine.
@@ -1478,7 +1444,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         max_numbers = {}
         for disk in attached_disks:
-            max_number = self.get_max_clone_number(
+            max_number = get_max_clone_number(
                 disk,
                 disk_names,
                 count
@@ -1488,7 +1454,7 @@ class VMServiceLayerManager(BackgroundTasks):
         vms = self.get_all_vms()
 
         vm_names = [vm["name"] for vm in vms]
-        max_vm_number = self.get_max_clone_number(
+        max_vm_number = get_max_clone_number(
             original_vm["name"],
             vm_names,
             count
@@ -1506,7 +1472,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 i
             )
 
-            clone_payload['name'] = self._create_new_clone_name(
+            clone_payload['name'] = create_new_clone_name(
                 original_vm["name"],
                 max_vm_number + i + 1,
                 cast(String, orm.VirtualMachines.__table__.c.name.type).length
@@ -1603,21 +1569,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return data
 
-    def _create_new_clone_name(
-        self,
-        name: str,
-        num: int,
-        max_len: Optional[int]
-    ) -> str:
-        """Creates a name of a clone."""
-        if max_len and len(name) + 9 > max_len:
-            msg = f'VM or disk name is too long: len {name} > {max_len - 9}'
-            LOG.error(msg)
-            raise exceptions.CloneNameTooLong(msg)
-
-        return f'{name}_clone_{num:02d}'
-
-    def _vm_clone_disks_payload( # диски копируются
+    def _vm_clone_disks_payload(
         self,
         disks_list: List,
         user_info: Dict,
@@ -1645,10 +1597,9 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         attach_disks: List[Dict] = []
         for disk in disks_list:
-            new_name = self._create_new_clone_name(
+            new_name = create_new_clone_name(
                 disk["name"],
-                max_numbers[disk["name"]] + current_copy + 1,
-                cast(String, Volume.__table__.c.name.type).length
+                max_numbers[disk["name"]] + current_copy + 1
             )
 
             new_disk = {
