@@ -1565,7 +1565,7 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return data
 
-    def _vm_clone_disks_payload( # диски копируются
+    def _vm_clone_disks_payload(
         self,
         disks_list: List,
         user_info: Dict,
