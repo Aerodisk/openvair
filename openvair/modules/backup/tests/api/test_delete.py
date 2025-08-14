@@ -15,6 +15,9 @@ from pathlib import Path
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from openvair.modules.backup.config import RESTIC_DIR, RESTIC_PASSWORD
+from openvair.modules.backup.adapters.restic.restic import ResticAdapter
+
 
 def test_delete_backup_success(
     client: TestClient, backup_snapshot: Dict
@@ -34,6 +37,10 @@ def test_delete_backup_success(
     data = response.json()
     assert data['status'] == 'success'
     assert data['error'] is None
+
+    restic_adapter = ResticAdapter(RESTIC_DIR, RESTIC_PASSWORD)
+    restic_snapshots = restic_adapter.snapshots()
+    assert len(restic_snapshots) == 0
 
 
 def test_delete_backup_nonexistent_snapshot(

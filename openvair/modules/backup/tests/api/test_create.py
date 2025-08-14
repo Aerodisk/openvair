@@ -12,6 +12,9 @@ from pathlib import Path
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from openvair.modules.backup.config import RESTIC_PASSWORD
+from openvair.modules.backup.adapters.restic.restic import ResticAdapter
+
 
 def test_create_backup_success(
     client: TestClient,
@@ -42,6 +45,11 @@ def test_create_backup_success(
     assert list_response.status_code == status.HTTP_200_OK
     snapshots = list_response.json()['data']
     assert any(s['id'] == backup_data['snapshot_id'] for s in snapshots)
+
+    restic_adapter = ResticAdapter(backup_repository, RESTIC_PASSWORD)
+    restic_snapshots = restic_adapter.snapshots()
+    assert len(restic_snapshots) == 1
+    assert backup_data['snapshot_id'] == restic_snapshots[0]['id']
 
 
 def test_create_backup_without_repository(
