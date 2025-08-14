@@ -13,9 +13,8 @@ Functions:
 import uuid
 import datetime
 
-from sqlalchemy import Text, String, Integer, DateTime
+from sqlalchemy import Text, String, Integer, DateTime, text
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
-from sqlalchemy.sql import func
 from sqlalchemy.dialects import postgresql
 
 
@@ -43,8 +42,8 @@ class Events(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True))
     event: Mapped[str] = mapped_column(String(50), default='', nullable=False)
     timestamp: Mapped[datetime.datetime] = mapped_column(
-        DateTime,
-        default=func.now(),
+        DateTime(timezone=True),  # TIMESTAMP WITH TIME ZONE
+        server_default=text("TIMEZONE('UTC', NOW())"),  # explicitly fixes UTC
         nullable=False,
     )
     information: Mapped[str] = mapped_column(Text, nullable=False)
