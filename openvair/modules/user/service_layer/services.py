@@ -46,6 +46,9 @@ class UserManager(BackgroundTasks):
     coordinating interactions between the API layer, domain layer, and database.
     It handles tasks such as user authentication, creation, deletion, and
     password management.
+
+    Attributes:
+        uow (UserSqlAlchemyUnitOfWork): Unit of Work for user transactions.
     """
 
     def __init__(self) -> None:
@@ -54,10 +57,10 @@ class UserManager(BackgroundTasks):
         This constructor sets up the necessary components for the UserManager,
         including:
         - Initializing the parent BackgroundTasks class
-        - Setting up the unit of work for database operations
+        - Declaring the unit of work class for database operations.
         """
         super().__init__()
-        self.uow = unit_of_work.SqlAlchemyUnitOfWork()
+        self.uow = unit_of_work.UserSqlAlchemyUnitOfWork
 
     @staticmethod
     def _hash_password(password: str) -> str:
@@ -102,8 +105,8 @@ class UserManager(BackgroundTasks):
         """
         LOG.info('Start getting user by id from DB.')
         user_id = data.get('user_id', '')
-        with self.uow:
-            user: User = self.uow.users.get(user_id)
+        with self.uow() as uow:
+            user: User = uow.users.get_or_fail(user_id)
             return DataSerializer.to_web(user)
 
     def get_all_users(self) -> List:
@@ -113,8 +116,8 @@ class UserManager(BackgroundTasks):
             List: List of serialized user data for each user.
         """
         LOG.info('Start getting all users from DB')
-        with self.uow:
-            users = self.uow.users.get_all()
+        with self.uow() as uow:
+            users = uow.users.get_all()
             return [DataSerializer.to_web(user) for user in users]
 
     def authenticate_user(self, data: Dict) -> Dict:
@@ -134,8 +137,8 @@ class UserManager(BackgroundTasks):
         username: str = data.get('username', '')
         password: str = data.get('password', '')
 
-        with self.uow:
-            db_user: User = self.uow.users.get_by_name(username)
+        with self.uow() as uow:
+            db_user: User = uow.users.get_by_name(username)
 
             if not self._verify_password(password, db_user.hashed_password):
                 message = 'Wrong credentials'
@@ -213,11 +216,11 @@ class UserManager(BackgroundTasks):
         self._check_is_super_user(data)
         self._verificate_user_id(data)
         user_info: UserInfo = self._prepare_user_info(data)
-        with self.uow:
+        with self.uow() as uow:
             db_user: User = DataSerializer.to_db(user_info._asdict())
             try:
-                self.uow.users.add(db_user)
-                self.uow.commit()
+                uow.users.add(db_user)
+                uow.commit()
                 LOG.info('User was successfully created.')
             except exc.IntegrityError as _:
                 message = (
@@ -251,16 +254,16 @@ class UserManager(BackgroundTasks):
             message = 'Got empty new password.'
             LOG.error(message)
             raise exceptions.UnexpectedData(message)
-        with self.uow:
+        with self.uow() as uow:
             try:
-                db_user: User = self.uow.users.get(user_id)
+                db_user: User = uow.users.get_or_fail(user_id)
                 db_user.hashed_password = self._hash_password(new_password)
             except exc.NoResultFound as _:
                 message = f"User with current id {user_id} doesn't exist."
                 LOG.error(message)
                 raise exceptions.UserDoesNotExist(message)
             finally:
-                self.uow.commit()
+                uow.commit()
         return DataSerializer.to_web(db_user)
 
     def delete_user(self, data: Dict) -> Dict:
@@ -278,16 +281,16 @@ class UserManager(BackgroundTasks):
         LOG.info('Start deleting user from db.')
         self._verificate_user_id(data)
         user_id = data.get('user_id', '')
-        with self.uow:
+        with self.uow() as uow:
             try:
-                self.uow.users.get(user_id)
-                self.uow.users.delete(user_id)
+                uow.users.get_or_fail(user_id)
+                uow.users.delete_by_id(user_id)
             except exc.NoResultFound as _:
                 message = f"User with current id {user_id} doesn't exist."
                 LOG.error(message)
                 raise exceptions.UserDoesNotExist(message)
             finally:
-                self.uow.commit()
+                uow.commit()
             LOG.info('User deleted successfully')
 
         return {'id': user_id, 'message': 'User was successfully deleted'}
