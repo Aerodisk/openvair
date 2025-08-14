@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-08-14 09:27:22.592190
+Create Date: 2025-08-14 14:18:40.712599
 
 """
 
@@ -281,12 +281,7 @@ def upgrade() -> None:
         sa.Column('object_id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('event', sa.String(length=50), nullable=False),
-        sa.Column(
-            'timestamp',
-            sa.DateTime(timezone=True),
-            server_default=sa.text("TIMEZONE('UTC', NOW())"),
-            nullable=False,
-        ),
+        sa.Column('timestamp', sa.DateTime(), nullable=False),
         sa.Column('information', sa.Text(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
     )

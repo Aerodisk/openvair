@@ -9,11 +9,10 @@ Classes:
         a CSV file.
 """
 
+import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
-
-from openvair.common.pydantic_types import UTCDateTime
 
 
 class Event(BaseModel):
@@ -34,7 +33,7 @@ class Event(BaseModel):
     object_id: str
     user_id: str
     event: str
-    timestamp: UTCDateTime
+    timestamp: datetime.datetime
     information: Optional[str] = None
 
 
