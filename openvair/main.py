@@ -109,6 +109,11 @@ app.include_router(tempalte_router)
 project_dir = Path(__file__).parent
 templates = Jinja2Templates(directory=project_dir / 'dist')
 app.mount('/assets', StaticFiles(directory=project_dir / 'dist/assets'))
+app.mount(
+    '/docs',
+    StaticFiles(directory=project_dir.parent / 'docs', html=True),
+    name='mkdocs_docs',
+)
 
 
 @app.middleware('http')
