@@ -19,11 +19,18 @@ from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.modules.volume.domain.model import VolumeFactory
+from openvair.modules.storage.domain.model import StorageFactory
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
+from openvair.modules.storage.adapters.serializer import (
+    DataSerializer as StorageSerializer,
+)
 from openvair.modules.volume.service_layer.unit_of_work import (
     VolumeSqlAlchemyUnitOfWork as VolumeUOW,
+)
+from openvair.modules.storage.service_layer.unit_of_work import (
+    StorageSqlAlchemyUnitOfWork as StorageUOW,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
@@ -170,6 +177,31 @@ def cleanup_all_templates() -> None:
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_storages() -> None:
+    """Delete all storages from both database and OS using StorageFactory.
+
+    This utility function:
+    1. Retrieves all storages from the database
+    2. For each storage:
+        - Creates appropriate domain storage instance using StorageFactory
+        - Deletes physical storage resources
+        - Removes the storage record from database
+    3. Handles errors gracefully with logging
+    """
+    unit_of_work = StorageUOW()
+    try:
+        with unit_of_work as uow:
+            all_storages = uow.storages.get_all()
+            for db_storage in all_storages:
+                domain_storage = StorageSerializer.to_domain(db_storage)
+                storage = StorageFactory().get_storage(domain_storage)
+                storage.delete()
+                uow.storages.delete(db_storage)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error during storages cleanup: {err}')
 
 
 def wait_for_field_value(  # noqa: PLR0913
