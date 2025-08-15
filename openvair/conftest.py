@@ -130,7 +130,7 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='module')
-def storage(client: TestClient) -> Generator[dict, None, None]:
+def storage(client: TestClient) -> Generator[Dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     headers = {'Authorization': 'Bearer mocked_token'}
 
@@ -170,7 +170,7 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
 
 
 @pytest.fixture(scope='function')
-def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
+def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
         name=generate_test_entity_name('volume'),

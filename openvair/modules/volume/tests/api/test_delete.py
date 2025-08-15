@@ -6,9 +6,10 @@ Covers:
     - invalid UUID,
     - non-deletable status (e.g. `extending`),
     - existing VM attachments.
+- Unauthorized access.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_delete_volume_success(client: TestClient, volume: dict) -> None:
+def test_delete_volume_success(client: TestClient, volume: Dict) -> None:
     """Test successful deletion of a volume in 'available' state."""
     volume_id = volume['id']
     response = client.delete(f'/volumes/{volume_id}/')
@@ -45,7 +46,7 @@ def test_delete_volume_invalid_uuid(client: TestClient) -> None:
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_delete_volume_invalid_status(client: TestClient, volume: dict) -> None:
+def test_delete_volume_invalid_status(client: TestClient, volume: Dict) -> None:
     """Test failure when trying to delete a volume not in 'available' state.
 
     Manually sets status to 'extending'.
@@ -68,7 +69,7 @@ def test_delete_volume_invalid_status(client: TestClient, volume: dict) -> None:
 
 
 def test_delete_volume_with_attachment(
-    client: TestClient, attached_volume: dict
+    client: TestClient, attached_volume: Dict
 ) -> None:
     """Test failure when volume is attached to a VM.
 
@@ -79,3 +80,12 @@ def test_delete_volume_with_attachment(
     response = client.delete(f'/volumes/{volume_id}/')
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'VolumeHasAttachmentError' in response.text
+
+
+def test_delete_volume_unauthorized(
+        volume: Dict, unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized request returns 401."""
+    volume_id = volume['id']
+    response = unauthorized_client.delete(f'/volumes/{volume_id}/')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
