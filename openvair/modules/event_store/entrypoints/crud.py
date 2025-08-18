@@ -21,7 +21,7 @@ from openvair.modules.event_store.service_layer import unit_of_work
 from openvair.modules.event_store.adapters.serializer import DataSerializer
 from openvair.modules.event_store.entrypoints.schemas import Event
 from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import (
-    EventstoreServiceLayerRPCClient,
+    EventStoreServiceLayerRPCClient,
 )
 
 LOG = get_logger(__name__)
@@ -44,7 +44,7 @@ class EventCrud:
         self.module_name = module_name
         self.uow = unit_of_work.EventStoreSqlAlchemyUnitOfWork
         self.service_layer_rpc_client = self.event_client = (
-            EventstoreServiceLayerRPCClient(module_name)
+            EventStoreServiceLayerRPCClient(module_name)
         )
 
     def new_get_all_events(self) -> List[Event]:
