@@ -80,3 +80,9 @@ def test_get_sessions(client_with_login: TestClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert all(v['ip'] != valid_ip for v in data)
+
+
+def test_get_sessions_unauthorized(unauthorized_client: TestClient) -> None:
+    """Test unauthorized request returns 401."""
+    resp = unauthorized_client.get("/block-devices/sessions")
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
