@@ -15,7 +15,6 @@ import datetime
 
 from sqlalchemy import Text, String, Integer, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
-from sqlalchemy.sql import func
 from sqlalchemy.dialects import postgresql
 
 
@@ -44,7 +43,7 @@ class Events(Base):
     event: Mapped[str] = mapped_column(String(50), default='', nullable=False)
     timestamp: Mapped[datetime.datetime] = mapped_column(
         DateTime,
-        default=func.now(),
+        default=datetime.datetime.now,
         nullable=False,
     )
     information: Mapped[str] = mapped_column(Text, nullable=False)

@@ -11,13 +11,20 @@ Dependencies:
     - EventStoreSqlAlchemyUnitOfWork: Unit of Work for event operations.
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
+
+from pydantic import validate_call
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
 from openvair.modules.event_store.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.event_store.service_layer import unit_of_work
+from openvair.libs.contracts.event_store_service import (
+    CreateEventServiceCommand,
+    GetLastEventsServiceCommand,
+    GetEventsByModuleServiceCommand,
+)
 from openvair.modules.event_store.adapters.serializer import (
     ApiSerializer,
     CreateSerializer,
@@ -65,23 +72,40 @@ class EventstoreServiceLayerManager(BackgroundTasks):
                 ApiSerializer.to_dict(event) for event in uow.events.get_all()
             ]
 
-    def get_all_events_by_module(self, data: Dict) -> List:
+    def get_all_events_by_module(
+        self,
+        getting_data: GetEventsByModuleServiceCommand,
+    ) -> List:
         """Retrieve all events by module from the database.
+
+        Args:
+            getting_data (GetLastEventsServiceCommand): Object with modul name
+                for filtering
 
         Returns:
            List: A list of serialized event representations.
         """
         LOG.info(
-            f'Getting events by module {data["module_name"]}, service layer'
+            f'Getting events by module {getting_data.module_name},'
+            'service layer'
         )
         with self.uow() as uow:
             return [
                 ApiSerializer.to_dict(event)
-                for event in uow.events.get_all_by_module(data['module_name'])
+                for event in uow.events.get_all_by_module(
+                    getting_data.module_name
+                )
             ]
 
-    def get_last_events(self, data: Dict) -> List:
-        """Retrieve a sertain number of last events from the database.
+    def get_last_events(
+        self,
+        getting_data: GetLastEventsServiceCommand,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve a certain number of last events from the database.
+
+        Args:
+            getting_data (GetLastEventsServiceCommand): Object with limit num
+                for getting
 
         Returns:
            List: A list of serialized event representations.
@@ -90,14 +114,16 @@ class EventstoreServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             return [
                 ApiSerializer.to_dict(event)
-                for event in uow.events.get_last_events(data['limit'])
+                for event in uow.events.get_last_events(getting_data.limit)
             ]
 
-    def add_event(self, creating_data: Dict) -> None:
+    @validate_call
+    def add_event(self, creating_data: CreateEventServiceCommand) -> None:
         """Create a new event, persist it in the db, start async creation.
 
         Args:
-           creating_data (Dict): A dictionary with event creation fields.
+           creating_data (CreateEventServiceCommand): Object with event data to
+            add.
 
         Returns:
            None

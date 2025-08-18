@@ -51,7 +51,6 @@ from openvair.modules.image.config import (
     SERVICE_LAYER_DOMAIN_QUEUE_NAME,
 )
 from openvair.libs.messaging.exceptions import (
-    RpcException,
     RpcCallException,
     RpcCallTimeoutException,
 )
@@ -60,14 +59,11 @@ from openvair.modules.image.adapters.orm import Image, ImageAttachVM
 from openvair.modules.image.service_layer import exceptions, unit_of_work
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.modules.image.adapters.serializer import DataSerializer
-from openvair.modules.image.adapters.dto.external.commands import (
-    AddEventCommandDTO,
-)
 from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
     StorageServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import (
-    EventstoreServiceLayerRPCClient,
+    EventStoreServiceLayerRPCClient,
 )
 
 if TYPE_CHECKING:
@@ -176,7 +172,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.storage_service_client = StorageServiceLayerRPCClient()
-        self.event_client = EventstoreServiceLayerRPCClient('image')
+        self.event_client = EventStoreServiceLayerRPCClient('image')
 
     def _call_domain_delete_from_tmp(
         self,
@@ -538,7 +534,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
         message = 'Image was uploaded successfully'
         LOG.info(message)
-        self._send_event(
+        self.event_client.add_event(
             object_id=db_image.id,
             user_id=uuid.UUID(user_id),
             event=self.upload_image.__name__,
@@ -606,7 +602,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 )
                 message = 'Image was created successfully'
                 LOG.info(message)
-                self._send_event(
+                self.event_client.add_event(
                     object_id=uuid.UUID(image_id),
                     user_id=uuid.UUID(user_id),
                     event=self._create_image.__name__,
@@ -617,7 +613,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                     'An error occurred when calling the domain layer while '
                     f'creating image: {err!s}'
                 )
-                self._send_event(
+                self.event_client.add_event(
                     object_id=uuid.UUID(image_id),
                     user_id=uuid.UUID(user_id),
                     event=self._create_image.__name__,
@@ -630,7 +626,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 exceptions.StorageUnavailableException,
             ) as err:
                 message = f'An error occurred while creating image: {err!s}'
-                self._send_event(
+                self.event_client.add_event(
                     object_id=uuid.UUID(image_id),
                     user_id=uuid.UUID(user_id),
                     event=self._create_image.__name__,
@@ -683,7 +679,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 )
 
                 message = 'Image deleting was started successfully'
-                self._send_event(
+                self.event_client.add_event(
                     object_id=uuid.UUID(image_id),
                     user_id=uuid.UUID(user_info['user_id']),
                     event=self._delete_image.__name__,
@@ -700,7 +696,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 db_image.status = ImageStatus.error.name
                 db_image.information = message
                 LOG.error(message)
-                self._send_event(
+                self.event_client.add_event(
                     object_id=uuid.UUID(image_id),
                     user_id=uuid.UUID(user_info['user_id']),
                     event=self._delete_image.__name__,
@@ -747,7 +743,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                     'An error occurred when calling the '
                     f'domain layer while deleting image: {err!s}'
                 )
-                self._send_event(
+                self.event_client.add_event(
                     object_id=uuid.UUID(image_id),
                     user_id=uuid.UUID(user_id),
                     event=self._delete_image.__name__,
@@ -767,7 +763,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
         LOG.info(message)
 
-        self._send_event(
+        self.event_client.add_event(
             object_id=uuid.UUID(image_id),
             user_id=uuid.UUID(user_id),
             event=self._delete_image.__name__,
@@ -1108,26 +1104,3 @@ class ImageServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             uow.images.bulk_update(updated_images)
             uow.commit()
-
-    def _send_event(
-        self,
-        object_id: uuid.UUID,
-        user_id: uuid.UUID,
-        event: str,
-        information: str,
-    ) -> None:
-        LOG.info(f'Sending event: {event}')
-        add_event_command_dto = AddEventCommandDTO(
-            object_id=object_id,
-            user_id=user_id,
-            event=event,
-            information=information,
-        )
-        try:
-            self.event_client.add_event(
-                add_event_command_dto.model_dump(mode='json')
-            )
-        except RpcException as e:
-            LOG.error(f'Error while sending event: {event}: {e}')
-        else:
-            LOG.info(f'Event {event} successfully sent')
