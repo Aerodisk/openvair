@@ -4,14 +4,16 @@ Covers:
 - Successful update of volume metadata (name, description, read-only).
 - Validation errors (invalid UUID, invalid input data).
 - Logical constraints (invalid status, duplicate name).
+- Unauthorized access.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.libs.testing.utils import generate_test_entity_name
 from openvair.modules.volume.service_layer.unit_of_work import (
     VolumeSqlAlchemyUnitOfWork,
 )
@@ -22,7 +24,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_edit_volume_success(client: TestClient, volume: dict) -> None:
+def test_edit_volume_success(client: TestClient, volume: Dict) -> None:
     """Test successful metadata update for a volume."""
     volume_id = volume['id']
     payload = {
@@ -54,7 +56,7 @@ def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
 
 
 def test_edit_volume_with_invalid_data(
-    client: TestClient, volume: dict
+    client: TestClient, volume: Dict
 ) -> None:
     """Test failure when name field is empty.
 
@@ -72,7 +74,7 @@ def test_edit_volume_with_invalid_data(
 
 
 def test_edit_volume_when_status_not_available(
-    client: TestClient, volume: dict
+    client: TestClient, volume: Dict
 ) -> None:
     """Test failure when editing a volume with non-available status.
 
@@ -99,7 +101,7 @@ def test_edit_volume_when_status_not_available(
     assert 'VolumeStatusException' in response.text
 
 
-def test_edit_volume_duplicate_name(client: TestClient, storage: dict) -> None:
+def test_edit_volume_duplicate_name(client: TestClient, storage: Dict) -> None:
     """Test failure when renaming volume to name that already exists in storage.
 
     Asserts:
@@ -142,3 +144,19 @@ def test_edit_volume_duplicate_name(client: TestClient, storage: dict) -> None:
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'VolumeExistsOnStorageException' in response.text
+
+
+def test_edit_volume_unauthorized(
+        volume: Dict, unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized request returns 401."""
+    volume_id = volume['id']
+    payload = {
+        'name': generate_test_entity_name('volume'),
+        'description': 'Unauthorized test',
+        'read_only': True,
+    }
+    response = unauthorized_client.put(
+        f'/volumes/{volume_id}/edit/', json=payload
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

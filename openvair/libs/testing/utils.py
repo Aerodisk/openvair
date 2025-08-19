@@ -36,7 +36,7 @@ LOG = get_logger(__name__)
 
 
 def create_resource(
-    client: TestClient, endpoint: str, payload: dict, resource_name: str
+    client: TestClient, endpoint: str, payload: Dict, resource_name: str
 ) -> Dict[str, Any]:
     """Creates a resource on a specified endpoint using the provided client and payload.
 
@@ -194,7 +194,7 @@ def wait_for_field_value(  # noqa: PLR0913
             raw = response.json()
             data = (
                 raw['data']
-                if 'data' in raw and isinstance(raw['data'], dict)
+                if 'data' in raw and isinstance(raw['data'], Dict)
                 else raw
             )
             if data.get(field) == expected:
@@ -265,7 +265,7 @@ def wait_full_deleting(
             raw = response.json()
             data = (
                 raw['data']
-                if 'data' in raw and isinstance(raw['data'], dict)
+                if 'data' in raw and isinstance(raw['data'], Dict)
                 else raw
             )
             if data.get(object_id) is None:
@@ -280,7 +280,7 @@ def wait_full_deleting(
 
 def _extract_data_field(response_json: Dict) -> Dict:
     """Returns response['data'] if it's a BaseResponse, else root object."""
-    if 'data' in response_json and isinstance(response_json['data'], dict):
+    if 'data' in response_json and isinstance(response_json['data'], Dict):
         return response_json['data']
     return response_json
 
