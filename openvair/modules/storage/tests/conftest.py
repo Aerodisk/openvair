@@ -1,4 +1,5 @@
 """Fixtures for storage integration tests."""
+
 from typing import Any, Generator
 
 import pytest
@@ -6,8 +7,8 @@ import pytest
 from openvair.libs.testing.utils import cleanup_all_storages
 
 
-@pytest.fixture(autouse=True, scope='function')
-def clean_storage_path() -> Generator[None, Any, None]:
+@pytest.fixture(scope='function')
+def cleanup_storages() -> Generator[None, Any, None]:
     """Cleanup all storages before and after test"""
     cleanup_all_storages()
     yield

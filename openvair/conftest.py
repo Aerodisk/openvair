@@ -15,17 +15,21 @@ from openvair.libs.testing.utils import (
     delete_resource,
     wait_full_deleting,
     cleanup_all_volumes,
+    cleanup_all_storages,
     wait_for_field_value,
     cleanup_all_templates,
     generate_test_entity_name,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import storage_settings
+from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
     LocalFSStorageExtraSpecsCreate,
 )
+from openvair.modules.volume.service_layer.services import VolumeStatus
+from openvair.modules.storage.service_layer.services import StorageStatus
 from openvair.modules.virtual_machines.entrypoints.schemas import (
     QOS,
     RAM,
@@ -129,9 +133,10 @@ def configure_pagination() -> None:
 #
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
+    cleanup_all_storages()
     headers = {'Authorization': 'Bearer mocked_token'}
 
     storage_disk = Path(storage_settings.storage_path)
@@ -154,7 +159,15 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
         raise RuntimeError(message)
 
     storage = response.json()
+    wait_for_field_value(
+        client=client,
+        path=f"/storages/{storage['id']}/",
+        field="status",
+        expected=StorageStatus.available.name,
+    )
+
     yield storage
+
     cleanup_all_volumes()
     cleanup_all_templates()
 
@@ -181,6 +194,12 @@ def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
         read_only=False,
     ).model_dump(mode='json')
     volume = create_resource(client, '/volumes/create/', volume_data, 'volume')
+    wait_for_field_value(
+        client=client,
+        path=f'/volumes/{volume["id"]}/',
+        field='status',
+        expected=VolumeStatus.available.name,
+    )
 
     yield volume
 
@@ -202,6 +221,12 @@ def template(
     template = create_resource(
         client, '/templates/', template_data, 'template'
     )['data']
+    wait_for_field_value(
+        client=client,
+        path=f"/templates/{template['id']}/",
+        field="status",
+        expected=TemplateStatus.AVAILABLE,
+    )
 
     yield template
 
