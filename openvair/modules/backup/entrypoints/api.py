@@ -123,13 +123,16 @@ async def get_backups(
         BaseResponse[List[ResticSnapshot]]: A response containing a list of
         snapshot metadata.
     """
-    LOG.info('API: Start getiing backup snapshots')
+    LOG.info('API: Start getting backup snapshots')
     snapshots = await run_in_threadpool(crud.get_snapshots)
-    LOG.info('API: Snpashots received success')
+    LOG.info('API: Snapshots received success')
     return BaseResponse(status='success', data=snapshots)
 
 
-@router.post('/repository')
+@router.post(
+    '/repository',
+    dependencies=[Depends(get_current_user)],
+)
 async def init_repository(
     crud: BackupCrud = Depends(BackupCrud),
 ) -> BaseResponse:
@@ -149,7 +152,7 @@ async def init_repository(
     """
     LOG.info('API: Start initializing repository')
     await run_in_threadpool(crud.initialize_backup_repository)
-    LOG.info('API: Repository successfull inited')
+    LOG.info('API: Repository successfully inited')
     return BaseResponse(status='success')
 
 
