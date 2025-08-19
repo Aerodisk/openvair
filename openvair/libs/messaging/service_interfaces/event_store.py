@@ -3,12 +3,12 @@
 This module provides functionality for handling event operations such as
 adding and getting event data.
 
-The module includes an interface definition for the eventstore service layer
+The module includes an interface definition for the event_store service layer
 manager which outlines the methods that should be implemented by any class
 responsible for handling event operations.
 
 Classes:
-    EventstoreServiceLayerProtocolInterface: Interface for handling eventstore
+    EventStoreServiceLayerProtocolInterface: Interface for handling event_store
         service layer operations.
 """
 
@@ -16,8 +16,8 @@ from uuid import UUID
 from typing import List, Union, Protocol
 
 
-class EventstoreServiceLayerProtocolInterface(Protocol):
-    """Interface for the EventstoreServiceLayerManager."""
+class EventStoreServiceLayerProtocolInterface(Protocol):
+    """Interface for the EventStoreServiceLayerManager."""
 
     def get_all_events(self) -> List:
         """Retrieve all events from the database.

@@ -63,7 +63,7 @@ from openvair.libs.messaging.clients.rpc_clients.storage_rpc_client import (
     StorageServiceLayerRPCClient,
 )
 from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import (
-    EventstoreServiceLayerRPCClient,
+    EventStoreServiceLayerRPCClient,
 )
 
 if TYPE_CHECKING:
@@ -172,7 +172,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
         self.storage_service_client = StorageServiceLayerRPCClient()
-        self.event_client = EventstoreServiceLayerRPCClient('image')
+        self.event_client = EventStoreServiceLayerRPCClient('image')
 
     def _call_domain_delete_from_tmp(
         self,
