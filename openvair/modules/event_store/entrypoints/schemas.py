@@ -9,6 +9,7 @@ Classes:
         a CSV file.
 """
 
+import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
@@ -32,7 +33,7 @@ class Event(BaseModel):
     object_id: str
     user_id: str
     event: str
-    timestamp: int
+    timestamp: datetime.datetime
     information: Optional[str] = None
 
 

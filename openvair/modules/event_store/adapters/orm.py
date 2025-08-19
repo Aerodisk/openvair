@@ -12,11 +12,9 @@ Functions:
 
 import uuid
 import datetime
-from typing import Optional
 
 from sqlalchemy import Text, String, Integer, DateTime
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column
-from sqlalchemy.sql import func
 from sqlalchemy.dialects import postgresql
 
 
@@ -39,19 +37,13 @@ class Events(Base):
         Integer(),
         primary_key=True,
     )
-    module: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
-    object_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        postgresql.UUID(as_uuid=True)
-    )
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        postgresql.UUID(as_uuid=True)
-    )
-    event: Mapped[Optional[str]] = mapped_column(
-        String(50), default='', nullable=True
-    )
-    timestamp: Mapped[Optional[datetime.datetime]] = mapped_column(
+    module: Mapped[str] = mapped_column(String(40), nullable=False)
+    object_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True))
+    user_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True))
+    event: Mapped[str] = mapped_column(String(50), default='', nullable=False)
+    timestamp: Mapped[datetime.datetime] = mapped_column(
         DateTime,
-        default=func.now(),
-        nullable=True,
+        default=datetime.datetime.now,
+        nullable=False,
     )
-    information: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    information: Mapped[str] = mapped_column(Text, nullable=False)

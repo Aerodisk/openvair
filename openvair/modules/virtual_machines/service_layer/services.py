@@ -39,13 +39,18 @@ import time
 import string
 from copy import deepcopy
 from uuid import UUID, uuid4
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import Set, Dict, List, Optional, cast
 from collections import namedtuple
 
+from sqlalchemy import String
 from sqlalchemy.exc import NoResultFound
 
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.vm import get_vms_state, get_vm_snapshots
+from openvair.libs.clone.utils import (
+    get_max_clone_number,
+    create_new_clone_name,
+)
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
 from openvair.libs.context_managers import synchronized_session
 from openvair.modules.virtual_machines import config
@@ -69,9 +74,6 @@ from openvair.libs.messaging.clients.rpc_clients.image_rpc_client import (
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
 )
-
-if TYPE_CHECKING:
-    from openvair.modules.virtual_machines.adapters.orm import VirtualMachines
 
 LOG = get_logger(__name__)
 
@@ -250,7 +252,41 @@ class VMServiceLayerManager(BackgroundTasks):
         return serialized_vms
 
     @staticmethod
-    def _prepare_create_vm_info(vm_info: Dict) -> CreateVmInfo:
+    def _process_attach_disk(
+            disk_info: Dict,
+            disk_ids: Set[str],
+            attach_volumes: List,
+            attach_images: List
+    ) -> None:
+        """Process and validate an attached disk information.
+
+        Args:
+            disk_info (Dict): Dictionary with disk attachment information
+            disk_ids (Set[str]): Set of already processed disk IDs
+            attach_volumes (List): List to append volume disks to
+            attach_images (List): List to append image disks to
+
+        Raises:
+            exceptions.DuplicateDiskException: If disk attached multiple times
+        """
+        disk_id = disk_info.get('disk_id')
+        if not disk_id:
+            return
+
+        if disk_id in disk_ids:
+            message = f'Multiple attachment of disk {disk_id} in the request'
+            LOG.error(message)
+            raise exceptions.DuplicateDiskException(message)
+
+        disk_ids.add(disk_id)
+        disk_info.update({'qos': serialize_json(disk_info.get('qos'))})
+
+        if disk_info['type'] == DiskType.volume.name:
+            attach_volumes.append(disk_info)
+        else:
+            attach_images.append(disk_info)
+
+    def _prepare_create_vm_info(self, vm_info: Dict) -> CreateVmInfo:
         """Prepare the information needed to create a virtual machine.
 
         Args:
@@ -279,25 +315,36 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         disks = vm_info.pop('disks', {})
+        disk_ids: Set[str] = set()
+
         for attach_disk in disks.pop('attach_disks', []):
-            attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
+            disk_id = None
             if attach_disk.get('volume_id', ''):
+                disk_id = attach_disk.get('volume_id', '')
                 attach_disk.update({
                     'type': DiskType.volume.name,
-                    'disk_id': attach_disk.get('volume_id', ''),
+                    'disk_id': disk_id,
                     'read_only': attach_disk.get('read_only', False),
                 })
-                create_vm_info.attach_volumes.append(attach_disk)
             elif attach_disk.get('image_id', ''):
+                disk_id = attach_disk.get('image_id', '')
                 attach_disk.update({
                     'type': DiskType.image.name,
-                    'disk_id': attach_disk.get('image_id', ''),
+                    'disk_id': disk_id,
                     'read_only': True,
                 })
-                create_vm_info.attach_images.append(attach_disk)
             elif attach_disk.get('storage_id', ''):
                 attach_disk.update({'user_info': user_info})
                 create_vm_info.auto_create_volumes.append(attach_disk)
+                continue
+
+            self._process_attach_disk(
+                attach_disk,
+                disk_ids,
+                create_vm_info.attach_volumes,
+                create_vm_info.attach_images,
+            )
+
         LOG.info('Vm information was successfully prepared for creating.')
         return create_vm_info
 
@@ -504,17 +551,22 @@ class VMServiceLayerManager(BackgroundTasks):
         auto_created_volumes = []
         for volume in volumes:
             volume_name = volume.get('name', None)
-            creating_volume = self.volume_service_client.create_volume(
-                {
-                    'name': volume_name or str(uuid4()),
-                    'description': f'auto created volume for {vm_name}.',
-                    'format': volume.get('format', 'qcow2'),
-                    'size': volume.pop('size', '0'),
-                    'storage_id': volume.pop('storage_id', ''),
-                    'user_info': user_info,
-                    'read_only': volume.pop('read_only'),
-                }
-            )
+            try:
+                creating_volume = self.volume_service_client.create_volume(
+                    {
+                        'name': volume_name or str(uuid4()),
+                        'description': f'auto created volume for {vm_name}.',
+                        'format': volume.get('format', 'qcow2'),
+                        'size': volume.pop('size', '0'),
+                        'storage_id': volume.pop('storage_id', ''),
+                        'user_info': user_info,
+                        'read_only': volume.pop('read_only'),
+                    }
+                )
+            except (RpcCallException, RpcServerInitializedException) as err:
+                message = f'While creating volume error occurred: {err!s}'
+                LOG.error(message)
+                continue
             try:
                 available_volume = self._expect_volume_availability(
                     creating_volume.get('id', '')
@@ -623,6 +675,13 @@ class VMServiceLayerManager(BackgroundTasks):
         )
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            existing_disk_ids = {str(d.disk_id) for d in db_vm.disks}
+            for disk in disks:
+                disk_id = disk.get('disk_id')
+                if disk_id and disk_id in existing_disk_ids:
+                    message = f"Disk {disk_id} is already attached to this VM"
+                    LOG.error(message)
+                    raise exceptions.DuplicateDiskException(message)
             for disk in disks:
                 try:
                     attached_disk = self._attach_disk_to_vm(vm_id, disk)
@@ -634,8 +693,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     )
                 except exceptions.UnexpectedDataArguments as err:
                     message = (
-                        'While attaching disks to vm '
-                        f'was raised err: {err!s}'
+                        f'While attaching disks to vm was raised err: {err!s}'
                     )
                     LOG.error(message)
             uow.commit()
@@ -1095,8 +1153,7 @@ class VMServiceLayerManager(BackgroundTasks):
             )
             LOG.info('Response on _shut_off_vm was successfully processed.')
 
-    @staticmethod
-    def _prepare_vm_info_for_edit(vm_data: Dict) -> EditVmInfo:
+    def _prepare_vm_info_for_edit(self, vm_data: Dict) -> EditVmInfo:
         """Prepare the information needed to edit a virtual machine.
 
         Args:
@@ -1138,24 +1195,34 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         disks = vm_data.pop('disks', {})
+        disk_ids: Set[str] = set()
+
         for attach_disk in disks.pop('attach_disks', []):
-            attach_disk.update({'qos': serialize_json(attach_disk.get('qos'))})
+            disk_id = None
             if attach_disk.get('volume_id', ''):
+                disk_id = attach_disk.get('volume_id', '')
                 attach_disk.update({
                     'type': DiskType.volume.name,
-                    'disk_id': attach_disk.get('volume_id', ''),
+                    'disk_id': disk_id,
                     'read_only': attach_disk.get('read_only', False),
                 })
-                edit_vm_info.attach_volumes.append(attach_disk)
             elif attach_disk.get('image_id', ''):
+                disk_id = attach_disk.get('image_id', '')
                 attach_disk.update({
                     'type': DiskType.image.name,
-                    'disk_id': attach_disk.get('image_id', ''),
+                    'disk_id': disk_id,
                     'read_only': True,
                 })
-                edit_vm_info.attach_images.append(attach_disk)
             elif attach_disk.get('storage_id', ''):
                 edit_vm_info.auto_create_volumes.append(attach_disk)
+                continue
+
+            self._process_attach_disk(
+                attach_disk,
+                disk_ids,
+                edit_vm_info.attach_volumes,
+                edit_vm_info.attach_images,
+            )
 
         edit_vm_info.detach_disks.extend(disks.pop('detach_disks', []))
         edit_vm_info.edit_disks.extend(disks.pop('edit_disks', []))
@@ -1282,18 +1349,20 @@ class VMServiceLayerManager(BackgroundTasks):
                 self._check_vm_power_state(
                     db_vm.power_state, available_power_states
                 )
+                vm_edit_info = self._prepare_vm_info_for_edit(edit_info)
                 db_vm.status = VmStatus.editing.name
                 if db_vm.power_state == VmPowerState.shut_off.name:
                     self.service_layer_rpc.cast(
                         self._edit_shut_offed_vm.__name__,
                         data_for_method={
-                            'edit_info': edit_info,
+                            'edit_info': vm_edit_info._asdict(),
                             'user_info': user_info,
                         },
                     )
             except (
                 exceptions.VMStatusException,
                 exceptions.VMPowerStateException,
+                exceptions.DuplicateDiskException,
             ) as err:
                 message = f'Handle error: {err!s} while editing VM.'
                 LOG.error(message)
@@ -1314,7 +1383,7 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info(f'Handling response on _edit_vm with data: {data}')
         user_info = data.pop('user_info', {})
-        vm_edit_info = self._prepare_vm_info_for_edit(data.pop('edit_info', {}))
+        vm_edit_info = EditVmInfo(**data.pop('edit_info', {}))
         vm_id = UUID(vm_edit_info.id)
         self._update_db_vm_info(vm_id, vm_edit_info)
 
@@ -1325,8 +1394,14 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm = uow.virtual_machines.get_or_fail(vm_id)
             db_vm.status = VmStatus.available.name
             db_vm.information = ''
-            self._process_vm_volumes(vm_edit_info, vm_id, user_info)
-            uow.commit()
+            try:
+                self._process_vm_volumes(vm_edit_info, vm_id, user_info)
+            except exceptions.DuplicateDiskException as err:
+                message = f'Handle error while processing VM disks: {err!s}.'
+                LOG.error(message)
+                db_vm.information = message
+            finally:
+                uow.commit()
         LOG.info('Response on _edit_vm was successfully processed.')
 
     def _process_vm_edit_disks(self, vm_edit_info: EditVmInfo) -> None:
@@ -1402,6 +1477,7 @@ class VMServiceLayerManager(BackgroundTasks):
         else:
             return result
 
+
     def clone_vm(self, data: Dict) -> List[Dict]:
         """Clone a virtual machine.
 
@@ -1437,18 +1513,47 @@ class VMServiceLayerManager(BackgroundTasks):
 
         LOG.info(f'Original VM power_state: {original_vm["power_state"]}')
 
+        volumes = self.volume_service_client.get_all_volumes(
+            {'storage_id': target_storage_id}
+        )
+        disk_names = [volume["name"] for volume in volumes]
+        attached_disks = [disk["name"] for disk in original_vm.get('disks', [])]
+
+        max_numbers = {}
+        for disk in attached_disks:
+            max_number = get_max_clone_number(
+                disk,
+                disk_names,
+                count
+            )
+            max_numbers[disk] = max_number
+
+        vms = self.get_all_vms()
+
+        vm_names = [vm["name"] for vm in vms]
+        max_vm_number = get_max_clone_number(
+            original_vm["name"],
+            vm_names,
+            count
+        )
+
         # Create *count* of clones
         for i in range(count):
-            suffix = f'_clone_{i + 1}'
 
             # 1. Build minimal create_VM payload
             clone_payload = self._transform_clone_vm_data(
                 original_vm,
                 user_info,
                 target_storage_id,
-                suffix,
+                max_numbers,
+                i
             )
-            clone_payload['name'] = f'{original_vm["name"]}{suffix}'
+
+            clone_payload['name'] = create_new_clone_name(
+                original_vm["name"],
+                max_vm_number + i + 1,
+                cast(String, orm.VirtualMachines.__table__.c.name.type).length
+            )
 
             # 2. Prepare & insert stub record into DB
             create_info = self._prepare_create_vm_info(clone_payload)
@@ -1475,7 +1580,8 @@ class VMServiceLayerManager(BackgroundTasks):
         vm: Dict,
         user_info: Dict,
         target_storage_id: UUID,
-        suffix: str = '',
+        max_numbers: Dict,
+        current_copy: int
     ) -> Dict:
         """Convert VM data for cloning.
 
@@ -1488,10 +1594,9 @@ class VMServiceLayerManager(BackgroundTasks):
             user_info (Dict): User information to be included in the new VM.
             target_storage_id (UUID): ID of storage where the volume will be
                 created
-            suffix (str): A suffix to append to the names of the cloned
-                virtual machine and its disks. This is used to ensure that
-                the new resources do not clash with the originals.
-
+            max_numbers (Dict): Dictionary of disk names and max suffix number
+            for each disk
+            current_copy (int): current copy number
         Returns:
             Dict: The transformed VM data ready for cloning.
             This function prepares the VM data for cloning by removing
@@ -1528,8 +1633,9 @@ class VMServiceLayerManager(BackgroundTasks):
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get('disks', []),
                 user_info,
-                suffix,
+                max_numbers,
                 target_storage_id,
+                current_copy
             )
 
             data['disks'] = {'attach_disks': attach_disks}
@@ -1544,32 +1650,38 @@ class VMServiceLayerManager(BackgroundTasks):
         self,
         disks_list: List,
         user_info: Dict,
-        suffix: str,
+        max_numbers: Dict,
         target_storage_id: UUID,
+        current_copy: int
     ) -> List[Dict]:
         """Transform VM disks for cloning.
 
         This function prepares the disks of a virtual machine for cloning
         by transforming the disk data into a format suitable for attaching
-        to a new VM. It ensures that the disk names are unique by appending
-        a suffix to the names of the disks that are being cloned.
+        to a new VM. It uses max_numbers dict for getting unic suffixes and
+        increments this number by current_copy.
 
         Args:
             disks_list (List): A list of disk dictionaries from the original VM.
             user_info (Dict): User information to be included in the new VM.
-            suffix (str): A suffix to append to the names of the disks.
+            max_numbers (Dict): Dictionary of disks name and max suffix number
             target_storage_id (UUID): ID of storage where the volume will be
                 created
-
+            current_copy (int): current copy number
         Returns:
             List[Dict]: A list of dictionaries representing the disks
                 ready for cloning, with unique names.
         """
         attach_disks: List[Dict] = []
         for disk in disks_list:
+            new_name = create_new_clone_name(
+                disk["name"],
+                max_numbers[disk["name"]] + current_copy + 1
+            )
+
             new_disk = {
                 'name': (
-                    f'{disk["name"]}{suffix}'
+                    new_name
                     if disk.get('type') == DiskType.volume.name
                     else disk['name']
                 ),
@@ -2115,7 +2227,7 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.info(f'Snapshot {snapshot["name"]} deleted.')
         LOG.info('Snapshots of the VM successfully deleted.')
 
-    def _update_snapshots_statuses(self, db_vm: VirtualMachines) -> None:
+    def _update_snapshots_statuses(self, db_vm: orm.VirtualMachines) -> None:
         """Update snapshots statuses for a VM based on Libvirt API.
 
         Args:
