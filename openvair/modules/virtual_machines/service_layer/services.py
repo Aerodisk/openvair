@@ -39,7 +39,7 @@ import time
 import string
 from copy import deepcopy
 from uuid import UUID, uuid4
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Set, Dict, List, Optional, cast
 from collections import namedtuple
 
 from sqlalchemy.exc import NoResultFound
@@ -250,7 +250,41 @@ class VMServiceLayerManager(BackgroundTasks):
         return serialized_vms
 
     @staticmethod
-    def _prepare_create_vm_info(vm_info: Dict) -> CreateVmInfo:  # noqa: C901
+    def _process_attach_disk(
+            disk_info: Dict,
+            disk_ids: Set[str],
+            attach_volumes: List,
+            attach_images: List
+    ) -> None:
+        """Process and validate an attached disk information.
+
+        Args:
+            disk_info (Dict): Dictionary with disk attachment information
+            disk_ids (Set[str]): Set of already processed disk IDs
+            attach_volumes (List): List to append volume disks to
+            attach_images (List): List to append image disks to
+
+        Raises:
+            exceptions.DuplicateDiskException: If disk attached multiple times
+        """
+        disk_id = disk_info.get('disk_id')
+        if not disk_id:
+            return
+
+        if disk_id in disk_ids:
+            message = f'Multiple attachment of disk {disk_id} in the request'
+            LOG.error(message)
+            raise exceptions.DuplicateDiskException(message)
+
+        disk_ids.add(disk_id)
+        disk_info.update({'qos': serialize_json(disk_info.get('qos'))})
+
+        if disk_info['type'] == DiskType.volume.name:
+            attach_volumes.append(disk_info)
+        else:
+            attach_images.append(disk_info)
+
+    def _prepare_create_vm_info(self, vm_info: Dict) -> CreateVmInfo:
         """Prepare the information needed to create a virtual machine.
 
         Args:
@@ -279,7 +313,7 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         disks = vm_info.pop('disks', {})
-        disk_ids = set()
+        disk_ids: Set[str] = set()
 
         for attach_disk in disks.pop('attach_disks', []):
             disk_id = None
@@ -302,20 +336,12 @@ class VMServiceLayerManager(BackgroundTasks):
                 create_vm_info.auto_create_volumes.append(attach_disk)
                 continue
 
-            if disk_id:
-                if disk_id in disk_ids:
-                    message = (f'Multiple attachment of disk {disk_id} '
-                               f'in the request')
-                    LOG.error(message)
-                    raise exceptions.DuplicateDiskException(message)
-                disk_ids.add(disk_id)
-                attach_disk.update(
-                    {'qos': serialize_json(attach_disk.get('qos'))}
-                )
-                if attach_disk['type'] == DiskType.volume.name:
-                    create_vm_info.attach_volumes.append(attach_disk)
-                else:
-                    create_vm_info.attach_images.append(attach_disk)
+            self._process_attach_disk(
+                attach_disk,
+                disk_ids,
+                create_vm_info.attach_volumes,
+                create_vm_info.attach_images,
+            )
 
         LOG.info('Vm information was successfully prepared for creating.')
         return create_vm_info
@@ -1125,8 +1151,7 @@ class VMServiceLayerManager(BackgroundTasks):
             )
             LOG.info('Response on _shut_off_vm was successfully processed.')
 
-    @staticmethod
-    def _prepare_vm_info_for_edit(vm_data: Dict) -> EditVmInfo:  # noqa: C901
+    def _prepare_vm_info_for_edit(self, vm_data: Dict) -> EditVmInfo:
         """Prepare the information needed to edit a virtual machine.
 
         Args:
@@ -1168,7 +1193,7 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         disks = vm_data.pop('disks', {})
-        disk_ids = set()
+        disk_ids: Set[str] = set()
 
         for attach_disk in disks.pop('attach_disks', []):
             disk_id = None
@@ -1190,20 +1215,12 @@ class VMServiceLayerManager(BackgroundTasks):
                 edit_vm_info.auto_create_volumes.append(attach_disk)
                 continue
 
-            if disk_id:
-                if disk_id in disk_ids:
-                    message = (f'Multiple attachment of disk {disk_id} '
-                               f'in the request')
-                    LOG.error(message)
-                    raise exceptions.DuplicateDiskException(message)
-                disk_ids.add(disk_id)
-                attach_disk.update(
-                    {'qos': serialize_json(attach_disk.get('qos'))}
-                )
-                if attach_disk['type'] == DiskType.volume.name:
-                    edit_vm_info.attach_volumes.append(attach_disk)
-                else:
-                    edit_vm_info.attach_images.append(attach_disk)
+            self._process_attach_disk(
+                attach_disk,
+                disk_ids,
+                edit_vm_info.attach_volumes,
+                edit_vm_info.attach_images,
+            )
 
         edit_vm_info.detach_disks.extend(disks.pop('detach_disks', []))
         edit_vm_info.edit_disks.extend(disks.pop('edit_disks', []))
