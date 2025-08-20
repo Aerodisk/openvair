@@ -13,6 +13,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
+    cleanup_all_images,
     wait_full_deleting,
     cleanup_all_volumes,
     wait_for_field_value,
@@ -155,6 +156,7 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
 
     storage = response.json()
     yield storage
+    cleanup_all_images()
     cleanup_all_volumes()
     cleanup_all_templates()
 

@@ -22,6 +22,9 @@ from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
+from openvair.modules.image.service_layer.unit_of_work import (
+    ImageSqlAlchemyUnitOfWork,
+)
 from openvair.modules.volume.service_layer.unit_of_work import (
     VolumeSqlAlchemyUnitOfWork as VolumeUOW,
 )
@@ -167,6 +170,32 @@ def cleanup_all_templates() -> None:
             templates = uow.templates.get_all()
             for orm_template in templates:
                 uow.templates.delete(orm_template)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_images() -> None:
+    """Remove all volumes from both database and filesystem.
+
+    This utility function is typically used after storage tests to ensure
+    a clean state. It:
+    1. Retrieves all volumes from the database
+    2. For each volume:
+        - Creates a domain model instance
+        - Deletes the volume record from the database
+        - Removes the volume file from the filesystem
+        - Commits the transaction
+
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = ImageSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            images = uow.images.get_all()
+            for orm_image in images:
+                uow.images.delete(orm_image)
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
