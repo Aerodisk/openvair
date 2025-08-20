@@ -41,7 +41,11 @@ class BlockDeviceSettings(BaseSettings):
     ip: Optional[str] = Field(default=None, alias='TEST_BLOCK_DEVICE_IP')
     port: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_PORT')
     inf_type: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_INF_TYPE')
-        extra='ignore',
+
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).parent / '.env.test',
+        env_file_encoding='utf-8',
+        extra='ignore'
     )
 
 
