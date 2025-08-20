@@ -693,12 +693,22 @@ install_restic(){
   execute "$self_update_command" "$update_message"
 }
 
+install_uv(){
+  local install_uv_command="curl -LsSf https://astral.sh/uv/install.sh | sh"
+  local install_message="Installing uv via official installer"
+  execute "$install_uv_command" "$install_message"
+  
+  # Add uv to PATH for current session
+  export PATH="$HOME/.local/bin:$PATH"
+  log $GREEN "Added uv to PATH for current session"
+}
+
 install_documentation(){
   local doc_repo="https://github.com/Aerodisk/openvair-docs.git"
 
   local clone_docs_repo="git clone $doc_repo"
   local clone_message="Cloning documentation repository..."
-  
+
   local install_docs="bash $DOCS_PROJECT_PATH/install.sh"
   local install_docs_message="Installing documentation..."
 
@@ -706,9 +716,8 @@ install_documentation(){
     log $GREEN "Documentation repository already exists at $DOCS_PROJECT_PATH"
   else
     execute "$clone_docs_repo" "$clone_message"
-    execute "cd $DOCS_PROJECT_PATH" "Changing directory to $DOCS_PROJECT_PATH"
-    execute "$install_docs" "$install_docs_message"
   fi
+  execute "$install_docs" "$install_docs_message"
 
   go_to_home_dir
 }
@@ -862,6 +871,7 @@ main() {
     clear_home_dir
     make_hashed_password
     create_default_user
+    install_uv
     install_documentation
     restart_service 'web-app.service'
     print_final_message

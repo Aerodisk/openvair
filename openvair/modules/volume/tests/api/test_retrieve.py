@@ -7,6 +7,7 @@ Covers:
     - pagination.
 - Getting specific volume by ID.
 - Handling errors for invalid or nonexistent volume IDs.
+- Unauthorized access.
 """
 
 import uuid
@@ -33,7 +34,7 @@ def test_get_all_volumes(client: TestClient, volume: Dict) -> None:
     assert any(v['id'] == volume['id'] for v in data['items'])
 
 
-def test_get_volumes_by_storage_id(client: TestClient, volume: dict) -> None:
+def test_get_volumes_by_storage_id(client: TestClient, volume: Dict) -> None:
     """Test filtering volumes by specific storage ID."""
     storage_id = volume['storage_id']
     response = client.get(f'/volumes/?storage_id={storage_id}')
@@ -42,7 +43,7 @@ def test_get_volumes_by_storage_id(client: TestClient, volume: dict) -> None:
     assert all(volume['storage_id'] == storage_id for volume in data['items'])
 
 
-def test_get_free_volumes_only(client: TestClient, volume: dict) -> None:
+def test_get_free_volumes_only(client: TestClient, volume: Dict) -> None:
     """Test filtering only unattached (free) volumes."""
     response = client.get('/volumes/?free_volumes=true')
     assert response.status_code == status.HTTP_200_OK
@@ -52,7 +53,7 @@ def test_get_free_volumes_only(client: TestClient, volume: dict) -> None:
 
 def test_get_volumes_with_pagination(
     client: TestClient,
-    volume: dict,  # noqa: ARG001
+    volume: Dict,  # noqa: ARG001
 ) -> None:
     """Test that pagination metadata is returned correctly."""
     response = client.get('/volumes/?page=1&size=1')
@@ -88,7 +89,15 @@ def test_get_volumes_with_invalid_free_volumes_param(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_get_existing_volume_by_id(client: TestClient, volume: dict) -> None:
+def test_get_all_volumes_unauthorized(
+        unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized request returns 401."""
+    response = unauthorized_client.get('/volumes/')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_existing_volume_by_id(client: TestClient, volume: Dict) -> None:
     """Test retrieving volume by ID returns correct data."""
     volume_id = volume['id']
     response = client.get(f'/volumes/{volume_id}/')
@@ -110,3 +119,12 @@ def test_get_volume_with_invalid_uuid(client: TestClient) -> None:
     """Test invalid UUID format in path returns HTTP 422."""
     response = client.get('/volumes/invalid-uuid/')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_get_existing_volume_by_id_unauthorized(
+        volume: Dict, unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized request returns 401."""
+    volume_id = volume['id']
+    response = unauthorized_client.get(f'/volumes/{volume_id}/')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

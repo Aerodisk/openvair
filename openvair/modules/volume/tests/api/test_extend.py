@@ -4,9 +4,10 @@ Covers:
 - Successful size extension of a volume.
 - Input validation (invalid UUID, invalid size).
 - Logical constraints (volume not in `available` status).
+- Unauthorized access.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_extend_volume_success(client: TestClient, volume: dict) -> None:
+def test_extend_volume_success(client: TestClient, volume: Dict) -> None:
     """Test successful extension of volume size.
 
     Asserts:
@@ -64,7 +65,7 @@ def test_extend_volume_invalid_uuid(client: TestClient) -> None:
 
 
 def test_extend_volume_smaller_than_current(
-    client: TestClient, volume: dict
+    client: TestClient, volume: Dict
 ) -> None:
     """Test failure when new size is not greater than current size.
 
@@ -83,7 +84,7 @@ def test_extend_volume_smaller_than_current(
 
 
 def test_extend_volume_status_not_available(
-    client: TestClient, volume: dict
+    client: TestClient, volume: Dict
 ) -> None:
     """Test failure when volume status is not 'available'.
 
@@ -102,3 +103,16 @@ def test_extend_volume_status_not_available(
     )
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'VolumeStatusException' in response.text
+
+
+def test_extend_volume_unauthorized(
+        volume: Dict, unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized request returns 401."""
+    volume_id = volume['id']
+    new_size = 2048
+
+    response = unauthorized_client.post(
+        f'/volumes/{volume_id}/extend/', json={'new_size': new_size}
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

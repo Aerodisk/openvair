@@ -13,7 +13,7 @@ Includes:
 """
 
 from uuid import UUID, uuid4
-from typing import Generator
+from typing import Dict, Generator
 
 import pytest
 
@@ -27,7 +27,7 @@ LOG = get_logger(__name__)
 
 
 @pytest.fixture(scope='function')
-def attached_volume(volume: dict) -> Generator[dict, None, None]:
+def attached_volume(volume: Dict) -> Generator[Dict, None, None]:
     """Creates volume-to-VM attachment (directly in DB) and removes it after test."""  # noqa: E501
     volume_id = UUID(volume['id'])
     vm_id = uuid4()

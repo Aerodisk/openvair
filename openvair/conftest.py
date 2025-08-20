@@ -17,10 +17,14 @@ from openvair.libs.testing.utils import (
     cleanup_all_volumes,
     wait_for_field_value,
     cleanup_all_templates,
+    cleanup_all_notifications,
     generate_test_entity_name,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
-from openvair.libs.testing.config import storage_settings
+from openvair.libs.testing.config import (
+    storage_settings,
+    notification_settings,
+)
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
@@ -130,7 +134,7 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='module')
-def storage(client: TestClient) -> Generator[dict, None, None]:
+def storage(client: TestClient) -> Generator[Dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     headers = {'Authorization': 'Bearer mocked_token'}
 
@@ -170,7 +174,7 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
 
 
 @pytest.fixture(scope='function')
-def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
+def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
         name=generate_test_entity_name('volume'),
@@ -309,3 +313,18 @@ def activated_virtual_machine(
         'power_state',
         'shut_off',
     )
+
+
+@pytest.fixture
+def notification() -> Generator[Dict, None, None]:
+    """Generates test notification data and cleans up after test."""
+    test_data = {
+        "msg_type": notification_settings.notification_type,
+        "recipients": notification_settings.target_emails,
+        "subject": "[TEST - Open vAIR]",
+        "message": "This is a test message from Open vAIR"
+    }
+
+    yield test_data
+
+    cleanup_all_notifications()

@@ -108,6 +108,8 @@ class VolumeCloneException(BaseCustomException):
 
     def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize VolumeCloneException with optional arguments."""
+
+
 class SnapshotNameExistsError(BaseCustomException):
     """Raised when a snapshot with the same name already exists for the VM."""
 
@@ -132,9 +134,16 @@ class SnapshotStatusException(BaseCustomException):
         super().__init__(message, *args)
 
 
-class NoResultFound(BaseCustomException):
-    """Raised when a database query returns no results."""
+class SnapshotNotFoundException(BaseCustomException):
+    """Raised when a snapshot is not found."""
 
     def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-        """Initialize NoResultFound with optional arguments."""
+        """Initialize SnapshotNotFoundException with optional arguments."""
+        super().__init__(message, *args)
+
+
+class DuplicateDiskException(BaseCustomException):
+    """Raised when trying to attach duplicate disk to VM"""
+    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize DuplicateDiskException with optional arguments."""
         super().__init__(message, *args)
