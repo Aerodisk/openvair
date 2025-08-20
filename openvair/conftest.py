@@ -179,7 +179,6 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
                 f' {delete_response.text}'
             )
         )
-    LOG.info('FINISH DELETE STORAGE')
 
 
 @pytest.fixture(scope='function')

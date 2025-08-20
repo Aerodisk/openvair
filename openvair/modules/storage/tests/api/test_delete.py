@@ -1,7 +1,7 @@
-"""Integration tests for storage deletion.
+"""Integration tests for storage deletion endpoints.
 
 Covers:
-- Successful storage deletion.
+- Successful storage (and local disk partition) deletion.
 - Validation errors (invalid UUID).
 - Logical errors:
     - Nonexistent storage
@@ -50,7 +50,7 @@ def test_delete_storage_not_found(client: TestClient) -> None:
     assert 'not found' in response.text.lower()
 
 
-def test_delete_storage_with_attach_volume(
+def test_delete_storage_with_attached_volume(
     client: TestClient,
     volume: Dict,
 ) -> None:
@@ -95,4 +95,88 @@ def test_delete_storage_unauthorized(
     """Test unauthorized deletion attempt."""
     storage_id = storage['id']
     response = unauthorized_client.delete(f'/storages/{storage_id}/delete')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_delete_local_partition_success(
+        client: TestClient, target_disk_path: str, local_partition: Dict
+) -> None:
+    """Test successful deletion of local disk partition."""
+    partition_number = local_partition["path"].replace(target_disk_path, "")
+
+    delete_data = {
+        "storage_type": "local_partition",
+        "local_disk_path": target_disk_path,
+        "partition_number": partition_number
+    }
+
+    response = client.request(
+        'DELETE',
+        '/storages/local-disks/delete_partition/',
+        json=delete_data
+    )
+    assert response.status_code == status.HTTP_200_OK
+    result = response.json()
+    assert "successfully deleted" in result["message"].lower()
+
+
+def test_delete_local_partition_nonexistent(
+        client: TestClient, target_disk_path: str
+) -> None:
+    """Test deletion of nonexistent partition."""
+    delete_data = {
+        "storage_type": "local_partition",
+        "local_disk_path": target_disk_path,
+        "partition_number": "999"  # Non-existent partition
+    }
+
+    response = client.request(
+        'DELETE',
+        '/storages/local-disks/delete_partition/',
+        json=delete_data
+    )
+    assert response.status_code in [
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status.HTTP_200_OK,
+    ]
+    if response.status_code == status.HTTP_200_OK:
+        result = response.json()
+        assert len(result) == 0
+
+
+# def test_delete_local_partition_system_disk(
+#         client: TestClient, cleanup_storages: None
+# ) -> None:
+#     """Test deletion attempt on system partition."""
+#     # Try to delete a partition that might be a system partition
+#     delete_data = {
+#         "storage_type": "local_partition",
+#         "local_disk_path": "/dev/sda",  # Typical system disk
+#         "partition_number": "1"  # Typical system partition
+#     }
+#
+#     response = client.request(
+#         'DELETE',
+#         '/storages/local-disks/delete_partition/',
+#         json=delete_data
+#     )
+#     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+#     assert "system" in response.text.lower()
+
+
+def test_delete_local_partition_unauthorized(
+        unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized partition deletion."""
+    delete_data = {
+        "storage_type": "local_partition",
+        "local_disk_path": "/some/path",
+        "partition_number": "1"
+    }
+
+    response = unauthorized_client.request(
+        'DELETE',
+        '/storages/local-disks/delete_partition/',
+        json=delete_data
+    )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
