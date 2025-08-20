@@ -37,9 +37,9 @@ class BlockDeviceSettings(BaseSettings):
         port (str): Port of the testing block_device.
         inf_type (str): Interface type of the testing block_device.
     """
-    ip: Optional[str] = Field(default=None, alias='BLOCK_DEVICE_IP')
-    port: str = Field(default='ext4', alias='BLOCK_DEVICE_PORT')
-    inf_type: str = Field(default='ext4', alias='BLOCK_DEVICE_INF_TYPE')
+    ip: Optional[str] = Field(default=None, alias='TEST_BLOCK_DEVICE_IP')
+    port: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_PORT')
+    inf_type: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_INF_TYPE')
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / '.env.test',
