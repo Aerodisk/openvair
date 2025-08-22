@@ -12,6 +12,8 @@ functions for:
 
 import time
 import uuid
+import string
+import secrets
 from typing import Any, Dict, cast
 
 from fastapi import status
@@ -117,6 +119,17 @@ def generate_test_entity_name(entity_type: str, prefix: str = 'test') -> str:
         A unique name string for the test entity
     """
     return f'{prefix}-{entity_type}-{uuid.uuid4().hex[:6]}'
+
+
+def generate_random_string(length: int) -> str:
+    """Generates a random string with a certain length."""
+    letters = string.ascii_lowercase
+    return ''.join(secrets.choice(letters) for _ in range(length))
+
+
+def generate_image_name() -> str:
+    """Generates a unique name for an image."""
+    return f'{generate_test_entity_name("image")}.iso'
 
 
 def cleanup_all_volumes() -> None:
