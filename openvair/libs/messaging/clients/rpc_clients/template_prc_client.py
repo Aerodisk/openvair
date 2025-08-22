@@ -26,7 +26,6 @@ class TemplateServiceLayerRPCClient(TemplateServiceLayerProtocolInterface):  # n
         )
         return result
 
-
     def get_template(self, getting_data: Dict) -> Dict:  # noqa: D102
         result: Dict = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.get_template.__name__,
@@ -37,7 +36,7 @@ class TemplateServiceLayerRPCClient(TemplateServiceLayerProtocolInterface):  # n
     def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
         result: Dict = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.create_template.__name__,
-            data_for_method=creating_data
+            data_for_method=creating_data,
         )
         return result
 
@@ -54,4 +53,3 @@ class TemplateServiceLayerRPCClient(TemplateServiceLayerProtocolInterface):  # n
             data_for_method=deleting_data,
         )
         return result
-

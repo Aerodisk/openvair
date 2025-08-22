@@ -123,9 +123,7 @@ class LocalDiskStorage(LocalFSStorage):
                 'umount',
                 self.mount_point,
                 params=ExecuteParams(  # noqa: S604
-                    shell=True,
-                    run_as_root=True,
-                    raise_on_error=True
+                    shell=True, run_as_root=True, raise_on_error=True
                 ),
             )
             LOG.info(f'Deleting {self.mount_point} directory...')

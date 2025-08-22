@@ -30,6 +30,7 @@ class ResticBackupError(ResticError):
 
     ...
 
+
 class ResticRestoreError(ResticError):
     """Raises when error while restoring restic operation"""
 

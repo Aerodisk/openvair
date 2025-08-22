@@ -5,6 +5,7 @@ Defines:
 - `NotificationSettings`: For notification tests (SMTP credentials).
 - Loads `.env.test` for overrides.
 """
+
 from __future__ import annotations
 
 from typing import Any, List
@@ -21,6 +22,7 @@ class StorageSettings(BaseSettings):
         storage_path (Path): Filesystem path to use for test storage.
         storage_fs_type (str): Filesystem type (e.g. ext4, xfs).
     """
+
     storage_path: Path = Field(default=None, alias='TEST_STORAGE_PATH')
     storage_fs_type: str = Field(default='ext4', alias='TEST_STORAGE_FS_TYPE')
 
@@ -38,11 +40,12 @@ class NotificationSettings(BaseSettings):
         target_emails (List[str]): Email for test notifications.
         notification_type (str): Default type (email/sms/etc).
     """
+
     target_emails: Any = Field(
         default=['test@email.com'], alias='TEST_NOTIFICATION_EMAILS'
     )
 
-    @field_validator("target_emails", mode="before")
+    @field_validator('target_emails', mode='before')
     @classmethod
     def convert_to_list(cls, v: str) -> List[str]:
         """Validate the `target_emails` field parsing to list of emails"""

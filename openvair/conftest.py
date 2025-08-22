@@ -319,10 +319,10 @@ def activated_virtual_machine(
 def notification() -> Generator[Dict, None, None]:
     """Generates test notification data and cleans up after test."""
     test_data = {
-        "msg_type": notification_settings.notification_type,
-        "recipients": notification_settings.target_emails,
-        "subject": "[TEST - Open vAIR]",
-        "message": "This is a test message from Open vAIR"
+        'msg_type': notification_settings.notification_type,
+        'recipients': notification_settings.target_emails,
+        'subject': '[TEST - Open vAIR]',
+        'message': 'This is a test message from Open vAIR',
     }
 
     yield test_data
