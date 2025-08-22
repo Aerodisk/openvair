@@ -68,7 +68,7 @@ class VncSessionCoordinator:
         started_pid = None
 
         try:
-            # Step 1: Allocate WebSocket port
+            # Step 1: Allocate WebSocket port (without PID initially)
             allocated_port = self.port_manager.allocate_port(vm_id)
             LOG.debug(f'Allocated port {allocated_port} for VM {vm_id}')
 
@@ -81,8 +81,8 @@ class VncSessionCoordinator:
             )
             LOG.debug(f'Started websockify PID {started_pid} for VM {vm_id}')
 
-            # Step 3: Mark port as in use
-            self.port_manager.mark_port_in_use(allocated_port, started_pid)
+            # Step 3: Update port allocation with PID
+            self.port_manager.update_port_pid(allocated_port, started_pid)
 
             # Step 4: Generate VNC URL
             vnc_url = self._generate_vnc_url(allocated_port)
@@ -179,86 +179,3 @@ class VncSessionCoordinator:
             f'host={SERVER_IP}&port={ws_port}'
         )
 
-    def get_session_info(self, vm_id: str) -> Optional[Dict]:
-        """Get information about a VNC session.
-
-        Args:
-            vm_id: Virtual machine identifier
-
-        Returns:
-            Optional[Dict]: Session info or None if not found
-        """
-        active_sessions = self.process_manager.get_active_sessions()
-        session = active_sessions.get(vm_id)
-
-        if session:
-            return {
-                'vm_id': vm_id,
-                'ws_port': session['ws_port'],
-                'vnc_host': session['vnc_host'],
-                'vnc_port': session['vnc_port'],
-                'pid': session['pid'],
-                'url': self._generate_vnc_url(session['ws_port']),
-            }
-
-        return None
-
-    def list_active_sessions(self) -> Dict[str, Dict]:
-        """List all active VNC sessions.
-
-        Returns:
-            Dict: Active sessions with URLs
-        """
-        active_sessions = self.process_manager.get_active_sessions()
-        result = {}
-
-        for vm_id, session in active_sessions.items():
-            result[vm_id] = {
-                'vm_id': vm_id,
-                'ws_port': session['ws_port'],
-                'vnc_host': session['vnc_host'],
-                'vnc_port': session['vnc_port'],
-                'pid': session['pid'],
-                'url': self._generate_vnc_url(session['ws_port']),
-            }
-
-        return result
-
-    def cleanup_stale_resources(self) -> Dict[str, int]:
-        """Clean up stale ports and orphaned processes.
-
-        Returns:
-            Dict: Cleanup statistics
-        """
-        LOG.info('Starting VNC resource cleanup')
-
-        # Clean up stale ports
-        stale_ports = self.port_manager.cleanup_stale_ports()
-
-        # Clean up orphaned processes
-        orphaned_processes = self.process_manager.cleanup_orphaned_processes()
-
-        stats = {
-            'stale_ports_cleaned': stale_ports,
-            'orphaned_processes_cleaned': orphaned_processes,
-        }
-
-        LOG.info(f'VNC cleanup completed: {stats}')
-        return stats
-
-    def get_system_status(self) -> Dict:
-        """Get overall VNC system status.
-
-        Returns:
-            Dict: System status and statistics
-        """
-        port_stats = self.port_manager.get_port_statistics()
-        process_count = self.process_manager.get_process_count()
-
-        return {
-            'port_pool': port_stats,
-            'active_processes': process_count,
-            'system_health': 'healthy'
-            if port_stats['free_ports'] > 10
-            else 'warning',
-        }

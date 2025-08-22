@@ -17,11 +17,7 @@ import libvirt
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.virtual_machines.config import (
-    SERVER_IP,
-    SNAPSHOTS_PATH,
-)
+from openvair.modules.virtual_machines.config import SNAPSHOTS_PATH
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 from openvair.modules.virtual_machines.domain.exceptions import (
     SnapshotError,
@@ -212,6 +208,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                 coordinator.stop_vnc_session(vm_name)
             else:
                 # Fallback: manual cleanup
+                # Import here to avoid circular dependencies
                 from openvair.modules.virtual_machines.vnc.session_coordinator import (
                     VncSessionCoordinator,
                 )
@@ -223,9 +220,11 @@ class LibvirtDriver(BaseLibvirtDriver):
             del self.vm_info['vnc_session']
             LOG.info(f'VNC session cleanup completed for VM {vm_name}')
 
-        except Exception as e:
-            LOG.warning(f'Failed to cleanup VNC session for VM {vm_name}: {e}')
-            # Continue execution - don't fail VM shutdown due to VNC cleanup issues
+        except Exception as e:  # noqa: BLE001 TODO: Should be more specific
+            msg = f'Error during VNC session cleanup for VM {vm_name}: {e}'
+            LOG.warning(msg)
+            # Continue execution - don't fail VM shutdown
+            # due to VNC cleanup issues
 
     def vnc(self) -> Dict:
         """Start a VNC session for the virtual machine.
@@ -243,12 +242,12 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Starting VNC for VM {self.vm_info.get("name")}')
 
         # Import here to avoid circular dependencies
+        from openvair.modules.virtual_machines.vnc.exceptions import (
+            VncSessionCoordinationError,
+            VncPortPoolExhaustedException,
+        )
         from openvair.modules.virtual_machines.vnc.session_coordinator import (
             VncSessionCoordinator,
-        )
-        from openvair.modules.virtual_machines.vnc.exceptions import (
-            VncPortPoolExhaustedException,
-            VncSessionCoordinationError,
         )
 
         graphic_interface = self.vm_info.get('graphic_interface', {})
@@ -290,7 +289,8 @@ class LibvirtDriver(BaseLibvirtDriver):
             }
 
             LOG.info(
-                f'Successfully started VNC session for VM {vm_name}: {session_result["url"]}'
+                f'Successfully started VNC session for VM {vm_name}: '
+                f'{session_result["url"]}'
             )
             return {'url': session_result['url']}
 

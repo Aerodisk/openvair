@@ -4,15 +4,13 @@ This module manages the lifecycle of websockify processes, including starting,
 stopping, and monitoring websockify instances for VNC connections.
 """
 
-import signal
 import threading
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
 from openvair.libs.log import get_logger
-from openvair.libs.cli.executor import execute
 from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.virtual_machines.config import SERVER_IP
 from openvair.modules.virtual_machines.vnc.exceptions import (
     WebsockifyProcessError,
 )
@@ -59,6 +57,10 @@ class WebsockifyProcessManager:
     ) -> int:
         """Start a websockify process for VNC access.
 
+        This method starts a websockify daemon process that bridges WebSocket
+        connections to VNC. It includes automatic detection of existing processes
+        and process ID discovery via port lookup.
+
         Args:
             vm_id: Virtual machine identifier
             vnc_host: VNC server host (typically localhost)
@@ -66,10 +68,10 @@ class WebsockifyProcessManager:
             ws_port: WebSocket port for websockify
 
         Returns:
-            int: Process ID of started websockify
+            int: Process ID of started websockify process
 
         Raises:
-            WebsockifyProcessError: If process startup fails
+            WebsockifyProcessError: If process startup fails or PID cannot be found
         """
         LOG.info(
             f'Starting websockify for VM {vm_id}: {vnc_host}:{vnc_port} -> ws:{ws_port}'
@@ -90,12 +92,10 @@ class WebsockifyProcessManager:
 
             try:
                 # Start websockify process
-                result = execute(
+                execute(
                     'websockify',
                     '-D',  # Daemon mode
                     '--run-once',  # Exit after one connection
-                    '--timeout',
-                    '300',  # 5-minute timeout
                     '--web',
                     '/opt/aero/openvair/openvair/libs/noVNC/',
                     str(ws_port),
@@ -108,9 +108,8 @@ class WebsockifyProcessManager:
                 # Extract PID from websockify output or find by port
                 pid = self._find_websockify_pid(ws_port)
                 if not pid:
-                    raise WebsockifyProcessError(
-                        f'Failed to find websockify PID for port {ws_port}'
-                    )
+                    msg = f'Failed to find websockify PID for port {ws_port}'
+                    raise WebsockifyProcessError(msg)
 
                 # Register the process
                 self._processes[vm_id] = {
@@ -182,7 +181,7 @@ class WebsockifyProcessManager:
 
             process_info = self._processes[vm_id]
             pid = process_info['pid']
-            ws_port = process_info['ws_port']
+            process_info['ws_port']
 
             LOG.info(f'Stopping websockify for VM {vm_id} (PID: {pid})')
 
@@ -198,43 +197,18 @@ class WebsockifyProcessManager:
 
             return success
 
-    def stop_by_port(self, ws_port: int) -> bool:
-        """Stop websockify process by WebSocket port.
-
-        Args:
-            ws_port: WebSocket port
-
-        Returns:
-            bool: True if process was stopped, False if not found
-        """
-        with self._process_lock:
-            # Find VM by port
-            vm_id = None
-            for vid, info in self._processes.items():
-                if info['ws_port'] == ws_port:
-                    vm_id = vid
-                    break
-
-            if vm_id:
-                return self.stop_websockify(vm_id)
-            else:
-                # Try to kill any process on this port
-                LOG.warning(
-                    f'No registered process for port {ws_port}, attempting direct kill'
-                )
-                pid = self._find_websockify_pid(ws_port)
-                if pid:
-                    return self._terminate_process(pid)
-                return False
-
     def _terminate_process(self, pid: int) -> bool:
         """Terminate a process gracefully, then forcefully if needed.
+
+        This method first attempts a graceful shutdown using SIGTERM,
+        waits briefly, then uses SIGKILL if the process is still alive.
+        This ensures reliable cleanup of websockify processes.
 
         Args:
             pid: Process ID to terminate
 
         Returns:
-            bool: True if process was terminated
+            bool: True if process was successfully terminated
         """
         try:
             # Check if process exists
@@ -243,12 +217,15 @@ class WebsockifyProcessManager:
 
             # Try SIGTERM first using execute
             execute(
-                'kill', '-TERM', str(pid),
-                params=ExecuteParams(raise_on_error=True)
+                'kill',
+                '-TERM',
+                str(pid),
+                params=ExecuteParams(raise_on_error=True),
             )
 
             # Give it a moment to exit gracefully
             import time
+
             time.sleep(2)
 
             # Check if it's still alive
@@ -257,8 +234,10 @@ class WebsockifyProcessManager:
                     f"Process {pid} didn't respond to SIGTERM, sending SIGKILL"
                 )
                 execute(
-                    'kill', '-KILL', str(pid),
-                    params=ExecuteParams(raise_on_error=True)
+                    'kill',
+                    '-KILL',
+                    str(pid),
+                    params=ExecuteParams(raise_on_error=True),
                 )
                 time.sleep(1)
 
@@ -281,8 +260,10 @@ class WebsockifyProcessManager:
         try:
             # Use execute to check if process exists (kill -0)
             execute(
-                'kill', '-0', str(pid),
-                params=ExecuteParams(raise_on_error=True)
+                'kill',
+                '-0',
+                str(pid),
+                params=ExecuteParams(raise_on_error=True),
             )
             return True
         except (ExecuteError, OSError):
@@ -295,66 +276,8 @@ class WebsockifyProcessManager:
             Dict: Active sessions keyed by VM ID
         """
         with self._process_lock:
-            # Verify processes are still alive and clean up dead ones
-            active_sessions = {}
-            dead_vms = []
+            # Return copy of current processes
+            return {
+                vm_id: info.copy() for vm_id, info in self._processes.items()
+            }
 
-            for vm_id, info in self._processes.items():
-                if self._is_process_alive(info['pid']):
-                    active_sessions[vm_id] = info.copy()
-                else:
-                    dead_vms.append(vm_id)
-
-            # Clean up dead processes
-            for vm_id in dead_vms:
-                LOG.warning(f'Removing dead websockify process for VM {vm_id}')
-                del self._processes[vm_id]
-
-            return active_sessions
-
-    def cleanup_orphaned_processes(self) -> int:
-        """Clean up orphaned websockify processes.
-
-        Returns:
-            int: Number of processes cleaned up
-        """
-        cleaned_count = 0
-
-        try:
-            # Find all websockify processes
-            result = execute(
-                'pgrep -f "websockify.*[0-9]+"',
-                params=ExecuteParams(shell=True),
-            )
-
-            if result.stdout.strip():
-                all_pids = [
-                    int(pid) for pid in result.stdout.strip().split('\n')
-                ]
-                registered_pids = {
-                    info['pid'] for info in self._processes.values()
-                }
-
-                # Find orphaned PIDs
-                orphaned_pids = set(all_pids) - registered_pids
-
-                for pid in orphaned_pids:
-                    LOG.info(
-                        f'Cleaning up orphaned websockify process PID {pid}'
-                    )
-                    if self._terminate_process(pid):
-                        cleaned_count += 1
-
-        except (ExecuteError, ValueError):
-            LOG.debug('No websockify processes found during cleanup')
-
-        LOG.info(f'Cleaned up {cleaned_count} orphaned websockify processes')
-        return cleaned_count
-
-    def get_process_count(self) -> int:
-        """Get count of active websockify processes.
-
-        Returns:
-            int: Number of active processes
-        """
-        return len(self.get_active_sessions())
