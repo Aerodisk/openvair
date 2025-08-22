@@ -124,8 +124,8 @@ def execute(
                     message = (
                         f"Command '{cmd_str}' failed with return code "
                         f'{returncode}\n'
-                        f"stdout: {stdout.rstrip()}\n"
-                        f"stderr: {stderr.rstrip()}"
+                        f'stdout: {stdout.rstrip()}\n'
+                        f'stderr: {stderr.rstrip()}'
                     )
                     LOG.error(message)
                     raise UnsuccessReturnCodeError(message)

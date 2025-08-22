@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
 """VNC cleanup daemon for Open vAIR.
 
-This script periodically cleans up stale VNC ports and orphaned websockify
+This module provides periodic cleanup of stale VNC ports and orphaned websockify
 processes to maintain system health and prevent resource exhaustion.
 """
 
-import sys
-import time
 import signal
+import time
+import sys
 from pathlib import Path
-
-# Add openvair to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from openvair.libs.log import get_logger
 from openvair.modules.virtual_machines.vnc.session_coordinator import VncSessionCoordinator
@@ -72,44 +68,44 @@ class VncCleanupDaemon:
         
         LOG.info("VNC cleanup daemon stopped")
 
-
-def main() -> None:
-    """Main entry point."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="VNC cleanup daemon for Open vAIR")
-    parser.add_argument(
-        '--interval', 
-        type=int, 
-        default=60,
-        help='Cleanup interval in seconds (default: 60)'
-    )
-    parser.add_argument(
-        '--once', 
-        action='store_true',
-        help='Run cleanup once and exit'
-    )
-    
-    args = parser.parse_args()
-    
-    if args.once:
-        # Run cleanup once and exit
-        LOG.info("Running one-time VNC cleanup")
-        coordinator = VncSessionCoordinator()
-        stats = coordinator.cleanup_stale_resources()
-        status = coordinator.get_system_status()
+    @classmethod
+    def main(cls) -> None:
+        """Main entry point for CLI usage."""
+        import argparse
         
-        print(f"Cleanup completed: {stats}")
-        print(f"System status: {status}")
+        parser = argparse.ArgumentParser(description="VNC cleanup daemon for Open vAIR")
+        parser.add_argument(
+            '--interval', 
+            type=int, 
+            default=60,
+            help='Cleanup interval in seconds (default: 60)'
+        )
+        parser.add_argument(
+            '--once', 
+            action='store_true',
+            help='Run cleanup once and exit'
+        )
         
-    else:
-        # Run as daemon
-        daemon = VncCleanupDaemon(cleanup_interval=args.interval)
-        try:
-            daemon.run()
-        except KeyboardInterrupt:
-            LOG.info("Daemon interrupted by user")
+        args = parser.parse_args()
+        
+        if args.once:
+            # Run cleanup once and exit
+            LOG.info("Running one-time VNC cleanup")
+            coordinator = VncSessionCoordinator()
+            stats = coordinator.cleanup_stale_resources()
+            status = coordinator.get_system_status()
+            
+            print(f"Cleanup completed: {stats}")
+            print(f"System status: {status}")
+            
+        else:
+            # Run as daemon
+            daemon = cls(cleanup_interval=args.interval)
+            try:
+                daemon.run()
+            except KeyboardInterrupt:
+                LOG.info("Daemon interrupted by user")
 
 
 if __name__ == '__main__':
-    main()
+    VncCleanupDaemon.main()

@@ -60,8 +60,8 @@ class NfsImage(BaseRemoteFSImage):
                 params=ExecuteParams(  # noqa: S604
                     shell=True,
                     run_as_root=self._execute_as_root,
-                    raise_on_error=True
-                )
+                    raise_on_error=True,
+                ),
             )
             LOG.info('Image converted successfully')
         except (ExecuteError, OSError) as err:
@@ -89,9 +89,8 @@ class NfsImage(BaseRemoteFSImage):
                 '-f',
                 str(image_path),
                 params=ExecuteParams(
-                    run_as_root=self._execute_as_root,
-                    raise_on_error=True
-                )
+                    run_as_root=self._execute_as_root, raise_on_error=True
+                ),
             )
         except (ExecuteError, OSError) as err:
             msg = f'Failed to delete image with ID {self.id}: {err}'
@@ -117,9 +116,8 @@ class NfsImage(BaseRemoteFSImage):
                 '-f',
                 str(image_tmp),
                 params=ExecuteParams(
-                    run_as_root=self._execute_as_root,
-                    raise_on_error=True
-                )
+                    run_as_root=self._execute_as_root, raise_on_error=True
+                ),
             )
         except (ExecuteError, OSError) as err:
             msg = (

@@ -22,6 +22,7 @@ from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
+
 class ImageSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """SQLAlchemy-based implementation of the Unit of Work pattern.
 

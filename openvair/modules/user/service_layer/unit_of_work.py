@@ -18,6 +18,7 @@ from openvair.common.uow.base_sqlalchemy import BaseSqlAlchemyUnitOfWork
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
+
 class UserSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """Unit of Work for User module.
 
@@ -40,4 +41,3 @@ class UserSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     def _init_repositories(self) -> None:
         """Initializes repositories for the user module."""
         self.users = repository.UserSqlAlchemyRepository(self.session)
-

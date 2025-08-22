@@ -7,9 +7,7 @@ VM_DRIVER = 'qemu-driver'
 TEMPLATES_PATH = (
     '/opt/aero/openvair/openvair/modules/virtual_machines/domain/templates/'
 )
-SNAPSHOTS_PATH = (
-    '/opt/aero/openvair/data/snapshots/'
-)
+SNAPSHOTS_PATH = '/opt/aero/openvair/data/snapshots/'
 SERVER_IP = config.data.get('web_app', {}).get('host', 'localhost')
 
 # VNC WebSocket port configuration
