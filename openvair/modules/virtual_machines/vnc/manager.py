@@ -34,13 +34,13 @@ from .exceptions import (
 LOG = get_logger(__name__)
 
 
-class SimpleVncManager:
+class VncManager:
     """Simple thread-safe VNC port manager."""
 
-    _instance: Optional['SimpleVncManager'] = None
+    _instance: Optional['VncManager'] = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> 'SimpleVncManager':
+    def __new__(cls) -> 'VncManager':
         """Singleton pattern for thread safety."""
         if cls._instance is None:
             with cls._lock:
@@ -277,7 +277,7 @@ class SimpleVncManager:
 
 
 # Global singleton instance
-vnc_manager = SimpleVncManager()
+vnc_manager = VncManager()
 
 
 # Convenience functions for easy integration

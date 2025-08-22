@@ -8,7 +8,7 @@ Upgraded from complex 940-line system to simple ~250-line solution.
 
 # Import the new simple VNC functions for easy access
 from .manager import (
-    SimpleVncManager,
+    VncManager,
     vnc_manager,
     get_vnc_stats,
     stop_vnc_session,
@@ -27,7 +27,7 @@ __all__ = [
     'stop_vnc_session',
     'get_vnc_stats',
     'vnc_manager',
-    'SimpleVncManager',
+    'VncManager',
     # Exceptions
     'VncManagerError',
     'VncPortAllocationError',
