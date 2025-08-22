@@ -28,12 +28,10 @@ class StorageSettings(BaseSettings):
     )
 
 class ImageSettings(BaseSettings):
-    """Pydantic settings for testing block_device.
+    """Settings for testing image.
 
     Attributes:
-        ip (str): IP adress of the testing block_device.
-        port (str): Port of the testing block_device.
-        inf_type (str): Interface type of the testing block_device.
+        image_path (Path): A path to a valid image.
     """
     image_path: Path = Field(default=None, alias='TEST_IMAGE_PATH')
 

@@ -190,15 +190,15 @@ def cleanup_all_templates() -> None:
 
 
 def cleanup_all_images() -> None:
-    """Remove all volumes from both database and filesystem.
+    """Remove all image from both database and filesystem.
 
     This utility function is typically used after storage tests to ensure
     a clean state. It:
-    1. Retrieves all volumes from the database
-    2. For each volume:
+    1. Retrieves all images from the database
+    2. For each image:
         - Creates a domain model instance
-        - Deletes the volume record from the database
-        - Removes the volume file from the filesystem
+        - Deletes the image record from the database
+        - Removes the image file from the filesystem
         - Commits the transaction
 
     Any errors during cleanup are logged as warnings but do not interrupt
@@ -323,7 +323,7 @@ def wait_full_deleting(
     timeout: int = 30,
     interval: float = 0.5,
 ) -> None:
-    """Waits until a specific file is fully deleted.
+    """Waits until a specific file is deleted.
 
     This function repeatedly checks if a certain file exists.
 
