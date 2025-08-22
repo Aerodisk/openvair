@@ -17,6 +17,11 @@ import libvirt
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
+from openvair.modules.virtual_machines.vnc import (
+    VncManagerError,
+    stop_vnc_session,
+    start_vnc_session,
+)
 from openvair.modules.virtual_machines.config import SNAPSHOTS_PATH
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 from openvair.modules.virtual_machines.domain.exceptions import (
@@ -202,34 +207,25 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Cleaning up VNC session for VM {vm_name}')
 
         try:
-            coordinator = vnc_session.get('coordinator')
-            if coordinator:
-                # Use coordinator to properly cleanup resources
-                coordinator.stop_vnc_session(vm_name)
+            success = stop_vnc_session(vm_name)
+            if success:
+                LOG.info(f'VNC session stopped for VM {vm_name}')
             else:
-                # Fallback: manual cleanup
-                # Import here to avoid circular dependencies
-                from openvair.modules.virtual_machines.vnc.session_coordinator import (
-                    VncSessionCoordinator,
-                )
-
-                fallback_coordinator = VncSessionCoordinator()
-                fallback_coordinator.stop_vnc_session(vm_name)
+                LOG.warning(f'No active VNC session found for VM {vm_name}')
 
             # Clear session info
-            del self.vm_info['vnc_session']
+            if 'vnc_session' in self.vm_info:
+                del self.vm_info['vnc_session']
             LOG.info(f'VNC session cleanup completed for VM {vm_name}')
-
         except Exception as e:  # noqa: BLE001 TODO: Should be more specific
             msg = f'Error during VNC session cleanup for VM {vm_name}: {e}'
             LOG.warning(msg)
             # Continue execution - don't fail VM shutdown
-            # due to VNC cleanup issues
 
     def vnc(self) -> Dict:
         """Start a VNC session for the virtual machine.
 
-        This method starts a VNC session using the new port management system
+        This method starts a VNC session using the VNC manager
         to ensure no port conflicts occur during mass VM startup.
 
         Returns:
@@ -240,15 +236,6 @@ class LibvirtDriver(BaseLibvirtDriver):
             VNCSessionError: If starting VNC session fails.
         """
         LOG.info(f'Starting VNC for VM {self.vm_info.get("name")}')
-
-        # Import here to avoid circular dependencies
-        from openvair.modules.virtual_machines.vnc.exceptions import (
-            VncSessionCoordinationError,
-            VncPortPoolExhaustedException,
-        )
-        from openvair.modules.virtual_machines.vnc.session_coordinator import (
-            VncSessionCoordinator,
-        )
 
         graphic_interface = self.vm_info.get('graphic_interface', {})
         LOG.info(f'Graphic interface info: {graphic_interface}')
@@ -273,11 +260,10 @@ class LibvirtDriver(BaseLibvirtDriver):
             raise ValueError(msg) from err
 
         vm_name = self.vm_info.get('name')
-        coordinator = VncSessionCoordinator()
 
         try:
-            # Use the new session coordinator for atomic resource management
-            session_result = coordinator.start_vnc_session(
+            # Use the VNC manager for port allocation and websockify
+            session_result = start_vnc_session(
                 vm_id=vm_name, vnc_host='localhost', vnc_port=vnc_port
             )
 
@@ -285,7 +271,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             self.vm_info['vnc_session'] = {
                 'ws_port': int(session_result['ws_port']),
                 'pid': int(session_result['pid']),
-                'coordinator': coordinator,  # Keep reference for cleanup
+                'url': session_result['url'],
             }
 
             LOG.info(
@@ -293,17 +279,11 @@ class LibvirtDriver(BaseLibvirtDriver):
                 f'{session_result["url"]}'
             )
             return {'url': session_result['url']}
-
-        except VncPortPoolExhaustedException as err:
-            msg = f'VNC port pool exhausted: {err!s}'
+        except VncManagerError as err:
+            # Handle specific VNC manager errors
+            msg = f'VNC manager error: {err!s}'
             LOG.error(msg)
             raise VNCSessionError(msg) from err
-
-        except VncSessionCoordinationError as err:
-            msg = f'Failed to coordinate VNC session: {err!s}'
-            LOG.error(msg)
-            raise VNCSessionError(msg) from err
-
         except Exception as err:
             msg = f'Unexpected error starting VNC session: {err!s}'
             LOG.error(msg)
