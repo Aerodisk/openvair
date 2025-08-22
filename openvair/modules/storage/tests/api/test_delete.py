@@ -144,26 +144,6 @@ def test_delete_local_partition_nonexistent(
         assert len(result) == 0
 
 
-# def test_delete_local_partition_system_disk(
-#         client: TestClient, cleanup_storages: None
-# ) -> None:
-#     """Test deletion attempt on system partition."""
-#     # Try to delete a partition that might be a system partition
-#     delete_data = {
-#         "storage_type": "local_partition",
-#         "local_disk_path": "/dev/sda",  # Typical system disk
-#         "partition_number": "1"  # Typical system partition
-#     }
-#
-#     response = client.request(
-#         'DELETE',
-#         '/storages/local-disks/delete_partition/',
-#         json=delete_data
-#     )
-#     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-#     assert "system" in response.text.lower()
-
-
 def test_delete_local_partition_unauthorized(
         unauthorized_client: TestClient
 ) -> None:

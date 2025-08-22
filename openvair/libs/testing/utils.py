@@ -191,17 +191,18 @@ def cleanup_all_storages() -> None:
     3. Handles errors gracefully with logging
     """
     unit_of_work = StorageUOW()
-    try:
-        with unit_of_work as uow:
-            all_storages = uow.storages.get_all()
-            for db_storage in all_storages:
+    with unit_of_work as uow:
+        all_storages = uow.storages.get_all()
+        for db_storage in all_storages:
+            try:
                 domain_storage = StorageSerializer.to_domain(db_storage)
                 storage = StorageFactory().get_storage(domain_storage)
                 storage.delete()
+            except Exception as err:  # noqa: BLE001
+                LOG.warning(f'Error during storages cleanup: {err}')
+            finally:
                 uow.storages.delete(db_storage)
                 uow.commit()
-    except Exception as err:  # noqa: BLE001
-        LOG.warning(f'Error during storages cleanup: {err}')
 
 
 def wait_for_field_value(  # noqa: PLR0913
