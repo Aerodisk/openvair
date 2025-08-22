@@ -9,7 +9,6 @@ This test suite covers:
 - Verification that temporary files are cleaned up after upload attempts.
 """
 
-import time
 import uuid
 from typing import Dict
 from pathlib import Path
@@ -20,6 +19,7 @@ from fastapi.testclient import TestClient
 
 from openvair.config import TMP_DIR
 from openvair.libs.testing.utils import (
+    wait_full_deleting,
     generate_image_name,
     generate_random_string,
     generate_test_entity_name,
@@ -46,9 +46,8 @@ def test_upload_image_success(
             f"/images/upload/?storage_id={storage_id}{desc}&name={name}",
             files={"image": (name, file, "application/x-cd-image")},
         )
-    time.sleep(3)
     file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data['name'] == name
@@ -89,9 +88,8 @@ def test_upload_image_missing_field(
             f"/images/upload/?{field}",
             files={"image": (name, file, "application/x-cd-image")},
         )
-    time.sleep(3)
     file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -126,9 +124,9 @@ def test_upload_image_wrong_file_formate(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path.unlink()
-    time.sleep(3)
-    file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
+    tmp_image = Path(TMP_DIR, name)
+    wait_full_deleting(tmp_image)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -143,9 +141,8 @@ def test_upload_image_with_wrong_storage_id(
             f"/images/upload/?storage_id={storage_id}&name={name}",
             files={"image": (name, file, "application/x-cd-image")},
         )
-    time.sleep(3)
     file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
@@ -169,9 +166,8 @@ def test_upload_image_long_name(
             f"/images/upload/?storage_id={storage_id}{desc}&name={name}",
             files={"image": (name, file, "application/x-cd-image")},
         )
-    time.sleep(3)
     file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
@@ -186,9 +182,8 @@ def test_upload_image_wrong_storage(
             f"/images/upload/?storage_id={storage_id}&name={name}",
             files={"image": (name, file, "application/x-cd-image")},
         )
-    time.sleep(3)
     file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -211,7 +206,6 @@ def test_upload_image_with_excisting_name(
             f"/images/upload/?storage_id={storage_id}&name={name}",
             files={"image": (name, file, "application/x-cd-image")},
         )
-    time.sleep(3)
     file_path = Path(TMP_DIR, name)
-    assert Path.is_file(file_path) is False
+    wait_full_deleting(file_path)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

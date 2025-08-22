@@ -15,12 +15,12 @@ from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
     cleanup_all_images,
-    wait_full_deleting,
     cleanup_all_volumes,
     generate_image_name,
     wait_for_field_value,
     cleanup_all_templates,
     generate_test_entity_name,
+    wait_full_deleting_object,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import image_settings, storage_settings
@@ -259,7 +259,7 @@ def virtual_machine(
     yield created_vm
 
     delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
-    wait_full_deleting(client, '/virtual-machines/', created_vm['id'])
+    wait_full_deleting_object(client, '/virtual-machines/', created_vm['id'])
 
 
 @pytest.fixture(scope="function")

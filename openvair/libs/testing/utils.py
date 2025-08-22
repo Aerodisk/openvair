@@ -15,6 +15,7 @@ import uuid
 import string
 import secrets
 from typing import Any, Dict, cast
+from pathlib import Path
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -274,7 +275,7 @@ def wait_until_404(
     raise TimeoutError(message)
 
 
-def wait_full_deleting(
+def wait_full_deleting_object(
     client: TestClient,
     path: str,
     object_id: str,
@@ -314,6 +315,32 @@ def wait_full_deleting(
         f'Object with id "{object_id}" at "{path}" was not deleted '
         f'within {timeout} seconds.'
     )
+    raise TimeoutError(message)
+
+
+def wait_full_deleting(
+    path: Path,
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Waits until a specific file is fully deleted.
+
+    This function repeatedly checks if a certain file exists.
+
+    Args:
+        path (str): A path to an object.
+        timeout (int): Maximum wait time in seconds before timing out.
+        interval (float): Time in seconds between successive requests.
+
+    Raises:
+        TimeoutError: If the object is still present after the timeout expires.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if Path.is_file(path) is False:
+            return
+        time.sleep(interval)
+    message = (f'"{path}" was not deleted within {timeout} seconds.')
     raise TimeoutError(message)
 
 
