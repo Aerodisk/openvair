@@ -56,6 +56,8 @@ class VncManager:
             self._vm_sessions: Dict[str, Dict] = {}
             self._initialized = True
             LOG.info('Simple VNC Manager initialized')
+            # Restore state from running processes
+            self._restore_state_from_system()
 
     def _is_port_free(self, port: int) -> bool:
         """Check if port is actually free by attempting to bind."""
@@ -143,7 +145,6 @@ class VncManager:
                 execute(
                     'websockify',
                     '-D',  # daemon mode
-                    '--run-once',  # exit after connection
                     '--web',
                     '/opt/aero/openvair/openvair/libs/noVNC/',
                     str(ws_port),
@@ -245,6 +246,60 @@ class VncManager:
 
             LOG.info(f'VNC session cleanup completed for VM {vm_id}')
             return success
+
+    def _restore_state_from_system(self) -> None:
+        """Restore VNC manager state from running websockify processes.
+
+        This method scans for running websockify processes in the VNC port range
+        and rebuilds the in-memory state to match the system reality.
+        """
+        LOG.info('Restoring VNC Manager state from running processes...')
+
+        try:
+            # Find all websockify processes in our port range
+            result = execute('ps', 'aux', params=ExecuteParams(timeout=10.0))
+
+            restored_count = 0
+            for line in result.stdout.split('\n'):
+                if 'websockify' not in line or 'noVNC' not in line:
+                    continue
+
+                parts = line.split()
+                if len(parts) < 11:  # Basic validation
+                    continue
+
+                try:
+                    pid = int(parts[1])
+                    for part in parts[11:]:
+                        if (
+                            part.isdigit()
+                            and VNC_WS_PORT_START
+                            <= int(part)
+                            <= VNC_WS_PORT_END
+                        ):
+                            ws_port = int(part)
+                            # Mark port as allocated
+                            self._allocated_ports.add(ws_port)
+                            LOG.debug(
+                                f'Restored websockify: PID {pid}, '
+                                f'port {ws_port}'
+                            )
+                            restored_count += 1
+                            break
+                except (ValueError, IndexError):
+                    continue
+
+            if restored_count > 0:
+                msg = (
+                    f'Restored {restored_count} websockify processes '
+                    f'to VNC Manager state'
+                )
+                LOG.info(msg)
+            else:
+                LOG.info('No existing websockify processes found')
+
+        except Exception as e:
+            LOG.warning(f'Failed to restore VNC Manager state: {e}')
 
     def _find_process_by_port(self, port: int) -> Optional[int]:
         """Find process PID by port number."""
