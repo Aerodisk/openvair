@@ -99,41 +99,37 @@ def test_delete_storage_unauthorized(
 
 
 def test_delete_local_partition_success(
-        client: TestClient, target_disk_path: str, local_partition: Dict
+    client: TestClient, target_disk_path: str, local_partition: Dict
 ) -> None:
     """Test successful deletion of local disk partition."""
-    partition_number = local_partition["path"].replace(target_disk_path, "")
+    partition_number = local_partition['path'].replace(target_disk_path, '')
 
     delete_data = {
-        "storage_type": "local_partition",
-        "local_disk_path": target_disk_path,
-        "partition_number": partition_number
+        'storage_type': 'local_partition',
+        'local_disk_path': target_disk_path,
+        'partition_number': partition_number,
     }
 
     response = client.request(
-        'DELETE',
-        '/storages/local-disks/delete_partition/',
-        json=delete_data
+        'DELETE', '/storages/local-disks/delete_partition/', json=delete_data
     )
     assert response.status_code == status.HTTP_200_OK
     result = response.json()
-    assert "successfully deleted" in result["message"].lower()
+    assert 'successfully deleted' in result['message'].lower()
 
 
 def test_delete_local_partition_nonexistent(
-        client: TestClient, target_disk_path: str
+    client: TestClient, target_disk_path: str
 ) -> None:
     """Test deletion of nonexistent partition."""
     delete_data = {
-        "storage_type": "local_partition",
-        "local_disk_path": target_disk_path,
-        "partition_number": "999"  # Non-existent partition
+        'storage_type': 'local_partition',
+        'local_disk_path': target_disk_path,
+        'partition_number': '999',  # Non-existent partition
     }
 
     response = client.request(
-        'DELETE',
-        '/storages/local-disks/delete_partition/',
-        json=delete_data
+        'DELETE', '/storages/local-disks/delete_partition/', json=delete_data
     )
     assert response.status_code in [
         status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -145,18 +141,16 @@ def test_delete_local_partition_nonexistent(
 
 
 def test_delete_local_partition_unauthorized(
-        unauthorized_client: TestClient
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized partition deletion."""
     delete_data = {
-        "storage_type": "local_partition",
-        "local_disk_path": "/some/path",
-        "partition_number": "1"
+        'storage_type': 'local_partition',
+        'local_disk_path': '/some/path',
+        'partition_number': '1',
     }
 
     response = unauthorized_client.request(
-        'DELETE',
-        '/storages/local-disks/delete_partition/',
-        json=delete_data
+        'DELETE', '/storages/local-disks/delete_partition/', json=delete_data
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

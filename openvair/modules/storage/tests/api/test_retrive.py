@@ -137,8 +137,12 @@ def test_get_local_disk_partitions_success(client: TestClient) -> None:
             assert isinstance(partition_info, Dict)
             for _, partition in partition_info.items():
                 required_fields = [
-                    'Number', 'Size', 'Start', 'End',
-                    'Type', 'File system', 'Flags'
+                    'Number',
+                    'Size',
+                    'Start',
+                    'End',
+                    'File system',
+                    'Flags',
                 ]
                 for field in required_fields:
                     assert field in partition
@@ -159,7 +163,7 @@ def test_get_local_disk_partitions_missing_param(client: TestClient) -> None:
 
 
 def test_get_local_disk_partitions_unauthorized(
-    unauthorized_client: TestClient
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized access to partition info."""
     response = unauthorized_client.get(
