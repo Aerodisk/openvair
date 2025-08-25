@@ -332,7 +332,7 @@ def notification() -> Generator[Dict, None, None]:
     cleanup_all_notifications()
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def physical_interface(client: TestClient) -> Optional[Dict]:
     """Get physical interface by name from environment variable."""
     response = client.get('/interfaces/')
