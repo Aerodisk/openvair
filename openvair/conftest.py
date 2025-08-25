@@ -1,6 +1,6 @@
 # noqa: D100
 from uuid import uuid4
-from typing import Dict, Generator
+from typing import Dict, Optional, Generator, cast
 from pathlib import Path
 
 import pytest
@@ -333,7 +333,7 @@ def notification() -> Generator[Dict, None, None]:
 
 
 @pytest.fixture(scope='function')
-def physical_interface(client: TestClient) -> Generator[Dict, None, None]:
+def physical_interface(client: TestClient) -> Optional[Dict]:
     """Get physical interface by name from environment variable."""
     cleanup_test_bridges()
 
@@ -343,9 +343,11 @@ def physical_interface(client: TestClient) -> Generator[Dict, None, None]:
 
     for interface in interfaces:
         if interface['name'] == network_settings.network_interface:
-            yield interface
+            return cast(Dict, interface)
 
     cleanup_test_bridges()
+
+    return None
 
 
 @pytest.fixture
@@ -362,6 +364,9 @@ def bridge(
 
     response = client.post('/interfaces/create/', json=bridge_data)
     bridge_data = response.json()
+    wait_for_field_value(
+        client, f'/interfaces/{bridge_data["id"]}', 'status', 'available'
+    )
 
     yield bridge_data
 
