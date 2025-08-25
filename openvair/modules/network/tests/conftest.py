@@ -1,4 +1,4 @@
-"""Shared fixtures for volume integration tests.
+"""Fixtures for network integration tests.
 
 Provides:
 - `cleanup_bridges`: Deletes all test bridges before and after test.
