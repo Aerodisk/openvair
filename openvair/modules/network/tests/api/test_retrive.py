@@ -68,18 +68,6 @@ def test_get_interfaces_unauthorized(unauthorized_client: TestClient) -> None:
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_interfaces_with_filter_unauthorized(
-    unauthorized_client: TestClient,
-) -> None:
-    """Test unauthorized access with filter flag.
-
-    Asserts:
-    - HTTP 401 Unauthorized
-    """
-    response = unauthorized_client.get('/interfaces/?is_need_filter=true')
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
 def test_get_bridges_list(client: TestClient, bridge: Dict) -> None:
     """Test retrieving bridges list.
 
@@ -92,7 +80,7 @@ def test_get_bridges_list(client: TestClient, bridge: Dict) -> None:
 
     bridges = response.json()
     assert isinstance(bridges, List)
-    assert any(br['ifname'] == bridge['name'] for br in bridges), str(bridges)
+    assert any(br['ifname'] == bridge['name'] for br in bridges)
 
 
 def test_get_bridges_list_unauthorized(

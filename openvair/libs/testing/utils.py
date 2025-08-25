@@ -321,26 +321,33 @@ def cleanup_test_bridges() -> None:
     try:
         ovs_bridges = ovs_manager.get_bridges()
         name_index = ovs_bridges['headings'].index('name')
-        bridge_names = [bridge[name_index] for bridge in ovs_bridges['data']]
-        test_bridge_names = [
-            name for name in bridge_names if name.startswith('test-')
+        ovs_bridge_names = [
+            bridge[name_index] for bridge in ovs_bridges['data']
         ]
+        test_ovs_bridge_names = [
+            name for name in ovs_bridge_names if name.startswith('test-')
+        ]
+        for bridge_name in test_ovs_bridge_names:
+            with unit_of_work as uow:
+                db_bridge = uow.interfaces.get_by_name(bridge_name)
+                if db_bridge:
+                    bridge_data: Dict = {
+                        'id': str(db_bridge.id),
+                        'name': db_bridge.name,
+                        'type': 'bridge',
+                        'interfaces': []
+                    }
+                    bridge = OVSInterface(**bridge_data)
+                    bridge.delete()
         with unit_of_work as uow:
             all_interfaces = uow.interfaces.get_all()
-            test_bridge_interfaces = [
+            test_db_bridge_interfaces = [
                 iface for iface in all_interfaces
-                if iface.name in test_bridge_names
+                if iface.name.startswith('test-')
             ]
-            for interface in test_bridge_interfaces:
-                bridge_data = {
-                    'id': interface.id,
-                    'name': interface.name,
-                    'type': 'bridge',
-                    'interfaces': []
-                }
-                bridge = OVSInterface(**bridge_data)
-                bridge.delete()
+        for interface in test_db_bridge_interfaces:
+            with unit_of_work as uow:
                 uow.interfaces.delete(interface)
-            uow.commit()
+                uow.commit()
     except Exception as e:  # noqa: BLE001
         LOG.warning(f"Error during test bridge cleanup: {e}")

@@ -332,11 +332,9 @@ def notification() -> Generator[Dict, None, None]:
     cleanup_all_notifications()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def physical_interface(client: TestClient) -> Optional[Dict]:
     """Get physical interface by name from environment variable."""
-    cleanup_test_bridges()
-
     response = client.get('/interfaces/')
     interfaces_data = response.json()
     interfaces = interfaces_data.get('items', [])
@@ -345,7 +343,22 @@ def physical_interface(client: TestClient) -> Optional[Dict]:
         if interface['name'] == network_settings.network_interface:
             return cast(Dict, interface)
 
-    cleanup_test_bridges()
+    return None
+
+
+@pytest.fixture
+def non_default_interface(client: TestClient) -> Optional[Dict]:
+    """Get a non-default physical interface (without IP)."""
+    response = client.get('/interfaces/')
+    interfaces_data = response.json()
+    interfaces = interfaces_data.get('items', [])
+
+    for interface in interfaces:
+        if (
+            interface['name'] != network_settings.network_interface
+            and not interface['ip']
+        ):
+            return cast(Dict, interface)
 
     return None
 
