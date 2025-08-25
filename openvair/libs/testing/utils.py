@@ -22,8 +22,13 @@ from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
+from openvair.modules.network.domain.utils.ovs_manager import OVSManager
+from openvair.modules.network.domain.bridges.ovs_bridge import OVSInterface
 from openvair.modules.volume.service_layer.unit_of_work import (
     VolumeSqlAlchemyUnitOfWork as VolumeUOW,
+)
+from openvair.modules.network.service_layer.unit_of_work import (
+    NetworkSqlAlchemyUnitOfWork,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
@@ -304,3 +309,38 @@ def cleanup_all_notifications() -> None:
             uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up notifications: {err}')
+
+
+def cleanup_test_bridges() -> None:
+    """Remove only test bridges from both OVS and database.
+
+    This function targets only bridges with names starting with 'test-'
+    """
+    ovs_manager = OVSManager()
+    unit_of_work = NetworkSqlAlchemyUnitOfWork()
+    try:
+        ovs_bridges = ovs_manager.get_bridges()
+        name_index = ovs_bridges['headings'].index('name')
+        bridge_names = [bridge[name_index] for bridge in ovs_bridges['data']]
+        test_bridge_names = [
+            name for name in bridge_names if name.startswith('test-')
+        ]
+        with unit_of_work as uow:
+            all_interfaces = uow.interfaces.get_all()
+            test_bridge_interfaces = [
+                iface for iface in all_interfaces
+                if iface.name in test_bridge_names
+            ]
+            for interface in test_bridge_interfaces:
+                bridge_data = {
+                    'id': interface.id,
+                    'name': interface.name,
+                    'type': 'bridge',
+                    'interfaces': []
+                }
+                bridge = OVSInterface(**bridge_data)
+                bridge.delete()
+                uow.interfaces.delete(interface)
+            uow.commit()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f"Error during test bridge cleanup: {e}")

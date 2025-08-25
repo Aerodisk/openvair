@@ -59,5 +59,25 @@ class NotificationSettings(BaseSettings):
     )
 
 
+class NetworkSettings(BaseSettings):
+    """Pydantic settings for network tests.
+
+    Attributes:
+        network_interface (str): Physical network interface for bridge tests.
+    """
+
+    network_interface: str = Field(
+        default='eth0',
+        alias='TEST_NETWORK_INTERFACE'
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).parent / '.env.test',
+        env_file_encoding='utf-8',
+        extra='ignore',
+    )
+
+
 storage_settings = StorageSettings()
 notification_settings = NotificationSettings()
+network_settings = NetworkSettings()

@@ -15,6 +15,7 @@ from openvair.libs.testing.utils import (
     delete_resource,
     wait_full_deleting,
     cleanup_all_volumes,
+    cleanup_test_bridges,
     wait_for_field_value,
     cleanup_all_templates,
     cleanup_all_notifications,
@@ -22,6 +23,7 @@ from openvair.libs.testing.utils import (
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import (
+    network_settings,
     storage_settings,
     notification_settings,
 )
@@ -319,12 +321,48 @@ def activated_virtual_machine(
 def notification() -> Generator[Dict, None, None]:
     """Generates test notification data and cleans up after test."""
     test_data = {
-        "msg_type": notification_settings.notification_type,
-        "recipients": notification_settings.target_emails,
-        "subject": "[TEST - Open vAIR]",
-        "message": "This is a test message from Open vAIR"
+        'msg_type': notification_settings.notification_type,
+        'recipients': notification_settings.target_emails,
+        'subject': '[TEST - Open vAIR]',
+        'message': 'This is a test message from Open vAIR',
     }
 
     yield test_data
 
     cleanup_all_notifications()
+
+
+@pytest.fixture(scope='function')
+def physical_interface(client: TestClient) -> Generator[Dict, None, None]:
+    """Get physical interface by name from environment variable."""
+    cleanup_test_bridges()
+
+    response = client.get('/interfaces/')
+    interfaces_data = response.json()
+    interfaces = interfaces_data.get('items', [])
+
+    for interface in interfaces:
+        if interface['name'] == network_settings.network_interface:
+            yield interface
+
+    cleanup_test_bridges()
+
+
+@pytest.fixture
+def bridge(
+    client: TestClient, physical_interface: Dict
+) -> Generator[Dict, None, None]:
+    """Create a test bridge and delete it after test."""
+    bridge_data = {
+        'name': generate_test_entity_name('br'),
+        'type': 'bridge',
+        'interfaces': [physical_interface],
+        'ip': '',
+    }
+
+    response = client.post('/interfaces/create/', json=bridge_data)
+    bridge_data = response.json()
+
+    yield bridge_data
+
+    cleanup_test_bridges()
