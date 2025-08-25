@@ -16,6 +16,7 @@ from openvair.common.repositories.base_sqlalchemy import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
+
 class EventStoreSqlAlchemyRepository(BaseSqlAlchemyRepository[Events]):
     """Repository for managing event entities.
 

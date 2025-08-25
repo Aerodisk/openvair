@@ -18,6 +18,7 @@ from openvair.common.repositories.base_sqlalchemy import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
+
 class UserSqlAlchemyRepository(BaseSqlAlchemyRepository[User]):
     """Repository for managing user entities.
 

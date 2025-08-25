@@ -292,8 +292,10 @@ class NetworkServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_iface = uow.interfaces.get_by_name(iface_name)
             if not db_iface:
-                message = (f'Error while turning on interface: '
-                           f'interface {iface_name} not found in DB.')
+                message = (
+                    f'Error while turning on interface: '
+                    f'interface {iface_name} not found in DB.'
+                )
                 LOG.error(message)
                 raise exceptions.InterfaceNotFoundError(message)
             domain_iface = DataSerializer.to_domain(db_iface)
@@ -329,8 +331,10 @@ class NetworkServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_iface = uow.interfaces.get_by_name(iface_name)
             if not db_iface:
-                message = (f'Error while turning off interface: '
-                           f'interface {iface_name} not found in DB.')
+                message = (
+                    f'Error while turning off interface: '
+                    f'interface {iface_name} not found in DB.'
+                )
                 LOG.error(message)
                 raise exceptions.InterfaceNotFoundError(message)
             domain_iface = DataSerializer.to_domain(db_iface)
@@ -704,9 +708,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
         LOG.debug('Got interfaces from system %s' % interfaces_from_os)
         with self.uow() as uow:
-            db_interfaces = [
-                iface.name for iface in uow.interfaces.get_all()
-            ]
+            db_interfaces = [iface.name for iface in uow.interfaces.get_all()]
             LOG.debug('Got interfaces from db %s' % db_interfaces)
 
         for (os_iface_name), os_iface_data in interfaces_from_os.items():
@@ -729,8 +731,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 if not db_iface:
                     continue
                 if db_iface_name.startswith('ovs-system') or any(
-                    db_iface_name.startswith(prefix) for prefix
-                    in prefixes_to_delete
+                    db_iface_name.startswith(prefix)
+                    for prefix in prefixes_to_delete
                 ):
                     uow.interfaces.delete(db_iface)
                 else:

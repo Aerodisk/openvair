@@ -52,11 +52,7 @@ class VolumeSqlAlchemyRepository(BaseSqlAlchemyRepository[Volume]):
             List[Volume]: A list of volumes associated with the specified
                 storage.
         """
-        return (
-            self.session.query(Volume)
-            .filter_by(storage_id=storage_id)
-            .all()
-        )
+        return self.session.query(Volume).filter_by(storage_id=storage_id).all()
 
     def get_by_name_and_storage(
         self,

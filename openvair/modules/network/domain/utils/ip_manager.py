@@ -64,7 +64,7 @@ class IPManager:
         command = 'ip -j route'
         exec_res = execute(
             command,
-            params=ExecuteParams(shell=True)  # noqa: S604
+            params=ExecuteParams(shell=True),  # noqa: S604
         )
         if exec_res.stderr:
             msg = f'Failure while getting main port name: {exec_res.stderr}'
