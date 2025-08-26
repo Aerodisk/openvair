@@ -4,7 +4,7 @@ Provides:
 - `cleanup_bridges`: Deletes all test bridges before and after test.
 """
 
-from typing import Any, Dict, Generator
+from typing import Any, Dict, Optional, Generator, cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +14,7 @@ from openvair.libs.testing.utils import (
     cleanup_test_bridges,
     wait_for_field_value,
 )
+from openvair.libs.testing.config import network_settings
 
 LOG = get_logger(__name__)
 
@@ -24,6 +25,23 @@ def cleanup_bridges() -> Generator[None, Any, None]:
     cleanup_test_bridges()
     yield
     cleanup_test_bridges()
+
+
+@pytest.fixture
+def non_default_interface(client: TestClient) -> Optional[Dict]:
+    """Get a non-default physical interface (without IP)."""
+    response = client.get('/interfaces/')
+    interfaces_data = response.json()
+    interfaces = interfaces_data.get('items', [])
+
+    for interface in interfaces:
+        if (
+            interface['name'] != network_settings.network_interface
+            and not interface['ip']
+        ):
+            return cast(Dict, interface)
+
+    return None
 
 
 @pytest.fixture

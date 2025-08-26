@@ -347,23 +347,6 @@ def physical_interface(client: TestClient) -> Optional[Dict]:
 
 
 @pytest.fixture
-def non_default_interface(client: TestClient) -> Optional[Dict]:
-    """Get a non-default physical interface (without IP)."""
-    response = client.get('/interfaces/')
-    interfaces_data = response.json()
-    interfaces = interfaces_data.get('items', [])
-
-    for interface in interfaces:
-        if (
-            interface['name'] != network_settings.network_interface
-            and not interface['ip']
-        ):
-            return cast(Dict, interface)
-
-    return None
-
-
-@pytest.fixture
 def bridge(
     client: TestClient, physical_interface: Dict
 ) -> Generator[Dict, None, None]:
