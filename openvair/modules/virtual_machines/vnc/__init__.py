@@ -10,7 +10,6 @@ Upgraded from complex 940-line system to simple ~250-line solution.
 from .manager import (
     VncManager,
     vnc_manager,
-    get_vnc_stats,
     stop_vnc_session,
     start_vnc_session,
 )
@@ -25,7 +24,6 @@ from .exceptions import (
 __all__ = [
     'start_vnc_session',
     'stop_vnc_session',
-    'get_vnc_stats',
     'vnc_manager',
     'VncManager',
     # Exceptions

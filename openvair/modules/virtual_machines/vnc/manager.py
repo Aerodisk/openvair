@@ -28,7 +28,9 @@ Version: 2.0 (Simplified)
 
 import socket
 import threading
-from typing import Set, Dict, Optional
+from typing import Any, Set, Dict, Optional
+
+import psutil
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -50,7 +52,6 @@ from .exceptions import (
 )
 
 LOG = get_logger(__name__)
-MIN_PS_AUX_COLUMNS = 11
 
 
 class VncManager:
@@ -177,7 +178,116 @@ class VncManager:
         )
         raise VncPortAllocationError(msg)
 
-    def start_vnc_session(  # noqa: C901
+    def _cleanup_existing_session_resources(self, vm_id: str) -> None:
+        """Clean up resources for an existing VNC session.
+
+        Args:
+            vm_id: VM identifier for the session to cleanup
+
+        Note:
+            Assumes _port_lock is already held by the caller.
+        """
+        if vm_id not in self._vm_sessions:
+            return
+
+        existing = self._vm_sessions[vm_id]
+        LOG.info(
+            f'VNC session already exists for VM {vm_id}, stopping old '
+            f'session (port {existing["ws_port"]}, '
+            f'PID {existing["pid"]})'
+        )
+
+        # Stop the old session
+        # don't use stop_vnc_session to avoid lock recursion
+        try:
+            execute(
+                'kill',
+                '-TERM',
+                str(existing['pid']),
+                params=ExecuteParams(timeout=2.0),
+            )
+            LOG.info(f'Terminated old websockify process {existing["pid"]}')
+        except (UnsuccessReturnCodeError, ExecuteTimeoutExpiredError):
+            msg = f'Failed to terminate old process {existing["pid"]}'
+            LOG.warning(msg)
+
+        # Cleanup old session data
+        self._allocated_ports.discard(existing['ws_port'])
+        del self._vm_sessions[vm_id]
+
+    def _start_websockify_process(
+        self, vm_id: str, vnc_host: str, vnc_port: int, ws_port: int
+    ) -> int:
+        """Start websockify process and return its PID.
+
+        Args:
+            vm_id: VM identifier for logging
+            vnc_host: VNC server host
+            vnc_port: VNC server port
+            ws_port: WebSocket port to use
+
+        Returns:
+            int: Process ID of the started websockify process
+
+        Raises:
+            VncSessionStartupError: If websockify fails to start
+            VncProcessNotFoundError: If PID cannot be determined
+        """
+        LOG.info(
+            f'Starting VNC for VM {vm_id}: '
+            f'{vnc_host}:{vnc_port} -> ws:{ws_port}'
+        )
+
+        try:
+            execute(
+                'websockify',
+                '-D',
+                '--run-once',
+                '--web',
+                '/opt/aero/openvair/openvair/libs/noVNC/',
+                str(ws_port),
+                f'{vnc_host}:{vnc_port}',
+                params=ExecuteParams(raise_on_error=True),
+            )
+        except UnsuccessReturnCodeError as e:
+            error_msg = f'Failed to start websockify for VM {vm_id}: {e}'
+            LOG.error(error_msg)
+            raise VncSessionStartupError(error_msg) from e
+
+        # Find the process PID
+        pid = self._find_process_by_port(ws_port)
+        if not pid:
+            msg = f'Failed to find websockify PID for port {ws_port}'
+            LOG.error(msg)
+            raise VncProcessNotFoundError(msg)
+
+        return pid
+
+    def _create_session_info(
+        self, ws_port: int, vnc_host: str, vnc_port: int, pid: int
+    ) -> Dict[str, Any]:
+        """Create session information dictionary.
+
+        Args:
+            ws_port: WebSocket port
+            vnc_host: VNC server host
+            vnc_port: VNC server port
+            pid: Process ID of websockify
+
+        Returns:
+            Dict containing session information
+        """
+        url = f'http://{SERVER_IP}:{ws_port}/vnc.html?host={SERVER_IP}&port={ws_port}'
+
+        return {
+            'ws_port': ws_port,
+            'vnc_host': vnc_host,
+            'vnc_port': vnc_port,
+            'pid': pid,
+            'url': url,
+        }
+
+    def start_vnc_session(
         self, vm_id: str, vnc_host: str, vnc_port: int
     ) -> Dict[str, str]:
         """Start VNC session with automatic port allocation.
@@ -195,93 +305,36 @@ class VncManager:
         """
         with self._port_lock:
             self.cleanup_dead_sessions()
-
-            if vm_id in self._vm_sessions:
-                existing = self._vm_sessions[vm_id]
-                LOG.info(
-                    f'VNC session already exists for VM {vm_id}, stopping old '
-                    f'session (port {existing["ws_port"]}, '
-                    f'PID {existing["pid"]})'
-                )
-                # Stop the old session
-                # don't use stop_vnc_session to avoid lock recursion
-                try:
-                    execute(
-                        'kill',
-                        '-TERM',
-                        str(existing['pid']),
-                        params=ExecuteParams(timeout=2.0),
-                    )
-                    LOG.info(
-                        f'Terminated old websockify process {existing["pid"]}'
-                    )
-                except (UnsuccessReturnCodeError, ExecuteTimeoutExpiredError):
-                    msg = f'Failed to terminate old process {existing["pid"]}'
-                    LOG.warning(msg)
-
-                # Cleanup old session data
-                self._allocated_ports.discard(existing['ws_port'])
-                del self._vm_sessions[vm_id]
+            self._cleanup_existing_session_resources(vm_id)
 
             # Find and allocate free port
             ws_port = self._find_free_port()
             self._allocated_ports.add(ws_port)
 
-            LOG.info(
-                f'Starting VNC for VM {vm_id}: '
-                f'{vnc_host}:{vnc_port} -> ws:{ws_port}'
-            )
-
             try:
-                execute(
-                    'websockify',
-                    '-D',
-                    '--run-once',
-                    '--web',
-                    '/opt/aero/openvair/openvair/libs/noVNC/',
-                    str(ws_port),
-                    f'{vnc_host}:{vnc_port}',
-                    params=ExecuteParams(raise_on_error=True),
+                pid = self._start_websockify_process(
+                    vm_id, vnc_host, vnc_port, ws_port
                 )
-
-                pid = self._find_process_by_port(ws_port)
-                if not pid:
-                    msg = f'Failed to find websockify PID for port {ws_port}'
-                    LOG.error(msg)
-                    raise VncProcessNotFoundError(msg)  # noqa: TRY301 TODO: why?
-
-                url = f'http://{SERVER_IP}:{ws_port}/vnc.html?host={SERVER_IP}&port={ws_port}'
-
-                session_info = {
-                    'ws_port': ws_port,
-                    'vnc_host': vnc_host,
-                    'vnc_port': vnc_port,
-                    'pid': pid,
-                    'url': url,
-                }
+                session_info = self._create_session_info(
+                    ws_port, vnc_host, vnc_port, pid
+                )
                 self._vm_sessions[vm_id] = session_info
 
-                LOG.info(f'Started VNC for VM {vm_id}: {url}')
+                LOG.info(f'Started VNC for VM {vm_id}: {session_info["url"]}')
                 return {
-                    'url': url,
+                    'url': session_info['url'],
                     'ws_port': str(ws_port),
                     'pid': str(pid),
                 }
-            except UnsuccessReturnCodeError as e:
-                # Cleanup on failure
+            except Exception:
+                # Cleanup on any failure
                 self._allocated_ports.discard(ws_port)
-                error_msg = f'Failed to start websockify for VM {vm_id}: {e}'
-                LOG.error(error_msg)
-                raise VncSessionStartupError(error_msg) from e
-            except Exception as e:
-                # Cleanup on any other failure
-                self._allocated_ports.discard(ws_port)
-                LOG.error(f'Unexpected error starting VNC for VM {vm_id}: {e}')
                 raise
 
     def cleanup_dead_sessions(self) -> int:
         """Clean up sessions whose processes have died.
 
+        Uses psutil to reliably check process existence instead of kill -0.
         Note: This method assumes the _port_lock is already held.
 
         Returns:
@@ -290,14 +343,7 @@ class VncManager:
         dead_sessions = []
         for vm_id, session in self._vm_sessions.items():
             pid = session['pid']
-            try:
-                execute(
-                    'kill',
-                    '-0',
-                    str(pid),
-                    params=ExecuteParams(timeout=5.0, raise_on_error=True),
-                )
-            except (UnsuccessReturnCodeError, ExecuteTimeoutExpiredError):
+            if not psutil.pid_exists(pid):
                 dead_sessions.append(vm_id)
                 self._allocated_ports.discard(session['ws_port'])
                 LOG.info(
@@ -369,127 +415,75 @@ class VncManager:
             LOG.info(f'VNC session cleanup completed for VM {vm_id}')
             return success
 
-    def _restore_state_from_system(self) -> None:
+    def _restore_state_from_system(self) -> None:  # noqa: C901
         """Restore VNC manager state from running websockify processes.
 
-        This method scans for running websockify processes in the VNC port range
-        and rebuilds the in-memory state to match the system reality.
+        Uses psutil to scan for websockify processes and extract port information.
+        This is more reliable than parsing ps aux output.
         """
         LOG.info('Restoring VNC Manager state from running processes...')
 
+        restored_count = 0
         try:
-            result = execute('ps', 'aux', params=ExecuteParams(timeout=10.0))
-            restored_count = self._parse_ps_output(result.stdout)
-            self._log_restore_result(restored_count)
-        except (UnsuccessReturnCodeError, ExecuteTimeoutExpiredError) as e:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    pinfo = proc.info
+                    if not pinfo['cmdline']:
+                        continue
+
+                    cmdline_str = ' '.join(pinfo['cmdline'])
+
+                    # Check if this is our websockify process
+                    if 'websockify' in cmdline_str and 'noVNC' in cmdline_str:
+                        # Extract port from command line
+                        ws_port = self._extract_port_from_cmdline(
+                            pinfo['cmdline']
+                        )
+                        if ws_port:
+                            self._allocated_ports.add(ws_port)
+                            LOG.debug(
+                                f'Restored websockify: PID {pinfo["pid"]}, '
+                                f'port {ws_port}'
+                            )
+                            restored_count += 1
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    # Process disappeared or we don't have access - skip it
+                    continue
+
+            if restored_count > 0:
+                LOG.info(
+                    f'Restored {restored_count} websockify processes '
+                    'to VNC Manager state'
+                )
+            else:
+                LOG.info('No existing websockify processes found')
+
+        except Exception as e:
             LOG.warning(f'Failed to restore VNC Manager state: {e}')
 
-    def _parse_ps_output(self, ps_output: str) -> int:
-        """Parse ps aux output and restore websockify processes.
+    def _extract_port_from_cmdline(self, cmdline: list) -> Optional[int]:
+        """Extract websockify port number from process command line arguments.
+
+        Searches through command line arguments to find a numeric argument
+        that falls within the configured VNC port range.
 
         Args:
-            ps_output: Output from 'ps aux' command
-
-        Returns:
-            Number of restored processes
-        """
-        restored_count = 0
-        for line in ps_output.split('\n'):
-            if not self._is_websockify_line(line):
-                continue
-
-            ws_port = self._extract_port_from_line(line)
-            if ws_port:
-                self._allocated_ports.add(ws_port)
-                pid = self._extract_pid_from_line(line)
-                LOG.debug(f'Restored websockify: PID {pid}, port {ws_port}')
-                restored_count += 1
-
-        return restored_count
-
-    def _is_websockify_line(self, line: str) -> bool:
-        """Check if a ps aux line contains a websockify process.
-
-        Filters for lines that contain both 'websockify' and 'noVNC' to ensure
-        we only match our VNC websockify processes, not other websockify
-        instances.
-
-        Args:
-            line: Single line from ps aux output
-
-        Returns:
-            bool: True if line contains websockify process, False otherwise
-        """
-        return 'websockify' in line and 'noVNC' in line
-
-    def _extract_pid_from_line(self, line: str) -> Optional[int]:
-        """Extract process ID from a ps aux output line.
-
-        Parses the PID from the second column of ps aux output after validating
-        the line has the minimum expected number of columns.
-
-        Args:
-            line: Single line from ps aux output
-
-        Returns:
-            Optional[int]: Process ID if found, None otherwise
-        """
-        try:
-            parts = line.split()
-            return int(parts[1]) if len(parts) >= MIN_PS_AUX_COLUMNS else None
-        except (ValueError, IndexError):
-            return None
-
-    def _extract_port_from_line(self, line: str) -> Optional[int]:
-        """Extract websockify port number from ps aux command line.
-
-        Searches through command line arguments (starting from column 11) to
-        find
-        a numeric argument that falls within the configured VNC port range.
-
-        Args:
-            line: Single line from ps aux output
+            cmdline: List of command line arguments
 
         Returns:
             Optional[int]: Port number if found in range, None otherwise
-
-        Note:
-            Only considers ports within VNC_WS_PORT_START to VNC_WS_PORT_END
-            range
         """
         try:
-            parts = line.split()
-            if len(parts) < MIN_PS_AUX_COLUMNS:
-                return None
-
-            # Look for port in command arguments (parts[11:])
-            for part in parts[11:]:
+            for arg in cmdline:
                 if (
-                    part.isdigit()
-                    and VNC_WS_PORT_START <= int(part) <= VNC_WS_PORT_END
+                    arg.isdigit()
+                    and VNC_WS_PORT_START <= int(arg) <= VNC_WS_PORT_END
                 ):
-                    return int(part)
-        except (ValueError, IndexError):
+                    return int(arg)
+        except (ValueError, TypeError):
             pass
         return None
-
-    def _log_restore_result(self, restored_count: int) -> None:
-        """Log the outcome of state restoration process.
-
-        Provides appropriate log messages based on whether any websockify
-        processes were found and restored to the manager's state.
-
-        Args:
-            restored_count: Number of processes successfully restored
-        """
-        if restored_count > 0:
-            msg = (
-                f'Restored {restored_count} websockify processes '
-                f'to VNC Manager state'
-            )
-            LOG.info(msg)
-        else:
-            LOG.info('No existing websockify processes found')
 
     def _find_process_by_port(self, port: int) -> Optional[int]:
         """Find the process ID listening on a specific port.
@@ -520,31 +514,6 @@ class VncManager:
         ):
             pass
         return None
-
-    def get_stats(self) -> Dict:
-        """Get current VNC manager statistics.
-
-        Returns comprehensive statistics about port usage and active sessions
-        for monitoring and debugging purposes.
-
-        Returns:
-            Dict: Statistics containing:
-                - total_ports: Total ports in configured range
-                - used_ports: Number of currently allocated ports
-                - free_ports: Number of available ports
-                - active_sessions: Number of active VM sessions
-                - port_range: String representation of port range
-        """
-        with self._port_lock:
-            total_ports = VNC_WS_PORT_END - VNC_WS_PORT_START + 1
-            used_ports = len(self._allocated_ports)
-            return {
-                'total_ports': total_ports,
-                'used_ports': used_ports,
-                'free_ports': total_ports - used_ports,
-                'active_sessions': len(self._vm_sessions),
-                'port_range': f'{VNC_WS_PORT_START}-{VNC_WS_PORT_END}',
-            }
 
 
 # Global singleton instance
@@ -606,31 +575,6 @@ def stop_vnc_session(vm_id: str) -> bool:
     Example:
         >>> success = stop_vnc_session('vm-001')
         >>> if success:
-        ...     print("VNC session stopped successfully")
+        ...     print('VNC session stopped successfully')
     """
     return vnc_manager.stop_vnc_session(vm_id)
-
-
-def get_vnc_stats() -> Dict:
-    """Get current statistics from the VNC manager.
-
-    This convenience function provides direct access to VNC manager statistics
-    for monitoring port usage and active sessions.
-
-    Returns:
-        Dict containing current statistics:
-            - total_ports: Total number of ports in the configured range
-            - used_ports: Number of currently allocated ports
-            - free_ports: Number of available ports remaining
-            - active_sessions: Number of active VM VNC sessions
-            - port_range: String representation of the port range
-              (e.g., "6100-6999")
-
-    Example:
-        >>> stats = get_vnc_stats()
-        >>> print(f"Port usage: {stats['used_ports']}/{stats['total_ports']}")
-        >>> print(f"Active sessions: {stats['active_sessions']}")
-        Port usage: 5/900
-        Active sessions: 3
-    """
-    return vnc_manager.get_stats()
