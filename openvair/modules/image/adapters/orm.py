@@ -63,7 +63,10 @@ class Image(Base):
     storage_type: Mapped[Optional[str]] = mapped_column(String(30), default='')
 
     attachments: Mapped[List['ImageAttachVM']] = relationship(
-        'ImageAttachVM', back_populates='image', uselist=True, lazy='selectin',
+        'ImageAttachVM',
+        back_populates='image',
+        uselist=True,
+        lazy='selectin',
     )
 
 

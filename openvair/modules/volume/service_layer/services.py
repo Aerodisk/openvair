@@ -462,8 +462,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             try:
                 db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
                 self._check_volume_exists_on_storage(
-                    volume.name,
-                    volume.storage_id
+                    volume.name, volume.storage_id
                 )
                 self._get_storage_info(volume.storage_id)
                 db_volume.status = VolumeStatus.new.name
@@ -475,8 +474,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                     % serialized_volume
                 )
             except (
-                    exceptions.VolumeExistsOnStorageException,
-                    exceptions.StorageUnavailableException,
+                exceptions.VolumeExistsOnStorageException,
+                exceptions.StorageUnavailableException,
             ) as err:
                 message = f'An error occurred while creating volume: {err!s}'
                 db_volume.status = VolumeStatus.error.name
@@ -541,9 +540,9 @@ class VolumeServiceLayerManager(BackgroundTasks):
                     int(db_volume.size), storage_info
                 )
             except (
-                    exceptions.VolumeStatusException,
-                    exceptions.ValidateArgumentsError,
-                    exceptions.StorageUnavailableException,
+                exceptions.VolumeStatusException,
+                exceptions.ValidateArgumentsError,
+                exceptions.StorageUnavailableException,
             ) as err:
                 message = f'An error occurred while creating volume: {err!s}'
                 db_volume.status = VolumeStatus.error.name
@@ -1310,8 +1309,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         with self.uow() as uow:
             return [
-                DataSerializer.to_domain(vol)
-                for vol in uow.volumes.get_all()
+                DataSerializer.to_domain(vol) for vol in uow.volumes.get_all()
             ]
 
     def _get_storages_dict(self) -> Dict[str, StorageInfo]:
@@ -1388,7 +1386,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         self._check_storage_on_availability(volume_storage)
         monitoring_statuses = [
-            status.name for status in VolumeStatus
+            status.name
+            for status in VolumeStatus
             if status.name != VolumeStatus.new.name
         ]
         self._check_volume_status(

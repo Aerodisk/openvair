@@ -121,9 +121,7 @@ class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
         """
         super().__init__(session, Snapshots)
 
-    def get_by_name(
-            self, vm_id: str, name: str
-    ) -> Optional[Snapshots]:
+    def get_by_name(self, vm_id: str, name: str) -> Optional[Snapshots]:
         """Retrieve a snapshot by its ID.
 
         Args:
@@ -206,7 +204,5 @@ class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
             List[Snapshots]: A list of children snapshot entities.
         """
         return (
-            self.session.query(Snapshots)
-            .filter_by(parent_id=snapshot.id)
-            .all()
+            self.session.query(Snapshots).filter_by(parent_id=snapshot.id).all()
         )

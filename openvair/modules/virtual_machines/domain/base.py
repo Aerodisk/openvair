@@ -366,12 +366,12 @@ class BaseLibvirtDriver(BaseVMDriver):
             name = data.get('domainsnapshot', {}).get('name')
             return str(name) if name is not None else None
         except (
-                KeyError,
-                AttributeError,
-                TypeError,
-                XMLDeserializationError
+            KeyError,
+            AttributeError,
+            TypeError,
+            XMLDeserializationError,
         ) as e:
-            message = f"XML parsing snapshot name failed: {e}"
+            message = f'XML parsing snapshot name failed: {e}'
             LOG.error(message)
             raise SnapshotXmlError(message)
 
@@ -393,12 +393,12 @@ class BaseLibvirtDriver(BaseVMDriver):
             snap_xml = deserialize_xml(snapshot_xml)
             parent = snap_xml['domainsnapshot'].get('parent', {}).get('name')
         except (
-                KeyError,
-                AttributeError,
-                TypeError,
-                XMLDeserializationError
+            KeyError,
+            AttributeError,
+            TypeError,
+            XMLDeserializationError,
         ) as e:
-            message = f"Failed to extract parent from snapshot XML: {e}"
+            message = f'Failed to extract parent from snapshot XML: {e}'
             LOG.error(message)
             raise SnapshotXmlError(message)
         else:
@@ -424,25 +424,27 @@ class BaseLibvirtDriver(BaseVMDriver):
             if not isinstance(disks, List):
                 disks = [disks]
             for disk in disks:
-                if (disk.get('@type') == 'file' and
-                        disk.get('@device') == 'disk' and
-                        disk.get('source', {}).get('@file')):
+                if (
+                    disk.get('@type') == 'file'
+                    and disk.get('@device') == 'disk'
+                    and disk.get('source', {}).get('@file')
+                ):
                     return str(disk['source']['@file'])
-            message = "No disk device with valid source file in snapshot XML"
+            message = 'No disk device with valid source file in snapshot XML'
             raise SnapshotXmlError(message)
         except (
-                KeyError,
-                AttributeError,
-                TypeError,
-                XMLDeserializationError
+            KeyError,
+            AttributeError,
+            TypeError,
+            XMLDeserializationError,
         ) as e:
-            message = f"XML parsing disk path failed with error: {e}"
+            message = f'XML parsing disk path failed with error: {e}'
             LOG.error(message)
             raise SnapshotXmlError(message)
 
     @staticmethod
     def _get_snapshot_creation_time_from_xml(
-            snapshot_xml: str
+        snapshot_xml: str,
     ) -> Optional[str]:
         """Extract creationTime from Libvirt XML.
 
@@ -460,19 +462,18 @@ class BaseLibvirtDriver(BaseVMDriver):
             creation_time = data.get('domainsnapshot', {}).get('creationTime')
             return str(creation_time) if creation_time is not None else None
         except (
-                KeyError,
-                AttributeError,
-                TypeError,
-                XMLDeserializationError
-            ) as e:
-            message = f"XML parsing creation time failed with error: {e}"
+            KeyError,
+            AttributeError,
+            TypeError,
+            XMLDeserializationError,
+        ) as e:
+            message = f'XML parsing creation time failed with error: {e}'
             LOG.error(message)
             raise SnapshotXmlError(message)
 
     @staticmethod
     def _update_snapshot_child_xml(
-            child_xml: str,
-            new_parent: Optional[str]
+        child_xml: str, new_parent: Optional[str]
     ) -> str:
         """Update child snapshot XML with new parent reference.
 
@@ -499,9 +500,9 @@ class BaseLibvirtDriver(BaseVMDriver):
             AttributeError,
             TypeError,
             XMLDeserializationError,
-            XMLSerializationError
+            XMLSerializationError,
         ) as e:
-            message = f"Failed to update child snapshot XML: {e}"
+            message = f'Failed to update child snapshot XML: {e}'
             LOG.error(message)
             raise SnapshotXmlError(message)
         else:
