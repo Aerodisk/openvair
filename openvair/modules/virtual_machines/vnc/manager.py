@@ -54,7 +54,7 @@ from .exceptions import (
 LOG = get_logger(__name__)
 
 
-class VncManager:
+class VNCManager:
     """Thread-safe VNC port manager with automatic state restoration.
 
     This class manages VNC websockify processes and port allocation using a
@@ -81,10 +81,10 @@ class VncManager:
         >>> success = manager.stop_vnc_session('vm-123')
     """
 
-    _instance: Optional['VncManager'] = None
+    _instance: Optional['VNCManager'] = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> 'VncManager':
+    def __new__(cls) -> 'VNCManager':
         """Create singleton instance with thread safety.
 
         Implements the singleton pattern to ensure only one VncManager instance
@@ -517,7 +517,7 @@ class VncManager:
 
 
 # Global singleton instance
-vnc_manager = VncManager()
+vnc_manager = VNCManager()
 
 
 # Convenience functions for easy integration with the global VNC manager
