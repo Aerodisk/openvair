@@ -89,6 +89,9 @@ from openvair.modules.virtual_network.entrypoints.api import router as vn_router
 from openvair.modules.virtual_machines.entrypoints.api import (
     router as vm_router,
 )
+from openvair.modules.control_plane.entrypoints.dev_api import (
+    router as control_plane_router,
+)
 
 # Include routers for different modules
 app.include_router(network)
@@ -105,6 +108,7 @@ app.include_router(block_router)
 app.include_router(vn_router)
 app.include_router(backup_router)
 app.include_router(tempalte_router)
+app.include_router(control_plane_router)
 
 project_dir = Path(__file__).parent
 templates = Jinja2Templates(directory=project_dir / 'dist')

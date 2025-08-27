@@ -1,0 +1,22 @@
+[cluster]
+name = "dev-lab"
+mode = "cluster"
+
+[infra]
+postgres.url = "postgresql://USER:PASS@localhost:5432/openvair_dev"
+rabbitmq.url = "amqp://USER:PASS@localhost:5672/openvair"
+
+[[nodes]]
+name = "ctrl-1"
+role = "controller"
+mgmt_addr = "127.0.0.1"
+
+[[nodes]]
+name = "cmp-1"
+role = "compute"
+mgmt_addr = "127.0.0.1"
+
+[[nodes]]
+name = "cmp-2"
+role = "compute"
+mgmt_addr = "127.0.0.1"
