@@ -193,9 +193,7 @@ class ResticBackuper(FSBackuper):
             LOG.info(f'Deleting snapshot: `{snapshot_id}`...')
             deleting_data = self.restic.forget(snapshot_id)
             LOG.info(f'Deleting snapshot `{snapshot_id}` complete')
-            return ResticDeleteResult.model_validate(
-                deleting_data
-            ).model_dump()
+            return ResticDeleteResult.model_validate(deleting_data).model_dump()
         except ResticError as err:
             message = f'Error while deleting snapshot {snapshot_id}: {err!s}'
             LOG.error(message)

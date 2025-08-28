@@ -14,4 +14,5 @@ class BackupServiceLayerManagerProtocolInterface(Protocol):
     This interface defines the methods that should be implemented by any class
     that manages backup-related operations in the service layer.
     """
+
     ...

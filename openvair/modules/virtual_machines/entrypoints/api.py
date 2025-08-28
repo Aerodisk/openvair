@@ -330,8 +330,10 @@ async def get_snapshots(
         schemas.ListOfSnapshots: A list of all snapshots of the specific
         virtual machine.
     """
-    LOG.info(f'API handling request to get snapshots of '
-             f'virtual machine with ID: {vm_id}.')
+    LOG.info(
+        f'API handling request to get snapshots of '
+        f'virtual machine with ID: {vm_id}.'
+    )
     snapshots = await run_in_threadpool(
         crud.get_snapshots, str(vm_id), user_info
     )
@@ -362,8 +364,10 @@ async def get_snapshot(
     Returns:
         schemas.SnapshotInfo: The snapshot data.
     """
-    LOG.info(f'API handling request to get a snapshot with ID: {snap_id} '
-             f'of virtual machine with ID: {vm_id}.')
+    LOG.info(
+        f'API handling request to get a snapshot with ID: {snap_id} '
+        f'of virtual machine with ID: {vm_id}.'
+    )
     snapshot = await run_in_threadpool(
         crud.get_snapshot, str(vm_id), str(snap_id), user_info
     )
@@ -395,13 +399,15 @@ async def create_snapshot(
     Returns:
         Dict: The created snapshot data.
     """
-    LOG.info(f'API handling request to create a snapshot '
-             f'of virtual machine with ID: {vm_id}.')
+    LOG.info(
+        f'API handling request to create a snapshot '
+        f'of virtual machine with ID: {vm_id}.'
+    )
     snapshot = await run_in_threadpool(
         crud.create_snapshot,
         str(vm_id),
         data.model_dump(mode='json'),
-        user_info
+        user_info,
     )
     LOG.info('API request was successfully processed.')
     return schemas.SnapshotInfo(**snapshot)
@@ -430,8 +436,10 @@ async def revert_snapshot(
     Returns:
         schemas.SnapshotInfo: The reverted snapshot data.
     """
-    LOG.info(f'API handling request to revert snapshot (ID: {snap_id}) '
-             f'of virtual machine with ID: {vm_id}')
+    LOG.info(
+        f'API handling request to revert snapshot (ID: {snap_id}) '
+        f'of virtual machine with ID: {vm_id}'
+    )
     snapshot = await run_in_threadpool(
         crud.revert_snapshot, str(vm_id), str(snap_id), user_info
     )

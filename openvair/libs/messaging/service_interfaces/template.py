@@ -30,6 +30,3 @@ class TemplateServiceLayerProtocolInterface(Protocol):
     def edit_template(self, updating_data: Dict) -> Dict: ...  # noqa: D102
 
     def delete_template(self, deleting_data: Dict) -> Dict: ...  # noqa: D102
-
-
-

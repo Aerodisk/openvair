@@ -17,4 +17,5 @@ class EntityNotFoundError(BaseCustomException):
     Typically used in repository methods like `get_or_fail` or `delete_or_fail`
     when an entity with the specified identifier does not exist.
     """
+
     ...

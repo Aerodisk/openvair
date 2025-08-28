@@ -18,6 +18,7 @@ from openvair.modules.block_device.adapters import repository
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
+
 class BlockDeviceSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """Unit of Work for the block_device module.
 
