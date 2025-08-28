@@ -158,7 +158,7 @@ def test_upload_image_long_name(
     name = generate_image_name()
     desc = ''
     if description:
-        desc = f'&description={generate_random_string(41)}'
+        desc = f'&description={generate_random_string(400)}'
     else:
         name = f'{generate_random_string(37)}.iso'
     with image_path.open("rb") as file:
