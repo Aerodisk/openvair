@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import wait_for_field_value
+from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 
 LOG = get_logger(__name__)
 
@@ -42,30 +43,39 @@ def test_turn_on_interface_success(
     )
 
 
-# TODO: Test this when fixed https://github.com/Aerodisk/openvair/issues/117
-#       (or other tests will fail due to network error)
-# def test_turn_on_bridge_success(
-#         client: TestClient, bridge: Dict
-# ) -> None:
-#     """Test successful bridge interface turn on.
-#
-#     Asserts:
-#     - Response is 200 OK with success message
-#     - Bridge interface power_state becomes 'UNKNOWN' (because it's a bridge)
-#     """
-#     bridge_name = bridge["name"]
-#     client.request('PUT', f'/interfaces/{bridge_name}/turn_off')
-#     wait_for_field_value(
-#         client, f'/interfaces/{bridge["id"]}/', 'power_state', 'DOWN'
-#     )
-#
-#     response = client.request('PUT', f'/interfaces/{bridge_name}/turn_on')
-#     assert response.status_code == status.HTTP_200_OK
-#     assert "turn on command was sent" in response.text.lower()
-#
-#     wait_for_field_value(
-#         client, f'/interfaces/{bridge["id"]}/', 'power_state', 'UNKNOWN'
-#     )
+# TODO: Test OVS only when fixed https://github.com/Aerodisk/openvair/issues/117
+#       (or other tests will fail due to network error when using OVS)
+def test_turn_on_bridge_success(
+        client: TestClient, bridge: Dict
+) -> None:
+    """Test successful bridge interface turn on.
+
+    Asserts:
+    - Response is 200 OK with success message
+    - Bridge interface power_state becomes 'UNKNOWN' (because it's a bridge)
+    """
+    if NETWORK_CONFIG_MANAGER == 'ovs':
+        raise AssertionError  # TODO: https://github.com/Aerodisk/openvair/issues/260
+
+    bridge_name = bridge["name"]
+    client.request('PUT', f'/interfaces/{bridge_name}/turn_off')
+    wait_for_field_value(
+        client,
+        f'/interfaces/{bridge["id"]}/',
+        'power_state',
+        'DOWN'
+    )
+
+    response = client.request('PUT', f'/interfaces/{bridge_name}/turn_on')
+    assert response.status_code == status.HTTP_200_OK
+    assert "turn on command was sent" in response.text.lower()
+
+    wait_for_field_value(
+        client,
+        f'/interfaces/{bridge["id"]}/',
+        'power_state',
+        'UNKNOWN'
+    )
 
 
 def test_turn_on_nonexistent_interface(client: TestClient) -> None:
@@ -83,17 +93,15 @@ def test_turn_on_nonexistent_interface(client: TestClient) -> None:
 
 
 def test_turn_on_interface_unauthorized(
-    pre_turned_off_interface: Dict, unauthorized_client: TestClient
+    unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized interface turn on.
 
     Asserts:
     - Response is 401 UNAUTHORIZED
     """
-    interface_name = pre_turned_off_interface['name']
-
     response = unauthorized_client.request(
-        'PUT', f'/interfaces/{interface_name}/turn_on'
+        'PUT', f'/interfaces/{"some_interface"}/turn_on'
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -121,29 +129,39 @@ def test_turn_off_interface_success(
     )
 
 
-# TODO: Test this when fixed https://github.com/Aerodisk/openvair/issues/117
-# def test_turn_off_bridge_success(
-#         client: TestClient, bridge: Dict
-# ) -> None:
-#     """Test successful bridge interface turn off.
-#
-#     Asserts:
-#     - Response is 200 OK with success message
-#     - Bridge interface power_state becomes 'DOWN'
-#     """
-#     bridge_name = bridge["name"]
-#     client.request('PUT', f'/interfaces/{bridge_name}/turn_on')
-#     wait_for_field_value(
-#         client, f'/interfaces/{bridge["id"]}/', 'power_state', 'UNKNOWN'
-#     )
-#
-#     response = client.request('PUT', f'/interfaces/{bridge_name}/turn_off')
-#     assert response.status_code == status.HTTP_200_OK
-#     assert "turn off command was sent" in response.text.lower()
-#
-#     wait_for_field_value(
-#         client, f'/interfaces/{bridge["id"]}/', 'power_state', 'DOWN'
-#     )
+# TODO: Test OVS only when fixed https://github.com/Aerodisk/openvair/issues/117
+#       (or other tests will fail due to network error when using OVS)
+def test_turn_off_bridge_success(
+        client: TestClient, bridge: Dict
+) -> None:
+    """Test successful bridge interface turn off.
+
+    Asserts:
+    - Response is 200 OK with success message
+    - Bridge interface power_state becomes 'DOWN'
+    """
+    if NETWORK_CONFIG_MANAGER == 'ovs':
+        raise AssertionError  # TODO: https://github.com/Aerodisk/openvair/issues/260
+
+    bridge_name = bridge["name"]
+    client.request('PUT', f'/interfaces/{bridge_name}/turn_on')
+    wait_for_field_value(
+        client,
+        f'/interfaces/{bridge["id"]}/',
+        'power_state',
+        'UNKNOWN'
+    )
+
+    response = client.request('PUT', f'/interfaces/{bridge_name}/turn_off')
+    assert response.status_code == status.HTTP_200_OK
+    assert "turn off command was sent" in response.text.lower()
+
+    wait_for_field_value(
+        client,
+        f'/interfaces/{bridge["id"]}/',
+        'power_state',
+        'DOWN'
+    )
 
 
 def test_turn_off_nonexistent_interface(client: TestClient) -> None:
@@ -161,16 +179,14 @@ def test_turn_off_nonexistent_interface(client: TestClient) -> None:
 
 
 def test_turn_off_interface_unauthorized(
-    pre_turned_on_interface: Dict, unauthorized_client: TestClient
+    unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized interface turn off.
 
     Asserts:
     - Response is 401 UNAUTHORIZED
     """
-    interface_name = pre_turned_on_interface['name']
-
     response = unauthorized_client.request(
-        'PUT', f'/interfaces/{interface_name}/turn_off'
+        'PUT', f'/interfaces/{"some_interface"}/turn_off'
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

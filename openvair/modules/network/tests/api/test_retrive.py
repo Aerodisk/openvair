@@ -112,14 +112,14 @@ def test_get_interface_by_id(client: TestClient, bridge: Dict) -> None:
 
 
 def test_get_interface_by_id_unauthorized(
-    bridge: Dict, unauthorized_client: TestClient
+    unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized access to specific interface.
 
     Asserts:
     - HTTP 401 Unauthorized
     """
-    response = unauthorized_client.get(f'/interfaces/{bridge["id"]}/')
+    response = unauthorized_client.get(f'/interfaces/{uuid.uuid4()!s}/')
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -129,9 +129,9 @@ def test_get_interface_nonexistent(client: TestClient) -> None:
     Asserts:
     - Response is 404 (expected REST) or 500 (current impl)
     """
-    fake_id = str(uuid.uuid4())
-    response = client.get(f'/interfaces/{fake_id}/')
+    response = client.get(f'/interfaces/{uuid.uuid4()!s}/')
     assert response.status_code in (
         status.HTTP_404_NOT_FOUND,
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+    assert 'not found' in response.text.lower()

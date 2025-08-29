@@ -28,8 +28,8 @@ def cleanup_bridges() -> Generator[None, Any, None]:
 
 
 @pytest.fixture
-def non_default_interface(client: TestClient) -> Optional[Dict]:
-    """Get a non-default physical interface (without IP)."""
+def interface_without_ip(client: TestClient) -> Optional[Dict]:
+    """Get an interface without IP."""
     response = client.get('/interfaces/')
     interfaces_data = response.json()
     interfaces = interfaces_data.get('items', [])

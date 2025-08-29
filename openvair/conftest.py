@@ -18,6 +18,7 @@ from openvair.libs.testing.utils import (
     cleanup_test_bridges,
     wait_for_field_value,
     cleanup_all_templates,
+    wait_for_field_not_empty,
     cleanup_all_notifications,
     generate_test_entity_name,
 )
@@ -332,7 +333,7 @@ def notification() -> Generator[Dict, None, None]:
     cleanup_all_notifications()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def physical_interface(client: TestClient) -> Optional[Dict]:
     """Get physical interface by name from environment variable."""
     response = client.get('/interfaces/')
@@ -341,6 +342,9 @@ def physical_interface(client: TestClient) -> Optional[Dict]:
 
     for interface in interfaces:
         if interface['name'] == network_settings.network_interface:
+            wait_for_field_not_empty(
+                client, f'/interfaces/{interface["id"]}', 'ip'
+            )
             return cast(Dict, interface)
 
     return None
@@ -351,19 +355,45 @@ def bridge(
     client: TestClient, physical_interface: Dict
 ) -> Generator[Dict, None, None]:
     """Create a test bridge and delete it after test."""
-    bridge_data = {
+    bridge_data_to_create = {
         'name': generate_test_entity_name('br'),
         'type': 'bridge',
         'interfaces': [physical_interface],
         'ip': '',
     }
 
-    response = client.post('/interfaces/create/', json=bridge_data)
-    bridge_data = response.json()
+    response = client.post('/interfaces/create/', json=bridge_data_to_create)
+    bridge_data_response = response.json()
     wait_for_field_value(
-        client, f'/interfaces/{bridge_data["id"]}', 'status', 'available'
+        client,
+        f'/interfaces/{bridge_data_response["id"]}',
+        'status',
+        'available',
+    )
+    wait_for_field_not_empty(
+        client,
+        f'/interfaces/{bridge_data_response["id"]}',
+        'ip',
     )
 
+    response = client.get(f'/interfaces/{bridge_data_response["id"]}')
+    bridge_data = response.json()
+
     yield bridge_data
+
+    # TODO: Remove when fixed https://github.com/Aerodisk/openvair/issues/117
+    #       (or other tests will fail due to network error)
+    response = client.get('/interfaces/')
+    interfaces_data = response.json()
+    interfaces = interfaces_data.get('items', [])
+    for interface in interfaces:
+        if interface['id'] == bridge_data["id"]:
+            client.request('PUT', f'/interfaces/{bridge_data["name"]}/turn_on')
+            wait_for_field_value(
+                client,
+                f'/interfaces/{bridge_data["id"]}/',
+                'power_state',
+                'UNKNOWN'
+            )
 
     cleanup_test_bridges()
