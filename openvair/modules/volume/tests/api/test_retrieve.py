@@ -89,9 +89,7 @@ def test_get_volumes_with_invalid_free_volumes_param(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_get_all_volumes_unauthorized(
-        unauthorized_client: TestClient
-) -> None:
+def test_get_all_volumes_unauthorized(unauthorized_client: TestClient) -> None:
     """Test unauthorized request returns 401."""
     response = unauthorized_client.get('/volumes/')
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -122,7 +120,7 @@ def test_get_volume_with_invalid_uuid(client: TestClient) -> None:
 
 
 def test_get_existing_volume_by_id_unauthorized(
-        volume: Dict, unauthorized_client: TestClient
+    volume: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_id = volume['id']

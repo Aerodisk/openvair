@@ -185,6 +185,7 @@ async def upload_image(  # noqa: PLR0913 не возможно передать 
     else:
         return schemas.Image(**upload_info)
 
+
 @router.delete(
     '/{image_id}/',
     status_code=status.HTTP_200_OK,

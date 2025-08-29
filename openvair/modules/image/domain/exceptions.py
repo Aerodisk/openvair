@@ -24,7 +24,7 @@ class ImageDoesNotExistOnStorage(BaseCustomException):
         BaseCustomException (type): Parent exception class.
     """
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the ImageDoesNotExistOnStorage exception.
 
         Args:

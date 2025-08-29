@@ -106,7 +106,7 @@ def test_extend_volume_status_not_available(
 
 
 def test_extend_volume_unauthorized(
-        volume: Dict, unauthorized_client: TestClient
+    volume: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_id = volume['id']

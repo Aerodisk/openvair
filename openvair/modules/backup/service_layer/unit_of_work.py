@@ -30,7 +30,8 @@ class BackupSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """
 
     def __init__(
-        self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY,
+        self,
+        session_factory: sessionmaker = DEFAULT_SESSION_FACTORY,
     ) -> None:
         """Initialize the SQLAlchemyUnitOfWork.
 

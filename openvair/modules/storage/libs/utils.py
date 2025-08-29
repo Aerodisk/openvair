@@ -89,7 +89,6 @@ def get_block_devices_info() -> List[Dict[str, Any]]:
     return result
 
 
-
 def get_system_disks(*, is_need_children: bool = False) -> List[Dict[str, Any]]:
     """Retrieve information about local disks on the system.
 

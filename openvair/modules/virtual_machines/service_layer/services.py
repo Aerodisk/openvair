@@ -253,10 +253,10 @@ class VMServiceLayerManager(BackgroundTasks):
 
     @staticmethod
     def _process_attach_disk(
-            disk_info: Dict,
-            disk_ids: Set[str],
-            attach_volumes: List,
-            attach_images: List
+        disk_info: Dict,
+        disk_ids: Set[str],
+        attach_volumes: List,
+        attach_images: List,
     ) -> None:
         """Process and validate an attached disk information.
 
@@ -321,18 +321,22 @@ class VMServiceLayerManager(BackgroundTasks):
             disk_id = None
             if attach_disk.get('volume_id', ''):
                 disk_id = attach_disk.get('volume_id', '')
-                attach_disk.update({
-                    'type': DiskType.volume.name,
-                    'disk_id': disk_id,
-                    'read_only': attach_disk.get('read_only', False),
-                })
+                attach_disk.update(
+                    {
+                        'type': DiskType.volume.name,
+                        'disk_id': disk_id,
+                        'read_only': attach_disk.get('read_only', False),
+                    }
+                )
             elif attach_disk.get('image_id', ''):
                 disk_id = attach_disk.get('image_id', '')
-                attach_disk.update({
-                    'type': DiskType.image.name,
-                    'disk_id': disk_id,
-                    'read_only': True,
-                })
+                attach_disk.update(
+                    {
+                        'type': DiskType.image.name,
+                        'disk_id': disk_id,
+                        'read_only': True,
+                    }
+                )
             elif attach_disk.get('storage_id', ''):
                 attach_disk.update({'user_info': user_info})
                 create_vm_info.auto_create_volumes.append(attach_disk)
@@ -361,9 +365,7 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Inserting vm information into database.')
         db_vm = cast(
             orm.VirtualMachines,
-            DataSerializer.to_db(
-                create_vm_info._asdict(), orm.VirtualMachines
-            ),
+            DataSerializer.to_db(create_vm_info._asdict(), orm.VirtualMachines),
         )
 
         db_vm.cpu = cast(
@@ -397,9 +399,7 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm.virtual_interfaces.append(
                 cast(
                     orm.VirtualInterface,
-                    DataSerializer.to_db(
-                        virt_interface, orm.VirtualInterface
-                    ),
+                    DataSerializer.to_db(virt_interface, orm.VirtualInterface),
                 )
             )
 
@@ -584,11 +584,13 @@ class VMServiceLayerManager(BackgroundTasks):
                 continue
 
             available_volume.update(volume)
-            available_volume.update({
-                'disk_id': available_volume.get('id'),
-                'type': DiskType.volume.name,
-                'read_only': available_volume.get('read_only', False),
-            })
+            available_volume.update(
+                {
+                    'disk_id': available_volume.get('id'),
+                    'type': DiskType.volume.name,
+                    'read_only': available_volume.get('read_only', False),
+                }
+            )
             available_volume.pop('id')
             auto_created_volumes.append(available_volume)
         LOG.info('Volumes was successfully created.')
@@ -655,11 +657,13 @@ class VMServiceLayerManager(BackgroundTasks):
             message = 'Unexpected disk type.'
             LOG.error(message)
             raise exceptions.UnexpectedDataArguments(message)
-        disk.update({
-            'path': attach_info.get('path', ''),
-            'size': int(attach_info.get('size', 0)),
-            'provisioning': attach_info.get('provisioning', ''),
-        })
+        disk.update(
+            {
+                'path': attach_info.get('path', ''),
+                'size': int(attach_info.get('size', 0)),
+                'provisioning': attach_info.get('provisioning', ''),
+            }
+        )
         LOG.info('Disk was successfully attached to vm.')
         return disk
 
@@ -679,7 +683,7 @@ class VMServiceLayerManager(BackgroundTasks):
             for disk in disks:
                 disk_id = disk.get('disk_id')
                 if disk_id and disk_id in existing_disk_ids:
-                    message = f"Disk {disk_id} is already attached to this VM"
+                    message = f'Disk {disk_id} is already attached to this VM'
                     LOG.error(message)
                     raise exceptions.DuplicateDiskException(message)
             for disk in disks:
@@ -1014,7 +1018,7 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             current_snap = uow.snapshots.get_current(vm_id)
             data['snapshot_info'] = {
-                'current_snap_name': current_snap.name if current_snap else ""
+                'current_snap_name': current_snap.name if current_snap else ''
             }
         try:
             start_info = self.domain_rpc.call(
@@ -1053,9 +1057,7 @@ class VMServiceLayerManager(BackgroundTasks):
             LOG.info('Response on _start_vm was successfully processed.')
 
     def _set_recreated_snapshots_statuses(
-            self,
-            vm_id: str,
-            redefined_snaps: List
+        self, vm_id: str, redefined_snaps: List
     ) -> None:
         """Update snapshot statuses to 'creating' after successful VM start.
 
@@ -1201,18 +1203,22 @@ class VMServiceLayerManager(BackgroundTasks):
             disk_id = None
             if attach_disk.get('volume_id', ''):
                 disk_id = attach_disk.get('volume_id', '')
-                attach_disk.update({
-                    'type': DiskType.volume.name,
-                    'disk_id': disk_id,
-                    'read_only': attach_disk.get('read_only', False),
-                })
+                attach_disk.update(
+                    {
+                        'type': DiskType.volume.name,
+                        'disk_id': disk_id,
+                        'read_only': attach_disk.get('read_only', False),
+                    }
+                )
             elif attach_disk.get('image_id', ''):
                 disk_id = attach_disk.get('image_id', '')
-                attach_disk.update({
-                    'type': DiskType.image.name,
-                    'disk_id': disk_id,
-                    'read_only': True,
-                })
+                attach_disk.update(
+                    {
+                        'type': DiskType.image.name,
+                        'disk_id': disk_id,
+                        'read_only': True,
+                    }
+                )
             elif attach_disk.get('storage_id', ''):
                 edit_vm_info.auto_create_volumes.append(attach_disk)
                 continue
@@ -1415,9 +1421,7 @@ class VMServiceLayerManager(BackgroundTasks):
     def _process_vm_edit_interfaces(self, vm_edit_info: EditVmInfo) -> None:
         """Process editing and detaching virtual interfaces for the VM."""
         if vm_edit_info.edit_virtual_interfaces:
-            self._edit_virtual_interfaces(
-                vm_edit_info.edit_virtual_interfaces
-            )
+            self._edit_virtual_interfaces(vm_edit_info.edit_virtual_interfaces)
 
         if vm_edit_info.detach_virtual_interfaces:
             self._detach_virtual_interfaces_from_vm(
@@ -1430,7 +1434,7 @@ class VMServiceLayerManager(BackgroundTasks):
             )
 
     def _process_vm_volumes(
-            self, vm_edit_info: EditVmInfo, vm_id: UUID, user_info: Dict
+        self, vm_edit_info: EditVmInfo, vm_id: UUID, user_info: Dict
     ) -> None:
         """Process attaching volumes and creating new disks for the VM."""
         with self.uow() as uow:
@@ -1477,7 +1481,6 @@ class VMServiceLayerManager(BackgroundTasks):
         else:
             return result
 
-
     def clone_vm(self, data: Dict) -> List[Dict]:
         """Clone a virtual machine.
 
@@ -1516,43 +1519,32 @@ class VMServiceLayerManager(BackgroundTasks):
         volumes = self.volume_service_client.get_all_volumes(
             {'storage_id': target_storage_id}
         )
-        disk_names = [volume["name"] for volume in volumes]
-        attached_disks = [disk["name"] for disk in original_vm.get('disks', [])]
+        disk_names = [volume['name'] for volume in volumes]
+        attached_disks = [disk['name'] for disk in original_vm.get('disks', [])]
 
         max_numbers = {}
         for disk in attached_disks:
-            max_number = get_max_clone_number(
-                disk,
-                disk_names,
-                count
-            )
+            max_number = get_max_clone_number(disk, disk_names, count)
             max_numbers[disk] = max_number
 
         vms = self.get_all_vms()
 
-        vm_names = [vm["name"] for vm in vms]
+        vm_names = [vm['name'] for vm in vms]
         max_vm_number = get_max_clone_number(
-            original_vm["name"],
-            vm_names,
-            count
+            original_vm['name'], vm_names, count
         )
 
         # Create *count* of clones
         for i in range(count):
-
             # 1. Build minimal create_VM payload
             clone_payload = self._transform_clone_vm_data(
-                original_vm,
-                user_info,
-                target_storage_id,
-                max_numbers,
-                i
+                original_vm, user_info, target_storage_id, max_numbers, i
             )
 
             clone_payload['name'] = create_new_clone_name(
-                original_vm["name"],
+                original_vm['name'],
                 max_vm_number + i + 1,
-                cast(String, orm.VirtualMachines.__table__.c.name.type).length
+                cast(String, orm.VirtualMachines.__table__.c.name.type).length,
             )
 
             # 2. Prepare & insert stub record into DB
@@ -1581,7 +1573,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info: Dict,
         target_storage_id: UUID,
         max_numbers: Dict,
-        current_copy: int
+        current_copy: int,
     ) -> Dict:
         """Convert VM data for cloning.
 
@@ -1635,7 +1627,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 user_info,
                 max_numbers,
                 target_storage_id,
-                current_copy
+                current_copy,
             )
 
             data['disks'] = {'attach_disks': attach_disks}
@@ -1652,7 +1644,7 @@ class VMServiceLayerManager(BackgroundTasks):
         user_info: Dict,
         max_numbers: Dict,
         target_storage_id: UUID,
-        current_copy: int
+        current_copy: int,
     ) -> List[Dict]:
         """Transform VM disks for cloning.
 
@@ -1675,8 +1667,7 @@ class VMServiceLayerManager(BackgroundTasks):
         attach_disks: List[Dict] = []
         for disk in disks_list:
             new_name = create_new_clone_name(
-                disk["name"],
-                max_numbers[disk["name"]] + current_copy + 1
+                disk['name'], max_numbers[disk['name']] + current_copy + 1
             )
 
             new_disk = {
@@ -1832,30 +1823,30 @@ class VMServiceLayerManager(BackgroundTasks):
         max_snapshot_count = 10
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
-            snap_count = len(
-                uow.snapshots.get_all_by_vm(vm_id)
-            )
+            snap_count = len(uow.snapshots.get_all_by_vm(vm_id))
             if snap_count >= max_snapshot_count:
-                message = (f"VM {vm_id} has already reached maximum snapshot "
-                           f"limit ({snap_count+1} > {max_snapshot_count}).")
+                message = (
+                    f'VM {vm_id} has already reached maximum snapshot '
+                    f'limit ({snap_count+1} > {max_snapshot_count}).'
+                )
                 LOG.error(message)
                 raise exceptions.SnapshotLimitExceeded(message)
             exist_snapshot = uow.snapshots.get_by_name(vm_id, name)
             if exist_snapshot is not None:
-                message = (f"Snapshot with name '{name}' already exists "
-                           f"for VM {vm_id}")
+                message = (
+                    f"Snapshot with name '{name}' already exists "
+                    f'for VM {vm_id}'
+                )
                 LOG.error(message)
                 raise exceptions.SnapshotNameExistsError(message)
             self._check_vm_power_state(
-                db_vm.power_state,
-                [VmPowerState.running.name]
+                db_vm.power_state, [VmPowerState.running.name]
             )
             db_vm.power_state = VmPowerState.paused.name
             current_snap = uow.snapshots.get_current(vm_id)
             if current_snap:
                 self._check_snapshot_status(
-                    current_snap.status,
-                    [SnapshotStatus.running.name]
+                    current_snap.status, [SnapshotStatus.running.name]
                 )
                 uow.snapshots.unset_current(vm_id)
             snapshot_data = {
@@ -1886,7 +1877,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 'snapshot_id': result['id'],
                 'snapshot_name': name,
                 'user_info': user_info,
-            }
+            },
         )
         LOG.info('Snapshot creation process started')
         return result
@@ -1906,8 +1897,8 @@ class VMServiceLayerManager(BackgroundTasks):
                 'snapshot_info': {
                     'vm_name': db_vm.name,
                     'snapshot_name': db_snap.name,
-                    'description': db_snap.description
-                }
+                    'description': db_snap.description,
+                },
             }
         self.domain_rpc.cast(
             BaseVMDriver.create_snapshot.__name__,
@@ -1917,10 +1908,9 @@ class VMServiceLayerManager(BackgroundTasks):
             vm_id,
             user_id,
             self._create_snapshot.__name__,
-            f"Snapshot {db_snap.name} created",
+            f'Snapshot {db_snap.name} created',
         )
-        LOG.info('Response on _create_snapshot was successfully '
-                 'processed.')
+        LOG.info('Response on _create_snapshot was successfully ' 'processed.')
 
     @staticmethod
     def _check_snapshot_status(
@@ -1979,18 +1969,15 @@ class VMServiceLayerManager(BackgroundTasks):
                 LOG.error(message)
                 raise exceptions.SnapshotNotFoundException(message)
             self._check_vm_power_state(
-                db_vm.power_state,
-                [VmPowerState.running.name]
+                db_vm.power_state, [VmPowerState.running.name]
             )
             self._check_snapshot_status(
-                db_snap.status,
-                [SnapshotStatus.running.name]
+                db_snap.status, [SnapshotStatus.running.name]
             )
             current_snap = uow.snapshots.get_current(vm_id)
             if current_snap:
                 self._check_snapshot_status(
-                    current_snap.status,
-                    [SnapshotStatus.running.name]
+                    current_snap.status, [SnapshotStatus.running.name]
                 )
             db_snap.status = SnapshotStatus.reverting.name
             db_vm.power_state = VmPowerState.paused.name
@@ -2011,8 +1998,8 @@ class VMServiceLayerManager(BackgroundTasks):
             data_for_method={
                 'vm_id': vm_id,
                 'snapshot_id': snapshot_id,
-                'user_info': user_info
-            }
+                'user_info': user_info,
+            },
         )
         LOG.info('Snapshot reverting process started')
         return result
@@ -2038,18 +2025,18 @@ class VMServiceLayerManager(BackgroundTasks):
                 **serialized_vm,
                 'snapshot_info': {
                     'vm_name': db_vm.name,
-                    'snapshot_name': snap_name
-                }
+                    'snapshot_name': snap_name,
+                },
             }
         self.domain_rpc.cast(
             BaseVMDriver.revert_snapshot.__name__,
-            data_for_manager=prepared_data
+            data_for_manager=prepared_data,
         )
         self.event_store.add_event(
             vm_id,
             user_id,
             self._revert_snapshot.__name__,
-            f"Successfully reverted snapshot {snap_name}",
+            f'Successfully reverted snapshot {snap_name}',
         )
         LOG.info('Response on _revert_snapshot was successfully processed.')
 
@@ -2089,17 +2076,14 @@ class VMServiceLayerManager(BackgroundTasks):
                 raise exceptions.SnapshotNotFoundException(message)
             self._check_vm_power_state(
                 db_vm.power_state,
-                [
-                    VmPowerState.running.name,
-                    VmPowerState.shut_off.name
-                ]
+                [VmPowerState.running.name, VmPowerState.shut_off.name],
             )
             self._check_snapshot_status(
                 db_snap.status,
                 [
                     SnapshotStatus.running.name,
                     SnapshotStatus.error.name,
-                ]
+                ],
             )
             result = DataSerializer.snapshot_to_web(db_snap)
             result['vm_name'] = db_vm.name
@@ -2111,11 +2095,13 @@ class VMServiceLayerManager(BackgroundTasks):
                     vm_id,
                     user_info.get('id'),
                     self.delete_snapshot.__name__,
-                    f"Successfully deleted snapshot "
-                    f"{db_snap.name} from the database.",
+                    f'Successfully deleted snapshot '
+                    f'{db_snap.name} from the database.',
                 )
-                LOG.info('Snapshot with status "error" was deleted from '
-                         'the database')
+                LOG.info(
+                    'Snapshot with status "error" was deleted from '
+                    'the database'
+                )
                 return result
             db_snap.status = SnapshotStatus.deleting.name
             result['status'] = SnapshotStatus.deleting.name
@@ -2125,8 +2111,8 @@ class VMServiceLayerManager(BackgroundTasks):
             data_for_method={
                 'vm_id': vm_id,
                 'snapshot_id': snapshot_id,
-                'user_info': user_info
-            }
+                'user_info': user_info,
+            },
         )
         LOG.info('Snapshot deletion process started')
         return result
@@ -2157,7 +2143,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     'snapshot_name': snap_name,
                     'snapshot_id': snapshot_id,
                     'children_names': children_names,
-                }
+                },
             }
         try:
             self.domain_rpc.call(
@@ -2177,7 +2163,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 vm_id,
                 user_id,
                 self._delete_snapshot.__name__,
-                f"Successfully deleted snapshot {snap_name}",
+                f'Successfully deleted snapshot {snap_name}',
             )
             LOG.info('Response on _delete_snapshot was successfully processed.')
 
@@ -2208,20 +2194,24 @@ class VMServiceLayerManager(BackgroundTasks):
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             db_snapshots = uow.snapshots.get_all_by_vm(vm_id)
             db_vm.status = VmStatus.deleting_snapshots.name
-            snapshots = [DataSerializer.snapshot_to_web(snapshot)
-                         for snapshot in db_snapshots]
+            snapshots = [
+                DataSerializer.snapshot_to_web(snapshot)
+                for snapshot in db_snapshots
+            ]
             uow.commit()
         for snapshot in snapshots:
             if snapshot['status'] == SnapshotStatus.error.name:
                 self._delete_snapshot_from_db(snapshot['id'])
-                LOG.info(f'Snapshot {snapshot["name"]} with status "error" '
-                         f'was deleted from the database.')
+                LOG.info(
+                    f'Snapshot {snapshot["name"]} with status "error" '
+                    f'was deleted from the database.'
+                )
                 continue
             self._delete_snapshot(
                 {
                     'vm_id': vm_id,
                     'snapshot_id': snapshot['id'],
-                    'user_info': user_info
+                    'user_info': user_info,
                 }
             )
             LOG.info(f'Snapshot {snapshot["name"]} deleted.')
@@ -2238,20 +2228,21 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_snaps = uow.snapshots.get_all_by_vm(vm_id)
             for db_snap in db_snaps:
-                if (db_snap.name not in libvirt_snaps and
-                        db_snap.status != SnapshotStatus.creating.name):
+                if (
+                    db_snap.name not in libvirt_snaps
+                    and db_snap.status != SnapshotStatus.creating.name
+                ):
                     db_snap.status = SnapshotStatus.error.name
-                elif (db_snap.status == SnapshotStatus.creating.name or
-                        (db_snap.status == SnapshotStatus.reverting.name and
-                         db_snap.name == libvirt_current_snap)):
+                elif db_snap.status == SnapshotStatus.creating.name or (
+                    db_snap.status == SnapshotStatus.reverting.name
+                    and db_snap.name == libvirt_current_snap
+                ):
                     db_snap.status = SnapshotStatus.running.name
             uow.commit()
         self._update_current_snapshot(vm_id, libvirt_current_snap)
 
     def _update_current_snapshot(
-            self,
-            vm_id: str,
-            libvirt_current_snap: Optional[str]
+        self, vm_id: str, libvirt_current_snap: Optional[str]
     ) -> None:
         """Update is_current flag for VM snapshots.
 
