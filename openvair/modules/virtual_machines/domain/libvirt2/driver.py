@@ -264,7 +264,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         try:
             # Use the VNC manager for port allocation and websockify
             session_result = start_vnc_session(
-                vm_id=vm_name, vnc_host='localhost', vnc_port=vnc_port
+                vm_name=vm_name, vnc_host='localhost', vnc_port=vnc_port
             )
 
             # Store session info in vm_info for cleanup
