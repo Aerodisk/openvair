@@ -38,9 +38,10 @@ def interface_without_ip(client: TestClient) -> Optional[Dict]:
         if (
             interface['name'] != network_settings.network_interface
             and not interface['ip']
+            and interface['inf_type'] == 'physical'
         ):
             return cast(Dict, interface)
-
+    pytest.skip()
     return None
 
 

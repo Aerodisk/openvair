@@ -185,7 +185,7 @@ def test_create_bridge_empty_interfaces_success(
     assert net_test_response_ru.status_code == status.HTTP_200_OK
 
 
-def test_create_bridge_with_multiple_interfaces(
+def test_create_bridge_multiple_interfaces_success(
         client: TestClient,
         cleanup_bridges: None,
         physical_interface: Dict,
