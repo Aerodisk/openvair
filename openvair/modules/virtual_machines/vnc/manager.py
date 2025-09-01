@@ -23,7 +23,6 @@ Example:
     >>> print(result['url'])  # http://server:6100/vnc.html?host=server&port=6100
 
 Author: OpenVair Development Team
-Version: 2.0 (Simplified)
 """
 
 import socket
