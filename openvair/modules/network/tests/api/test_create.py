@@ -270,6 +270,18 @@ def test_create_bridge_duplicate_name(
 
     response1 = client.post('/interfaces/create/', json=bridge_data)
     assert response1.status_code == status.HTTP_201_CREATED
+    bridge1_data = response1.json()
+    wait_for_field_value(
+        client,
+        f'/interfaces/{bridge1_data["id"]}',
+        'status',
+        'available',
+    )
+    wait_for_field_not_empty(
+        client,
+        f'/interfaces/{bridge1_data["id"]}',
+        'ip',
+    )
 
     response2 = client.post('/interfaces/create/', json=bridge_data)
     assert response2.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
