@@ -178,21 +178,21 @@ class VNCManager:
         )
         raise VncPortAllocationError(msg)
 
-    def _cleanup_existing_session_resources(self, vm_id: str) -> None:
+    def _cleanup_existing_session_resources(self, vm_name: str) -> None:
         """Clean up resources for an existing VNC session.
 
         Args:
-            vm_id: VM identifier for the session to cleanup
+            vm_name: VM name for the session to cleanup
 
         Note:
             Assumes _port_lock is already held by the caller.
         """
-        if vm_id not in self._vm_sessions:
+        if vm_name not in self._vm_sessions:
             return
 
-        existing = self._vm_sessions[vm_id]
+        existing = self._vm_sessions[vm_name]
         LOG.info(
-            f'VNC session already exists for VM {vm_id}, stopping old '
+            f'VNC session already exists for VM {vm_name}, stopping old '
             f'session (port {existing["ws_port"]}, '
             f'PID {existing["pid"]})'
         )
@@ -213,15 +213,15 @@ class VNCManager:
 
         # Cleanup old session data
         self._allocated_ports.discard(existing['ws_port'])
-        del self._vm_sessions[vm_id]
+        del self._vm_sessions[vm_name]
 
     def _start_websockify_process(
-        self, vm_id: str, vnc_host: str, vnc_port: int, ws_port: int
+        self, vm_name: str, vnc_host: str, vnc_port: int, ws_port: int
     ) -> int:
         """Start websockify process and return its PID.
 
         Args:
-            vm_id: VM identifier for logging
+            vm_name: VM name for logging
             vnc_host: VNC server host
             vnc_port: VNC server port
             ws_port: WebSocket port to use
@@ -234,7 +234,7 @@ class VNCManager:
             VncProcessNotFoundError: If PID cannot be determined
         """
         LOG.info(
-            f'Starting VNC for VM {vm_id}: '
+            f'Starting VNC for VM {vm_name}: '
             f'{vnc_host}:{vnc_port} -> ws:{ws_port}'
         )
 
@@ -250,7 +250,7 @@ class VNCManager:
                 params=ExecuteParams(raise_on_error=True),
             )
         except UnsuccessReturnCodeError as e:
-            error_msg = f'Failed to start websockify for VM {vm_id}: {e}'
+            error_msg = f'Failed to start websockify for VM {vm_name}: {e}'
             LOG.error(error_msg)
             raise VncSessionStartupError(error_msg) from e
 
@@ -288,12 +288,12 @@ class VNCManager:
         }
 
     def start_vnc_session(
-        self, vm_id: str, vnc_host: str, vnc_port: int
+        self, vm_name: str, vnc_host: str, vnc_port: int
     ) -> Dict[str, str]:
         """Start VNC session with automatic port allocation.
 
         Args:
-            vm_id: VM identifier
+            vm_name: The virtual machine name
             vnc_host: VNC server host (usually 'localhost')
             vnc_port: VNC server port (e.g., 5900)
 
@@ -305,7 +305,7 @@ class VNCManager:
         """
         with self._port_lock:
             self.cleanup_dead_sessions()
-            self._cleanup_existing_session_resources(vm_id)
+            self._cleanup_existing_session_resources(vm_name)
 
             # Find and allocate free port
             ws_port = self._find_free_port()
@@ -313,14 +313,14 @@ class VNCManager:
 
             try:
                 pid = self._start_websockify_process(
-                    vm_id, vnc_host, vnc_port, ws_port
+                    vm_name, vnc_host, vnc_port, ws_port
                 )
                 session_info = self._create_session_info(
                     ws_port, vnc_host, vnc_port, pid
                 )
-                self._vm_sessions[vm_id] = session_info
+                self._vm_sessions[vm_name] = session_info
 
-                LOG.info(f'Started VNC for VM {vm_id}: {session_info["url"]}')
+                LOG.info(f'Started VNC for VM {vm_name}: {session_info["url"]}')
                 return {
                     'url': session_info['url'],
                     'ws_port': str(ws_port),
@@ -341,43 +341,43 @@ class VNCManager:
             int: Number of cleaned up sessions
         """
         dead_sessions = []
-        for vm_id, session in self._vm_sessions.items():
+        for vm_name, session in self._vm_sessions.items():
             pid = session['pid']
             if not psutil.pid_exists(pid):
-                dead_sessions.append(vm_id)
+                dead_sessions.append(vm_name)
                 self._allocated_ports.discard(session['ws_port'])
                 LOG.info(
-                    f'Cleaning up dead VNC session for VM {vm_id} (PID {pid})'
+                    f'Cleaning up dead VNC session for VM {vm_name} (PID {pid})'
                 )
 
-        for vm_id in dead_sessions:
-            del self._vm_sessions[vm_id]
+        for vm_name in dead_sessions:
+            del self._vm_sessions[vm_name]
 
         if dead_sessions:
             LOG.info(f'Cleaned up {len(dead_sessions)} dead VNC sessions')
 
         return len(dead_sessions)
 
-    def stop_vnc_session(self, vm_id: str) -> bool:
+    def stop_vnc_session(self, vm_name: str) -> bool:
         """Stop VNC session and cleanup resources.
 
         Args:
-            vm_id: VM identifier
+            vm_name: The virtual machine name
 
         Returns:
             bool: True if session was found and stopped
         """
         with self._port_lock:
-            if vm_id not in self._vm_sessions:
-                LOG.warning(f'No VNC session found for VM {vm_id}')
+            if vm_name not in self._vm_sessions:
+                LOG.warning(f'No VNC session found for VM {vm_name}')
                 return False
 
-            session = self._vm_sessions[vm_id]
+            session = self._vm_sessions[vm_name]
             ws_port = session['ws_port']
             pid = session['pid']
 
             LOG.info(
-                f'Stopping VNC session for VM {vm_id} (port {ws_port}, '
+                f'Stopping VNC session for VM {vm_name} (port {ws_port}, '
                 f'PID {pid})'
             )
 
@@ -410,16 +410,16 @@ class VNCManager:
 
             # Cleanup resources
             self._allocated_ports.discard(ws_port)
-            del self._vm_sessions[vm_id]
+            del self._vm_sessions[vm_name]
 
-            LOG.info(f'VNC session cleanup completed for VM {vm_id}')
+            LOG.info(f'VNC session cleanup completed for VM {vm_name}')
             return success
 
     def _restore_state_from_system(self) -> None:  # noqa: C901
         """Restore VNC manager state from running websockify processes.
 
-        Uses psutil to scan for websockify processes and extract port information.
-        This is more reliable than parsing ps aux output.
+        Uses psutil to scan for websockify processes and extract port
+        information. This is more reliable than parsing ps aux output.
         """
         LOG.info('Restoring VNC Manager state from running processes...')
 
@@ -523,7 +523,7 @@ vnc_manager = VNCManager()
 # Convenience functions for easy integration with the global VNC manager
 # instance
 def start_vnc_session(
-    vm_id: str, vnc_host: str, vnc_port: int
+    vm_name: str, vnc_host: str, vnc_port: int
 ) -> Dict[str, str]:
     """Start a VNC session for the specified virtual machine.
 
@@ -531,7 +531,7 @@ def start_vnc_session(
     instance for starting VNC sessions without needing to manage the singleton.
 
     Args:
-        vm_id: Unique identifier for the virtual machine
+        vm_name: The virtual machine name
         vnc_host: Hostname or IP where the VM's VNC server is running
         vnc_port: Port number of the VM's VNC server (typically 5900+)
 
@@ -551,17 +551,17 @@ def start_vnc_session(
         >>> print(f"VNC URL: {session['url']}")
         VNC URL: http://server:6100/vnc.html?host=server&port=6100
     """
-    return vnc_manager.start_vnc_session(vm_id, vnc_host, vnc_port)
+    return vnc_manager.start_vnc_session(vm_name, vnc_host, vnc_port)
 
 
-def stop_vnc_session(vm_id: str) -> bool:
+def stop_vnc_session(vm_name: str) -> bool:
     """Stop the VNC session for the specified virtual machine.
 
     This convenience function provides direct access to the global VNC manager
     for stopping VNC sessions and cleaning up associated resources.
 
     Args:
-        vm_id: Unique identifier for the virtual machine
+        vm_name: The virtual machine name
 
     Returns:
         bool: True if session was found and successfully stopped, False if
@@ -577,4 +577,4 @@ def stop_vnc_session(vm_id: str) -> bool:
         >>> if success:
         ...     print('VNC session stopped successfully')
     """
-    return vnc_manager.stop_vnc_session(vm_id)
+    return vnc_manager.stop_vnc_session(vm_name)
