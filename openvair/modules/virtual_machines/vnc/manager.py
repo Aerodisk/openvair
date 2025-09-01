@@ -459,7 +459,7 @@ class VNCManager:
             else:
                 LOG.info('No existing websockify processes found')
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 TODO: specify exceptions
             LOG.warning(f'Failed to restore VNC Manager state: {e}')
 
     def _extract_port_from_cmdline(self, cmdline: list) -> Optional[int]:
