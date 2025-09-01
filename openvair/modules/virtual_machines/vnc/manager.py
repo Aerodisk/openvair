@@ -22,7 +22,7 @@ Example:
     >>> result = start_vnc_session('vm-123', 'localhost', 5900)
     >>> print(result['url'])  # http://server:6100/vnc.html?host=server&port=6100
 
-Author: OpenVair Development Team
+Author: Open vAIR Development Team
 """
 
 import socket
