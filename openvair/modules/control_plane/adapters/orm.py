@@ -23,13 +23,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
     Enum as SAEnum,
-    Index,
     String,
     Integer,
     DateTime,
     BigInteger,
     ForeignKey,
-    UniqueConstraint,
     text,
 )
 from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column
@@ -94,11 +92,6 @@ class ClusterNode(Base):
     """
 
     __tablename__ = 'cluster_nodes'
-    __table_args__ = (
-        UniqueConstraint('hostname', name='uq_cluster_nodes_hostname'),
-        Index('ix_cluster_nodes_status', 'status'),
-        Index('ix_cluster_nodes_last_seen', 'last_seen'),
-    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -107,7 +100,9 @@ class ClusterNode(Base):
     )
 
     # базовая идентификация
-    hostname: Mapped[str] = mapped_column(String(255), nullable=False)
+    hostname: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False
+    )
     ip: Mapped[Optional[str]] = mapped_column(INET, nullable=True)
 
     # роли/лейблы на будущее (compute/storage/etc.)
@@ -176,11 +171,6 @@ class ClusterEvent(Base):
     """
 
     __tablename__ = 'cluster_events'
-    __table_args__ = (
-        Index('ix_cluster_events_ts', 'ts'),
-        Index('ix_cluster_events_node_id_ts', 'node_id', 'ts'),
-        Index('ix_cluster_events_kind', 'kind'),
-    )
 
     id: Mapped[int] = mapped_column(
         BigInteger, primary_key=True, autoincrement=True
