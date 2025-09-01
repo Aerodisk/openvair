@@ -15,22 +15,61 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.libs.testing.utils import (
     wait_full_deleting,
     wait_for_field_not_empty,
     generate_test_entity_name,
 )
-from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
-from openvair.modules.network.domain.exceptions import (
-    NetplanFileNotFoundException,
-)
-from openvair.modules.network.domain.utils.ovs_manager import OVSManager
-from openvair.modules.network.domain.utils.netplan_manager import NetplanManager
 
 LOG = get_logger(__name__)
 
 
-def test_delete_bridge_success(
+def _check_connection(client: TestClient) -> None:
+    net_test_response_com = client.get('https://www.google.com/')
+    assert net_test_response_com.status_code == status.HTTP_200_OK
+    net_test_response_ru = client.get('https://www.ya.ru/')
+    assert net_test_response_ru.status_code == status.HTTP_200_OK
+
+
+def _check_bridge_deleted_in_ovs(bridge_name: str) -> None:
+    """Check that bridge is deleted from OVS.
+
+    Args:
+        bridge_name: Name of the bridge to check
+    """
+    exec_res = execute(
+        'ovs-vsctl list-br',
+        params=ExecuteParams(  # noqa: S604
+            run_as_root=True,
+            shell=True,
+        ),
+    )
+    assert exec_res.returncode == 0
+    ovs_bridges = exec_res.stdout.splitlines()
+    assert bridge_name not in ovs_bridges
+
+
+def _check_bridge_deleted_in_netplan(bridge_name: str) -> None:
+    """Check that bridge is deleted from Netplan.
+
+    Args:
+        bridge_name: Name of the bridge to check
+    """
+    exec_res = execute(
+        f'netplan get network.bridges.{bridge_name}',
+        params=ExecuteParams(  # noqa: S604
+            run_as_root=True,
+            shell=True,
+        ),
+    )
+    assert len(exec_res.stderr) == 0
+
+
+@pytest.mark.manager('ovs')
+def test_delete_bridge_ovs_success(
+    check_manager: None,
     client: TestClient,
     bridge: Dict,
 ) -> None:
@@ -40,7 +79,7 @@ def test_delete_bridge_success(
     - Response is 202 ACCEPTED
     - Response contains list with deleted bridge data
     - Bridge status becomes 'deleting'
-    - Bridge is eventually removed from system (OVS/Netplan)
+    - Bridge is removed from system (OVS)
     """
     delete_data = [bridge['id']]
 
@@ -54,28 +93,46 @@ def test_delete_bridge_success(
     assert data[0]['status'] == 'deleting'
 
     wait_full_deleting(client, '/interfaces/', bridge['id'])
-
-    if NETWORK_CONFIG_MANAGER == 'ovs':
-        ovs_bridges = OVSManager().get_bridges()
-        name_index = ovs_bridges['headings'].index('name')
-        ovs_bridges_names = [br[name_index] for br in ovs_bridges['data']]
-        assert bridge['name'] not in ovs_bridges_names
-    else:
-        netplan_manager = NetplanManager()
-        with pytest.raises(NetplanFileNotFoundException) as excinfo:
-            netplan_manager.get_path_yaml(bridge['name'])
-            assert bridge['name'] in str(excinfo.value)
-
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
+    _check_bridge_deleted_in_ovs(bridge['name'])
+    _check_connection(client)
 
 
-# TODO: Test Netplan when fixed https://github.com/Aerodisk/openvair/issues/260
-#       (or other tests will fail due to netplan network errors)
-def test_delete_multiple_bridges_success(
-    client: TestClient, cleanup_bridges: None, physical_interface: Dict
+@pytest.mark.manager('netplan')
+def test_delete_bridge_netplan_success(
+    check_manager: None,
+    client: TestClient,
+    bridge: Dict,
+) -> None:
+    """Test successful bridge deletion.
+
+    Asserts:
+    - Response is 202 ACCEPTED
+    - Response contains list with deleted bridge data
+    - Bridge status becomes 'deleting'
+    - Bridge is removed from system (Netplan)
+    """
+    delete_data = [bridge['id']]
+
+    response = client.request('DELETE', '/interfaces/delete/', json=delete_data)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    data = response.json()
+    assert isinstance(data, List)
+    assert len(data) == 1
+    assert data[0]['id'] == bridge['id']
+    assert data[0]['status'] == 'deleting'
+
+    wait_full_deleting(client, '/interfaces/', bridge['id'])
+    _check_bridge_deleted_in_netplan(bridge['name'])
+    _check_connection(client)
+
+
+@pytest.mark.manager('ovs')
+def test_delete_multiple_bridges_ovs_success(
+    check_manager: None,
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
 ) -> None:
     """Test successful deletion of multiple bridges.
 
@@ -83,50 +140,57 @@ def test_delete_multiple_bridges_success(
     - Response is 202 ACCEPTED
     - Response contains list with all deleted bridges data
     """
-    if NETWORK_CONFIG_MANAGER == 'ovs':
-        bridges_num = 3
-        bridges_data = []
-        for i in range(bridges_num):
-            bridge_data = {
-                'name': generate_test_entity_name(f'br{i}'),
-                'type': 'bridge',
-                'interfaces': [physical_interface],
-                'ip': '',
-            }
-            response = client.post('/interfaces/create/', json=bridge_data)
-            assert response.status_code == status.HTTP_201_CREATED
-            bridges_data.append(response.json())
+    bridges_num = 3
+    bridges_data = []
+    for i in range(bridges_num):
+        bridge_data = {
+            'name': generate_test_entity_name(f'br{i}'),
+            'type': 'bridge',
+            'interfaces': [physical_interface],
+            'ip': '',
+        }
+        response = client.post('/interfaces/create/', json=bridge_data)
+        assert response.status_code == status.HTTP_201_CREATED
+        bridges_data.append(response.json())
 
-        bridge_ids = [br['id'] for br in bridges_data]
-        response = client.request(
-            'DELETE', '/interfaces/delete/', json=bridge_ids
+    bridge_ids = [br['id'] for br in bridges_data]
+    response = client.request('DELETE', '/interfaces/delete/', json=bridge_ids)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    data = response.json()
+    assert isinstance(data, List)
+    assert len(data) == bridges_num
+    returned_ids = [item['id'] for item in data]
+    for bridge_id in bridge_ids:
+        assert bridge_id in returned_ids
+        assert any(
+            item['status'] == 'deleting'
+            for item in data
+            if item['id'] == bridge_id
         )
-        assert response.status_code == status.HTTP_202_ACCEPTED
 
-        data = response.json()
-        assert isinstance(data, List)
-        assert len(data) == bridges_num
+    for bridge_id in bridge_ids:
+        wait_full_deleting(client, '/interfaces/', bridge_id)
+    wait_for_field_not_empty(
+        client, f'/interfaces/{physical_interface["id"]}', 'ip'
+    )
+    bridge_names = [br['name'] for br in bridges_data]
+    for bridge_name in bridge_names:
+        _check_bridge_deleted_in_ovs(bridge_name)
+    _check_connection(client)
 
-        returned_ids = [item['id'] for item in data]
-        for bridge_id in bridge_ids:
-            assert bridge_id in returned_ids
-            assert any(
-                item['status'] == 'deleting'
-                for item in data
-                if item['id'] == bridge_id
-            )
 
-        for bridge_id in bridge_ids:
-            wait_full_deleting(client, '/interfaces/', bridge_id)
-        wait_for_field_not_empty(
-            client, f'/interfaces/{physical_interface["id"]}', 'ip'
-        )
-        net_test_response_com = client.get('https://www.google.com/')
-        assert net_test_response_com.status_code == status.HTTP_200_OK
-        net_test_response_ru = client.get('https://www.ya.ru/')
-        assert net_test_response_ru.status_code == status.HTTP_200_OK
-    else:
-        raise AssertionError  # TODO: https://github.com/Aerodisk/openvair/issues/260
+# TODO: Test Netplan when fixed https://github.com/Aerodisk/openvair/issues/260
+#       (or other tests will fail due to netplan network errors)
+@pytest.mark.manager('netplan')
+def test_delete_multiple_bridges_netplan_success(
+    check_manager: None,
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
+) -> None:
+    """Test successful deletion of multiple bridges."""
+    raise AssertionError  # TODO https://github.com/Aerodisk/openvair/issues/260
 
 
 def test_delete_bridge_nonexistent(
@@ -178,9 +242,7 @@ def test_delete_bridge_invalid_id_format(
     assert 'invalid input syntax for type uuid' in response.text.lower()
 
 
-def test_delete_bridge_unauthorized(
-    unauthorized_client: TestClient
-) -> None:
+def test_delete_bridge_unauthorized(unauthorized_client: TestClient) -> None:
     """Test unauthorized bridge deletion.
 
     Asserts:

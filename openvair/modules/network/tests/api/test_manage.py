@@ -1,3 +1,4 @@
+# ruff: noqa: ARG001 because of fixtures using
 """Integration tests for interface manage (turn on/off).
 
 Covers:
@@ -10,12 +11,12 @@ Covers:
 import uuid
 from typing import Dict
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import wait_for_field_value
-from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 
 LOG = get_logger(__name__)
 
@@ -45,8 +46,9 @@ def test_turn_on_interface_success(
 
 # TODO: Test OVS only when fixed https://github.com/Aerodisk/openvair/issues/117
 #       (or other tests will fail due to network error when using OVS)
+@pytest.mark.manager('netplan')
 def test_turn_on_bridge_success(
-        client: TestClient, bridge: Dict
+    check_manager: None, client: TestClient, bridge: Dict
 ) -> None:
     """Test successful bridge interface turn on.
 
@@ -54,27 +56,18 @@ def test_turn_on_bridge_success(
     - Response is 200 OK with success message
     - Bridge interface power_state becomes 'UNKNOWN' (because it's a bridge)
     """
-    if NETWORK_CONFIG_MANAGER == 'ovs':
-        raise AssertionError  # TODO: https://github.com/Aerodisk/openvair/issues/260
-
-    bridge_name = bridge["name"]
+    bridge_name = bridge['name']
     client.request('PUT', f'/interfaces/{bridge_name}/turn_off')
     wait_for_field_value(
-        client,
-        f'/interfaces/{bridge["id"]}/',
-        'power_state',
-        'DOWN'
+        client, f'/interfaces/{bridge["id"]}/', 'power_state', 'DOWN'
     )
 
     response = client.request('PUT', f'/interfaces/{bridge_name}/turn_on')
     assert response.status_code == status.HTTP_200_OK
-    assert "turn on command was sent" in response.text.lower()
+    assert 'turn on command was sent' in response.text.lower()
 
     wait_for_field_value(
-        client,
-        f'/interfaces/{bridge["id"]}/',
-        'power_state',
-        'UNKNOWN'
+        client, f'/interfaces/{bridge["id"]}/', 'power_state', 'UNKNOWN'
     )
 
 
@@ -93,7 +86,7 @@ def test_turn_on_nonexistent_interface(client: TestClient) -> None:
 
 
 def test_turn_on_interface_unauthorized(
-    unauthorized_client: TestClient
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized interface turn on.
 
@@ -131,8 +124,9 @@ def test_turn_off_interface_success(
 
 # TODO: Test OVS only when fixed https://github.com/Aerodisk/openvair/issues/117
 #       (or other tests will fail due to network error when using OVS)
+@pytest.mark.manager('netplan')
 def test_turn_off_bridge_success(
-        client: TestClient, bridge: Dict
+    check_manager: None, client: TestClient, bridge: Dict
 ) -> None:
     """Test successful bridge interface turn off.
 
@@ -140,27 +134,18 @@ def test_turn_off_bridge_success(
     - Response is 200 OK with success message
     - Bridge interface power_state becomes 'DOWN'
     """
-    if NETWORK_CONFIG_MANAGER == 'ovs':
-        raise AssertionError  # TODO: https://github.com/Aerodisk/openvair/issues/260
-
-    bridge_name = bridge["name"]
+    bridge_name = bridge['name']
     client.request('PUT', f'/interfaces/{bridge_name}/turn_on')
     wait_for_field_value(
-        client,
-        f'/interfaces/{bridge["id"]}/',
-        'power_state',
-        'UNKNOWN'
+        client, f'/interfaces/{bridge["id"]}/', 'power_state', 'UNKNOWN'
     )
 
     response = client.request('PUT', f'/interfaces/{bridge_name}/turn_off')
     assert response.status_code == status.HTTP_200_OK
-    assert "turn off command was sent" in response.text.lower()
+    assert 'turn off command was sent' in response.text.lower()
 
     wait_for_field_value(
-        client,
-        f'/interfaces/{bridge["id"]}/',
-        'power_state',
-        'DOWN'
+        client, f'/interfaces/{bridge["id"]}/', 'power_state', 'DOWN'
     )
 
 
@@ -179,7 +164,7 @@ def test_turn_off_nonexistent_interface(client: TestClient) -> None:
 
 
 def test_turn_off_interface_unauthorized(
-    unauthorized_client: TestClient
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized interface turn off.
 

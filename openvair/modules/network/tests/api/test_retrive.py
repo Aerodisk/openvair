@@ -112,7 +112,7 @@ def test_get_interface_by_id(client: TestClient, bridge: Dict) -> None:
 
 
 def test_get_interface_by_id_unauthorized(
-    unauthorized_client: TestClient
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized access to specific interface.
 

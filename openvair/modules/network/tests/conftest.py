@@ -7,6 +7,8 @@ Provides:
 from typing import Any, Dict, Optional, Generator, cast
 
 import pytest
+from pytest import Config
+from _pytest.fixtures import FixtureRequest
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
@@ -15,8 +17,29 @@ from openvair.libs.testing.utils import (
     wait_for_field_value,
 )
 from openvair.libs.testing.config import network_settings
+from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 
 LOG = get_logger(__name__)
+
+
+def pytest_configure(config: Config) -> None:
+    """Register custom manager markers for pytest."""
+    config.addinivalue_line('markers', 'ovs: test for OVS manager only')
+    config.addinivalue_line('markers', 'netplan: test for Netplan manager only')
+
+
+@pytest.fixture
+def check_manager(request: FixtureRequest) -> None:
+    """Skip test if manager doesn't match marker."""
+    marker = request.node.get_closest_marker('manager')
+    if marker:
+        required_manager = marker.args[0]
+        if required_manager != NETWORK_CONFIG_MANAGER:
+            message = (
+                f'Test currently requires {required_manager}, '
+                f'actual manager: {NETWORK_CONFIG_MANAGER}'
+            )
+            pytest.skip(message)
 
 
 @pytest.fixture

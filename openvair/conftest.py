@@ -387,13 +387,13 @@ def bridge(
     interfaces_data = response.json()
     interfaces = interfaces_data.get('items', [])
     for interface in interfaces:
-        if interface['id'] == bridge_data["id"]:
+        if interface['id'] == bridge_data['id']:
             client.request('PUT', f'/interfaces/{bridge_data["name"]}/turn_on')
             wait_for_field_value(
                 client,
                 f'/interfaces/{bridge_data["id"]}/',
                 'power_state',
-                'UNKNOWN'
+                'UNKNOWN',
             )
 
     cleanup_test_bridges()

@@ -9,35 +9,122 @@ Covers:
 """
 
 import uuid
-from typing import Dict
+from typing import Dict, List
 
+import yaml
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.libs.cli.models import ExecuteParams
+from openvair.libs.cli.executor import execute
 from openvair.libs.testing.utils import (
     wait_for_field_value,
     wait_for_field_not_empty,
     generate_test_entity_name,
 )
-from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
-from openvair.modules.network.domain.utils.ovs_manager import OVSManager
-from openvair.modules.network.domain.utils.netplan_manager import NetplanManager
 
 LOG = get_logger(__name__)
 
 
-def test_create_bridge_success(
-    client: TestClient, cleanup_bridges: None, physical_interface: Dict
+def _check_dhcp(interface: Dict) -> bool:
+    """Check DHCP status on the interface
+
+    Args:
+        interface: Interface data to check DHCP
+    """
+    exec_res = execute(
+        f"netplan get network.ethernets.{interface['name']}.dhcp4",
+        params=ExecuteParams(  # noqa: S604
+            run_as_root=True,
+            shell=True,
+        ),
+    )
+    return bool(exec_res.returncode == 0 and exec_res.stdout == 'true')
+
+
+def _check_bridge_in_ovs(data: Dict, interfaces: List[Dict]) -> None:
+    """Checks bridge configuration in OVS.
+
+    Args:
+        data: Bridge data from response
+        interfaces: List of interface dictionaries to check in bridge
+    """
+    exec_res = execute(
+        'ovs-vsctl list-br',
+        params=ExecuteParams(  # noqa: S604
+            run_as_root=True,
+            shell=True,
+        ),
+    )
+    assert exec_res.returncode == 0
+    ovs_bridges = exec_res.stdout.splitlines()
+    assert data['name'] in ovs_bridges
+    exec_res = execute(
+        f"ovs-vsctl list-ports {data['name']}",
+        params=ExecuteParams(  # noqa: S604
+            run_as_root=True,
+            shell=True,
+        ),
+    )
+    assert exec_res.returncode == 0
+    bridge_ports = exec_res.stdout.splitlines()
+    for interface in interfaces:
+        assert interface['name'] in bridge_ports
+
+
+def _check_bridge_in_netplan(
+    data: Dict, interfaces: List[Dict], *, dhcp: bool
 ) -> None:
-    """Test successful bridge creation.
+    """Checks bridge configuration in Netplan.
+
+    Args:
+        data: Bridge data from response
+        interfaces: List of interface dictionaries to check in bridge
+        dhcp: Whether DHCP should be enabled on bridge
+    """
+    exec_res = execute(
+        f"netplan get network.bridges.{data['name']}",
+        params=ExecuteParams(  # noqa: S604
+            run_as_root=True,
+            shell=True,
+        ),
+    )
+    if exec_res.returncode == 0:
+        bridge_config = yaml.safe_load(exec_res.stdout)
+        assert bridge_config is not None
+        for interface in interfaces:
+            assert interface['name'] in bridge_config['interfaces']
+        if dhcp:
+            assert 'dhcp4' in bridge_config
+            assert bridge_config['dhcp4']
+        else:
+            assert 'dhcp4' not in bridge_config or not bridge_config['dhcp4']
+
+
+def _check_connection(client: TestClient) -> None:
+    net_test_response_com = client.get('https://www.google.com/')
+    assert net_test_response_com.status_code == status.HTTP_200_OK
+    net_test_response_ru = client.get('https://www.ya.ru/')
+    assert net_test_response_ru.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.manager('ovs')
+def test_create_bridge_ovs_success(
+    check_manager: None,
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
+) -> None:
+    """Test successful bridge creation using OVS.
 
     Asserts:
     - Response is 201 CREATED
     - Returned fields match request
     - Bridge inherits IP from default physical interface
     - Bridge status became 'available'
-    - Bridge is created in system (OVS/Netplan)
+    - Bridge is created in system (OVS)
     - Internet connection active
     """
     bridge_data = {
@@ -68,38 +155,62 @@ def test_create_bridge_success(
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'status', 'available'
     )
-    if NETWORK_CONFIG_MANAGER == 'ovs':
-        if physical_interface['ip']:
-            wait_for_field_value(
-                client,
-                f'/interfaces/{data["id"]}',
-                'ip',
-                physical_interface['ip']
-            )
-        ovs_bridges = OVSManager().get_bridges()
-        name_index = ovs_bridges['headings'].index('name')
-        ovs_bridges_names = [br[name_index] for br in ovs_bridges['data']]
-        assert data['name'] in ovs_bridges_names
-    else:
-        if physical_interface['ip']:
-            wait_for_field_not_empty(
-                client,
-                f'/interfaces/{data["id"]}',
-                'ip'
-            )
-        netplan_manager = NetplanManager()
-        bridge_file = netplan_manager.get_path_yaml(data['name'])
-        bridge_config = netplan_manager.get_bridge_data_from_yaml(
-            data['name'], bridge_file
-        )
-        assert 'interfaces' in bridge_config
-        interface_names = bridge_config['interfaces']
-        assert physical_interface['name'] in interface_names
+    wait_for_field_value(
+        client, f'/interfaces/{data["id"]}', 'ip', physical_interface['ip']
+    )
+    _check_bridge_in_ovs(data, [physical_interface])
+    _check_connection(client)
 
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
+
+@pytest.mark.manager('netplan')
+def test_create_bridge_netplan_success(
+    check_manager: None,
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
+) -> None:
+    """Test successful bridge creation using Netplan.
+
+    Asserts:
+    - Response is 201 CREATED
+    - Returned fields match request
+    - Bridge inherits IP from default physical interface
+    - Bridge status became 'available'
+    - Bridge is created in system (Netplan)
+    - Internet connection active
+    """
+    bridge_data = {
+        'name': generate_test_entity_name('br'),
+        'type': 'bridge',
+        'interfaces': [physical_interface],
+        'ip': '',
+    }
+    interface_dhcp = _check_dhcp(physical_interface)
+
+    response = client.post('/interfaces/create/', json=bridge_data)
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    required_fields = [
+        'id',
+        'ip',
+        'name',
+        'gateway',
+        'power_state',
+        'mac',
+        'inf_type',
+        'status',
+        'interface_extra_specs',
+    ]
+    for field in required_fields:
+        assert field in data
+    assert data['name'] == bridge_data['name']
+
+    wait_for_field_value(
+        client, f'/interfaces/{data["id"]}', 'status', 'available'
+    )
+    wait_for_field_not_empty(client, f'/interfaces/{data["id"]}', 'ip')
+    _check_bridge_in_netplan(data, [physical_interface], dhcp=interface_dhcp)
+    _check_connection(client)
 
 
 def test_create_bridge_custom_ip_success(
@@ -131,28 +242,7 @@ def test_create_bridge_custom_ip_success(
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'ip', custom_test_ip
     )
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
-
-
-def test_create_bridge_missing_name(
-    client: TestClient, cleanup_bridges: None, physical_interface: Dict
-) -> None:
-    """Test creation failure when 'name' is missing.
-
-    Asserts:
-    - HTTP 422 due to validation error
-    """
-    bridge_data = {
-        'type': 'bridge',
-        'interfaces': [physical_interface],
-        'ip': '',
-    }
-
-    response = client.post('/interfaces/create/', json=bridge_data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    _check_connection(client)
 
 
 def test_create_bridge_empty_interfaces_success(
@@ -179,17 +269,16 @@ def test_create_bridge_empty_interfaces_success(
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'status', 'available'
     )
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
+    _check_connection(client)
 
 
-def test_create_bridge_multiple_interfaces_success(
-        client: TestClient,
-        cleanup_bridges: None,
-        physical_interface: Dict,
-        interface_without_ip: Dict
+@pytest.mark.manager('ovs')
+def test_create_bridge_multiple_interfaces_ovs_success(
+    check_manager: None,
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
+    interface_without_ip: Dict,
 ) -> None:
     """Test successful bridge creation with multiple interfaces.
 
@@ -197,10 +286,10 @@ def test_create_bridge_multiple_interfaces_success(
     - Response is 201 CREATED
     - Bridge status becomes 'available'
     - Bridge uses specified custom IP
-    - Both interfaces are present in the system configuration
+    - Both interfaces are present in the OVS
     - Internet connection active
     """
-    custom_test_ip = '192.168.200.1'
+    custom_test_ip = '192.168.254.254'
 
     bridge_data = {
         'name': generate_test_entity_name('br'),
@@ -216,41 +305,72 @@ def test_create_bridge_multiple_interfaces_success(
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'status', 'available'
     )
-    wait_for_field_not_empty(
-        client, f'/interfaces/{data["id"]}', 'ip'
+    wait_for_field_value(
+        client, f'/interfaces/{data["id"]}', 'ip', custom_test_ip
+    )
+
+    _check_bridge_in_ovs(data, [physical_interface])
+    _check_connection(client)
+
+
+@pytest.mark.manager('netplan')
+def test_create_bridge_multiple_interfaces_netplan_success(
+    check_manager: None,
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
+    interface_without_ip: Dict,
+) -> None:
+    """Test successful bridge creation with multiple interfaces.
+
+    Asserts:
+    - Response is 201 CREATED
+    - Bridge status becomes 'available'
+    - Bridge uses specified custom IP
+    - Both interfaces are present in the Netplan
+    - Internet connection active
+    """
+    custom_test_ip = '192.168.254.254'
+
+    bridge_data = {
+        'name': generate_test_entity_name('br'),
+        'type': 'bridge',
+        'interfaces': [physical_interface, interface_without_ip],
+        'ip': custom_test_ip,
+    }
+    interface_dhcp = _check_dhcp(physical_interface)
+
+    response = client.post('/interfaces/create/', json=bridge_data)
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+
+    wait_for_field_value(
+        client, f'/interfaces/{data["id"]}', 'status', 'available'
     )
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'ip', custom_test_ip
     )
 
-    if NETWORK_CONFIG_MANAGER == 'ovs':
-        ovs_manager = OVSManager()
-        ovs_bridges = ovs_manager.get_bridges()
-        name_index = ovs_bridges['headings'].index('name')
-        ovs_bridges_names = [br[name_index] for br in ovs_bridges['data']]
-        assert data['name'] in ovs_bridges_names
-        bridge_ports = ovs_manager.get_ports_in_bridge(data['name'])
-        assert physical_interface['name'] in bridge_ports
-        assert interface_without_ip['name'] in bridge_ports
-    else:
-        netplan_manager = NetplanManager()
-        bridge_file = netplan_manager.get_path_yaml(data['name'])
-        bridge_config = netplan_manager.get_bridge_data_from_yaml(
-            data['name'], bridge_file
-        )
-        assert 'interfaces' in bridge_config
-        interface_names = bridge_config['interfaces']
-        assert physical_interface['name'] in interface_names
-        assert interface_without_ip['name'] in interface_names
-        if custom_test_ip:
-            assert 'addresses' in bridge_config
-            addresses = bridge_config['addresses']
-            assert any(custom_test_ip in addr for addr in addresses)
+    _check_bridge_in_netplan(data, [physical_interface], dhcp=interface_dhcp)
+    _check_connection(client)
 
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
+
+def test_create_bridge_missing_name(
+    client: TestClient, cleanup_bridges: None, physical_interface: Dict
+) -> None:
+    """Test creation failure when 'name' is missing.
+
+    Asserts:
+    - HTTP 422 due to validation error
+    """
+    bridge_data = {
+        'type': 'bridge',
+        'interfaces': [physical_interface],
+        'ip': '',
+    }
+
+    response = client.post('/interfaces/create/', json=bridge_data)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_create_bridge_duplicate_name(
@@ -286,6 +406,28 @@ def test_create_bridge_duplicate_name(
     response2 = client.post('/interfaces/create/', json=bridge_data)
     assert response2.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'interfacealreadyexist' in response2.text.lower()
+
+
+def test_create_bridge_with_long_name(
+    client: TestClient,
+    cleanup_bridges: None,
+    physical_interface: Dict,
+) -> None:
+    """Test successful bridge creation with long name using OVS.
+
+    Asserts:
+    - Response is 422
+    """
+    long_name = 'test-long-bridge-name'
+    bridge_data = {
+        'name': long_name,
+        'type': 'bridge',
+        'interfaces': [physical_interface],
+        'ip': '',
+    }
+
+    response = client.post('/interfaces/create/', json=bridge_data)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_create_bridge_nonexistent_interface(
