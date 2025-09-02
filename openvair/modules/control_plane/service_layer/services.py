@@ -1,6 +1,5 @@
 from typing import Dict  # noqa: D100
 
-from openvair.modules.base_manager import BackgroundTasks
 from openvair.libs.messaging.messaging_agents import MessagingClient
 
 
@@ -20,7 +19,7 @@ def call_vm_on_node(  # noqa: D103
     return resp
 
 
-class ControlPlaneServiceLayerManager(BackgroundTasks):  # noqa: D101
+class ControlPlaneServiceLayerManager:  # noqa: D101
     @staticmethod
     def call_vm_on_node(  # noqa: D102
         target_node: str,
