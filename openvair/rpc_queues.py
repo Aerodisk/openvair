@@ -114,3 +114,10 @@ class RPCQueueNames:
         """Queue names for eventstore-related operations."""
 
         SERVICE_LAYER: str = 'eventstore_api_service_layer'
+
+    @dataclass(frozen=True)
+    class ControlPlane:
+        """Queue names for control_plane-related operations."""
+
+        SERVICE_LAYER: str = 'plane'
+        DOMAIN_LAYER = 'control-plane-domain'

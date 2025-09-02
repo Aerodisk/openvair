@@ -1,4 +1,2 @@
-CONTROL_PLANE_SERVICE_QUEUE = 'control-plane-service-layer'
-CONTROL_PLANE_DOMAIN_QUEUE = 'control-plane-domain'
 HEARTBEAT_INTERVAL_SEC = 15
 HEARTBEAT_TTL_SEC = 45
