@@ -515,19 +515,12 @@ class VNCManager:
         return None
 
 
-# Global singleton instance
-vnc_manager = VNCManager()
-
-
-# Convenience functions for easy integration with the global VNC manager
-# instance
 def start_vnc_session(
     vm_name: str, vnc_host: str, vnc_port: int
 ) -> Dict[str, str]:
     """Start a VNC session for the specified virtual machine.
 
-    This convenience function provides direct access to the global VNC manager
-    instance for starting VNC sessions without needing to manage the singleton.
+    This convenience function provides direct access to the VNC manager.
 
     Args:
         vm_name: The virtual machine name
@@ -550,14 +543,13 @@ def start_vnc_session(
         >>> print(f"VNC URL: {session['url']}")
         VNC URL: http://server:6100/vnc.html?host=server&port=6100
     """
-    return vnc_manager.start_vnc_session(vm_name, vnc_host, vnc_port)
+    return VNCManager().start_vnc_session(vm_name, vnc_host, vnc_port)
 
 
 def stop_vnc_session(vm_name: str) -> bool:
     """Stop the VNC session for the specified virtual machine.
 
-    This convenience function provides direct access to the global VNC manager
-    for stopping VNC sessions and cleaning up associated resources.
+    This convenience function provides direct access to the VNC manager.
 
     Args:
         vm_name: The virtual machine name
@@ -576,4 +568,4 @@ def stop_vnc_session(vm_name: str) -> bool:
         >>> if success:
         ...     print('VNC session stopped successfully')
     """
-    return vnc_manager.stop_vnc_session(vm_name)
+    return VNCManager().stop_vnc_session(vm_name)
