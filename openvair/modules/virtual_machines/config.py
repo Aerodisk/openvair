@@ -10,11 +10,10 @@ TEMPLATES_PATH = (
 SNAPSHOTS_PATH = '/opt/aero/openvair/data/snapshots/'
 SERVER_IP = config.data.get('web_app', {}).get('host', 'localhost')
 
-# VNC WebSocket port configuration
 VNC_WS_PORT_START = 6100
-VNC_WS_PORT_END = 6999  # 900 ports available
+VNC_WS_PORT_END = 6999
 VNC_LOCK_FILE = '/var/lock/openvair_vnc_ports.lock'
 VNC_STATE_FILE = '/opt/aero/openvair/data/vnc_ports.json'
-VNC_MAX_SESSIONS = 800  # Leave some buffer
+VNC_MAX_SESSIONS = 800
 
 DEFAULT_SESSION_FACTORY = get_default_session_factory()
