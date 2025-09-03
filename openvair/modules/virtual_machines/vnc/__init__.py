@@ -9,8 +9,6 @@ Upgraded from complex 940-line system to simple ~250-line solution.
 # Import the new simple VNC functions for easy access
 from .manager import (
     VNCManager,
-    stop_vnc_session,
-    start_vnc_session,
 )
 from .exceptions import (
     VncManagerError,
@@ -21,8 +19,6 @@ from .exceptions import (
 
 # Make functions available at package level
 __all__ = [
-    'start_vnc_session',
-    'stop_vnc_session',
     'VNCManager',
     # Exceptions
     'VncManagerError',

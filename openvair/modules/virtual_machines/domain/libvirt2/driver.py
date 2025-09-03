@@ -18,9 +18,8 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.modules.virtual_machines.vnc import (
+    VNCManager,
     VncManagerError,
-    stop_vnc_session,
-    start_vnc_session,
 )
 from openvair.modules.virtual_machines.config import SNAPSHOTS_PATH
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
@@ -56,6 +55,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         self.snapshot_info = kwargs.pop('snapshot_info', None)
         self.vm_info = kwargs
         self.vm_xml = self.render_domain(self.vm_info)
+        self.vnc_manager = VNCManager()
 
     def start(self) -> Dict:
         """Start the virtual machine.
@@ -207,7 +207,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Cleaning up VNC session for VM {vm_name}')
 
         try:
-            success = stop_vnc_session(vm_name)
+            success = self.vnc_manager.stop_vnc_session(vm_name)
             if success:
                 LOG.info(f'VNC session stopped for VM {vm_name}')
             else:
@@ -263,7 +263,7 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         try:
             # Use the VNC manager for port allocation and websockify
-            session_result = start_vnc_session(
+            session_result = self.vnc_manager.start_vnc_session(
                 vm_name=vm_name, vnc_host='localhost', vnc_port=vnc_port
             )
 
