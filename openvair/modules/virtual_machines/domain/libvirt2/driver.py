@@ -81,7 +81,6 @@ class LibvirtDriver(BaseLibvirtDriver):
             LOG.info(f'Generated graphic_url: {graphic_url}')
             LOG.info(f'Generated graphic_port: {graphic_port}')
 
-            # Save the graphic interface information
             self.vm_info['graphic_interface'] = {
                 'url': f'{graphic_url}:{graphic_port}' if graphic_url else '',
             }
