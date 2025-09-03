@@ -29,8 +29,9 @@ class StorageSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / '.env.test',
         env_file_encoding='utf-8',
-        extra='ignore'
+        extra='ignore',
     )
+
 
 class BlockDeviceSettings(BaseSettings):
     """Pydantic settings for testing block_device.
@@ -40,6 +41,7 @@ class BlockDeviceSettings(BaseSettings):
         port (str): Port of the testing block_device.
         inf_type (str): Interface type of the testing block_device.
     """
+
     ip: Optional[str] = Field(default=None, alias='TEST_BLOCK_DEVICE_IP')
     port: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_PORT')
     inf_type: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_INF_TYPE')
@@ -47,7 +49,7 @@ class BlockDeviceSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / '.env.test',
         env_file_encoding='utf-8',
-        extra='ignore'
+        extra='ignore',
     )
 
 
@@ -76,7 +78,7 @@ class NotificationSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / '.env.test',
         env_file_encoding='utf-8',
-        extra='ignore'
+        extra='ignore',
     )
 
 

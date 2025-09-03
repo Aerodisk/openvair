@@ -205,7 +205,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Cleaning up VNC session for VM {vm_name}')
 
         try:
-            success = self.vnc_manager.stop_vnc_session(vm_name)
+            success = self.vnc_manager.stop_vnc_session(str(vm_name))
             if success:
                 LOG.info(f'VNC session stopped for VM {vm_name}')
             else:
@@ -258,7 +258,9 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         try:
             session_result = self.vnc_manager.start_vnc_session(
-                vm_name=vm_name, vnc_host='localhost', vnc_port=vnc_port,
+                vm_name=str(vm_name),
+                vnc_host='localhost',
+                vnc_port=vnc_port,
             )
 
             self.vm_info['vnc_session'] = {
