@@ -258,7 +258,7 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         try:
             session_result = self.vnc_manager.start_vnc_session(
-                vm_name=vm_name, vnc_host='localhost', vnc_port=vnc_port
+                vm_name=vm_name, vnc_host='localhost', vnc_port=vnc_port,
             )
 
             self.vm_info['vnc_session'] = {
