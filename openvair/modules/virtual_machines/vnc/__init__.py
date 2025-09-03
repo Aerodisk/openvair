@@ -6,7 +6,6 @@ management for VNC access to virtual machines.
 Upgraded from complex 940-line system to simple ~250-line solution.
 """
 
-# Import the new simple VNC functions for easy access
 from .manager import (
     VNCManager,
 )
@@ -17,7 +16,6 @@ from .exceptions import (
     VncProcessNotFoundError,
 )
 
-# Make functions available at package level
 __all__ = [
     'VNCManager',
     # Exceptions

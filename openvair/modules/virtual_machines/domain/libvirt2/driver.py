@@ -183,12 +183,10 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Turning off VM {self.vm_info.get("name")}')
 
         try:
-            # Stop the VM
             with self.connection as connection:
                 domain = connection.lookupByName(self.vm_info.get('name'))
                 domain.destroy()
         finally:
-            # Always cleanup VNC resources, even if VM shutdown fails
             self._cleanup_vnc_session()
 
         return {}
@@ -201,7 +199,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         """
         vnc_session = self.vm_info.get('vnc_session')
         if not vnc_session:
-            return  # No VNC session to cleanup
+            return
 
         vm_name = self.vm_info.get('name')
         LOG.info(f'Cleaning up VNC session for VM {vm_name}')
@@ -213,14 +211,12 @@ class LibvirtDriver(BaseLibvirtDriver):
             else:
                 LOG.warning(f'No active VNC session found for VM {vm_name}')
 
-            # Clear session info
             if 'vnc_session' in self.vm_info:
                 del self.vm_info['vnc_session']
             LOG.info(f'VNC session cleanup completed for VM {vm_name}')
         except Exception as e:  # noqa: BLE001 TODO: Should be more specific
             msg = f'Error during VNC session cleanup for VM {vm_name}: {e}'
             LOG.warning(msg)
-            # Continue execution - don't fail VM shutdown
 
     def vnc(self) -> Dict:
         """Start a VNC session for the virtual machine.
@@ -251,7 +247,6 @@ class LibvirtDriver(BaseLibvirtDriver):
             raise ValueError(msg)
 
         try:
-            # Extract VNC port from the VM URL
             port = vm_url.split(':')[-1]
             vnc_port = int(port)
         except (AttributeError, IndexError, ValueError) as err:
@@ -262,12 +257,10 @@ class LibvirtDriver(BaseLibvirtDriver):
         vm_name = self.vm_info.get('name')
 
         try:
-            # Use the VNC manager for port allocation and websockify
             session_result = self.vnc_manager.start_vnc_session(
                 vm_name=vm_name, vnc_host='localhost', vnc_port=vnc_port
             )
 
-            # Store session info in vm_info for cleanup
             self.vm_info['vnc_session'] = {
                 'ws_port': int(session_result['ws_port']),
                 'pid': int(session_result['pid']),
@@ -280,7 +273,6 @@ class LibvirtDriver(BaseLibvirtDriver):
             )
             return {'url': session_result['url']}
         except VncManagerError as err:
-            # Handle specific VNC manager errors
             msg = f'VNC manager error: {err!s}'
             LOG.error(msg)
             raise VNCSessionError(msg) from err

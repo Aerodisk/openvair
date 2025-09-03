@@ -159,15 +159,12 @@ class VNCManager:
             the port is truly available before allocation.
         """
         for port in range(VNC_WS_PORT_START, VNC_WS_PORT_END + 1):
-            # Skip if already allocated in memory
             if port in self._allocated_ports:
                 continue
 
-            # Double-check it's actually free
             if self._is_port_free(port):
                 return port
 
-        # No ports available
         total_ports = VNC_WS_PORT_END - VNC_WS_PORT_START + 1
         used_ports = len(self._allocated_ports)
         msg = (
@@ -196,8 +193,6 @@ class VNCManager:
             f'PID {existing["pid"]})'
         )
 
-        # Stop the old session
-        # don't use stop_vnc_session to avoid lock recursion
         try:
             execute(
                 'kill',
@@ -210,7 +205,6 @@ class VNCManager:
             msg = f'Failed to terminate old process {existing["pid"]}'
             LOG.warning(msg)
 
-        # Cleanup old session data
         self._allocated_ports.discard(existing['ws_port'])
         del self._vm_sessions[vm_name]
 
@@ -253,7 +247,6 @@ class VNCManager:
             LOG.error(error_msg)
             raise VncSessionStartupError(error_msg) from e
 
-        # Find the process PID
         pid = self._find_process_by_port(ws_port)
         if not pid:
             msg = f'Failed to find websockify PID for port {ws_port}'
@@ -306,7 +299,6 @@ class VNCManager:
             self.cleanup_dead_sessions()
             self._cleanup_existing_session_resources(vm_name)
 
-            # Find and allocate free port
             ws_port = self._find_free_port()
             self._allocated_ports.add(ws_port)
 
@@ -326,7 +318,6 @@ class VNCManager:
                     'pid': str(pid),
                 }
             except Exception:
-                # Cleanup on any failure
                 self._allocated_ports.discard(ws_port)
                 raise
 
@@ -382,7 +373,6 @@ class VNCManager:
 
             success = True
 
-            # Kill the process
             try:
                 execute(
                     'kill',
@@ -407,7 +397,6 @@ class VNCManager:
                     LOG.error(f'Failed to kill websockify process {pid}')
                     success = False
 
-            # Cleanup resources
             self._allocated_ports.discard(ws_port)
             del self._vm_sessions[vm_name]
 
@@ -432,9 +421,7 @@ class VNCManager:
 
                     cmdline_str = ' '.join(pinfo['cmdline'])
 
-                    # Check if this is our websockify process
                     if 'websockify' in cmdline_str and 'noVNC' in cmdline_str:
-                        # Extract port from command line
                         ws_port = self._extract_port_from_cmdline(
                             pinfo['cmdline']
                         )
@@ -447,7 +434,6 @@ class VNCManager:
                             restored_count += 1
 
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    # Process disappeared or we don't have access - skip it
                     continue
 
             if restored_count > 0:
