@@ -211,7 +211,7 @@ class VNCManager:
                 if not pid:
                     msg = f'Failed to find websockify PID for port {ws_port}'
                     LOG.error(msg)
-                    raise VncProcessNotFoundError(msg)  # noqa: TRY301
+                    raise VncProcessNotFoundError(msg)  # noqa: TRY301 TODO: will be removed after refactoring
 
                 session_info = create_vnc_session_info(
                     SERVER_IP,
