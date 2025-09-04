@@ -17,17 +17,17 @@ Architecture:
     across the application. It maintains in-memory tracking of allocated ports
     and active sessions, with automatic synchronization to system reality.
 
-Example:
-    >>> from openvair.modules.virtual_machines.vnc import start_vnc_session
-    >>> result = start_vnc_session('vm-123', 'localhost', 5900)
-    >>> print(result['url'])  # http://server:6100/vnc.html?host=server&port=6100
+# Example:
+#     >>> from openvair.modules.virtual_machines.vnc import start_vnc_session
+#     >>> result = start_vnc_session('vm-123', 'localhost', 5900)
+#     >>> print(result['url'])  # http://server:6100/vnc.html?host=server&port=6100
 
 Author: Open vAIR Development Team
 """
 
 import socket
 import threading
-from typing import Any, Set, Dict, Optional
+from typing import Any, Set, Dict, Tuple, Optional
 
 import psutil
 
@@ -43,14 +43,35 @@ from openvair.modules.virtual_machines.config import (
     VNC_WS_PORT_END,
     VNC_WS_PORT_START,
 )
-
-from .exceptions import (
+from openvair.modules.virtual_machines.vnc.exceptions import (
     VncPortAllocationError,
     VncSessionStartupError,
     VncProcessNotFoundError,
 )
 
 LOG = get_logger(__name__)
+
+
+def _websockify_candidate(
+    proc: psutil.Process,
+) -> Optional[Tuple[int, int]]:
+    try:
+        info = proc.info
+        cmdline = info.get('cmdline') or []
+        if not cmdline:
+            return None
+
+        text = ' '.join(map(str, cmdline)).lower()
+        if 'websockify' not in text or 'novnc' not in text:
+            return None
+
+        ws_port = extract_port_from_cmdline(cmdline)
+        if ws_port is None:
+            return None
+
+        return info.get('pid') or proc.pid, ws_port
+    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.Error):
+        return None
 
 
 def extract_port_from_cmdline(cmdline: list) -> Optional[int]:
@@ -228,11 +249,11 @@ class VNCManager:
         _vm_sessions: Dict mapping VM IDs to session information
         _initialized: Flag to prevent multiple initialization
 
-    Example:
-        >>> manager = VncManager()
-        >>> session = manager.start_vnc_session('vm-123', 'localhost', 5900)
-        >>> print(session['url'])  # VNC access URL
-        >>> success = manager.stop_vnc_session('vm-123')
+    # Example:
+    #     >>> manager = VncManager()
+    #     >>> session = manager.start_vnc_session('vm-123', 'localhost', 5900)
+    #     >>> print(session['url'])  # VNC access URL
+    #     >>> success = manager.stop_vnc_session('vm-123')
     """
 
     _instance: Optional['VNCManager'] = None
@@ -475,7 +496,7 @@ class VNCManager:
         self._allocated_ports.discard(existing['ws_port'])
         del self._vm_sessions[vm_name]
 
-    def _restore_state_from_system(self) -> None:  # noqa: C901
+    def _restore_state_from_system(self) -> None:
         """Restore VNC manager state from running websockify processes.
 
         Uses psutil to scan for websockify processes and extract port
@@ -483,39 +504,24 @@ class VNCManager:
         """
         LOG.info('Restoring VNC Manager state from running processes...')
 
-        restored_count = 0
-        try:
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                try:
-                    pinfo = proc.info
-                    if not pinfo['cmdline']:
-                        continue
+        restored: Set[int] = set()
 
-                    cmdline_str = ' '.join(pinfo['cmdline'])
+        candidates = (
+            _websockify_candidate(p)
+            for p in psutil.process_iter(['pid', 'cmdline'])
+        )
 
-                    # Check if this is our websockify process
-                    if 'websockify' in cmdline_str and 'noVNC' in cmdline_str:
-                        # Extract port from command line
-                        ws_port = extract_port_from_cmdline(pinfo['cmdline'])
-                        if ws_port:
-                            self._allocated_ports.add(ws_port)
-                            LOG.debug(
-                                f'Restored websockify: PID {pinfo["pid"]}, '
-                                f'port {ws_port}'
-                            )
-                            restored_count += 1
+        for _, ws_port in (
+            candidate for candidate in candidates if candidate is not None
+        ):
+            if ws_port is not None and ws_port not in self._allocated_ports:
+                self._allocated_ports.add(ws_port)
+                restored.add(ws_port)
 
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    # Process disappeared or we don't have access - skip it
-                    continue
-
-            if restored_count > 0:
-                LOG.info(
-                    f'Restored {restored_count} websockify processes '
-                    'to VNC Manager state'
-                )
-            else:
-                LOG.info('No existing websockify processes found')
-
-        except Exception as e:  # noqa: BLE001 TODO: specify exceptions
-            LOG.warning(f'Failed to restore VNC Manager state: {e}')
+        if restored:
+            LOG.info(
+                f'Restored {len(restored)} websockify processes to VNC Manager'
+                f' state: {sorted(restored)}'
+            )
+        else:
+            LOG.info('No existing websockify processes found')
