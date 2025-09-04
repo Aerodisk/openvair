@@ -1,4 +1,4 @@
-from typing import Dict, Generator
+from typing import Dict, Generator  # noqa: D100
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,4 +33,9 @@ def virtual_network(client: TestClient) -> Generator[Dict, None, None]:
 
     yield created
 
-    delete_resource(client, '/virtual_networks', created['id'], 'virtual_network')
+    delete_resource(
+        client,
+        '/virtual_networks',
+        created['id'],
+        'virtual_network'
+    )
