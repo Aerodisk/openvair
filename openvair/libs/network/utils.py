@@ -5,7 +5,7 @@ across different modules in the Open vAIR system.
 """
 
 import socket
-from typing import Dict, List, Optional, Set
+from typing import Set, Dict, Optional
 
 from typing_extensions import Any
 
