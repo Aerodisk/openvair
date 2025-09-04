@@ -17,12 +17,10 @@ import libvirt
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
-from openvair.modules.virtual_machines.vnc import (
-    VNCManager,
-    VncManagerError,
-)
 from openvair.modules.virtual_machines.config import SNAPSHOTS_PATH
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
+from openvair.modules.virtual_machines.vnc.manager import VNCManager
+from openvair.modules.virtual_machines.vnc.exceptions import VncManagerError
 from openvair.modules.virtual_machines.domain.exceptions import (
     SnapshotError,
     VNCSessionError,

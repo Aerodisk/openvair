@@ -32,6 +32,7 @@ from typing import Set, Dict, Optional
 import psutil
 
 from openvair.libs.log import get_logger
+from openvair.libs.processes import find_process_by_port
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import (
@@ -44,118 +45,15 @@ from openvair.modules.virtual_machines.config import (
     VNC_WS_PORT_END,
     VNC_WS_PORT_START,
 )
+from openvair.modules.virtual_machines.vnc.utils import (
+    start_websockify_process,
+    get_novnc_websockify_candidate,
+)
 from openvair.modules.virtual_machines.vnc.exceptions import (
-    VncManagerError,
     VncPortAllocationError,
-    VncSessionStartupError,
-    VncProcessNotFoundError,
 )
 
 LOG = get_logger(__name__)
-
-
-def websockify_candidate(
-    proc: psutil.Process,
-) -> Optional[int]:
-    """If this process looks websockify/noVNC, return (pid, ws_port) or None."""
-    info = proc.info
-    cmdline = info.get('cmdline') or []
-    text = ' '.join(map(str, cmdline)).lower()
-    if not text or 'websockify' not in text or 'novnc' not in text:
-        return None
-
-    tokens_lc = [str(a).lower() for a in cmdline]
-    if not any('websockify' in t for t in tokens_lc) and not any(
-        'novnc' in t for t in tokens_lc
-    ):
-        return None
-
-    for arg in cmdline:
-        if arg.isdigit() and VNC_WS_PORT_START <= int(arg) <= VNC_WS_PORT_END:
-            return int(arg)
-
-    return None
-
-
-def find_process_by_port(port: int) -> int:
-    """Find the process ID listening on a specific port.
-
-    Uses lsof to identify which process is currently listening on the
-    specified port. This is used to track websockify PIDs after startup.
-
-    Args:
-        port: Port number to check
-
-    Returns:
-        Optional[int]: Process ID if found, None otherwise
-
-    Note:
-        Handles various command execution errors gracefully by returning
-        None
-    """
-    try:
-        result = execute(
-            'lsof', '-ti', f':{port}', params=ExecuteParams(timeout=10.0)
-        )
-        proc_id = None
-        if result.returncode == 0 and result.stdout.strip():
-            proc_id = int(result.stdout.strip().split('\n')[0])
-
-        if not proc_id:
-            msg = f'Failed to find websockify PID for port {port}'
-            LOG.error(msg)
-            raise VncProcessNotFoundError(msg)
-    except (
-        ExecuteError,
-        ValueError,
-    ) as err:
-        LOG.error(err)
-        raise VncManagerError(str(err))
-    else:
-        return proc_id
-
-
-def start_websockify_process(
-    vm_name: str,
-    vnc_host: str,
-    vnc_port: int,
-    ws_port: int,
-) -> None:
-    """Start websockify process and return its PID.
-
-    Args:
-        vm_name: VM name for logging
-        vnc_host: VNC server host
-        vnc_port: VNC server port
-        ws_port: WebSocket port to use
-
-    Returns:
-        int: Process ID of the started websockify process
-
-    Raises:
-        VncSessionStartupError: If websockify fails to start
-        VncProcessNotFoundError: If PID cannot be determined
-    """
-    LOG.info(
-        f'Starting VNC for VM {vm_name}: '
-        f'{vnc_host}:{vnc_port} -> ws:{ws_port}'
-    )
-
-    try:
-        execute(
-            'websockify',
-            '-D',
-            '--run-once',
-            '--web',
-            '/opt/aero/openvair/openvair/libs/noVNC/',
-            str(ws_port),
-            f'{vnc_host}:{vnc_port}',
-            params=ExecuteParams(raise_on_error=True),
-        )
-    except UnsuccessReturnCodeError as e:
-        error_msg = f'Failed to start websockify for VM {vm_name}: {e}'
-        LOG.error(error_msg)
-        raise VncSessionStartupError(error_msg) from e
 
 
 class VNCManager:
@@ -259,25 +157,26 @@ class VNCManager:
                     ws_port,
                 )
                 pid = find_process_by_port(ws_port)
-                session_info = {
-                    'ws_port': ws_port,
-                    'vnc_host': vnc_host,
-                    'vnc_port': vnc_port,
-                    'pid': pid,
-                    'url': f'http://{SERVER_IP}:{ws_port}/vnc.html?host={SERVER_IP}&port={ws_port}',
-                }
-                self._vm_sessions[vm_name] = session_info
 
-                LOG.info(f'Started VNC for VM {vm_name}: {session_info["url"]}')
-                return {
-                    'url': str(session_info['url']),
-                    'ws_port': str(ws_port),
-                    'pid': str(pid),
-                }
-            except Exception:
-                # Cleanup on any failure
+            except ExecuteError:
                 self._allocated_ports.discard(ws_port)
                 raise
+
+            session_info = {
+                'ws_port': ws_port,
+                'vnc_host': vnc_host,
+                'vnc_port': vnc_port,
+                'pid': pid,
+                'url': f'http://{SERVER_IP}:{ws_port}/vnc.html?host={SERVER_IP}&port={ws_port}',
+            }
+            self._vm_sessions[vm_name] = session_info
+
+            LOG.info(f'Started VNC for VM {vm_name}: {session_info["url"]}')
+            return {
+                'url': str(session_info['url']),
+                'ws_port': str(ws_port),
+                'pid': str(pid),
+            }
 
     def cleanup_dead_sessions(self) -> int:
         """Clean up sessions whose processes have died.
@@ -331,7 +230,6 @@ class VNCManager:
 
             success = True
 
-            # Kill the process
             try:
                 execute(
                     'kill',
@@ -452,7 +350,7 @@ class VNCManager:
 
         try:
             for proc in psutil.process_iter(['pid', 'cmdline']):
-                ws_port = websockify_candidate(proc)
+                ws_port = get_novnc_websockify_candidate(proc)
                 if ws_port is not None and ws_port not in self._allocated_ports:
                     self._allocated_ports.add(ws_port)
                     restored.add(ws_port)
