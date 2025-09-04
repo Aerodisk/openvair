@@ -35,6 +35,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import (
+    ExecuteError,
     UnsuccessReturnCodeError,
     ExecuteTimeoutExpiredError,
 )
@@ -44,6 +45,7 @@ from openvair.modules.virtual_machines.config import (
     VNC_WS_PORT_START,
 )
 from openvair.modules.virtual_machines.vnc.exceptions import (
+    VncManagerError,
     VncPortAllocationError,
     VncSessionStartupError,
     VncProcessNotFoundError,
@@ -75,7 +77,7 @@ def websockify_candidate(
     return None
 
 
-def find_process_by_port(port: int) -> Optional[int]:
+def find_process_by_port(port: int) -> int:
     """Find the process ID listening on a specific port.
 
     Uses lsof to identify which process is currently listening on the
@@ -95,20 +97,30 @@ def find_process_by_port(port: int) -> Optional[int]:
         result = execute(
             'lsof', '-ti', f':{port}', params=ExecuteParams(timeout=10.0)
         )
+        proc_id = None
         if result.returncode == 0 and result.stdout.strip():
-            return int(result.stdout.strip().split('\n')[0])
+            proc_id = int(result.stdout.strip().split('\n')[0])
+
+        if not proc_id:
+            msg = f'Failed to find websockify PID for port {port}'
+            LOG.error(msg)
+            raise VncProcessNotFoundError(msg)
     except (
-        UnsuccessReturnCodeError,
-        ExecuteTimeoutExpiredError,
+        ExecuteError,
         ValueError,
-    ):
-        pass
-    return None
+    ) as err:
+        LOG.error(err)
+        raise VncManagerError(str(err))
+    else:
+        return proc_id
 
 
 def start_websockify_process(
-    vm_name: str, vnc_host: str, vnc_port: int, ws_port: int
-) -> int:
+    vm_name: str,
+    vnc_host: str,
+    vnc_port: int,
+    ws_port: int,
+) -> None:
     """Start websockify process and return its PID.
 
     Args:
@@ -144,36 +156,6 @@ def start_websockify_process(
         error_msg = f'Failed to start websockify for VM {vm_name}: {e}'
         LOG.error(error_msg)
         raise VncSessionStartupError(error_msg) from e
-
-    # Find the process PID
-    pid = find_process_by_port(ws_port)
-    if not pid:
-        msg = f'Failed to find websockify PID for port {ws_port}'
-        LOG.error(msg)
-        raise VncProcessNotFoundError(msg)
-
-    return pid
-
-
-def is_port_free(port: int) -> bool:
-    """Check if a port is available for binding.
-
-    Attempts to bind to the specified port to verify it's not in use.
-    Uses SO_REUSEADDR to avoid issues with recently closed connections.
-
-    Args:
-        port: Port number to check
-
-    Returns:
-        bool: True if port is available, False otherwise
-    """
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(('localhost', port))
-            return True
-    except OSError:
-        return False
 
 
 class VNCManager:
@@ -270,12 +252,13 @@ class VNCManager:
             self._allocated_ports.add(ws_port)
 
             try:
-                pid = start_websockify_process(
+                start_websockify_process(
                     vm_name,
                     vnc_host,
                     vnc_port,
                     ws_port,
                 )
+                pid = find_process_by_port(ws_port)
                 session_info = {
                     'ws_port': ws_port,
                     'vnc_host': vnc_host,
@@ -400,8 +383,18 @@ class VNCManager:
         """
         total_ports = VNC_WS_PORT_END - VNC_WS_PORT_START + 1
         for port in range(total_ports):
-            if port not in self._allocated_ports and is_port_free(port):
-                return port
+            if port not in self._allocated_ports:
+                try:
+                    with socket.socket(
+                        socket.AF_INET, socket.SOCK_STREAM
+                    ) as sock:
+                        sock.setsockopt(
+                            socket.SOL_SOCKET, socket.SO_REUSEADDR, 1
+                        )
+                        sock.bind(('localhost', port))
+                        return port
+                except OSError:
+                    LOG.error('Failed to allocate port')
 
         message = (
             f'No free VNC ports available. '
