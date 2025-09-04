@@ -2,6 +2,17 @@
 
 This module provides common network-related utilities that can be used
 across different modules in the Open vAIR system.
+
+functions:
+    - is_port_free: Check if a port is available for binding.
+    - find_free_port_in_range: Find the first available port in the port range.
+    - find_process_id_by_port: Find the process ID listening on a specific port.
+    - start_websockify_process: Start websockify process.
+    - create_vnc_session_info: Create session information dictionary.
+    - extract_port_from_cmdline_by_range: Extract port number from command
+        line arguments by range.
+
+author: Open vAIR Development Team
 """
 
 import socket
