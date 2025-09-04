@@ -103,11 +103,17 @@ def _check_bridge_in_netplan(
             assert 'dhcp4' not in bridge_config or not bridge_config['dhcp4']
 
 
-def _check_connection(client: TestClient) -> None:
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
+def _check_connection() -> None:
+    """Checks internet connection after bridge creation via ping."""
+    for host in ['8.8.8.8', 'google.com', 'ya.ru']:
+        exec_res = execute(
+            f'ping -c 1 -W 2 {host}',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        assert exec_res.returncode == 0
 
 
 @pytest.mark.manager('ovs')
@@ -159,7 +165,7 @@ def test_create_bridge_ovs_success(
         client, f'/interfaces/{data["id"]}', 'ip', physical_interface['ip']
     )
     _check_bridge_in_ovs(data, [physical_interface])
-    _check_connection(client)
+    _check_connection()
 
 
 @pytest.mark.manager('netplan')
@@ -210,7 +216,7 @@ def test_create_bridge_netplan_success(
     )
     wait_for_field_not_empty(client, f'/interfaces/{data["id"]}', 'ip')
     _check_bridge_in_netplan(data, [physical_interface], dhcp=interface_dhcp)
-    _check_connection(client)
+    _check_connection()
 
 
 def test_create_bridge_custom_ip_success(
@@ -242,7 +248,7 @@ def test_create_bridge_custom_ip_success(
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'ip', custom_test_ip
     )
-    _check_connection(client)
+    _check_connection()
 
 
 def test_create_bridge_empty_interfaces_success(
@@ -269,7 +275,7 @@ def test_create_bridge_empty_interfaces_success(
     wait_for_field_value(
         client, f'/interfaces/{data["id"]}', 'status', 'available'
     )
-    _check_connection(client)
+    _check_connection()
 
 
 @pytest.mark.manager('ovs')
@@ -310,7 +316,7 @@ def test_create_bridge_multiple_interfaces_ovs_success(
     )
 
     _check_bridge_in_ovs(data, [physical_interface])
-    _check_connection(client)
+    _check_connection()
 
 
 @pytest.mark.manager('netplan')
@@ -352,7 +358,7 @@ def test_create_bridge_multiple_interfaces_netplan_success(
     )
 
     _check_bridge_in_netplan(data, [physical_interface], dhcp=interface_dhcp)
-    _check_connection(client)
+    _check_connection()
 
 
 def test_create_bridge_missing_name(

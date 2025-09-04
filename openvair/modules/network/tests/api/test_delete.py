@@ -26,11 +26,17 @@ from openvair.libs.testing.utils import (
 LOG = get_logger(__name__)
 
 
-def _check_connection(client: TestClient) -> None:
-    net_test_response_com = client.get('https://www.google.com/')
-    assert net_test_response_com.status_code == status.HTTP_200_OK
-    net_test_response_ru = client.get('https://www.ya.ru/')
-    assert net_test_response_ru.status_code == status.HTTP_200_OK
+def _check_connection() -> None:
+    """Checks internet connection after bridge creation via ping."""
+    for host in ['8.8.8.8', 'google.com', 'ya.ru']:
+        exec_res = execute(
+            f'ping -c 1 -W 2 {host}',
+            params=ExecuteParams(  # noqa: S604
+                run_as_root=True,
+                shell=True,
+            ),
+        )
+        assert exec_res.returncode == 0
 
 
 def _check_bridge_deleted_in_ovs(bridge_name: str) -> None:
@@ -94,7 +100,7 @@ def test_delete_bridge_ovs_success(
 
     wait_full_deleting(client, '/interfaces/', bridge['id'])
     _check_bridge_deleted_in_ovs(bridge['name'])
-    _check_connection(client)
+    _check_connection()
 
 
 @pytest.mark.manager('netplan')
@@ -124,7 +130,7 @@ def test_delete_bridge_netplan_success(
 
     wait_full_deleting(client, '/interfaces/', bridge['id'])
     _check_bridge_deleted_in_netplan(bridge['name'])
-    _check_connection(client)
+    _check_connection()
 
 
 @pytest.mark.manager('ovs')
@@ -177,7 +183,7 @@ def test_delete_multiple_bridges_ovs_success(
     bridge_names = [br['name'] for br in bridges_data]
     for bridge_name in bridge_names:
         _check_bridge_deleted_in_ovs(bridge_name)
-    _check_connection(client)
+    _check_connection()
 
 
 # TODO: Test Netplan when fixed https://github.com/Aerodisk/openvair/issues/260
