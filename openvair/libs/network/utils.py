@@ -5,11 +5,10 @@ across different modules in the Open vAIR system.
 """
 
 import socket
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from typing_extensions import Any
 
-from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.cli.exceptions import (
@@ -17,8 +16,6 @@ from openvair.libs.cli.exceptions import (
     ExecuteTimeoutExpiredError,
 )
 from openvair.libs.network.exceptions import WebsockifyStartupError
-
-LOG = get_logger(__name__)
 
 
 def is_port_free(port: int) -> bool:
@@ -41,10 +38,9 @@ def is_port_free(port: int) -> bool:
     except OSError:
         return False
 
+
 def find_free_port_in_range(
-    port_start: int,
-    port_end: int,
-    allocated_ports: List[int]
+    port_start: int, port_end: int, allocated_ports: Set[int]
 ) -> Optional[int]:
     """Find the first available port in the port range.
 
@@ -55,7 +51,7 @@ def find_free_port_in_range(
     Args:
         port_start: Start of the port range
         port_end: End of the port range
-        allocated_ports: List of ports that are already allocated
+        allocated_ports: Set of ports that are already allocated
 
     Returns:
         Optional[int]: First available port number or None if no free
@@ -93,10 +89,7 @@ def find_process_id_by_port(port: int) -> Optional[int]:
     """
     try:
         result = execute(
-            'lsof',
-            '-ti',
-            f':{port}',
-            params=ExecuteParams(timeout=10.0)
+            'lsof', '-ti', f':{port}', params=ExecuteParams(timeout=10.0)
         )
         if result.returncode == 0 and result.stdout.strip():
             return int(result.stdout.strip().split('\n')[0])
@@ -156,7 +149,9 @@ def create_vnc_session_info(
     Returns:
         Dict containing session information
     """
-    url = f'http://{server_ip}:{ws_port}/vnc.html?host={server_ip}&port={ws_port}'
+    url = (
+        f'http://{server_ip}:{ws_port}/vnc.html?host={server_ip}&port={ws_port}'
+    )
 
     return {
         'ws_port': ws_port,
@@ -167,18 +162,25 @@ def create_vnc_session_info(
     }
 
 
-def extract_port_from_cmdline(cmdline: list) -> Optional[int]:
-    """Extract port number from command line arguments.
+def extract_port_from_cmdline_by_range(
+    port_start: int,
+    port_end: int,
+    cmdline: list,
+) -> Optional[int]:
+    """Extract port number from command line arguments by range.
 
-    Searches through command line arguments to find a numeric argument.
+    Searches through command line arguments to find a numeric argument
+    that falls within the configured port range.
 
     Args:
+        port_start: Start of the port range
+        port_end: End of the port range
         cmdline: List of command line arguments
 
     Returns:
         Optional[int]: Port number if found in range, None otherwise
     """
     for arg in cmdline:
-        if arg.isdigit():
+        if arg.isdigit() and port_start <= int(arg) <= port_end:
             return int(arg)
     return None

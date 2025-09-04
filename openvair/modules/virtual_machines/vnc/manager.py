@@ -182,7 +182,7 @@ class VNCManager:
             self._cleanup_existing_session_resources(vm_name)
 
             ws_port = find_free_port_in_range(
-                VNC_WS_PORT_START, VNC_WS_PORT_END + 1
+                VNC_WS_PORT_START, VNC_WS_PORT_END + 1, self._allocated_ports
             )
             if not ws_port:
                 total_ports = VNC_WS_PORT_END - VNC_WS_PORT_START + 1
