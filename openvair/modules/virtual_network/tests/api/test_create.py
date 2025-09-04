@@ -7,8 +7,6 @@ Covers:
 - Unauthorized access (if middleware applies globally)
 """
 
-from typing import Dict
-
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -70,4 +68,4 @@ def test_create_virtual_network_forbidden_bridge(client: TestClient) -> None:
     payload['bridge'] = 'virbr0'
 
     response = client.post('/virtual_networks/create/', json=payload)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST 
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
