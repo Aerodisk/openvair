@@ -27,7 +27,7 @@ Author: Open vAIR Development Team
 
 import socket
 import threading
-from typing import Any, Set, Dict, Tuple, Optional
+from typing import Set, Dict, Optional
 
 import psutil
 
@@ -52,49 +52,26 @@ from openvair.modules.virtual_machines.vnc.exceptions import (
 LOG = get_logger(__name__)
 
 
-def _websockify_candidate(
+def websockify_candidate(
     proc: psutil.Process,
-) -> Optional[Tuple[int, int]]:
-    try:
-        info = proc.info
-        cmdline = info.get('cmdline') or []
-        if not cmdline:
-            return None
-
-        text = ' '.join(map(str, cmdline)).lower()
-        if 'websockify' not in text or 'novnc' not in text:
-            return None
-
-        ws_port = extract_port_from_cmdline(cmdline)
-        if ws_port is None:
-            return None
-
-        return info.get('pid') or proc.pid, ws_port
-    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.Error):
+) -> Optional[int]:
+    """If this process looks websockify/noVNC, return (pid, ws_port) or None."""
+    info = proc.info
+    cmdline = info.get('cmdline') or []
+    text = ' '.join(map(str, cmdline)).lower()
+    if not text or 'websockify' not in text or 'novnc' not in text:
         return None
 
+    tokens_lc = [str(a).lower() for a in cmdline]
+    if not any('websockify' in t for t in tokens_lc) and not any(
+        'novnc' in t for t in tokens_lc
+    ):
+        return None
 
-def extract_port_from_cmdline(cmdline: list) -> Optional[int]:
-    """Extract websockify port number from process command line arguments.
+    for arg in cmdline:
+        if arg.isdigit() and VNC_WS_PORT_START <= int(arg) <= VNC_WS_PORT_END:
+            return int(arg)
 
-    Searches through command line arguments to find a numeric argument
-    that falls within the configured VNC port range.
-
-    Args:
-        cmdline: List of command line arguments
-
-    Returns:
-        Optional[int]: Port number if found in range, None otherwise
-    """
-    try:
-        for arg in cmdline:
-            if (
-                arg.isdigit()
-                and VNC_WS_PORT_START <= int(arg) <= VNC_WS_PORT_END
-            ):
-                return int(arg)
-    except (ValueError, TypeError):
-        pass
     return None
 
 
@@ -127,36 +104,6 @@ def find_process_by_port(port: int) -> Optional[int]:
     ):
         pass
     return None
-
-
-def create_session_info(
-    ws_port: int,
-    vnc_host: str,
-    vnc_port: int,
-    pid: int,
-) -> Dict[str, Any]:
-    """Create session information dictionary.
-
-    Args:
-        ws_port: WebSocket port
-        vnc_host: VNC server host
-        vnc_port: VNC server port
-        pid: Process ID of websockify
-
-    Returns:
-        Dict containing session information
-    """
-    url = (
-        f'http://{SERVER_IP}:{ws_port}/vnc.html?host={SERVER_IP}&port={ws_port}'
-    )
-
-    return {
-        'ws_port': ws_port,
-        'vnc_host': vnc_host,
-        'vnc_port': vnc_port,
-        'pid': pid,
-        'url': url,
-    }
 
 
 def start_websockify_process(
@@ -297,7 +244,10 @@ class VNCManager:
             self._restore_state_from_system()
 
     def start_vnc_session(
-        self, vm_name: str, vnc_host: str, vnc_port: int
+        self,
+        vm_name: str,
+        vnc_host: str,
+        vnc_port: int,
     ) -> Dict[str, str]:
         """Start VNC session with automatic port allocation.
 
@@ -326,17 +276,18 @@ class VNCManager:
                     vnc_port,
                     ws_port,
                 )
-                session_info = create_session_info(
-                    ws_port,
-                    vnc_host,
-                    vnc_port,
-                    pid,
-                )
+                session_info = {
+                    'ws_port': ws_port,
+                    'vnc_host': vnc_host,
+                    'vnc_port': vnc_port,
+                    'pid': pid,
+                    'url': f'http://{SERVER_IP}:{ws_port}/vnc.html?host={SERVER_IP}&port={ws_port}',
+                }
                 self._vm_sessions[vm_name] = session_info
 
                 LOG.info(f'Started VNC for VM {vm_name}: {session_info["url"]}')
                 return {
-                    'url': session_info['url'],
+                    'url': str(session_info['url']),
                     'ws_port': str(ws_port),
                     'pid': str(pid),
                 }
@@ -506,22 +457,24 @@ class VNCManager:
 
         restored: Set[int] = set()
 
-        candidates = (
-            _websockify_candidate(p)
-            for p in psutil.process_iter(['pid', 'cmdline'])
-        )
-
-        for _, ws_port in (
-            candidate for candidate in candidates if candidate is not None
-        ):
-            if ws_port is not None and ws_port not in self._allocated_ports:
-                self._allocated_ports.add(ws_port)
-                restored.add(ws_port)
+        try:
+            for proc in psutil.process_iter(['pid', 'cmdline']):
+                ws_port = websockify_candidate(proc)
+                if ws_port is not None and ws_port not in self._allocated_ports:
+                    self._allocated_ports.add(ws_port)
+                    restored.add(ws_port)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.Error):
+            return
 
         if restored:
             LOG.info(
-                f'Restored {len(restored)} websockify processes to VNC Manager'
-                f' state: {sorted(restored)}'
+                f'Restored {len(restored)} websockify processes to VNC Manager '
+                f'state: {sorted(restored)}'
             )
         else:
             LOG.info('No existing websockify processes found')
+
+
+# if __name__ == '__main__':
+#     m = VNCManager()
+#     m._restore_state_from_system()
