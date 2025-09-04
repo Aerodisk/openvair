@@ -5,6 +5,9 @@ Open vAIR system.
 
 Classes:
     NetworkException: Base exception for network operations.
+    WebsockifyStartupError: Raised when websockify fails to start.
+
+author: Open vAIR Development Team
 """
 
 from typing import Any
