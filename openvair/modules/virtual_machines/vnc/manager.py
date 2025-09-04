@@ -1,28 +1,24 @@
-"""Simplified thread-safe VNC port management.
+"""Thread-safe VNC port and session manager.
 
-This module provides a lightweight and robust solution for managing VNC
-websockify processes and port allocation. It replaces complex legacy VNC
-systems with a simple, maintainable approach.
+This module provides a simplified and robust system for managing
+websockify-based VNC sessions in a concurrent environment. It
+includes automatic restoration of state from system processes and performs
+reliable cleanup of dead sessions.
 
-Key Features:
-    - Thread-safe port allocation within configured range
-    - Automatic state restoration from running processes
-    - Dead process cleanup and resource management
-    - Race condition protection with retry logic
-    - Session lifecycle management with --run-once optimization
-    - Singleton pattern for system-wide consistency
+Classes:
+    VNCManager: Singleton-based class for managing websockify VNC sessions.
 
-Architecture:
-    The VncManager class uses a singleton pattern to ensure consistent state
-    across the application. It maintains in-memory tracking of allocated ports
-    and active sessions, with automatic synchronization to system reality.
+Functions:
+    None (use utils.py for process-related helpers).
+
+Attributes:
+    LOG: Logger instance for VNC session management.
 
 # Example:
-#     >>> from openvair.modules.virtual_machines.vnc import start_vnc_session
-#     >>> result = start_vnc_session('vm-123', 'localhost', 5900)
-#     >>> print(result['url'])  # http://server:6100/vnc.html?host=server&port=6100
-
-Author: Open vAIR Development Team
+#     >>> from openvair.modules.virtual_machines.vnc.manager import VNCManager
+#     >>> manager = VNCManager()
+#     >>> session = manager.start_vnc_session('vm-123', 'localhost', 5900)
+#     >>> print(session['url'])  # Access URL
 """
 
 import socket
@@ -105,9 +101,10 @@ class VNCManager:
     def __init__(self) -> None:
         """Initialize the VNC manager with state restoration.
 
-        Sets up internal data structures, creates thread locks, and restores
-        state from any existing websockify processes. This method is idempotent
-        and will only initialize once per singleton instance.
+        Sets up internal locks and data structures for managing VNC sessions.
+        Performs a system scan to restore existing websockify state.
+
+        This method is idempotent and executes only once per singleton instance.
 
         Side Effects:
             - Creates thread locks for port operations
@@ -131,16 +128,23 @@ class VNCManager:
     ) -> Dict[str, str]:
         """Start VNC session with automatic port allocation.
 
+        Allocates a free WebSocket port and starts a websockify process
+        connected to the specified VNC server. Registers the session and
+        returns connection details.
+
         Args:
-            vm_name: The virtual machine name
-            vnc_host: VNC server host (usually 'localhost')
-            vnc_port: VNC server port (e.g., 5900)
+            vm_name (str): The virtual machine name.
+            vnc_host (str): VNC server host (usually 'localhost').
+            vnc_port (int): VNC server port (e.g., 5900).
 
         Returns:
-            Dict with 'url', 'ws_port', 'pid'
+            Dict[str, str]: Dictionary containing:
+                - 'url': URL to access noVNC client.
+                - 'ws_port': Allocated WebSocket port.
+                - 'pid': Process ID of the websockify process.
 
         Raises:
-            RuntimeError: If port allocation or websockify startup fails
+            ExecuteError: If websockify process fails to start.
         """
         with self._port_lock:
             self.cleanup_dead_sessions()
@@ -179,13 +183,13 @@ class VNCManager:
             }
 
     def cleanup_dead_sessions(self) -> int:
-        """Clean up sessions whose processes have died.
+        """Clean up sessions whose processes are no longer running.
 
-        Uses psutil to reliably check process existence instead of kill -0.
-        Note: This method assumes the _port_lock is already held.
+        Scans session registry and removes entries for which the process no
+        longer exists using `psutil.pid_exists`.
 
         Returns:
-            int: Number of cleaned up sessions
+            int: Number of cleaned up sessions.
         """
         dead_sessions = []
         for vm_name, session in self._vm_sessions.items():
