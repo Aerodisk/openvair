@@ -364,8 +364,3 @@ class VNCManager:
             )
         else:
             LOG.info('No existing websockify processes found')
-
-
-# if __name__ == '__main__':
-#     m = VNCManager()
-#     m._restore_state_from_system()
