@@ -19,9 +19,8 @@ from fastapi.testclient import TestClient
 
 from openvair.config import TMP_DIR
 from openvair.libs.testing.utils import (
-    wait_full_deleting,
     generate_image_name,
-    generate_random_string,
+    wait_full_deleting_file,
     generate_test_entity_name,
 )
 from openvair.libs.testing.config import image_settings
@@ -38,7 +37,7 @@ def test_upload_image_success(
     """Test successful upload_image with and without description."""
     desc = ''
     if description:
-        desc = f'&description{generate_random_string(10)}'
+        desc = '&description=successful upload'
     storage_id = storage['id']
     name = generate_image_name()
     with image_path.open("rb") as file:
@@ -47,7 +46,7 @@ def test_upload_image_success(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path = Path(TMP_DIR, name)
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data['name'] == name
@@ -89,7 +88,7 @@ def test_upload_image_missing_field(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path = Path(TMP_DIR, name)
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -124,9 +123,9 @@ def test_upload_image_wrong_file_formate(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path.unlink()
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     tmp_image = Path(TMP_DIR, name)
-    wait_full_deleting(tmp_image)
+    wait_full_deleting_file(tmp_image)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -142,7 +141,7 @@ def test_upload_image_with_wrong_storage_id(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path = Path(TMP_DIR, name)
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
@@ -158,16 +157,16 @@ def test_upload_image_long_name(
     name = generate_image_name()
     desc = ''
     if description:
-        desc = f'&description={generate_random_string(400)}'
+        desc = f'&description={"a" * 400}'
     else:
-        name = f'{generate_random_string(37)}.iso'
+        name = f'{"a" * 37}.iso'
     with image_path.open("rb") as file:
         response = client.post(
             f"/images/upload/?storage_id={storage_id}{desc}&name={name}",
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path = Path(TMP_DIR, name)
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
@@ -183,7 +182,7 @@ def test_upload_image_wrong_storage(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path = Path(TMP_DIR, name)
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -207,5 +206,5 @@ def test_upload_image_with_excisting_name(
             files={"image": (name, file, "application/x-cd-image")},
         )
     file_path = Path(TMP_DIR, name)
-    wait_full_deleting(file_path)
+    wait_full_deleting_file(file_path)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

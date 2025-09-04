@@ -49,4 +49,4 @@ def test_delete_image_unauthorized(
     """Test unauthorized request returns 405."""
     image_id = image.get('id', '')
     out = unauthorized_client.delete(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+    assert out.status_code == status.HTTP_401_UNAUTHORIZED

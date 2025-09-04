@@ -12,8 +12,6 @@ functions for:
 
 import time
 import uuid
-import string
-import secrets
 from typing import Any, Dict, cast
 from pathlib import Path
 
@@ -123,12 +121,6 @@ def generate_test_entity_name(entity_type: str, prefix: str = 'test') -> str:
         A unique name string for the test entity
     """
     return f'{prefix}-{entity_type}-{uuid.uuid4().hex[:6]}'
-
-
-def generate_random_string(length: int) -> str:
-    """Generates a random string with a certain length."""
-    letters = string.ascii_lowercase
-    return ''.join(secrets.choice(letters) for _ in range(length))
 
 
 def generate_image_name() -> str:
@@ -321,8 +313,8 @@ def wait_full_deleting_object(
     raise TimeoutError(message)
 
 
-def wait_full_deleting(
-    path: Path,
+def wait_full_deleting_file(
+    file_path: Path,
     timeout: int = 30,
     interval: float = 0.5,
 ) -> None:
@@ -331,19 +323,20 @@ def wait_full_deleting(
     This function repeatedly checks if a certain file exists.
 
     Args:
-        path (str): A path to an object.
+        file_path (str): A path to an object.
         timeout (int): Maximum wait time in seconds before timing out.
         interval (float): Time in seconds between successive requests.
 
     Raises:
         TimeoutError: If the object is still present after the timeout expires.
     """
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        if Path.is_file(path) is False:
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if not file_path.exists():
             return
         time.sleep(interval)
-    message = (f'"{path}" was not deleted within {timeout} seconds.')
+
+    message = f'"{file_path}" was not deleted within {timeout} seconds.'
     raise TimeoutError(message)
 
 
