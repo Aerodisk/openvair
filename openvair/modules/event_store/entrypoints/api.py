@@ -15,7 +15,7 @@ from typing import List, cast
 
 from fastapi import Depends, APIRouter, status
 from fastapi.responses import StreamingResponse
-from fastapi_pagination import Page, Params, paginate
+from fastapi_pagination import Page, paginate
 
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import get_current_user
@@ -80,15 +80,10 @@ async def download_events(
         StreamingResponse: A streaming response with the CSV file content.
     """
     result: List = crud.new_get_all_events()
-    events_page: Page = paginate(
-        result, params=Params(page=1, size=len(result))
-    )
 
-    # Создаем CSV файл в памяти
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # Записываем заголовки
     writer.writerow(
         [
             'id',
@@ -101,17 +96,16 @@ async def download_events(
         ]
     )
 
-    # Записываем данные
-    for event in events_page.items:
+    for event in result:
         writer.writerow(
             [
-                event['id'],
-                event['module'],
-                event['object_id'],
-                event['user_id'],
-                event['event'],
-                event['timestamp'],
-                event['information'],
+                event.id,
+                event.module,
+                event.object_id,
+                event.user_id,
+                event.event,
+                event.timestamp,
+                event.information,
             ]
         )
 
