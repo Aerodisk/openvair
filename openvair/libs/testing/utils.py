@@ -198,7 +198,7 @@ def cleanup_all_events() -> None:
                 uow.events.delete(event)
             uow.commit()
     except Exception as e:  # noqa: BLE001
-        LOG.warning(f"Failed to cleanup events: {e}")
+        LOG.warning(f'Failed to cleanup events: {e}')
 
 
 def wait_for_field_value(  # noqa: PLR0913

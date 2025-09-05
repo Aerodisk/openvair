@@ -23,7 +23,7 @@ from openvair.libs.messaging.clients.rpc_clients.event_store_rpc_client import (
 LOG = get_logger(__name__)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 def cleanup_events() -> Generator:
     """Clean up all events before and after each test."""
     cleanup_all_events()
@@ -31,44 +31,45 @@ def cleanup_events() -> Generator:
     cleanup_all_events()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope='function')
 def created_event() -> Dict:
     """Create a test event via service layer and return its data."""
     event_data = {
-        "module": "test_module",
-        "object_id": str(uuid4()),
-        "user_id": str(uuid4()),
-        "event": "test_event",
-        "information": "test_info"
+        'module': 'test_module',
+        'object_id': str(uuid4()),
+        'user_id': str(uuid4()),
+        'event': 'test_event',
+        'information': 'test_info',
     }
-    event_client = EventStoreServiceLayerRPCClient(event_data["module"])
+    event_client = EventStoreServiceLayerRPCClient(event_data['module'])
     event_client.add_event(
         object_id=event_data['object_id'],
         user_id=event_data['user_id'],
         event=event_data['event'],
-        information=event_data['information']
+        information=event_data['information'],
     )
     return event_data
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope='function')
 def multiple_events() -> List[Dict]:
     """Create multiple test events."""
     events_data = [
         {
-            "module": "test_module",
-            "object_id": str(uuid4()),
-            "user_id": str(uuid4()),
-            "event": f"test_event_{i}",
-            "information": f"test_info_{i}"
-        } for i in range(3)
+            'module': 'test_module',
+            'object_id': str(uuid4()),
+            'user_id': str(uuid4()),
+            'event': f'test_event_{i}',
+            'information': f'test_info_{i}',
+        }
+        for i in range(3)
     ]
     for data in events_data:
-        event_client = EventStoreServiceLayerRPCClient(data["module"])
+        event_client = EventStoreServiceLayerRPCClient(data['module'])
         event_client.add_event(
-            object_id=data["object_id"],
-            user_id=data["user_id"],
-            event=data["event"],
-            information=data["information"]
+            object_id=data['object_id'],
+            user_id=data['user_id'],
+            event=data['event'],
+            information=data['information'],
         )
     return events_data
