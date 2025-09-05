@@ -28,6 +28,9 @@ from openvair.modules.volume.service_layer.unit_of_work import (
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
 )
+from openvair.modules.event_store.service_layer.unit_of_work import (
+    EventStoreSqlAlchemyUnitOfWork as EventStoreUOW,
+)
 from openvair.modules.notification.service_layer.unit_of_work import (
     NotificationSqlAlchemyUnitOfWork,
 )
@@ -173,6 +176,29 @@ def cleanup_all_templates() -> None:
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_events() -> None:
+    """Remove all events from the database.
+
+    This utility function is used to ensure a clean state for event store tests.
+    It:
+    1. Retrieves all events from the database
+    2. Deletes each event record
+    3. Commits the transaction
+
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = EventStoreUOW()
+    try:
+        with unit_of_work as uow:
+            events = uow.events.get_all()
+            for event in events:
+                uow.events.delete(event)
+            uow.commit()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f"Failed to cleanup events: {e}")
 
 
 def wait_for_field_value(  # noqa: PLR0913
