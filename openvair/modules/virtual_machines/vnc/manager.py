@@ -26,7 +26,7 @@ Author: Open vAIR Development Team
 """
 
 import threading
-from typing import Set, Dict, Optional
+from typing import Any, Set, Dict, Optional
 
 import psutil
 
@@ -333,23 +333,25 @@ class VNCManager:
 
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
-                proc_info = proc.info
-                cmdline_str = ' '.join(proc_info['cmdline'])
+                proc_info: Dict[str, Any] = proc.info
 
+                cmdline = proc_info.get('cmdline', [])
+                if not cmdline:
+                    continue
+
+                cmdline_str = ' '.join(cmdline)
                 if 'websockify' in cmdline_str and 'noVNC' in cmdline_str:
                     ws_port = extract_port_from_cmdline_by_range(
                         VNC_WS_PORT_START,
                         VNC_WS_PORT_END,
-                        proc_info['cmdline'],
+                        cmdline,
                     )
-                    if ws_port:
-                        self._allocated_ports.add(ws_port)
-                        LOG.debug(
-                            f'Restored websockify: PID {proc_info["pid"]}, '
-                            f'port {ws_port}'
-                        )
-                        restored.add(ws_port)
-
+                    self._allocated_ports.add(ws_port)
+                    LOG.debug(
+                        f'Restored websockify: PID {proc_info["pid"]}, '
+                        f'port {ws_port}'
+                    )
+                    restored.add(ws_port)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
