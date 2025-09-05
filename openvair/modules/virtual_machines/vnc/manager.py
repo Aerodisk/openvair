@@ -54,6 +54,7 @@ from openvair.modules.virtual_machines.config import (
 
 from .exceptions import (
     VncPortAllocationError,
+    VncSessionStartupError,
     VncProcessNotFoundError,
 )
 
@@ -234,8 +235,9 @@ class VNCManager:
                 raise
             except Exception as e:
                 self._allocated_ports.discard(ws_port)
-                LOG.error(f'Failed to start VNC for VM {vm_name}: {e}')
-                raise
+                msg = f'Failed to start VNC for VM {vm_name}: {e}'
+                LOG.error(msg)
+                raise VncSessionStartupError(msg) from e
 
     def cleanup_dead_sessions(self) -> int:
         """Clean up sessions whose processes have died.
