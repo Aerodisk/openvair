@@ -11,6 +11,7 @@ functions:
     - create_vnc_session_info: Create session information dictionary.
     - extract_port_from_cmdline_by_range: Extract port number from command
         line arguments by range.
+    - kill_process_by_pid: Kill process by ID.
 
 author: Open vAIR Development Team
 """
@@ -18,6 +19,7 @@ author: Open vAIR Development Team
 import socket
 from typing import Set, Dict, Optional
 
+import psutil
 from typing_extensions import Any
 
 from openvair.libs.cli.models import ExecuteParams
@@ -195,3 +197,32 @@ def extract_port_from_cmdline_by_range(
         if arg.isdigit() and port_start <= int(arg) <= port_end:
             return int(arg)
     return None
+
+
+def kill_process_by_pid(pid: int, timeout: float = 2.0) -> bool:
+    """Kill process by ID.
+
+    Args:
+        pid: Process ID to kill
+        timeout: Timeout for graceful termination
+
+    Returns:
+        bool: True if process was terminated successfully
+    """
+    try:
+        process = psutil.Process(pid)
+
+        try:
+            process.terminate()
+            process.wait(timeout=timeout)
+        except psutil.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=2.0)
+            return True
+        else:
+            return True
+
+    except psutil.NoSuchProcess:
+        return True
+    except psutil.AccessDenied:
+        return False

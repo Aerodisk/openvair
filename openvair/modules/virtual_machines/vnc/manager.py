@@ -34,6 +34,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.network.utils import (
+    kill_process_by_pid,
     create_vnc_session_info,
     find_free_port_in_range,
     find_process_id_by_port,
@@ -145,17 +146,11 @@ class VNCManager:
             f'PID {existing["pid"]})'
         )
 
-        try:
-            execute(
-                'kill',
-                '-TERM',
-                str(existing['pid']),
-                params=ExecuteParams(timeout=2.0),
-            )
-            LOG.info(f'Terminated old websockify process {existing["pid"]}')
-        except (UnsuccessReturnCodeError, ExecuteTimeoutExpiredError):
+        if not kill_process_by_pid(existing['pid']):
             msg = f'Failed to terminate old process {existing["pid"]}'
             LOG.warning(msg)
+        else:
+            LOG.info(f'Terminated old websockify process {existing["pid"]}')
 
         self._allocated_ports.discard(existing['ws_port'])
         del self._vm_sessions[vm_name]
