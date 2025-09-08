@@ -21,13 +21,15 @@ from fastapi import Query, APIRouter
 
 from openvair.libs.log import get_logger
 from openvair.common.schemas import BaseResponse
-from openvair.modules.control_plane.entrypoints.schemas import (
-    NodeOut,
-    HeartbeatIn,
-    NodeRegisterIn,
-    ClusterEventOut,
+from openvair.modules.control_plane.entrypoints.schemas.requests import (
+    HeartbeatRequest,
     VmPlacementRequest,
-    VmPlacementDecision,
+    NodeRegisterRequest,
+)
+from openvair.modules.control_plane.entrypoints.schemas.responses import (
+    NodeResponse,
+    VmPlacementResponse,
+    ClusterEventResponse,
 )
 
 LOG = get_logger(__name__)
@@ -39,8 +41,8 @@ router = APIRouter(
 )
 
 
-@router.get('/nodes', response_model=BaseResponse[List[NodeOut]])
-def list_nodes() -> BaseResponse[List[NodeOut]]:
+@router.get('/nodes', response_model=BaseResponse[List[NodeResponse]])
+def list_nodes() -> BaseResponse[List[NodeResponse]]:
     """Retrieve a list of all cluster nodes.
 
     Returns:
@@ -50,8 +52,8 @@ def list_nodes() -> BaseResponse[List[NodeOut]]:
     return BaseResponse(status='success', data=[])
 
 
-@router.post('/nodes/register', response_model=BaseResponse[NodeOut])
-def register_node(data: NodeRegisterIn) -> BaseResponse[NodeOut]:  # noqa: ARG001
+@router.post('/nodes/register', response_model=BaseResponse[NodeResponse])
+def register_node(data: NodeRegisterRequest) -> BaseResponse[NodeResponse]:  # noqa: ARG001
     """Register a new node in the cluster.
 
     Args:
@@ -62,11 +64,11 @@ def register_node(data: NodeRegisterIn) -> BaseResponse[NodeOut]:  # noqa: ARG00
         BaseResponse[NodeOut]: Standardized response containing the
             registered node details. Empty in this stub implementation.
     """
-    return BaseResponse(status='success', data=NodeOut.model_validate({}))
+    return BaseResponse(status='success', data=NodeResponse.model_validate({}))
 
 
 @router.post('/heartbeat', response_model=BaseResponse[Dict[str, Any]])
-def heartbeat(hb: HeartbeatIn) -> BaseResponse[Dict[str, Any]]:
+def heartbeat(hb: HeartbeatRequest) -> BaseResponse[Dict[str, Any]]:
     """Receive heartbeat updates from a cluster node.
 
     Args:
@@ -82,8 +84,8 @@ def heartbeat(hb: HeartbeatIn) -> BaseResponse[Dict[str, Any]]:
     )
 
 
-@router.post('/placement', response_model=BaseResponse[VmPlacementDecision])
-def choose_node(req: VmPlacementRequest) -> BaseResponse[VmPlacementDecision]:  # noqa: ARG001
+@router.post('/placement', response_model=BaseResponse[VmPlacementResponse])
+def choose_node(req: VmPlacementRequest) -> BaseResponse[VmPlacementResponse]:  # noqa: ARG001
     """Select a node for placing a new virtual machine.
 
     Args:
@@ -95,7 +97,7 @@ def choose_node(req: VmPlacementRequest) -> BaseResponse[VmPlacementDecision]:  
             including the chosen node and the decision reason.
     """
     return BaseResponse(
-        status='success', data=VmPlacementDecision.model_validate({})
+        status='success', data=VmPlacementResponse.model_validate({})
     )
 
 
@@ -110,7 +112,7 @@ def health() -> BaseResponse[Dict[str, Any]]:
     return BaseResponse(status='success', data={'status': 'ok'})
 
 
-@router.get('/events', response_model=BaseResponse[List[ClusterEventOut]])
+@router.get('/events', response_model=BaseResponse[List[ClusterEventResponse]])
 def events(
     node_id: Optional[UUID] = Query(  # noqa: ARG001
         default=None, description='Filter by node identifier'
@@ -121,7 +123,7 @@ def events(
     limit: int = Query(  # noqa: ARG001
         default=100, ge=1, le=1000, description='Max number of events'
     ),
-) -> BaseResponse[List[ClusterEventOut]]:
+) -> BaseResponse[List[ClusterEventResponse]]:
     """Return a list of recent control-plane events.
 
     Args:
