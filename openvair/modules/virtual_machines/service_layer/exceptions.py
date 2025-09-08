@@ -113,7 +113,7 @@ class VolumeCloneException(BaseCustomException):
 class SnapshotNameExistsError(BaseCustomException):
     """Raised when a snapshot with the same name already exists for the VM."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize SnapshotNameExistsError with optional arguments."""
         super().__init__(message, *args)
 
@@ -129,7 +129,7 @@ class SnapshotLimitExceeded(BaseCustomException):
 class SnapshotStatusException(BaseCustomException):
     """Raised when error with the status of the snapshot."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the SnapshotStatusError with a message."""
         super().__init__(message, *args)
 
@@ -137,6 +137,14 @@ class SnapshotStatusException(BaseCustomException):
 class SnapshotNotFoundException(BaseCustomException):
     """Raised when a snapshot is not found."""
 
-    def __init__(self, message: str, *args: Any) -> None: # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize SnapshotNotFoundException with optional arguments."""
+        super().__init__(message, *args)
+
+
+class DuplicateDiskException(BaseCustomException):
+    """Raised when trying to attach duplicate disk to VM"""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize DuplicateDiskException with optional arguments."""
         super().__init__(message, *args)

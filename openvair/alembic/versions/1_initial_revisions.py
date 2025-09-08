@@ -2,7 +2,7 @@
 
 Revision ID: 1
 Revises:
-Create Date: 2025-06-27 13:26:25.896838
+Create Date: 2025-08-14 14:18:40.712599
 
 """
 
@@ -223,7 +223,7 @@ def upgrade() -> None:
             ['vm_id'],
             ['virtual_machines.id'],
         ),
-        sa.PrimaryKeyConstraint('id')
+        sa.PrimaryKeyConstraint('id'),
     )
     op.create_index(
         op.f('ix_snapshots_is_current'),
@@ -277,12 +277,12 @@ def upgrade() -> None:
     op.create_table(
         'events',
         sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('module', sa.String(length=40), nullable=True),
-        sa.Column('object_id', sa.UUID(), nullable=True),
-        sa.Column('user_id', sa.UUID(), nullable=True),
-        sa.Column('event', sa.String(length=50), nullable=True),
-        sa.Column('timestamp', sa.DateTime(), nullable=True),
-        sa.Column('information', sa.Text(), nullable=True),
+        sa.Column('module', sa.String(length=40), nullable=False),
+        sa.Column('object_id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=False),
+        sa.Column('event', sa.String(length=50), nullable=False),
+        sa.Column('timestamp', sa.DateTime(), nullable=False),
+        sa.Column('information', sa.Text(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(

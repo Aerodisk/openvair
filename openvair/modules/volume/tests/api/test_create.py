@@ -202,6 +202,24 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
     )  # Сообщение о несуществующем хранилище # noqa: RUF003
 
 
+def test_create_volume_unauthorized(
+    unauthorized_client: TestClient, storage: Dict
+) -> None:
+    """Test unauthorized request returns 401."""
+    volume_data = CreateVolume(
+        name=generate_test_entity_name('volume'),
+        description='Unauthorized test',
+        storage_id=storage['id'],
+        format='qcow2',
+        size=1024,
+        read_only=False,
+    )
+    response = unauthorized_client.post(
+        '/volumes/create/', json=volume_data.model_dump(mode='json')
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
 def test_create_volume_from_template_success(
     client: TestClient,
     storage: Dict,

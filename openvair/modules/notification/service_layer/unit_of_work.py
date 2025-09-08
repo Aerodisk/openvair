@@ -19,6 +19,7 @@ from openvair.modules.notification.adapters import repository
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
+
 class NotificationSqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     """Unit of Work for the notification module.
 

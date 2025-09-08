@@ -175,9 +175,9 @@ class DataSerializer(AbstractDataSerializer):
 
     @classmethod
     def snapshot_to_db(
-            cls,
-            data: Dict,
-            orm_class: Type[orm.Snapshots] = orm.Snapshots,
+        cls,
+        data: Dict,
+        orm_class: Type[orm.Snapshots] = orm.Snapshots,
     ) -> orm.Snapshots:
         """Convert a dictionary to a Snapshots ORM model.
 
@@ -202,8 +202,8 @@ class DataSerializer(AbstractDataSerializer):
 
     @classmethod
     def snapshot_to_web(
-            cls,
-            snapshot: orm.Snapshots,
+        cls,
+        snapshot: orm.Snapshots,
     ) -> Dict:
         """Convert a Snapshots ORM model to a detailed web representation.
 
@@ -227,7 +227,7 @@ class DataSerializer(AbstractDataSerializer):
             parent_data = {
                 'id': str(snapshot.parent.id),
                 'name': snapshot.parent.name,
-                'status': snapshot.parent.status
+                'status': snapshot.parent.status,
             }
         data.pop('parent', None)
         data['parent'] = parent_data

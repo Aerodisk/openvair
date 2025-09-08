@@ -22,6 +22,7 @@ class BackupSqlAlchemyRepository(BaseSqlAlchemyRepository[DeclarativeBase]):
         session (Session): SQLAlchemy session for database interactions.
         engine (Engine): SQLAlchemy engine for executing database commands.
     """
+
     def __init__(self, session: 'Session'):
         """Initialize the SQLAlchemy repository.
 

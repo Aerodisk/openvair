@@ -73,9 +73,7 @@ def get_user(
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(get_current_user)],
 )
-def get_users(
-        crud: UserCrud = Depends(UserCrud)
-) -> Page[schemas.User]:
+def get_users(crud: UserCrud = Depends(UserCrud)) -> Page[schemas.User]:
     """Retrieve list of all users.
 
     Args:

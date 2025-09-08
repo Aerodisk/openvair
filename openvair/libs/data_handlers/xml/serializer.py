@@ -33,7 +33,7 @@ from openvair.libs.data_handlers.xml.exceptions import (
 
 
 def serialize_xml(
-    data: Any, # noqa: ANN401 # XML can contain various data types (dict, list, etc.)
+    data: Any,  # noqa: ANN401 # XML can contain various data types (dict, list, etc.)
     *,
     pretty: bool = False,
     wrap_root: bool = True,
@@ -79,6 +79,7 @@ def serialize_xml(
     except (TypeError, ValueError) as e:
         message = f'Invalid data for XML serialization: {e}'
         raise XMLSerializationError(message) from e
+
 
 def deserialize_xml(
     xml_string: str,

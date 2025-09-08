@@ -110,6 +110,7 @@ class VolumeNotFoundException(BaseCustomException):
         """Initialize VolumeNotFoundException"""
         super().__init__(message, *args)
 
+
 class StorageNotFoundException(BaseCustomException):
     """Raised when can't get info about the storage."""
 

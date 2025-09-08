@@ -50,7 +50,5 @@ class NetworkSqlAlchemyRepository(BaseSqlAlchemyRepository[Interface]):
             Interface: The network interface entity matching the given name.
         """
         return (
-            self.session.query(Interface)
-            .filter_by(name=interface_name)
-            .first()
+            self.session.query(Interface).filter_by(name=interface_name).first()
         )

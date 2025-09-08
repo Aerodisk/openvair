@@ -316,11 +316,11 @@ class NetplanManager:
         for filename in os.listdir(directory):
             input_file = directory / filename
             if input_file.is_file():
-                    LOG.info(f'Checking file: {input_file}')
-                    config = read_yaml(input_file)
-                    if self._is_iface_in_yaml(iface_name, config['network']):
-                        file_with_iface = input_file
-                        LOG.info(f'File found: {file_with_iface}')
+                LOG.info(f'Checking file: {input_file}')
+                config = read_yaml(input_file)
+                if self._is_iface_in_yaml(iface_name, config['network']):
+                    file_with_iface = input_file
+                    LOG.info(f'File found: {file_with_iface}')
 
         if not file_with_iface:
             error = NetplanFileNotFoundException(iface_name)
