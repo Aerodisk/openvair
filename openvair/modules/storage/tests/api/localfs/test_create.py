@@ -12,6 +12,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.testing.utils import (
+    get_disk_partitions,
     wait_for_field_value,
     generate_test_entity_name,
 )
@@ -247,6 +248,8 @@ def test_create_local_partition_success(
     assert result['parent'] == target_disk_path
     assert result['size'] > 0
     assert result['path'].startswith(target_disk_path)
+    partition_number = result['path'].replace(target_disk_path, '')
+    assert partition_number in get_disk_partitions(target_disk_path)
 
 
 def test_create_local_partition_nonexistent_disk(client: TestClient) -> None:

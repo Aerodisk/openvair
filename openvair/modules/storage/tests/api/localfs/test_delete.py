@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 
 from openvair.libs.testing.utils import (
     cleanup_all_volumes,
+    get_disk_partitions,
 )
 from openvair.modules.storage.service_layer.services import StorageStatus
 
@@ -110,6 +111,8 @@ def test_delete_local_partition_success(
     assert response.status_code == status.HTTP_200_OK
     result = response.json()
     assert 'successfully deleted' in result['message'].lower()
+    partition_number = local_partition['path'].replace(target_disk_path, '')
+    assert partition_number not in get_disk_partitions(target_disk_path)
 
 
 def test_delete_local_partition_nonexistent(
