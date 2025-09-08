@@ -4,12 +4,13 @@ from typing import Any, Dict, Generator
 from pathlib import Path
 
 import pytest
-from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
     create_resource,
+    cleanup_partitions,
+    get_disk_partitions,
     cleanup_all_storages,
 )
 from openvair.libs.testing.config import storage_settings
@@ -28,7 +29,7 @@ def cleanup_storages() -> Generator[None, Any, None]:
 
 @pytest.fixture(scope='function')
 def target_disk_path(client: TestClient) -> Generator[str, Any, None]:
-    """Gets target disk path for the local partition creation"""
+    """Target disk path with cleanup new partitions after the test."""
     disks_response = client.get('/storages/local-disks/')
     disks_data = disks_response.json()
     target_disk_path = ''
@@ -36,7 +37,17 @@ def target_disk_path(client: TestClient) -> Generator[str, Any, None]:
         if disk['path'] == str(storage_settings.storage_path):
             target_disk_path = disk['parent']
             break
+
+    pre_existing_partitions = get_disk_partitions(target_disk_path)
+
     yield target_disk_path
+
+    all_partitions = get_disk_partitions(target_disk_path)
+    new_partitions = [
+        p for p in all_partitions if p not in pre_existing_partitions
+    ]
+    if new_partitions:
+        cleanup_partitions(target_disk_path, new_partitions)
 
 
 @pytest.fixture(scope='function')
@@ -59,22 +70,3 @@ def local_partition(
     )
 
     yield partition
-
-    partition_number = partition['path'].replace(target_disk_path, '')
-    delete_data = {
-        'storage_type': 'local_partition',
-        'local_disk_path': target_disk_path,
-        'partition_number': partition_number,
-    }
-
-    delete_response = client.request(
-        'DELETE', '/storages/local-disks/delete_partition/', json=delete_data
-    )
-    if delete_response.status_code != status.HTTP_200_OK:
-        LOG.warning(
-            (
-                f'Failed to delete test local partition: '
-                f'{delete_response.status_code}, '
-                f'{delete_response.text}'
-            )
-        )

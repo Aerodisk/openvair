@@ -134,7 +134,7 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='function')
-def storage(client: TestClient) -> Generator[dict, None, None]:
+def storage(client: TestClient) -> Generator[Dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     cleanup_all_storages()
     headers = {'Authorization': 'Bearer mocked_token'}

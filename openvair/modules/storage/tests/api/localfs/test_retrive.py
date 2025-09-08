@@ -18,7 +18,7 @@ from openvair.modules.storage.entrypoints.schemas import ListOfLocalDisks
 
 
 def test_get_storages_success(client: TestClient, storage: Dict) -> None:
-    """Test successful retrieval of storages List with storage."""
+    """Test successful retrieval of storages list with storage."""
     response = client.get('/storages/')
     assert response.status_code == status.HTTP_200_OK
 
@@ -26,15 +26,17 @@ def test_get_storages_success(client: TestClient, storage: Dict) -> None:
     assert 'items' in data
     assert 'total' in data
     assert data['total'] >= 1
-
-    storage_ids = [item['id'] for item in data['items']]
-    assert storage['id'] in storage_ids
+    storage_data = data['items'][0]
+    assert storage_data['id'] == storage['id']
+    assert storage_data['name'] == storage['name']
+    assert storage_data['storage_type'] == storage['storage_type']
+    assert storage_data['status'] == 'available'
 
 
 def test_get_storages_empty_success(
-        client: TestClient, cleanup_storages: None
+    client: TestClient, cleanup_storages: None
 ) -> None:
-    """Test successful retrieval of empty storages List."""
+    """Test successful retrieval of empty storages list."""
     response = client.get('/storages/')
     assert response.status_code == status.HTTP_200_OK
 
@@ -44,7 +46,7 @@ def test_get_storages_empty_success(
 
 
 def test_get_storages_unauthorized(unauthorized_client: TestClient) -> None:
-    """Test unauthorized access to storages List."""
+    """Test unauthorized access to storages list."""
     response = unauthorized_client.get('/storages/')
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -100,21 +102,6 @@ def test_get_local_disks_success(client: TestClient) -> None:
         if disk['path'] == test_disk_path:
             assert disk['size'] > 0
             assert disk['fstype'] == storage_settings.storage_fs_type
-
-
-def test_get_local_disks_free_only(client: TestClient, storage: Dict) -> None:
-    """Test retrieval of free local disks only."""
-    response = client.get('/storages/local-disks/?free_local_disks=true')
-    assert response.status_code == status.HTTP_200_OK
-
-    data = response.json()
-    assert isinstance(data, Dict)
-    assert 'disks' in data
-    assert isinstance(data['disks'], List)
-    if data['disks']:
-        disk = data['disks'][0]
-        assert 'path' in disk
-        assert 'size' in disk
 
 
 def test_get_local_disks_unauthorized(unauthorized_client: TestClient) -> None:

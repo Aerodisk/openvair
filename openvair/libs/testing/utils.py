@@ -12,7 +12,7 @@ functions for:
 
 import time
 import uuid
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, cast
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -20,6 +20,7 @@ from fastapi.testclient import TestClient
 from openvair.libs.log import get_logger
 from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.storage.domain.model import StorageFactory
+from openvair.modules.storage.adapters.parted import PartedAdapter
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
@@ -203,6 +204,50 @@ def cleanup_all_storages() -> None:
             finally:
                 uow.storages.delete(db_storage)
                 uow.commit()
+
+
+def get_disk_partitions(disk_path: str) -> List[str]:
+    """Returns a list of partition numbers on the given disk.
+
+    Args:
+        disk_path: Path to the disk (e.g. /dev/sdb)
+
+    Returns:
+        List of partition numbers as strings
+    """
+    adapter = PartedAdapter(disk_path)
+    try:
+        output = adapter.print()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f"Failed to read partitions on disk {disk_path}: {err}")
+        return []
+
+    partitions = []
+    for line in output.splitlines():
+        parts = line.split()
+        if parts and parts[0].isdigit():
+            partitions.append(parts[0])
+    return partitions
+
+
+def cleanup_partitions(
+        disk_path: str, partition_numbers: List[str]
+) -> None:
+    """Deletes a list of partitions from a disk.
+
+    Deletes local partitions in descending order to avoid shifting numbers.
+
+    Args:
+        disk_path: Path to the disk
+        partition_numbers: List of partition numbers to delete
+    """
+    for part_number in sorted(partition_numbers, reverse=True):
+        try:
+            adapter = PartedAdapter(disk_path)
+            adapter.rm(part_number)
+        except Exception as err:  # noqa: BLE001
+            part_path = disk_path + part_number
+            LOG.warning(f'Error during partition {part_path} deletion: {err}')
 
 
 def wait_for_field_value(  # noqa: PLR0913

@@ -66,13 +66,7 @@ def test_delete_storage_with_attached_volume(
 def test_delete_storage_with_attached_template(
     client: TestClient, template: Dict, storage: Dict
 ) -> None:
-    """Test deletion failure when storage has attached template.
-
-    Verifies that:
-    - API returns 500 error when trying to delete storage with template
-    - Error message clearly indicates template attachment issue
-    - Storage remains available after failed deletion attempt
-    """
+    """Test deletion failure when storage has attached template."""
     storage_id = storage['id']
     cleanup_all_volumes()
 
@@ -92,7 +86,7 @@ def test_delete_storage_unauthorized(
     storage: Dict,
     unauthorized_client: TestClient,
 ) -> None:
-    """Test unauthorized deletion attempt."""
+    """Test unauthorized storage deletion."""
     storage_id = storage['id']
     response = unauthorized_client.delete(f'/storages/{storage_id}/delete')
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
