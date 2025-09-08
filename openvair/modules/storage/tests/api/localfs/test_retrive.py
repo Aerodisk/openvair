@@ -31,7 +31,9 @@ def test_get_storages_success(client: TestClient, storage: Dict) -> None:
     assert storage['id'] in storage_ids
 
 
-def test_get_storages_empty_success(client: TestClient) -> None:
+def test_get_storages_empty_success(
+        client: TestClient, cleanup_storages: None
+) -> None:
     """Test successful retrieval of empty storages List."""
     response = client.get('/storages/')
     assert response.status_code == status.HTTP_200_OK
