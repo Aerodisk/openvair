@@ -7,12 +7,12 @@ from openvair.libs.contracts.control_plane_service import (
     RegisterNodeServiceCommand,
     PlacementRequestServiceCommand,
 )
-from openvair.libs.messaging.service_interfaces.control_plane import (
-    ControlPlaneServiceABC,
-)
-from openvair.modules.control_plane.adapters.dto.internal.models import (
+from openvair.modules.control_plane.adapters.dto.models import (
     ApiNodeModelDTO,
     ClusterEventModelDTO,
+)
+from openvair.libs.messaging.service_interfaces.control_plane import (
+    ControlPlaneServiceABC,
 )
 
 

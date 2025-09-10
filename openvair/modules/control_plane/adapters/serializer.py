@@ -11,7 +11,7 @@ from openvair.modules.control_plane.adapters.orm import (
     ClusterEvent as EventORM,
 )
 from openvair.common.serialization.base_serializer import BaseSerializer
-from openvair.modules.control_plane.adapters.dto.internal.models import (
+from openvair.modules.control_plane.adapters.dto.models import (
     ApiNodeModelDTO,
     NodeCreateModelDTO,
     ClusterEventModelDTO,
