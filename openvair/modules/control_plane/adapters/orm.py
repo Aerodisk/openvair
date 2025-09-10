@@ -19,7 +19,10 @@ from __future__ import annotations
 
 import uuid
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
+from datetime import (
+    datetime,  # noqa: TCH003 it's need for alembic in current block
+)
 
 from sqlalchemy import (
     Enum as SAEnum,
@@ -32,9 +35,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column
 from sqlalchemy.dialects.postgresql import INET, UUID as PG_UUID, JSONB
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class Base(DeclarativeBase):
