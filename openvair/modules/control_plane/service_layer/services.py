@@ -1,7 +1,6 @@
-from typing import Dict, List  # noqa: D100
+from typing import Dict, List, Mapping  # noqa: D100
 
-from pydantic import validate_call
-
+from openvair.libs.messaging.rpc.decorators import rpc_io
 from openvair.libs.messaging.messaging_agents import MessagingClient
 from openvair.libs.contracts.control_plane_service import (
     HeartbeatServiceCommand,
@@ -10,6 +9,10 @@ from openvair.libs.contracts.control_plane_service import (
 )
 from openvair.libs.messaging.service_interfaces.control_plane import (
     ControlPlaneServiceABC,
+)
+from openvair.modules.control_plane.adapters.dto.internal.models import (
+    ApiNodeModelDTO,
+    ClusterEventModelDTO,
 )
 
 
@@ -29,22 +32,40 @@ def call_vm_on_node(  # noqa: D103
     return resp
 
 
-class ControlPlaneServiceLayerManager(ControlPlaneServiceABC):  # noqa: D101
-    def get_nodes(self) -> List[Dict]:  # noqa: D102
+class ControlPlaneServiceLayerManager(  # noqa: D101
+    ControlPlaneServiceABC[ApiNodeModelDTO, ClusterEventModelDTO]
+):
+    def get_nodes(self) -> List[ApiNodeModelDTO]:  # noqa: D102
         return []
 
-    @validate_call
-    def register_node(self, payload: RegisterNodeServiceCommand) -> Dict:  # noqa: D102, ARG002
+    @rpc_io()
+    def get_node(self, node_id: str) -> ApiNodeModelDTO:  # noqa: ARG002, D102
+        return ApiNodeModelDTO.model_validate({})
+
+    @rpc_io()
+    def register_node(  # noqa: D102
+        self,
+        payload: RegisterNodeServiceCommand,  # noqa: ARG002
+    ) -> ApiNodeModelDTO:
+        return ApiNodeModelDTO.model_validate({})
+
+    @rpc_io()
+    def heartbeat(  # noqa: D102
+        self,
+        payload: HeartbeatServiceCommand,  # noqa: ARG002
+    ) -> Dict[str, object]:
         return {}
 
-    @validate_call
-    def heartbeat(self, payload: HeartbeatServiceCommand) -> Dict:  # noqa: ARG002, D102
+    @rpc_io()
+    def choose_node(  # noqa: D102
+        self,
+        payload: PlacementRequestServiceCommand,  # noqa: ARG002
+    ) -> Dict[str, object]:
         return {}
 
-    @validate_call
-    def choose_node(self, payload: PlacementRequestServiceCommand) -> Dict:  # noqa: D102, ARG002
-        return {}
-
-    @validate_call
-    def get_cluster_events(self, filters: Dict) -> List[Dict]:  # noqa: D102, ARG002
+    @rpc_io()
+    def get_cluster_events(  # noqa: D102
+        self,
+        filters: Mapping[str, object],  # noqa: ARG002
+    ) -> List[ClusterEventModelDTO]:
         return []
