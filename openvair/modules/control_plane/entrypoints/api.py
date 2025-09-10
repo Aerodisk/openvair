@@ -42,14 +42,25 @@ router = APIRouter(
 
 
 @router.get('/nodes', response_model=BaseResponse[List[NodeResponse]])
-def list_nodes() -> BaseResponse[List[NodeResponse]]:
+def get_nodes() -> BaseResponse[List[NodeResponse]]:
     """Retrieve a list of all cluster nodes.
 
     Returns:
-        BaseResponse[List[NodeOut]]: Standardized response containing a list
-            of cluster nodes. Empty in this stub implementation.
+        BaseResponse[List[NodeResponse]]: Standardized response containing a
+            list of cluster nodes. Empty in this stub implementation.
     """
     return BaseResponse(status='success', data=[])
+
+
+@router.get('/nodes/{id}', response_model=BaseResponse[NodeResponse])
+def get_node(node_id: UUID) -> BaseResponse[NodeResponse]:  # noqa: ARG001
+    """Retrieve info about nodes by id.
+
+    Returns:
+        BaseResponse[NodeResponse]: Standardized response containing a list
+            of cluster nodes. Empty in this stub implementation.
+    """
+    return BaseResponse(status='success', data=NodeResponse.model_validate({}))
 
 
 @router.post('/nodes/register', response_model=BaseResponse[NodeResponse])
@@ -61,7 +72,7 @@ def register_node(data: NodeRegisterRequest) -> BaseResponse[NodeResponse]:  # n
             IP, and optional roles or labels.
 
     Returns:
-        BaseResponse[NodeOut]: Standardized response containing the
+        BaseResponse[NodeResponse]: Standardized response containing the
             registered node details. Empty in this stub implementation.
     """
     return BaseResponse(status='success', data=NodeResponse.model_validate({}))
@@ -93,7 +104,7 @@ def choose_node(req: VmPlacementRequest) -> BaseResponse[VmPlacementResponse]:  
             requirements such as CPU, RAM, and optional labels.
 
     Returns:
-        BaseResponse[VmPlacementDecision]: Response with placement decision
+        BaseResponse[VmPlacementResponse]: Response with placement decision
             including the chosen node and the decision reason.
     """
     return BaseResponse(
@@ -132,7 +143,7 @@ def events(
         limit (int): Limit number of returned events (1..1000).
 
     Returns:
-        BaseResponse[List[ClusterEventOut]]: Standardized response with
+        BaseResponse[List[ClusterEventResponse]]: Standardized response with
         a list of events. Empty in this stub implementation.
     """
     return BaseResponse(status='success', data=[])
