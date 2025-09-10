@@ -99,13 +99,11 @@ class ClusterNode(Base):
         default=uuid.uuid4,
     )
 
-    # базовая идентификация
     hostname: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False
     )
     ip: Mapped[Optional[str]] = mapped_column(INET, nullable=True)
 
-    # роли/лейблы на будущее (compute/storage/etc.)
     roles: Mapped[List[str]] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")
     )
@@ -113,7 +111,6 @@ class ClusterNode(Base):
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
 
-    # состояние
     status: Mapped[NodeStatus] = mapped_column(
         SAEnum(NodeStatus, name='node_status', native_enum=True),
         nullable=False,
@@ -124,17 +121,14 @@ class ClusterNode(Base):
         nullable=True,
     )
 
-    # ёмкости узла (опционально)
     capacity_cpu: Mapped[Optional[int]] = mapped_column(Integer)  # vCPU (шт.)
     capacity_mem_mb: Mapped[Optional[int]] = mapped_column(Integer)  # MB
     capacity_storage_gb: Mapped[Optional[int]] = mapped_column(Integer)  # GB
 
-    # текущие аллокации (опционально)
     alloc_cpu: Mapped[Optional[int]] = mapped_column(Integer)
     alloc_mem_mb: Mapped[Optional[int]] = mapped_column(Integer)
     alloc_storage_gb: Mapped[Optional[int]] = mapped_column(Integer)
 
-    # связи с событиями (если используем таблицу событий)  # noqa: RUF003
     events: Mapped[List['ClusterEvent']] = relationship(
         back_populates='node',
         cascade='all, delete-orphan',
@@ -182,10 +176,9 @@ class ClusterEvent(Base):
         nullable=True,
     )
 
-    # тип события (например: 'register', 'heartbeat', 'status_change', 'schedule', 'migrate')  # noqa: E501, W505
+    # ('register', 'heartbeat', 'status_change', 'schedule', 'migrate')
     kind: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    # произвольный payload (детали)
     payload: Mapped[Dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
