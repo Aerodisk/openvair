@@ -15,6 +15,7 @@ from typing import Dict
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from openvair.libs.testing.utils import cleanup_all_volumes
 from openvair.modules.storage.service_layer.services import StorageStatus
 
 
@@ -64,6 +65,7 @@ def test_delete_nfs_storage_with_attached_template(
 ) -> None:
     """Test deletion failure when NFS storage has attached template."""
     storage_id = nfs_storage['id']
+    cleanup_all_volumes()
     template_response = client.get(f'/templates/{nfs_template["id"]}/')
     assert template_response.status_code == status.HTTP_200_OK
     template_data = template_response.json()['data']
@@ -73,6 +75,7 @@ def test_delete_nfs_storage_with_attached_template(
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     response_text = response.text.lower()
     assert 'storagehasobjects' in response_text
+    assert 'has templates' in response.text.lower()
 
 
 def test_delete_nfs_storage_unauthorized(
