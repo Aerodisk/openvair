@@ -4,6 +4,7 @@ from typing import Any, Dict, Generator
 from pathlib import Path
 
 import pytest
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
@@ -87,9 +88,11 @@ def local_partition(
 @pytest.fixture(scope='function')
 def nfs_storage(client: TestClient) -> Generator[Dict, None, None]:
     """Creates a test NFS storage and deletes it after test."""
+    cleanup_all_templates()
+    cleanup_all_volumes()
     cleanup_all_storages()
 
-    storage_data = {
+    nfs_storage_data = {
         'name': generate_test_entity_name('nfs_storage'),
         'description': 'Test NFS storage for integration tests',
         'storage_type': 'nfs',
@@ -100,26 +103,33 @@ def nfs_storage(client: TestClient) -> Generator[Dict, None, None]:
         },
     }
 
-    nfs_storage_data = create_resource(
+    storage_nfs = create_resource(
         client,
         '/storages/create/',
-        storage_data,
+        nfs_storage_data,
         'nfs_storage',
     )
 
     wait_for_field_value(
         client=client,
-        path=f"/storages/{nfs_storage_data['id']}/",
+        path=f"/storages/{storage_nfs['id']}/",
         field='status',
         expected=StorageStatus.available.name,
     )
 
-    yield nfs_storage_data
+    yield storage_nfs
 
     cleanup_all_volumes()
     cleanup_all_templates()
 
-    delete_resource(client, '/storages', nfs_storage_data['id'], 'nfs_storage')
+    delete_response = client.delete(f"/storages/{storage_nfs['id']}/delete")
+    if delete_response.status_code != status.HTTP_202_ACCEPTED:
+        LOG.warning(
+            (
+                f'Failed to delete test storage: {delete_response.status_code},'
+                f' {delete_response.text}'
+            )
+        )
 
 
 @pytest.fixture(scope='function')
@@ -136,20 +146,20 @@ def nfs_volume(
         read_only=False,
     ).model_dump(mode='json')
 
-    volume = create_resource(
+    volume_nfs = create_resource(
         client, '/volumes/create/', volume_data, 'nfs_volume'
     )
 
     wait_for_field_value(
         client=client,
-        path=f'/volumes/{volume["id"]}/',
+        path=f'/volumes/{volume_nfs["id"]}/',
         field='status',
         expected=VolumeStatus.available.name,
     )
 
-    yield volume
+    yield volume_nfs
 
-    delete_resource(client, '/volumes', volume['id'], 'nfs_volume')
+    delete_resource(client, '/volumes', volume_nfs['id'], 'nfs_volume')
 
 
 @pytest.fixture(scope='function')
@@ -165,17 +175,17 @@ def nfs_template(
         is_backing=False,
     ).model_dump(mode='json')
 
-    template = create_resource(
+    template_nfs = create_resource(
         client, '/templates/', template_data, 'nfs_template'
     )['data']
 
     wait_for_field_value(
         client=client,
-        path=f"/templates/{template['id']}/",
+        path=f"/templates/{template_nfs['id']}/",
         field='status',
         expected=TemplateStatus.AVAILABLE,
     )
 
-    yield template
+    yield template_nfs
 
-    delete_resource(client, '/templates', template['id'], 'nfs_template')
+    delete_resource(client, '/templates', template_nfs['id'], 'nfs_template')
