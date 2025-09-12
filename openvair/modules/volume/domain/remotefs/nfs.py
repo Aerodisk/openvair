@@ -18,6 +18,7 @@ from openvair.libs.qemu_img.adapter import QemuImgAdapter
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import exceptions
 from openvair.modules.volume.adapters.dto.internal.commands import (
+    CloneVolumeDomainCommandDTO,
     CreateVolumeFromTemplateDomainCommandDTO,
 )
 
@@ -176,3 +177,33 @@ class NfsVolume(BaseVolume):
                 Path(f'{self.path}/volume-{self.id}'),
             )
         return self.__dict__
+
+    def clone(self, data: Dict) -> Dict:
+        """Clone an existing nfs volume.
+
+        Args:
+            data (Dict): A dictionary containing the necessary data for cloning.
+
+        Returns:
+            Dict: A dictionary representation of the cloned volume's attributes.
+        """
+        LOG.info(
+            f'Cloning nfs volume with id={self.id}, path={self.path},'
+            f'size={self.size}, format={self.format}'
+        )
+        qemu_img_adapter = QemuImgAdapter()
+
+        cloning_data = CloneVolumeDomainCommandDTO.model_validate(data)
+        target_path = (
+            cloning_data.mount_point
+        ) / f'volume-{cloning_data.new_id}'
+
+        qemu_img_adapter.create_copy(
+            Path(f'{self.path}/volume-{self.id}'), target_path, fmt=self.format
+        )
+
+        new_volume = NfsVolume(**self.__dict__)
+        new_volume.id = str(cloning_data.new_id)
+        new_volume.path = str(cloning_data.mount_point)
+
+        return new_volume.__dict__
