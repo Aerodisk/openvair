@@ -85,12 +85,12 @@ from openvair.modules.block_device.entrypoints.api import router as block_router
 from openvair.modules.notification.entrypoints.api import (
     router as notification_router,
 )
+from openvair.modules.control_plane.entrypoints.api import (
+    router as control_plane_router,
+)
 from openvair.modules.virtual_network.entrypoints.api import router as vn_router
 from openvair.modules.virtual_machines.entrypoints.api import (
     router as vm_router,
-)
-from openvair.modules.control_plane.entrypoints.dev_api import (
-    router as control_plane_router,
 )
 
 # Include routers for different modules

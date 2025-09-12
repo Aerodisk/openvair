@@ -66,3 +66,11 @@ class RpcDeserializeMessageException(RpcException):
     def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the RpcDeserializeMessageException."""
         super().__init__(message, *args)
+
+
+class MessagingPayloadError(RpcException):
+    """Payload validation/serialization error at the transport boundary."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the MessagingPayloadError."""
+        super().__init__(message, *args)
