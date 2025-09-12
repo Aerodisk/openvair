@@ -4,12 +4,12 @@ Requires=docker.service
 After=network.target docker.service 
 
 [Service]
-Environment="PATH=/opt/aero/openvair/venv/bin/:/usr/sbin/:/usr/bin/"
-Environment="PYTHONPATH=:/opt/aero/openvair/"
+Environment="PATH=/opt/aero/openvair/.venv/bin:/usr/sbin:/usr/bin"
+Environment="PYTHONPATH=/opt/aero/openvair"
 Environment=PYTHONUNBUFFERED=1
 
 WorkingDirectory=/opt/aero/openvair/openvair/modules/block_device/domain
-ExecStart=/opt/aero/openvair/venv/bin/python3 -u /opt/aero/openvair/openvair/modules/block_device/domain/manager.py
+ExecStart=/opt/aero/openvair/.venv/bin/python -u /opt/aero/openvair/openvair/modules/block_device/domain/manager.py
 Restart=on-failure
 RestartSec=5
 
