@@ -19,7 +19,8 @@ valid_ip = block_device_settings.ip
 valid_port = block_device_settings.port
 valid_inf_type = block_device_settings.inf_type
 
-@pytest.fixture(scope="function")
+
+@pytest.fixture(scope='function')
 def client_with_logout(client: TestClient) -> Generator[TestClient, None, None]:
     """Fixture that logs out the client before and after the test function.
 
@@ -27,29 +28,31 @@ def client_with_logout(client: TestClient) -> Generator[TestClient, None, None]:
     """
     with contextlib.suppress(Exception):
         client.post(
-            "/block-devices/logout",
-            json={"ip": valid_ip, "inf_type": valid_inf_type}
+            '/block-devices/logout',
+            json={'ip': valid_ip, 'inf_type': valid_inf_type},
         )
     yield client
     with contextlib.suppress(Exception):
         client.post(
-            "/block-devices/logout",
-            json={"ip": valid_ip, "inf_type": valid_inf_type}
+            '/block-devices/logout',
+            json={'ip': valid_ip, 'inf_type': valid_inf_type},
         )
 
-login_data = {"ip": valid_ip, "inf_type": valid_inf_type, "port": valid_port}
 
-@pytest.fixture(scope="function")
+login_data = {'ip': valid_ip, 'inf_type': valid_inf_type, 'port': valid_port}
+
+
+@pytest.fixture(scope='function')
 def client_with_login(client: TestClient) -> Generator[TestClient, None, None]:
     """Fixture that logs in the client before the test function.
 
     Provides a client session with logged-in block_device.
     """
     with contextlib.suppress(Exception):
-        client.post("/block-devices/login", json=login_data)
+        client.post('/block-devices/login', json=login_data)
     yield client
     with contextlib.suppress(Exception):
         client.post(
-            "/block-devices/logout",
-            json={"ip": valid_ip, "inf_type": valid_inf_type}
+            '/block-devices/logout',
+            json={'ip': valid_ip, 'inf_type': valid_inf_type},
         )

@@ -18,6 +18,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.storage.domain.model import StorageFactory
 from openvair.modules.storage.adapters.parted import PartedAdapter
@@ -32,6 +33,15 @@ from openvair.modules.volume.service_layer.unit_of_work import (
 )
 from openvair.modules.storage.service_layer.unit_of_work import (
     StorageSqlAlchemyUnitOfWork as StorageUOW,
+)
+from openvair.modules.network.adapters.serializer import (
+    DataSerializer as InterfaceSerializer,
+)
+from openvair.modules.network.domain.bridges.netplan import NetplanInterface
+from openvair.modules.network.domain.utils.ovs_manager import OVSManager
+from openvair.modules.network.domain.bridges.ovs_bridge import OVSInterface
+from openvair.modules.network.service_layer.unit_of_work import (
+    NetworkSqlAlchemyUnitOfWork,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
@@ -285,6 +295,41 @@ def wait_for_field_value(  # noqa: PLR0913
     raise TimeoutError(message)
 
 
+def wait_for_field_not_empty(
+        client: TestClient,
+        path: str,
+        field: str,
+        timeout: int = 30,
+        interval: float = 0.5,
+) -> None:
+    """Polls a GET endpoint until a specific field becomes non-empty.
+
+    Checks for: None, empty string, list, dict.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        response = client.get(path)
+        if response.status_code == status.HTTP_200_OK:
+            raw = response.json()
+            data = (
+                raw['data']
+                if 'data' in raw and isinstance(raw['data'], Dict)
+                else raw
+            )
+            if field in data:
+                value = data[field]
+                if (
+                        value is not None and value not in ('', [], {})
+                ):
+                    return
+        time.sleep(interval)
+    message = (
+        f'Field "{field}" at "{path}" did not become non-empty '
+        f'within {timeout} seconds.'
+    )
+    raise TimeoutError(message)
+
+
 def wait_until_404(
     client: TestClient,
     template_id: str,
@@ -382,3 +427,74 @@ def cleanup_all_notifications() -> None:
             uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up notifications: {err}')
+
+
+def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified after fix issue #260
+    """Remove only test bridges from OVS/Netplan and database.
+
+    This function targets only bridges with names starting with 'test-'
+    """
+    unit_of_work = NetworkSqlAlchemyUnitOfWork()
+    try:
+        if NETWORK_CONFIG_MANAGER == 'ovs':
+            ovs_manager = OVSManager()
+            ovs_bridges = ovs_manager.get_bridges()
+            name_index = ovs_bridges['headings'].index('name')
+            ovs_bridge_names = [
+                bridge[name_index] for bridge in ovs_bridges['data']
+            ]
+            test_ovs_bridge_names = [
+                name for name in ovs_bridge_names if name.startswith('test-')
+            ]
+            for bridge_name in test_ovs_bridge_names:
+                with unit_of_work as uow:
+                    db_bridge = uow.interfaces.get_by_name(bridge_name)
+                    if db_bridge:
+                        bridge_data: Dict = {
+                            'id': str(db_bridge.id),
+                            'name': db_bridge.name,
+                            'type': 'bridge',
+                            'interfaces': []
+                        }
+                        bridge = OVSInterface(**bridge_data)
+                        bridge.delete()
+        else:
+            # TODO: Remove when fixed issue
+            #       https://github.com/Aerodisk/openvair/issues/260
+            with unit_of_work as uow:
+                all_interfaces = uow.interfaces.get_all()
+                test_db_bridge_interfaces = [
+                    iface for iface in all_interfaces
+                    if iface.name.startswith('test-')
+                ]
+                for db_bridge in test_db_bridge_interfaces:
+                    if db_bridge.status == 'error':
+                        bridge_data = InterfaceSerializer.to_domain(db_bridge)
+                        netplan_bridge = NetplanInterface(**bridge_data)
+                        netplan_bridge.delete()
+            with unit_of_work as uow:
+                all_interfaces = uow.interfaces.get_all()
+                test_db_bridge_interfaces = [
+                    iface for iface in all_interfaces
+                    if iface.name.startswith('test-')
+                ]
+                for db_bridge in test_db_bridge_interfaces:
+                    bridge_data = InterfaceSerializer.to_domain(db_bridge)
+                    netplan_bridge = NetplanInterface(**bridge_data)
+                    netplan_bridge.delete()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f"Error during test bridges cleanup: {e}")
+
+    try:
+        with unit_of_work as uow:
+            all_interfaces = uow.interfaces.get_all()
+            test_db_bridge_interfaces = [
+                iface for iface in all_interfaces
+                if iface.name.startswith('test-')
+            ]
+        for interface in test_db_bridge_interfaces:
+            with unit_of_work as uow:
+                uow.interfaces.delete(interface)
+                uow.commit()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f"Error during test bridges cleanup: {e}")
