@@ -184,7 +184,9 @@ go_to_home_dir() {
 }
 
 install_curl(){
-  check_or_install "curl"
+  local command="sudo apt-get install curl -y"
+  local message="installing curl via apt-get"
+  execute "$command" "$message"
 }
 
 install_uv(){
