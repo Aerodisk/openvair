@@ -384,8 +384,7 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
             with unit_of_work as uow:
                 all_interfaces = uow.interfaces.get_all()
                 test_db_bridge_interfaces = [
-                    iface
-                    for iface in all_interfaces
+                    iface for iface in all_interfaces
                     if iface.name.startswith('test-')
                 ]
                 for db_bridge in test_db_bridge_interfaces:
@@ -396,8 +395,7 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
             with unit_of_work as uow:
                 all_interfaces = uow.interfaces.get_all()
                 test_db_bridge_interfaces = [
-                    iface
-                    for iface in all_interfaces
+                    iface for iface in all_interfaces
                     if iface.name.startswith('test-')
                 ]
                 for db_bridge in test_db_bridge_interfaces:
@@ -411,8 +409,7 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
         with unit_of_work as uow:
             all_interfaces = uow.interfaces.get_all()
             test_db_bridge_interfaces = [
-                iface
-                for iface in all_interfaces
+                iface for iface in all_interfaces
                 if iface.name.startswith('test-')
             ]
         for interface in test_db_bridge_interfaces:
