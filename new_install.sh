@@ -799,6 +799,7 @@ main() {
     create_jwt_secret
     get_os_type
     go_to_home_dir
+    install_curl
     install_uv
     make_venv
     install_libpq_dev
