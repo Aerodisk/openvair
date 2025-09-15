@@ -244,7 +244,7 @@ def nfs_storage(client: TestClient) -> Generator[Dict, None, None]:
     cleanup_all_storages()
 
     nfs_storage_data = {
-        'name': generate_test_entity_name('nfs_storage'),
+        'name': generate_test_entity_name('storage'),
         'description': 'Test NFS storage for integration tests',
         'storage_type': 'nfs',
         'specs': {

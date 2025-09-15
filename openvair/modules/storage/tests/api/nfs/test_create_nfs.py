@@ -5,6 +5,7 @@ Covers:
 - Successful NFS storage creation.
 - Validation errors (invalid IP, path, mount version, etc.).
 - Logical errors (duplicate name).
+- Unauthorized access.
 """
 
 from typing import Dict, cast
@@ -185,3 +186,20 @@ def test_create_storage_nfs_duplicate_name(
     response2 = client.post('/storages/create/', json=storage_data2)
     assert response2.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'storageexistserror' in response2.text.lower()
+
+
+def test_create_storage_nfs_unauthorized(
+    unauthorized_client: TestClient, cleanup_storages: None
+) -> None:
+    """Test unauthorized NFS storage creation."""
+    storage_data = {
+        'name': generate_test_entity_name('storage'),
+        'storage_type': 'nfs',
+        'specs': {
+            'ip': str(storage_settings.storage_nfs_ip),
+            'path': str(storage_settings.storage_nfs_path),
+        },
+    }
+
+    response = unauthorized_client.post('/storages/create/', json=storage_data)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
