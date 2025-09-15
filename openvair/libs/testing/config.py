@@ -90,8 +90,7 @@ class NetworkSettings(BaseSettings):
     """
 
     network_interface: str = Field(
-        default='eth0',
-        alias='TEST_NETWORK_INTERFACE'
+        default='eth0', alias='TEST_NETWORK_INTERFACE'
     )
 
     model_config = SettingsConfigDict(

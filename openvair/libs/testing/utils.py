@@ -218,11 +218,11 @@ def wait_for_field_value(  # noqa: PLR0913
 
 
 def wait_for_field_not_empty(
-        client: TestClient,
-        path: str,
-        field: str,
-        timeout: int = 30,
-        interval: float = 0.5,
+    client: TestClient,
+    path: str,
+    field: str,
+    timeout: int = 30,
+    interval: float = 0.5,
 ) -> None:
     """Polls a GET endpoint until a specific field becomes non-empty.
 
@@ -240,9 +240,7 @@ def wait_for_field_not_empty(
             )
             if field in data:
                 value = data[field]
-                if (
-                        value is not None and value not in ('', [], {})
-                ):
+                if value is not None and value not in ('', [], {}):
                     return
         time.sleep(interval)
     message = (
@@ -376,7 +374,7 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
                             'id': str(db_bridge.id),
                             'name': db_bridge.name,
                             'type': 'bridge',
-                            'interfaces': []
+                            'interfaces': [],
                         }
                         bridge = OVSInterface(**bridge_data)
                         bridge.delete()
@@ -386,7 +384,8 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
             with unit_of_work as uow:
                 all_interfaces = uow.interfaces.get_all()
                 test_db_bridge_interfaces = [
-                    iface for iface in all_interfaces
+                    iface
+                    for iface in all_interfaces
                     if iface.name.startswith('test-')
                 ]
                 for db_bridge in test_db_bridge_interfaces:
@@ -397,7 +396,8 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
             with unit_of_work as uow:
                 all_interfaces = uow.interfaces.get_all()
                 test_db_bridge_interfaces = [
-                    iface for iface in all_interfaces
+                    iface
+                    for iface in all_interfaces
                     if iface.name.startswith('test-')
                 ]
                 for db_bridge in test_db_bridge_interfaces:
@@ -405,13 +405,14 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
                     netplan_bridge = NetplanInterface(**bridge_data)
                     netplan_bridge.delete()
     except Exception as e:  # noqa: BLE001
-        LOG.warning(f"Error during test bridges cleanup: {e}")
+        LOG.warning(f'Error during test bridges cleanup: {e}')
 
     try:
         with unit_of_work as uow:
             all_interfaces = uow.interfaces.get_all()
             test_db_bridge_interfaces = [
-                iface for iface in all_interfaces
+                iface
+                for iface in all_interfaces
                 if iface.name.startswith('test-')
             ]
         for interface in test_db_bridge_interfaces:
@@ -419,4 +420,4 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
                 uow.interfaces.delete(interface)
                 uow.commit()
     except Exception as e:  # noqa: BLE001
-        LOG.warning(f"Error during test bridges cleanup: {e}")
+        LOG.warning(f'Error during test bridges cleanup: {e}')
