@@ -183,6 +183,10 @@ go_to_home_dir() {
     execute "$command" "$message"
 }
 
+install_curl(){
+  check_or_install "curl"
+}
+
 install_uv(){
   local install_uv_command="curl -LsSf https://astral.sh/uv/install.sh | sh"
   local install_message="Installing uv via official installer"
