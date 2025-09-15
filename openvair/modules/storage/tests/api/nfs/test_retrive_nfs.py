@@ -37,7 +37,7 @@ def test_get_storages_nfs_success(
     assert nfs_storage_data['status'] == 'available'
 
 
-def test_get_nfs_storage_success(client: TestClient, nfs_storage: Dict) -> None:
+def test_get_storage_nfs_success(client: TestClient, nfs_storage: Dict) -> None:
     """Test successful NFS storage retrieval by ID."""
     response = client.get(f"/storages/{nfs_storage['id']}/")
     assert response.status_code == status.HTTP_200_OK
@@ -54,20 +54,20 @@ def test_get_nfs_storage_success(client: TestClient, nfs_storage: Dict) -> None:
     assert specs['mount_version'] == '4'
 
 
-def test_get_nfs_storage_nonexistent(client: TestClient) -> None:
+def test_get_storage_nfs_nonexistent(client: TestClient) -> None:
     """Test retrieval of nonexistent NFS storage."""
     nonexistent_id = uuid.uuid4()
     response = client.get(f'/storages/{nonexistent_id}/')
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-def test_get_nfs_storage_invalid_id(client: TestClient) -> None:
+def test_get_storage_nfs_invalid_id(client: TestClient) -> None:
     """Test retrieval with invalid storage ID."""
     response = client.get('/storages/invalid-id/')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_get_nfs_storage_unauthorized(
+def test_get_storage_nfs_unauthorized(
     nfs_storage: Dict,
     unauthorized_client: TestClient,
 ) -> None:

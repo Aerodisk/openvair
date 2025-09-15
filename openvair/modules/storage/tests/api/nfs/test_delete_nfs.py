@@ -19,7 +19,7 @@ from openvair.libs.testing.utils import cleanup_all_volumes
 from openvair.modules.storage.service_layer.services import StorageStatus
 
 
-def test_delete_nfs_storage_success(
+def test_delete_storage_nfs_success(
     client: TestClient,
     nfs_storage: Dict,
 ) -> None:
@@ -32,14 +32,14 @@ def test_delete_nfs_storage_success(
     assert data['status'] == StorageStatus.deleting.name
 
 
-def test_delete_nfs_storage_invalid_uuid(client: TestClient) -> None:
+def test_delete_storage_nfs_invalid_uuid(client: TestClient) -> None:
     """Test deletion with invalid UUID format."""
     response = client.delete('/storages/invalid-uuid/delete')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert 'uuid' in response.text.lower()
 
 
-def test_delete_nfs_storage_not_found(client: TestClient) -> None:
+def test_delete_storage_nfs_not_found(client: TestClient) -> None:
     """Test deletion of nonexistent NFS storage."""
     non_existent_id = str(uuid4())
     response = client.delete(f'/storages/{non_existent_id}/delete')
@@ -47,7 +47,7 @@ def test_delete_nfs_storage_not_found(client: TestClient) -> None:
     assert 'not found' in response.text.lower()
 
 
-def test_delete_nfs_storage_with_attached_volume(
+def test_delete_storage_nfs_with_attached_volume(
     client: TestClient,
     nfs_volume: Dict,
 ) -> None:
@@ -60,7 +60,7 @@ def test_delete_nfs_storage_with_attached_volume(
     assert 'has volumes' in response.text.lower()
 
 
-def test_delete_nfs_storage_with_attached_template(
+def test_delete_storage_nfs_with_attached_template(
     client: TestClient, nfs_template: Dict, nfs_storage: Dict
 ) -> None:
     """Test deletion failure when NFS storage has attached template."""
@@ -78,7 +78,7 @@ def test_delete_nfs_storage_with_attached_template(
     assert 'has templates' in response.text.lower()
 
 
-def test_delete_nfs_storage_unauthorized(
+def test_delete_storage_nfs_unauthorized(
     nfs_storage: Dict,
     unauthorized_client: TestClient,
 ) -> None:
