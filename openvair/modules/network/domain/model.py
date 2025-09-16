@@ -11,7 +11,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, Type, ClassVar
+from typing import Dict, Type, Mapping, ClassVar, cast
 
 from openvair.modules.network.domain.base import BaseInterface
 from openvair.modules.network.domain.bridges import netplan, ovs_bridge
@@ -48,12 +48,16 @@ class AbstractInterfaceFactory(metaclass=abc.ABCMeta):
 class InterfaceFactory(AbstractInterfaceFactory):
     """Factory for creating objects of the BaseInterface class."""
 
-    _interface_classes: ClassVar = {
+    # Значения: либо конкретный класс интерфейса,
+    # либо мапа подтипов для "ubuntu"
+    _interface_classes: ClassVar[
+        Dict[str, Type[BaseInterface] | Mapping[str, Type[BaseInterface]]]
+    ] = {
         'physical': physical.PhysicalInterface,
         'virtual': virtual.VirtualInterface,
         'ubuntu': {
-            'ovs': ovs_bridge.OVSInterface,
-            'netplan': netplan.NetplanInterface,
+            'ovs': cast('Type[BaseInterface]', ovs_bridge.OVSInterface),
+            'netplan': cast('Type[BaseInterface]', netplan.NetplanInterface),
         },
     }
 
@@ -70,13 +74,19 @@ class InterfaceFactory(AbstractInterfaceFactory):
             KeyError: If the corresponding interface type is not found.
         """
         inf_type: str = interface_data['inf_type']
-        interface_class: Type[BaseInterface]
         if inf_type == 'ubuntu':
-            network_config_manager = interface_data['network_config_manager']
-            interface_class = self._interface_classes['ubuntu'][
-                network_config_manager
+            network_config_manager: str = interface_data[
+                'network_config_manager'
             ]
+            ubuntu_classes = cast(
+                'Mapping[str, Type[BaseInterface]]',
+                self._interface_classes['ubuntu'],
+            )
+            interface_class = ubuntu_classes[network_config_manager]
         else:
-            interface_class = self._interface_classes[inf_type]
+            interface_class = cast(
+                'Type[BaseInterface]',
+                self._interface_classes[inf_type],
+            )
 
         return interface_class(**interface_data)

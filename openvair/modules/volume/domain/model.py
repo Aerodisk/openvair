@@ -11,17 +11,21 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import Any, Mapping, ClassVar
+
+from typing_extensions import TypeAlias
 
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import nfs
 from openvair.modules.volume.domain.physical_fs import localfs
 
+VolumeCls: TypeAlias = type[nfs.NfsVolume] | type[localfs.LocalFSVolume]
+
 
 class AbstractVolumeFactory(metaclass=abc.ABCMeta):
     """Abstract factory for creating BaseVolume objects."""
 
-    def __call__(self, db_volume: Dict) -> BaseVolume:
+    def __call__(self, db_volume: Mapping[str, Any]) -> BaseVolume:
         """Create a volume instance based on the provided database data.
 
         Args:
@@ -34,7 +38,7 @@ class AbstractVolumeFactory(metaclass=abc.ABCMeta):
         return self.get_volume(db_volume)
 
     @abc.abstractmethod
-    def get_volume(self, db_volume: Dict) -> BaseVolume:
+    def get_volume(self, db_volume: Mapping[str, Any]) -> BaseVolume:
         """Retrieve a BaseVolume instance based on the database data.
 
         Args:
@@ -56,12 +60,12 @@ class VolumeFactory(AbstractVolumeFactory):
     on the storage type specified in the database data.
     """
 
-    _volume_classes: ClassVar = {
+    _volume_classes: ClassVar[dict[str, VolumeCls]] = {
         'nfs': nfs.NfsVolume,
         'localfs': localfs.LocalFSVolume,
     }
 
-    def get_volume(self, db_volume: Dict) -> BaseVolume:
+    def get_volume(self, db_volume: Mapping[str, Any]) -> BaseVolume:
         """Retrieve a BaseVolume instance based on the storage type.
 
         Args:
@@ -74,5 +78,6 @@ class VolumeFactory(AbstractVolumeFactory):
             KeyError: If the storage type is not found in the factory's
                 mappings.
         """
-        volume_class = self._volume_classes[db_volume['storage_type']]
-        return cast('BaseVolume', volume_class(**db_volume))
+        storage_type = db_volume['storage_type']
+        volume_class = self._volume_classes[storage_type]
+        return volume_class(**db_volume)
