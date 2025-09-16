@@ -1,5 +1,5 @@
 # Python version
-target-version = "py38"
+target-version = "py312"
 
 # Not linting and formatting files from .gitignore
 respect-gitignore = true
