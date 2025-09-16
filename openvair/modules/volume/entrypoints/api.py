@@ -74,7 +74,7 @@ async def get_volumes(
     volumes = Validator.validate_objects(result, schemas.Volume)
 
     LOG.info('Api request was successfully processed.')
-    return cast(Page, paginate(volumes))
+    return cast('Page', paginate(volumes))
 
 
 @router.get(

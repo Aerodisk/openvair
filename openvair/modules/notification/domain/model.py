@@ -67,4 +67,4 @@ class NotificationFactory(AbstractNotificationFactory):
         notification_class = self._notification_classes[
             db_notification['msg_type']
         ]
-        return cast(BaseNotification, notification_class(**db_notification))
+        return cast('BaseNotification', notification_class(**db_notification))

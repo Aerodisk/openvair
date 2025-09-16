@@ -67,4 +67,4 @@ class TemplateFactory(AbstractTemplateFactory):
         template_class = self._template_classes[dto.tmp_format]
         template_manager = template_class(**dto.model_dump())
 
-        return cast(BaseTemplate, template_manager)
+        return cast('BaseTemplate', template_manager)

@@ -142,7 +142,7 @@ class Validator:
                 LOG.warning(message)
                 if skip_corrupted_object:
                     corrupted_object = cast(
-                        T,
+                        'T',
                         pydantic_schema.model_construct(
                             **cls._create_corrupted_data(
                                 pydantic_schema, _object

@@ -8,13 +8,15 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, Union, cast
+from typing import TYPE_CHECKING, Dict, Type, Union, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.network.adapters.orm import Interface, InterfaceExtraSpec
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -77,7 +79,7 @@ class DataSerializer(AbstractDataSerializer):
             Interface: An ORM object created from the dictionary data.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)

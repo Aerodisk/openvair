@@ -28,7 +28,7 @@ class Networks(pyagentx.Updater):
         Returns:
            Dict: A dictionary of network interfaces and their status.
         """
-        return cast(Dict, psutil.net_if_stats())
+        return cast('Dict', psutil.net_if_stats())
 
     def update(self) -> None:
         """Update the SNMP agent with the current network interface status."""

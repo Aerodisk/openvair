@@ -554,7 +554,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on create interface.')
         with self.uow() as uow:
-            db_interface = cast(orm.Interface, DataSerializer.to_db(data))
+            db_interface = cast('orm.Interface', DataSerializer.to_db(data))
             for key, value in data.get('specs', {}).items():
                 spec = {
                     'key': key,
@@ -563,7 +563,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 }
                 db_interface.extra_specs.append(
                     cast(
-                        orm.InterfaceExtraSpec,
+                        'orm.InterfaceExtraSpec',
                         DataSerializer.to_db(spec, orm.InterfaceExtraSpec),
                     )
                 )
@@ -772,7 +772,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 f'Interface {os_iface_name} not found in db. Trying to '
                 'synchronize...'
             )
-            db_iface = cast(orm.Interface, DataSerializer.to_db(os_iface))
+            db_iface = cast('orm.Interface', DataSerializer.to_db(os_iface))
             LOG.info(f'Interface {os_iface_name} successfully prepared for db')
         else:
             self._update_extra_specs(db_iface, os_iface.get('extra_specs', {}))

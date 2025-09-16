@@ -29,7 +29,7 @@ class BaseNotification(metaclass=abc.ABCMeta):
                 - msg_type (str): The type of message.
         """
         self.id = str(kwargs.get('id', uuid.uuid4()))
-        self.send_datetime = kwargs.get('send_datetime', None)
+        self.send_datetime = kwargs.get('send_datetime')
         self.message = str(kwargs.get('message', ''))
         self.recipients = kwargs.get('recipients')
         self.msg_type = str(kwargs.get('msg_type', ''))

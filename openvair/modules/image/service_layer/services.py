@@ -434,9 +434,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 space on the storage.
         """
         if image_size >= storage.available_space:
-            message = (
-                'Not enough available space on the ' f'storage {storage.id}.'
-            )
+            message = f'Not enough available space on the storage {storage.id}.'
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
 
@@ -516,7 +514,9 @@ class ImageServiceLayerManager(BackgroundTasks):
                 self._delete_image_from_tmp(name)
                 raise exceptions.ImageNameExistsException(image.name)
 
-            db_image: Image = cast(Image, DataSerializer.to_db(image._asdict()))
+            db_image: Image = cast(
+                'Image', DataSerializer.to_db(image._asdict())
+            )
             db_image.status = ImageStatus.new.name
             LOG.info('Start inserting image into db with status new.')
             uow.images.add(db_image)
@@ -690,9 +690,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 exceptions.ImageStatusError,
                 exceptions.ImageHasAttachmentError,
             ) as err:
-                message = (
-                    'An error occurred when deleting the ' f'image: {err!s}'
-                )
+                message = f'An error occurred when deleting the image: {err!s}'
                 db_image.status = ImageStatus.error.name
                 db_image.information = message
                 LOG.error(message)
@@ -838,7 +836,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 db_image.information = message
                 raise
             except exceptions.ImageStatusError as err:
-                message = 'An error occurred while attaching ' f'image: {err!s}'
+                message = f'An error occurred while attaching image: {err!s}'
                 LOG.error(str(err) + message)
                 db_image.status = ImageStatus.error.name
                 db_image.information = message
@@ -883,7 +881,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                         uow.session.delete(attachment)
                 LOG.info('Image was successfully detached.')
             except exceptions.ImageStatusError as err:
-                message = 'An error occurred while detaching ' f'image: {err!s}'
+                message = f'An error occurred while detaching image: {err!s}'
                 db_image.status = ImageStatus.error.name
                 db_image.information = message
                 LOG.exception(message)

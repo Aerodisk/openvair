@@ -71,7 +71,7 @@ async def get_interfaces(
         crud.get_all_interfaces, is_need_filter=is_need_filter
     )
     LOG.info('API: Request processed successfully.')
-    return cast(Page, paginate(interfaces))
+    return cast('Page', paginate(interfaces))
 
 
 @router.get(

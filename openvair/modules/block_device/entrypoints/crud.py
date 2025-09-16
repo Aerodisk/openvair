@@ -58,7 +58,7 @@ class InterfaceCrud:
             data_for_method={},
         )
         LOG.info('Complete getting all ISCSI sessions')
-        return cast(List, result)
+        return cast('List', result)
 
     def get_host_iqn(self) -> Dict:
         """Get the current host IQN.

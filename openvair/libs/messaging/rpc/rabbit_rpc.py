@@ -292,4 +292,4 @@ class RabbitRPCServer(BaseRabbitRPCServer):
                 ),
                 body=serialized_request.encode(),
             )
-        channel.basic_ack(delivery_tag=cast(int, method.delivery_tag))
+        channel.basic_ack(delivery_tag=cast('int', method.delivery_tag))

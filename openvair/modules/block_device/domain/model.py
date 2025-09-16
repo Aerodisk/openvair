@@ -73,4 +73,4 @@ class InterfaceFactory(AbstractInterfaceFactory):
         interface_class = self._interface_classes[
             interface_data.pop('inf_type')
         ]
-        return cast(BaseBlockInterface, interface_class(**interface_data))
+        return cast('BaseBlockInterface', interface_class(**interface_data))

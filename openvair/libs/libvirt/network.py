@@ -116,7 +116,7 @@ class LibvirtNetworkAdapter:
             network = connection.networkLookupByName(vn_name)
 
         LOG.info('Getting virtual network XML from libvirt complete')
-        return cast(str, network.XMLDesc())
+        return cast('str', network.XMLDesc())
 
     def get_network_xml_by_uuid(self, network_uuid: str) -> str:
         """Retrieves the XML configuration of a virtual network by UUID.
@@ -133,7 +133,7 @@ class LibvirtNetworkAdapter:
             network = connection.networkLookupByUUIDString(network_uuid)
 
         LOG.info('Getting virtual network XML from libvirt complete')
-        return cast(str, network.XMLDesc())
+        return cast('str', network.XMLDesc())
 
     def is_network_exist_by_name(self, network_name: str) -> bool:
         """Checks if a virtual network exists by name.

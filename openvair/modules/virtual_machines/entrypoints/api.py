@@ -82,7 +82,7 @@ async def get_vms(
     LOG.info('API handling request to get all virtual machines.')
     vms = await run_in_threadpool(crud.get_all_vms)
     LOG.info('API request was successfully processed.')
-    return cast(Page, paginate(vms))
+    return cast('Page', paginate(vms))
 
 
 @router.get(

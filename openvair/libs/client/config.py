@@ -130,7 +130,7 @@ def get_routes() -> Any:  # noqa: ANN401
 
     try:
         if _check_docs_routes():
-            from docs.entrypoints.api import docs_routes  # noqa: I001 # type: ignore
+            from docs.entrypoints.api import docs_routes  # noqa: PLC0415
 
             routes = docs_routes()
     except ImportError:

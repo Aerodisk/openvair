@@ -60,7 +60,7 @@ def client() -> Generator[TestClient, None, None]:
 @pytest.fixture
 def unauthorized_client() -> Generator[TestClient, None, None]:
     """TestClient without auth overrides (temporarily)."""
-    from openvair.main import app
+    from openvair.main import app  # noqa: PLC0415
 
     # Сохраняем текущие overrides
     original_overrides = app.dependency_overrides.copy()
@@ -162,7 +162,7 @@ def storage(client: TestClient) -> Generator[Dict, None, None]:
     cleanup_all_volumes()
     cleanup_all_templates()
 
-    delete_response = client.delete(f"/storages/{storage['id']}/delete")
+    delete_response = client.delete(f'/storages/{storage["id"]}/delete')
     if delete_response.status_code != status.HTTP_202_ACCEPTED:
         LOG.warning(
             (

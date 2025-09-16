@@ -78,4 +78,4 @@ class ImageFactory(AbstractImageFactory):
                 have a corresponding image class.
         """
         image_class = self._image_classes[db_image['storage_type']]
-        return cast(BaseImage, image_class(**db_image))
+        return cast('BaseImage', image_class(**db_image))

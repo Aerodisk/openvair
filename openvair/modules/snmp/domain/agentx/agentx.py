@@ -68,7 +68,7 @@ class SNMPAgentx(BaseSNMP, pyagentx.Agent):
         try:
             pyagentx.Agent.start(self)
             LOG.info('SNMP agent started successfully')
-        except (SNMPModuleRegistrationError, Exception) as e:
+        except (SNMPModuleRegistrationError, Exception) as e:  # noqa: BLE001 cause may be unknown SNMP Exception
             message = f'Failed to start SNMP agent: {e}'
             raise SNMPAgentStartError(message)
 

@@ -251,4 +251,4 @@ class BridgeNetwork(BaseVirtualNetwork):
             )
             LOG.error(msg)
             raise PortGroupException(msg)
-        return cast(BridgePortGroup, port_groups.pop())
+        return cast('BridgePortGroup', port_groups.pop())

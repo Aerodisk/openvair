@@ -150,7 +150,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
                 LOG.error('`qemu-img info` returned empty output.')
                 return {}
 
-            return cast(Dict, deserialize_json(exec_result.stdout))
+            return cast('Dict', deserialize_json(exec_result.stdout))
         except Exception as err:  # noqa: BLE001
             LOG.error(f'Unexpected error in _get_info_about_volume: {err}')
             return {}

@@ -83,4 +83,4 @@ class VMDriverFactory(AbstractVMDriverFactory):
             KeyError: If the corresponding virtual machine type is not found.
         """
         vm_driver_class = self._vm_driver_classes[VM_DRIVER]
-        return cast(BaseVMDriver, vm_driver_class(**db_virtual_machine))
+        return cast('BaseVMDriver', vm_driver_class(**db_virtual_machine))

@@ -65,4 +65,4 @@ class SNMPFactory(AbstractSNMPFactory):
             message = f"SNMP type '{snmp_type}' not found"
             raise SNMPAgentTypeError(message)
         else:
-            return cast(BaseSNMP, snmp_class())
+            return cast('BaseSNMP', snmp_class())

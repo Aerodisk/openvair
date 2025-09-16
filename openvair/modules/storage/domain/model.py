@@ -83,4 +83,4 @@ class StorageFactory(AbstractStorageFactory):
             KeyError: If the storage type is not found in _storage_classes.
         """
         storage_class = self._storage_classes[db_storage['storage_type']]
-        return cast(BaseStorage, storage_class(**db_storage))
+        return cast('BaseStorage', storage_class(**db_storage))

@@ -75,4 +75,4 @@ class VolumeFactory(AbstractVolumeFactory):
                 mappings.
         """
         volume_class = self._volume_classes[db_volume['storage_type']]
-        return cast(BaseVolume, volume_class(**db_volume))
+        return cast('BaseVolume', volume_class(**db_volume))

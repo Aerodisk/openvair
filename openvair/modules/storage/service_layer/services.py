@@ -712,7 +712,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             self._check_spec_exists_for_storage(
                 data.get('specs', {}), data.get('storage_type', '')
             )
-            db_storage = cast(orm.Storage, DataSerializer.to_db(data))
+            db_storage = cast('orm.Storage', DataSerializer.to_db(data))
             db_storage.status = StorageStatus.new.name
             for key, value in data.get('specs', {}).items():
                 spec = {
@@ -721,7 +721,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                     'storage_id': db_storage.id,
                 }
                 db_spec = cast(
-                    orm.StorageExtraSpecs,
+                    'orm.StorageExtraSpecs',
                     DataSerializer.to_db(spec, orm.StorageExtraSpecs),
                 )
                 db_storage.extra_specs.append(db_spec)

@@ -60,7 +60,7 @@ async def get_storages(
     LOG.info('Api start getting list of storages')
     storages = await run_in_threadpool(crud.get_all_storages)
     LOG.info('Api request was successfully processed.')
-    return cast(Page, paginate(storages))
+    return cast('Page', paginate(storages))
 
 
 @router.get(
@@ -70,8 +70,9 @@ async def get_storages(
     dependencies=[Depends(get_current_user)],
 )
 async def get_local_disks(
-    free_local_disks: Optional[bool] = None,
     crud: StorageCrud = Depends(StorageCrud),
+    *,
+    free_local_disks: Optional[bool] = None,
 ) -> schemas.ListOfLocalDisks:
     """It gets a list of free local disks
 

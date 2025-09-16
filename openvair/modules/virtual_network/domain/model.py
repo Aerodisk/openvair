@@ -69,5 +69,5 @@ class VirtualNetworkFactory(AbstractVirtualNetworkFactory):
             virtual_network_data['forward_mode']
         ]
         return cast(
-            BaseVirtualNetwork, virtual_network_class(**virtual_network_data)
+            'BaseVirtualNetwork', virtual_network_class(**virtual_network_data)
         )

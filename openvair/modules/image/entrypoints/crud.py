@@ -105,7 +105,7 @@ class ImageCrud:
         """
         LOG.info('Call service layer on get all images.')
         result: List = cast(
-            List,
+            'List',
             self.service_layer_rpc.call(
                 services.ImageServiceLayerManager.get_all_images.__name__,
                 data_for_method={

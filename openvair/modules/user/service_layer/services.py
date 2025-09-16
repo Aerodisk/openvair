@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List
 from collections import namedtuple
 
-from passlib import hash
+from passlib import hash as passlib_hash
 from sqlalchemy import exc
 from passlib.exc import MissingDigestError
 
@@ -72,7 +72,7 @@ class UserManager(BackgroundTasks):
         Returns:
             str: The hashed password.
         """
-        return str(hash.bcrypt.hash(password))
+        return str(passlib_hash.bcrypt.hash(password))
 
     @staticmethod
     def _verify_password(password: str, hashed_password: str) -> bool:
@@ -88,7 +88,9 @@ class UserManager(BackgroundTasks):
         """
         LOG.info('Verifying password')
         try:
-            is_verify: bool = hash.bcrypt.verify(password, hashed_password)
+            is_verify: bool = passlib_hash.bcrypt.verify(
+                password, hashed_password
+            )
         except MissingDigestError as err:
             raise exceptions.PasswordVerifyException(str(err))
         else:
@@ -180,7 +182,7 @@ class UserManager(BackgroundTasks):
         user_id: str = data.get('user_id', '')
         user_data: Dict = data.get('user_data', {})
         if user_id != user_data.get('id'):
-            message = 'Provided id does not match with ' 'current user id'
+            message = 'Provided id does not match with current user id'
             raise exceptions.WrongUserIdProvided(message)
 
     def _prepare_user_info(self, user_data: Dict) -> UserInfo:
@@ -224,8 +226,7 @@ class UserManager(BackgroundTasks):
                 LOG.info('User was successfully created.')
             except exc.IntegrityError as _:
                 message = (
-                    'User with current username'
-                    f" '{user_info.username}' exists."
+                    f"User with current username '{user_info.username}' exists."
                 )
                 LOG.error(message)
                 raise exceptions.UserExistsException(message)

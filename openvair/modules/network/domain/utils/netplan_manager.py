@@ -8,7 +8,6 @@ Classes:
     NetplanManager: Manager for handling Netplan configurations.
 """
 
-import os
 import shutil
 from typing import Any, Dict, Optional
 from pathlib import Path
@@ -276,10 +275,12 @@ class NetplanManager:
             iface_name (str): The name of the bridge.
 
         Returns:
-            str: The path to the new YAML file for the bridge.
+            Path: The path to the new YAML file for the bridge.
         """
         existing_files = [
-            f for f in os.listdir(self.netplan_dir) if f.endswith('.yaml')
+            f.name
+            for f in Path(self.netplan_dir).iterdir()
+            if f.suffix == '.yaml'
         ]
 
         # Determine the maximum prefix in existing files
@@ -287,8 +288,7 @@ class NetplanManager:
         for file in existing_files:
             try:
                 prefix = int(file.split('-')[0])
-                if prefix > max_prefix:
-                    max_prefix = prefix
+                max_prefix = max(max_prefix, prefix)
             except ValueError:
                 continue
 
@@ -313,8 +313,7 @@ class NetplanManager:
         """
         # TODO Подумать, а если файла 2  # noqa: RUF003
         file_with_iface = None
-        for filename in os.listdir(directory):
-            input_file = directory / filename
+        for input_file in directory.iterdir():
             if input_file.is_file():
                 LOG.info(f'Checking file: {input_file}')
                 config = read_yaml(input_file)

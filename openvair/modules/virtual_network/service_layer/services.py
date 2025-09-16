@@ -166,10 +166,10 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             raise PortGroupException(message)
 
         db_port_groups = [
-            cast(PortGroup, DataSerializer.to_db(port_group, PortGroup))
+            cast('PortGroup', DataSerializer.to_db(port_group, PortGroup))
             for port_group in port_groups
         ]
-        db_network = cast(VirtualNetwork, DataSerializer.to_db(data))
+        db_network = cast('VirtualNetwork', DataSerializer.to_db(data))
         db_network.port_groups = db_port_groups
 
         domain_network = DataSerializer.to_domain(db_network)
@@ -310,7 +310,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         )
 
         db_port_group = cast(
-            PortGroup, DataSerializer.to_db(port_group_info, PortGroup)
+            'PortGroup', DataSerializer.to_db(port_group_info, PortGroup)
         )
         domain_port_group = DataSerializer.to_domain(
             db_port_group, BridgePortGroup
@@ -451,7 +451,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                     db_network.port_groups.remove(port_group)
 
             db_port_group = cast(
-                PortGroup, DataSerializer.to_db(domain_port_group, PortGroup)
+                'PortGroup', DataSerializer.to_db(domain_port_group, PortGroup)
             )
             db_network.port_groups.append(db_port_group)
 
@@ -484,7 +484,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                     LOG.info(f'{virsh_name} not found in db')
                     network_data = self._collect_virsh_virt_net_data(virsh_name)
                     db_network = cast(
-                        VirtualNetwork, DataSerializer.to_db(network_data)
+                        'VirtualNetwork', DataSerializer.to_db(network_data)
                     )
                     uow.virtual_networks.add(db_network)
             uow.commit()
@@ -505,7 +505,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         persistent = self.virsh_net_adapter.get_network_persistent(uuid)
 
         virsh_network_data = cast(
-            Dict, deserialize_xml(xml, attr_prefix='', cdata_key='')
+            'Dict', deserialize_xml(xml, attr_prefix='', cdata_key='')
         )
         pg_info = virsh_network_data['network'].get('portgroup', [])
         if isinstance(pg_info, Dict):

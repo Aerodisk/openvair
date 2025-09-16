@@ -6,8 +6,6 @@ in the database using SQLAlchemy.
 
 from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
-from sqlalchemy.orm.mapper import Mapper
-
 from openvair.modules.notification.adapters.orm import Notification
 from openvair.common.repositories.base_sqlalchemy import (
     BaseSqlAlchemyRepository,
@@ -15,6 +13,7 @@ from openvair.common.repositories.base_sqlalchemy import (
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
@@ -73,4 +72,4 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
             data (List[Dict]): A list of dictionaries containing the updated
                 notification data.
         """
-        self.session.bulk_update_mappings(cast(Mapper, Notification), data)
+        self.session.bulk_update_mappings(cast('Mapper', Notification), data)

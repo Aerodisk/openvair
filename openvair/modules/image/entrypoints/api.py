@@ -83,7 +83,7 @@ async def get_images(
     LOG.info('Api start getting list of images')
     images = await run_in_threadpool(crud.get_all_images, storage_id)
     LOG.info('Api request was successfully processed.')
-    return cast(Page, paginate(images))
+    return cast('Page', paginate(images))
 
 
 @router.get(

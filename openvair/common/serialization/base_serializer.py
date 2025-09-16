@@ -67,7 +67,7 @@ class BaseSerializer(Generic[DTO, ORM]):
                 data[field] = [nested.to_dto(item) for item in value]
             else:
                 data[field] = value
-        return cast(DTO, cls.dto_class(**data))
+        return cast('DTO', cls.dto_class(**data))
 
     @classmethod
     def to_orm(cls, dto_obj: DTO) -> ORM:
@@ -98,7 +98,7 @@ class BaseSerializer(Generic[DTO, ORM]):
         for key, val in nested_data.items():
             setattr(orm, key, val)
 
-        return cast(ORM, orm)
+        return cast('ORM', orm)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> ORM:

@@ -308,8 +308,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             )
             if db_volume:
                 message = (
-                    f'Volume with current name {volume_name} '
-                    f'exists on storage.'
+                    f'Volume with current name {volume_name} exists on storage.'
                 )
                 LOG.error(message)
                 raise exceptions.VolumeExistsOnStorageException(message)
@@ -433,7 +432,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         if volume_size >= storage.available_space:
             message = (
-                'Not enough available space on the ' 'storage %s.' % storage.id
+                'Not enough available space on the storage %s.' % storage.id
             )
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
@@ -460,7 +459,9 @@ class VolumeServiceLayerManager(BackgroundTasks):
         volume = self._prepare_volume_data(volume_info)
         with self.uow() as uow:
             try:
-                db_volume = cast(Volume, DataSerializer.to_db(volume._asdict()))
+                db_volume = cast(
+                    'Volume', DataSerializer.to_db(volume._asdict())
+                )
                 self._check_volume_exists_on_storage(
                     volume.name, volume.storage_id
                 )
@@ -500,9 +501,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             self.create_volume.__name__,
             'Volume successfully inserted into db.',
         )
-        LOG.info(
-            'Service layer method create_volume was' 'successfully processed'
-        )
+        LOG.info('Service layer method create_volume wassuccessfully processed')
         return serialized_volume
 
     def _create_volume(self, volume_info: Dict) -> None:
@@ -597,7 +596,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             finally:
                 uow.commit()
         LOG.info(
-            'Service layer method _create_volume was' 'successfully processed'
+            'Service layer method _create_volume wassuccessfully processed'
         )
 
     def clone_volume(self, clone_volume_info: Dict) -> Dict:
@@ -663,7 +662,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 uow.commit()
             raise exceptions.CreateVolumeDataException(message)
 
-        new_db_volume = cast(Volume, DataSerializer.to_db(new_volume))
+        new_db_volume = cast('Volume', DataSerializer.to_db(new_volume))
         new_db_volume.status = VolumeStatus.available.name
         with self.uow() as uow:
             uow.volumes.add(new_db_volume)
@@ -703,7 +702,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             LOG.error(f'An error occurred when getting VM: {err!s}')
             raise
         if vm.get('power_state', '') != 'shut_off':
-            message = f"Vm {vm.get('name', '')} power state is not shut off."
+            message = f'Vm {vm.get("name", "")} power state is not shut off.'
             LOG.error(message)
             raise exceptions.VmPowerStateIsNotShutOffException(message)
 
@@ -859,8 +858,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 exceptions.ValidateArgumentsError,
             ) as err:
                 message = (
-                    f'An error occurred while accessing '
-                    f'the storage: {err!s}.'
+                    f'An error occurred while accessing the storage: {err!s}.'
                 )
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
@@ -873,7 +871,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 raise
             except exceptions.VmPowerStateIsNotShutOffException as err:
                 message = (
-                    f'An error occurred while checking attachments:' f'{err!s}.'
+                    f'An error occurred while checking attachments:{err!s}.'
                 )
                 db_volume.status = VolumeStatus.available.name
                 db_volume.information = message
@@ -894,9 +892,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             'Volume successfully extended.',
         )
 
-        LOG.info(
-            'Service layer method extend_volume' 'was successfully processed'
-        )
+        LOG.info('Service layer method extend_volumewas successfully processed')
 
     def delete_volume(self, data: Dict) -> Dict:
         """Delete a volume from the system.
@@ -943,9 +939,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 exceptions.VolumeStatusException,
                 exceptions.VolumeHasAttachmentError,
             ) as err:
-                message = (
-                    f'An error occurred when deleting the ' f'volume: {err!s}'
-                )
+                message = f'An error occurred when deleting the volume: {err!s}'
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
                 self.event_store.add_event(
@@ -1072,7 +1066,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             try:
                 self._check_volume_status(db_volume.status, available_statuses)
                 attachment = cast(
-                    VolumeAttachVM,
+                    'VolumeAttachVM',
                     DataSerializer.to_db(data, VolumeAttachVM),
                 )
                 db_volume.attachments.append(attachment)
@@ -1091,9 +1085,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 db_volume.information = message
                 raise
             except exceptions.VolumeStatusException as err:
-                message = (
-                    f'An error occurred while attaching ' f'volume: {err!s}'
-                )
+                message = f'An error occurred while attaching volume: {err!s}'
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
                 raise
@@ -1135,9 +1127,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                         uow.session.delete(attachment)
                 LOG.info('Volume was successfully detached.')
             except exceptions.VolumeStatusException as err:
-                message = (
-                    f'An error occurred while detaching ' f'volume: {err!s}'
-                )
+                message = f'An error occurred while detaching volume: {err!s}'
                 db_volume.status = VolumeStatus.error.name
                 db_volume.information = message
                 raise
@@ -1162,7 +1152,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         if template.size >= storage.available_space:
             message = (
-                'Not enough available space on the ' 'storage %s.' % storage.id
+                'Not enough available space on the storage %s.' % storage.id
             )
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
@@ -1181,7 +1171,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 volume_info.name, str(volume_info.storage_id)
             )
             db_volume = cast(
-                Volume, DataSerializer.to_db(volume_info.model_dump())
+                'Volume', DataSerializer.to_db(volume_info.model_dump())
             )
             db_volume.status = VolumeStatus.new.name
             uow.volumes.add(db_volume)
@@ -1356,8 +1346,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 RpcCallTimeoutException,
             ) as error:
                 LOG.error(
-                    f"Error processing volume {domain_volume.get('id')}: "
-                    f"{error!s}"
+                    f'Error processing volume {domain_volume.get("id")}: '
+                    f'{error!s}'
                 )
         return updated_db_volumes
 

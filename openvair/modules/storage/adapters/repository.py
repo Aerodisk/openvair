@@ -13,8 +13,6 @@ Classes:
 from uuid import UUID
 from typing import TYPE_CHECKING, Any, List, Union, Optional, cast
 
-from sqlalchemy.orm.mapper import Mapper
-
 from openvair.modules.storage.adapters.orm import Storage, StorageExtraSpecs
 from openvair.common.repositories.base_sqlalchemy import (
     BaseSqlAlchemyRepository,
@@ -22,6 +20,7 @@ from openvair.common.repositories.base_sqlalchemy import (
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
@@ -119,4 +118,4 @@ class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
         Args:
             data (List): A list of storage records to update.
         """
-        self.session.bulk_update_mappings(cast(Mapper, Storage), data)
+        self.session.bulk_update_mappings(cast('Mapper', Storage), data)

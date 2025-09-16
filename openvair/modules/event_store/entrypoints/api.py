@@ -55,7 +55,7 @@ async def get_events(
         HTTPException: If any database error occurs or events are not found.
     """
     result: List = crud.new_get_all_events()
-    return cast(Page, paginate(result))
+    return cast('Page', paginate(result))
 
 
 @router.get(

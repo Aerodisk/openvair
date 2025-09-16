@@ -70,7 +70,7 @@ def create_resource(
             f'{response.text}'
         )
         raise RuntimeError(msg)
-    return cast(Dict[str, Any], response.json())
+    return cast('Dict[str, Any]', response.json())
 
 
 def delete_resource(

@@ -39,10 +39,9 @@ import time
 import string
 from copy import deepcopy
 from uuid import UUID, uuid4
-from typing import Set, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Set, Dict, List, Optional, cast
 from collections import namedtuple
 
-from sqlalchemy import String
 from sqlalchemy.exc import NoResultFound
 
 from openvair.libs.log import get_logger
@@ -74,6 +73,9 @@ from openvair.libs.messaging.clients.rpc_clients.image_rpc_client import (
 from openvair.libs.messaging.clients.rpc_clients.volume_rpc_client import (
     VolumeServiceLayerRPCClient,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy import String
 
 LOG = get_logger(__name__)
 
@@ -364,12 +366,12 @@ class VMServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Inserting vm information into database.')
         db_vm = cast(
-            orm.VirtualMachines,
+            'orm.VirtualMachines',
             DataSerializer.to_db(create_vm_info._asdict(), orm.VirtualMachines),
         )
 
         db_vm.cpu = cast(
-            orm.CpuInfo,
+            'orm.CpuInfo',
             DataSerializer.to_db(
                 create_vm_info.cpu,
                 orm.CpuInfo,
@@ -377,17 +379,17 @@ class VMServiceLayerManager(BackgroundTasks):
         )
 
         db_vm.ram = cast(
-            orm.RAM,
+            'orm.RAM',
             DataSerializer.to_db(create_vm_info.ram, orm.RAM),
         )
 
         db_vm.os = cast(
-            orm.Os,
+            'orm.Os',
             DataSerializer.to_db(create_vm_info.os, orm.Os),
         )
 
         db_vm.graphic_interface = cast(
-            orm.ProtocolGraphicInterface,
+            'orm.ProtocolGraphicInterface',
             DataSerializer.to_db(
                 create_vm_info.graphic_interface,
                 orm.ProtocolGraphicInterface,
@@ -398,7 +400,7 @@ class VMServiceLayerManager(BackgroundTasks):
         for virt_interface in create_vm_info.virtual_interfaces:
             db_vm.virtual_interfaces.append(
                 cast(
-                    orm.VirtualInterface,
+                    'orm.VirtualInterface',
                     DataSerializer.to_db(virt_interface, orm.VirtualInterface),
                 )
             )
@@ -427,7 +429,7 @@ class VMServiceLayerManager(BackgroundTasks):
             str(web_vm.get('id', '')),
             str(user_info.get('id', '')),
             self.create_vm.__name__,
-            f"VM {web_vm.get('name')} was successfully inserted into DB.",
+            f'VM {web_vm.get("name")} was successfully inserted into DB.',
         )
 
         self.service_layer_rpc.cast(
@@ -577,8 +579,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 exceptions.VolumeStatusIsError,
             ) as err:
                 message = (
-                    'While expecting volume availability '
-                    f'catch error: {err!s}'
+                    f'While expecting volume availability catch error: {err!s}'
                 )
                 LOG.error(message)
                 continue
@@ -691,7 +692,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     attached_disk = self._attach_disk_to_vm(vm_id, disk)
                     db_vm.disks.append(
                         cast(
-                            orm.Disk,
+                            'orm.Disk',
                             DataSerializer.to_db(attached_disk, orm.Disk),
                         )
                     )
@@ -756,8 +757,8 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Checking vm status on availability.')
         if vm_status not in available_statuses:
             message = (
-                f"Vm status is {vm_status}, but must be "
-                f"in {', '.join(available_statuses)}."
+                f'Vm status is {vm_status}, but must be '
+                f'in {", ".join(available_statuses)}.'
             )
             LOG.error(message)
             raise exceptions.VMStatusException(message)
@@ -780,8 +781,8 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Checking vm power state on availability.')
         if vm_power_state not in available_states:
             message = (
-                f"Vm power state is {vm_power_state}, but must "
-                f"be in {', '.join(available_states)}"
+                f'Vm power state is {vm_power_state}, but must '
+                f'be in {", ".join(available_states)}'
             )
             LOG.error(message)
             raise exceptions.VMPowerStateException(message)
@@ -1042,8 +1043,8 @@ class VMServiceLayerManager(BackgroundTasks):
                     start_info.get('power_state')
                 ).name
                 db_vm.graphic_interface.url = (
-                    f"{start_info.get('url', '') or ''}"
-                    f":{start_info.get('port')}"
+                    f'{start_info.get("url", "") or ""}'
+                    f':{start_info.get("port")}'
                 )
                 db_vm.status = VmStatus.available.name
                 db_vm.information = ''
@@ -1315,7 +1316,7 @@ class VMServiceLayerManager(BackgroundTasks):
             for virt_interface in virt_interfaces:
                 db_vm.virtual_interfaces.append(
                     cast(
-                        orm.VirtualInterface,
+                        'orm.VirtualInterface',
                         DataSerializer.to_db(
                             virt_interface, orm.VirtualInterface
                         ),
@@ -1544,7 +1545,9 @@ class VMServiceLayerManager(BackgroundTasks):
             clone_payload['name'] = create_new_clone_name(
                 original_vm['name'],
                 max_vm_number + i + 1,
-                cast(String, orm.VirtualMachines.__table__.c.name.type).length,
+                cast(
+                    'String', orm.VirtualMachines.__table__.c.name.type
+                ).length,
             )
 
             # 2. Prepare & insert stub record into DB
@@ -1827,15 +1830,14 @@ class VMServiceLayerManager(BackgroundTasks):
             if snap_count >= max_snapshot_count:
                 message = (
                     f'VM {vm_id} has already reached maximum snapshot '
-                    f'limit ({snap_count+1} > {max_snapshot_count}).'
+                    f'limit ({snap_count + 1} > {max_snapshot_count}).'
                 )
                 LOG.error(message)
                 raise exceptions.SnapshotLimitExceeded(message)
             exist_snapshot = uow.snapshots.get_by_name(vm_id, name)
             if exist_snapshot is not None:
                 message = (
-                    f"Snapshot with name '{name}' already exists "
-                    f'for VM {vm_id}'
+                    f"Snapshot with name '{name}' already exists for VM {vm_id}"
                 )
                 LOG.error(message)
                 raise exceptions.SnapshotNameExistsError(message)
@@ -1868,7 +1870,7 @@ class VMServiceLayerManager(BackgroundTasks):
             vm_id,
             user_info.get('id'),
             self.create_snapshot.__name__,
-            f"Started creation of snapshot {result['name']}",
+            f'Started creation of snapshot {result["name"]}',
         )
         self.service_layer_rpc.cast(
             self._create_snapshot.__name__,
@@ -1910,7 +1912,7 @@ class VMServiceLayerManager(BackgroundTasks):
             self._create_snapshot.__name__,
             f'Snapshot {db_snap.name} created',
         )
-        LOG.info('Response on _create_snapshot was successfully ' 'processed.')
+        LOG.info('Response on _create_snapshot was successfully processed.')
 
     @staticmethod
     def _check_snapshot_status(
@@ -1929,8 +1931,8 @@ class VMServiceLayerManager(BackgroundTasks):
         LOG.info('Checking snapshot status on availability.')
         if snap_status not in available_statuses:
             message = (
-                f"Snapshot status is {snap_status}, but must "
-                f"be in {', '.join(available_statuses)}"
+                f'Snapshot status is {snap_status}, but must '
+                f'be in {", ".join(available_statuses)}'
             )
             LOG.error(message)
             raise exceptions.SnapshotStatusException(message)
@@ -1991,7 +1993,7 @@ class VMServiceLayerManager(BackgroundTasks):
             vm_id,
             user_info.get('id'),
             self.revert_snapshot.__name__,
-            f"Starting revert to snapshot {result['name']}",
+            f'Starting revert to snapshot {result["name"]}',
         )
         self.service_layer_rpc.cast(
             self._revert_snapshot.__name__,
@@ -2099,8 +2101,7 @@ class VMServiceLayerManager(BackgroundTasks):
                     f'{db_snap.name} from the database.',
                 )
                 LOG.info(
-                    'Snapshot with status "error" was deleted from '
-                    'the database'
+                    'Snapshot with status "error" was deleted from the database'
                 )
                 return result
             db_snap.status = SnapshotStatus.deleting.name

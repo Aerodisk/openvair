@@ -86,7 +86,7 @@ def get_users(crud: UserCrud = Depends(UserCrud)) -> Page[schemas.User]:
     result: List = crud.get_users()
     LOG.info('Api request was successfully processed.')
     users: List[schemas.User] = [schemas.User(**user) for user in result]
-    return cast(Page, paginate(users))
+    return cast('Page', paginate(users))
 
 
 @router.post(
