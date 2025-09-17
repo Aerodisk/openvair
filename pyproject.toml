@@ -1,9 +1,27 @@
 [project]
 name = "openvair"
 version = "0.1.0"
-description = "Add your description here"
+description = "Open vAIR is a lightweight solution based on the vAIR project, designed for use as a development environment and virtualization system. The program operates in interactive mode, providing a flexible and convenient tool for managing virtual infrastructure."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "~=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  {name = "Tikhonov Alexander", email = "aaaaa@gmail.com"},
+  {name = "Trusov Vladimir", email = "truevladimir93dev@yandex.ru"},
+  {name = "Another person", email = ""},
+  {name = "Another person", email = ""},
+]
+maintainers = [
+  {name = "Aerodisk", email = "aero@aerodisk.ru"}
+]
+
+[project.urls]
+Homepage = "https://openvair.ru"
+Documentation = "https://github.com/Aerodisk/openvair-docs"
+Repository = "https://github.com/Aerodisk/openvair"
+Issues = "https://github.com/Aerodisk/openvair/issues"
+
 dependencies = [
     "aiofiles~=24.1.0",
     "alembic~=1.16",
