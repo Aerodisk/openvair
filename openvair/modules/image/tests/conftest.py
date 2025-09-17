@@ -24,7 +24,7 @@ def name() -> Generator[str, None, None]:
     """Creates valid image name."""
     name = generate_image_name()
     yield name
-    test_delete_from_tmp(name) # проверяет удалился ли файл из tmp
+    test_delete_from_tmp(name)
 
 
 @pytest.fixture(scope='function')
@@ -50,7 +50,7 @@ def image_file() -> Generator[BinaryIO, None, None]:
 
 
 @pytest.fixture(scope='function')
-def wrong_formate_file() -> Generator[BinaryIO, None, None]:
+def wrong_format_file() -> Generator[BinaryIO, None, None]:
     """Creates a non .iso image file"""
     file_path = Path(f'/opt/aero/openvair/openvair/modules/image/tests/'
                  f'{generate_test_entity_name("image_file")}')

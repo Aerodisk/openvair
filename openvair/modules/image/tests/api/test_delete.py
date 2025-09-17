@@ -42,7 +42,7 @@ def test_delete_image_not_uuid(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_delete_non_excisting_image(
+def test_delete_non_existing_image(
     client: TestClient
 ) -> None:
     """Test delete an image with non excistant uuid returns 500"""

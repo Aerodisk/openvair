@@ -106,19 +106,19 @@ def test_upload_image_no_image(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_upload_image_wrong_file_formate(
+def test_upload_image_wrong_file_format(
     client: TestClient,
     storage: Dict,
     name: str,
-    wrong_formate_file: BinaryIO
+    wrong_format_file: BinaryIO
 ) -> None:
-    """Test wrong file formate returns HTTP 422."""
+    """Test wrong file format returns HTTP 422."""
     storage_id = storage['id']
     query = {
         'storage_id': storage_id,
         'name': name
     }
-    response = upload_image_api_call (name, query, client, wrong_formate_file)
+    response = upload_image_api_call (name, query, client, wrong_format_file)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -166,7 +166,7 @@ def test_upload_image_storage_not_uuid(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_upload_image_with_excisting_name(
+def test_upload_image_with_existing_name(
     client: TestClient,
     image_file: BinaryIO,
     name: str,
