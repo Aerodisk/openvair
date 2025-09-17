@@ -9,6 +9,7 @@ This test suite covers:
 
 import uuid
 from typing import Dict
+from pathlib import Path
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -18,10 +19,18 @@ def test_delete_image_success(
     client: TestClient,
     image: Dict
 ) -> None:
-    """Test successful delete_image returns 200."""
-    image_id = image.get('id', '')
-    out = client.delete(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_200_OK
+    """Test successful deleting of the image."""
+    image_id = image['id']
+    response = client.delete(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_200_OK
+
+    response = client.get(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    storage_id = image.get('storage_id', ' ')
+    storage_type = 'localfs'
+    storage_path = f'/opt/aero/openvair/data/mnt/{storage_type}-{storage_id}'
+    image_path = Path(storage_path, f'image-{image_id}')
+    assert image_path.exists() is False
 
 
 def test_delete_image_not_uuid(
@@ -29,8 +38,8 @@ def test_delete_image_not_uuid(
 ) -> None:
     """Test image not uuid returns 422"""
     image_id = "image"
-    out = client.delete(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.delete(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_delete_non_excisting_image(
@@ -38,15 +47,15 @@ def test_delete_non_excisting_image(
 ) -> None:
     """Test delete an image with non excistant uuid returns 500"""
     image_id = str(uuid.uuid4())
-    out = client.delete(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    response = client.delete(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def test_delete_image_unauthorized(
-    unauthorized_client: TestClient,
-    image: Dict
+    image: Dict,
+    unauthorized_client: TestClient
 ) -> None:
-    """Test unauthorized request returns 405."""
-    image_id = image.get('id', '')
-    out = unauthorized_client.delete(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_401_UNAUTHORIZED
+    """Test successful deleting of the image."""
+    image_id = image['id']
+    response = unauthorized_client.delete(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

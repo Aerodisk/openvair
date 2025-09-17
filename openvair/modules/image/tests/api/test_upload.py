@@ -10,61 +10,65 @@ This test suite covers:
 """
 
 import uuid
-from typing import Dict
+from typing import Dict, BinaryIO
 from pathlib import Path
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from openvair.config import TMP_DIR
-from openvair.libs.testing.utils import (
-    generate_image_name,
-    wait_full_deleting_file,
-    generate_test_entity_name,
-)
-from openvair.libs.testing.config import image_settings
+from openvair.libs.testing.utils import wait_for_field_value
+from openvair.modules.image.tests.utils import upload_image_api_call
 
-image_path = image_settings.image_path
 
-@pytest.mark.parametrize('description', [True, False])
 def test_upload_image_success(
     client: TestClient,
     storage: Dict,
-    *,
-    description: bool,
+    name: str,
+    image_file: BinaryIO
 ) -> None:
-    """Test successful upload_image with and without description."""
-    desc = ''
-    if description:
-        desc = '&description=successful upload'
+    """Test successful upload_image."""
     storage_id = storage['id']
-    name = generate_image_name()
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}{desc}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path = Path(TMP_DIR, name)
-    wait_full_deleting_file(file_path)
+    query = {
+        'storage_id': storage_id,
+        'name': name
+    }
+    response = upload_image_api_call (name, query, client, image_file)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data['name'] == name
     assert data['storage_id'] == storage_id
 
+    wait_for_field_value(
+        client, f'/images/{data["id"]}/', 'status', 'available'
+    )
+    storage_path = ('/opt/aero/openvair/data/mnt/'
+                    f'{storage["storage_type"]}-{storage_id}')
+    wait_for_field_value(
+        client,
+        f'/images/{data["id"]}/',
+        'path',
+        storage_path
+    )
+    new_image_path = Path(storage_path, f'image-{data["id"]}')
+    assert new_image_path.exists() is True
+
 
 def test_upload_image_unauthorized(
     unauthorized_client: TestClient,
     storage: Dict,
+    name: str,
+    image_file: BinaryIO
 ) -> None:
     """Test unauthorized request returns 401."""
     storage_id = storage['id']
-    name = generate_image_name()
-    with image_path.open("rb") as file:
-        response = unauthorized_client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
+    query = {
+        'storage_id': storage_id,
+        'name': name
+    }
+    response = upload_image_api_call (
+        name, query, unauthorized_client, image_file
+    )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -74,137 +78,108 @@ def test_upload_image_unauthorized(
 def test_upload_image_missing_field(
     client: TestClient,
     missing_field: str,
+    image_file: BinaryIO,
+    name: str,
     storage: Dict,
 ) -> None:
     """Test that missing required fields result in HTTP 422."""
-    storage_id = f"storage_id={storage['id']}"
-    name = f'name={generate_image_name()}'
-    field = name
-    if missing_field == 'name':
-        field = storage_id
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?{field}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path = Path(TMP_DIR, name)
-    wait_full_deleting_file(file_path)
+    storage_id = storage['id']
+    query = {
+        'storage_id': storage_id,
+        'name': name
+    }
+    query.pop(missing_field, None)
+    response = upload_image_api_call (name, query, client, image_file)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_upload_image_no_image(
     client: TestClient,
+    name: str,
     storage: Dict,
 ) -> None:
     """Test no upload file returns HTTP 422."""
     storage_id = storage['id']
-    name = generate_image_name()
     response = client.post(
-        f"/images/upload/?storage_id={storage_id}&name={name}",
+        f"/images/upload/?storage_id={storage_id}&name={name}"
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_upload_image_wrong_file_formate(
     client: TestClient,
-    storage: Dict
+    storage: Dict,
+    name: str,
+    wrong_formate_file: BinaryIO
 ) -> None:
     """Test wrong file formate returns HTTP 422."""
     storage_id = storage['id']
-    name = generate_image_name()
-
-    file_name = (f'/opt/aero/openvair/openvair/modules/image/tests/'
-                 f'{generate_test_entity_name("image_file")}')
-    file_path = Path(file_name)
-    file_path.touch()
-    with file_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path.unlink()
-    wait_full_deleting_file(file_path)
-    tmp_image = Path(TMP_DIR, name)
-    wait_full_deleting_file(tmp_image)
+    query = {
+        'storage_id': storage_id,
+        'name': name
+    }
+    response = upload_image_api_call (name, query, client, wrong_formate_file)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_upload_image_with_wrong_storage_id(
-    client: TestClient
+    client: TestClient,
+    image_file: BinaryIO,
+    name: str
 ) -> None:
     """Test upload with nonexistent storage_id returns 500."""
-    storage_id = str(uuid.uuid4())
-    name = generate_image_name()
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path = Path(TMP_DIR, name)
-    wait_full_deleting_file(file_path)
+    query = {
+        'storage_id': str(uuid.uuid4()),
+        'name': name
+    }
+    response = upload_image_api_call (name, query, client, image_file)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.parametrize('description', [True, False])
 def test_upload_image_long_name(
     client: TestClient,
-    *,
-    description: bool,
+    image_file: BinaryIO,
+    long_name: str,
     storage: Dict
 ) -> None:
     """Test upload with long name or description returns 500."""
     storage_id = storage['id']
-    name = generate_image_name()
-    desc = ''
-    if description:
-        desc = f'&description={"a" * 400}'
-    else:
-        name = f'{"a" * 37}.iso'
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}{desc}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path = Path(TMP_DIR, name)
-    wait_full_deleting_file(file_path)
+    query = {
+        'storage_id': storage_id,
+        'name': long_name
+    }
+    response = upload_image_api_call (long_name, query, client, image_file)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-def test_upload_image_wrong_storage(
-    client: TestClient
+def test_upload_image_storage_not_uuid(
+    client: TestClient,
+    image_file: BinaryIO,
+    name: str
 ) -> None:
     """Test storage not uuid returns 422."""
-    storage_id = "storage"
-    name = generate_image_name()
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path = Path(TMP_DIR, name)
-    wait_full_deleting_file(file_path)
+    query = {
+        'storage_id': 'storage',
+        'name': name
+    }
+    response = upload_image_api_call (name, query, client, image_file)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_upload_image_with_excisting_name(
     client: TestClient,
+    image_file: BinaryIO,
+    name: str,
     storage: Dict,
 ) -> None:
     """Test uploading image with the same name twice returns 500"""
     storage_id = storage['id']
-    name = generate_image_name()
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
+    query = {
+        'storage_id': storage_id,
+        'name': name
+    }
+    response = upload_image_api_call (name, query, client, image_file)
     assert response.status_code == status.HTTP_200_OK
 
-    with image_path.open("rb") as file:
-        response = client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    file_path = Path(TMP_DIR, name)
-    wait_full_deleting_file(file_path)
+    response = upload_image_api_call (name, query, client, image_file)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

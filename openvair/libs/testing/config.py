@@ -77,21 +77,6 @@ class NotificationSettings(BaseSettings):
         extra='ignore'
     )
 
-class ImageSettings(BaseSettings):
-    """Settings for testing image.
-
-    Attributes:
-        image_path (Path): A path to a valid image.
-    """
-    image_path: Path = Field(default=None, alias='TEST_IMAGE_PATH')
-
-    model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent / '.env.test',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-
 storage_settings = StorageSettings()
-image_settings = ImageSettings()
 block_device_settings = BlockDeviceSettings()
 notification_settings = NotificationSettings()

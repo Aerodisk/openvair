@@ -1,5 +1,4 @@
 # noqa: D100
-import contextlib
 from uuid import uuid4
 from typing import Dict, Generator
 from pathlib import Path
@@ -16,7 +15,6 @@ from openvair.libs.testing.utils import (
     delete_resource,
     cleanup_all_images,
     cleanup_all_volumes,
-    generate_image_name,
     wait_for_field_value,
     cleanup_all_templates,
     cleanup_all_notifications,
@@ -25,7 +23,6 @@ from openvair.libs.testing.utils import (
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import (
-    image_settings,
     storage_settings,
     notification_settings,
 )
@@ -265,25 +262,6 @@ def virtual_machine(
 
     delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
     wait_full_deleting_object(client, '/virtual-machines/', created_vm['id'])
-
-
-@pytest.fixture(scope="function")
-def image(
-    client: TestClient, storage: Dict
-) -> Generator[TestClient, None, None]:
-    """Creates a test image and deletes it after each test."""
-    name = generate_image_name()
-    image_path = image_settings.image_path
-    storage_id = storage['id']
-    with contextlib.suppress(Exception), image_path.open("rb") as file:
-        responce = client.post(
-            f"/images/upload/?storage_id={storage_id}&name={name}",
-            files={"image": (name, file, "application/x-cd-image")},
-        )
-    image = responce.json()
-    yield image
-    with contextlib.suppress(Exception):
-        client.delete(f"/images/{image['id']}")
 
 
 @pytest.fixture(scope='function')

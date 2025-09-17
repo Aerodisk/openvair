@@ -11,7 +11,6 @@ This test suite covers:
 import uuid
 from typing import Dict
 
-import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -22,9 +21,9 @@ def test_get_image_success(
 ) -> None:
     """Test successful get image returns 200"""
     image_id = image["id"]
-    out = client.get(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_200_OK
-    data = out.json()
+    response = client.get(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
     assert data['id'] == image['id']
     assert data['name'] == image['name']
     assert data['size'] == image['size']
@@ -36,61 +35,45 @@ def test_get_image_success(
     assert data['user_id'] == image['user_id']
 
 
-@pytest.mark.parametrize('stor', [True, False])
 def test_get_images_success(
     client: TestClient,
-    storage: Dict,
     image: Dict,
-    *,
-    stor: bool
 ) -> None:
     """Test successful get_images returns 200"""
-    storage_id = storage["id"]
     image_id = image['id']
-    if stor:
-        out = client.get(f'/images/?storage_id={storage_id}')
-    else:
-        out = client.get('/images/')
-    assert out.status_code == status.HTTP_200_OK
-    data = out.json()
+    response = client.get('/images/')
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
     assert 'items' in data
     items = data.get('items', {})
     assert any(v.get('id', '') == image_id for v in items)
 
 
 def test_get_image_unauthorized(
-    unauthorized_client: TestClient,
-    image: Dict
+    image: Dict,
+    unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     image_id = image.get('id', '')
-    out = unauthorized_client.get(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_401_UNAUTHORIZED
+    response = unauthorized_client.get(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-@pytest.mark.parametrize('stor', [True, False])
 def test_get_images_unauthorized(
     unauthorized_client: TestClient,
-    storage: Dict,
-    *,
-    stor: bool
 ) -> None:
     """Test unauthorized request returns 401."""
-    storage_id = storage["id"]
-    if stor:
-        out = unauthorized_client.get(f'/images/?storage_id={storage_id}')
-    else:
-        out = unauthorized_client.get('/images/')
-    assert out.status_code == status.HTTP_401_UNAUTHORIZED
+    response = unauthorized_client.get('/images/')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_image_invalid_uuid(
+def test_get_image_invalid_image_id(
     client: TestClient,
 ) -> None:
-    """Test getting image with imvalid uuid returns 500"""
+    """Test getting nonexcistent image returns 500"""
     image_id = str(uuid.uuid4())
-    out = client.get(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    response = client.get(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def test_get_images_invalid_storage_id(
@@ -98,8 +81,8 @@ def test_get_images_invalid_storage_id(
 ) -> None:
     """Test get images with nonexcistent storage returns 500."""
     storage_id = str(uuid.uuid4())
-    out = client.get(f'/images/?storage_id={storage_id}')
-    assert out.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    response = client.get(f'/images/?storage_id={storage_id}')
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def test_get_image_wrong_image_id(
@@ -107,8 +90,8 @@ def test_get_image_wrong_image_id(
 ) -> None:
     """Test get image with image_id not uuid returns 422."""
     image_id = "image"
-    out = client.get(f'/images/{image_id}')
-    assert out.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.get(f'/images/{image_id}')
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_get_images_wrong_storage_id(
@@ -116,5 +99,5 @@ def test_get_images_wrong_storage_id(
 ) -> None:
     """Test get image with storage_id not uuid returns 422."""
     storage_id = "storage"
-    out = client.get(f'/images/?storage_id={storage_id}')
-    assert out.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.get(f'/images/?storage_id={storage_id}')
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
