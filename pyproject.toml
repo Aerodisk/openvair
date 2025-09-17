@@ -3,7 +3,7 @@ name = "openvair"
 version = "0.1.0"
 description = "Open vAIR is a lightweight solution based on the vAIR project, designed for use as a development environment and virtualization system. The program operates in interactive mode, providing a flexible and convenient tool for managing virtual infrastructure."
 readme = "README.md"
-requires-python = "~=3.12"
+requires-python = ">=3.12, <3.13"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
