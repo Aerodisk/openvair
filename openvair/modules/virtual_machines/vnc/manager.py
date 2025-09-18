@@ -321,7 +321,7 @@ class VNCManager:
             LOG.info(f'VNC session cleanup completed for VM {vm_name}')
             return success
 
-    def _restore_state_from_system(self) -> None:
+    def _restore_state_from_system(self) -> None:  # noqa: C901
         """Restore VNC manager state from running websockify processes.
 
         Uses psutil to scan for websockify processes and extract port
@@ -346,12 +346,13 @@ class VNCManager:
                         VNC_WS_PORT_END,
                         cmdline,
                     )
-                    self._allocated_ports.add(ws_port)
-                    LOG.debug(
-                        f'Restored websockify: PID {proc_info["pid"]}, '
-                        f'port {ws_port}'
-                    )
-                    restored.add(ws_port)
+                    if ws_port:
+                        self._allocated_ports.add(ws_port)
+                        LOG.debug(
+                            f'Restored websockify: PID {proc_info["pid"]}, '
+                            f'port {ws_port}'
+                        )
+                        restored.add(ws_port)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
