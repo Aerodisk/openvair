@@ -203,7 +203,7 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
 
 
 def test_create_volume_unauthorized(
-    unauthorized_client: TestClient, storage: Dict
+   storage: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_data = CreateVolume(
