@@ -1,4 +1,3 @@
-# ruff: noqa: ARG001 because of fixtures using
 """Integration tests for event store API endpoints.
 
 Covers:
@@ -12,12 +11,34 @@ import io
 import csv
 from typing import Dict, List
 
+from httpx import Response
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 
 LOG = get_logger(__name__)
+
+
+def assert_csv_events_empty(response: Response) -> None:
+    """Assert that a CSV response contains only the header and no events rows.
+
+    Args:
+        response: The HTTP response object containing CSV content.
+    """
+    content = response.content.decode('utf-8')
+    reader = csv.reader(io.StringIO(content))
+    rows = list(reader)
+    assert len(rows) == 1  # only header
+    assert rows[0] == [
+        'id',
+        'module',
+        'object_id',
+        'user_id',
+        'event',
+        'timestamp',
+        'information',
+    ]
 
 
 def test_get_events_success(client: TestClient, created_event: Dict) -> None:
@@ -83,7 +104,7 @@ def test_get_events_pagination(
     assert data['size'] == size
 
 
-def test_get_events_by_module_name(
+def test_get_events_filtered_by_module_name(
     client: TestClient, created_event: Dict
 ) -> None:
     """Test filtering events by specific module name.
@@ -103,16 +124,16 @@ def test_get_events_by_module_name(
     assert data['items'][0]['object_id'] == created_event['object_id']
 
 
-def test_get_events_by_different_module(
+def test_get_events_filtered_by_different_module(
     client: TestClient, created_event: Dict
 ) -> None:
-    """Test filtering events by different module name returns empty.
+    """Test filtering events by different module name, returns empty.
 
     Asserts:
     - Return 200 OK
     - No events returned when filtering.
     """
-    module_name = 'storages'
+    module_name = f'not_{created_event["module"]}'
     response = client.get(f'/event/?module_name={module_name}')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -203,22 +224,10 @@ def test_download_events_empty(client: TestClient) -> None:
     """
     response = client.get('/event/download')
     assert response.status_code == status.HTTP_200_OK
-    content = response.content.decode('utf-8')
-    reader = csv.reader(io.StringIO(content))
-    rows = list(reader)
-    assert len(rows) == 1  # only header
-    assert rows[0] == [
-        'id',
-        'module',
-        'object_id',
-        'user_id',
-        'event',
-        'timestamp',
-        'information',
-    ]
+    assert_csv_events_empty(response)
 
 
-def test_download_events_by_module_name(
+def test_download_events_filtered_by_module_name(
     client: TestClient, created_event: Dict
 ) -> None:
     """Test CSV download filtered by specific module name.
@@ -240,31 +249,19 @@ def test_download_events_by_module_name(
     assert rows[1][2] == created_event['object_id']
 
 
-def test_download_events_by_different_module(
+def test_download_events_filtered_by_different_module(
     client: TestClient, created_event: Dict
 ) -> None:
-    """Test CSV download filtered by different module returns empty.
+    """Test CSV download filtered by different module, returns empty.
 
     Asserts:
     - Return 200 OK
     - CSV contains only header when no events match filter.
     """
-    module_name = 'storages'
+    module_name = f'not_{created_event["module"]}'
     response = client.get(f'/event/download?module_name={module_name}')
     assert response.status_code == status.HTTP_200_OK
-    content = response.content.decode('utf-8')
-    reader = csv.reader(io.StringIO(content))
-    rows = list(reader)
-    assert len(rows) == 1  # only header
-    assert rows[0] == [
-        'id',
-        'module',
-        'object_id',
-        'user_id',
-        'event',
-        'timestamp',
-        'information',
-    ]
+    assert_csv_events_empty(response)
 
 
 def test_download_events_by_module_with_multiple_events(
