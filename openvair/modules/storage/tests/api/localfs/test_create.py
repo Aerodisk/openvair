@@ -1,4 +1,3 @@
-# ruff: noqa: ARG001 because of fixtures using
 """Integration tests for storage creation endpoints (localfs).
 
 Covers:
@@ -20,7 +19,7 @@ from openvair.libs.testing.config import storage_settings
 
 
 def test_create_storage_localfs_success(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test successful localfs storage creation."""
     storage_data = {
@@ -50,7 +49,7 @@ def test_create_storage_localfs_success(
 
 
 def test_create_storage_missing_name(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure when name is missing."""
     storage_data = {
@@ -68,7 +67,7 @@ def test_create_storage_missing_name(
 
 
 def test_create_storage_missing_storage_type(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure when storage_type is missing."""
     storage_data = {
@@ -86,7 +85,7 @@ def test_create_storage_missing_storage_type(
 
 
 def test_create_storage_missing_specs(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure when specs are missing."""
     storage_data = {
@@ -118,7 +117,7 @@ def test_create_storage_invalid_name(client: TestClient) -> None:
 
 
 def test_create_storage_invalid_fs_type(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure with invalid filesystem type."""
     storage_data = {
@@ -139,7 +138,7 @@ def test_create_storage_invalid_fs_type(
 
 
 def test_create_storage_invalid_description_chars(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure with invalid characters in description."""
     storage_data = {
@@ -159,7 +158,7 @@ def test_create_storage_invalid_description_chars(
 
 
 def test_create_storage_nonexistent_path(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure with nonexistent local path."""
     storage_data = {
@@ -178,7 +177,7 @@ def test_create_storage_nonexistent_path(
 
 
 def test_create_storage_duplicate_path(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test failure when storage path already exists."""
     storage_data1 = {
@@ -210,7 +209,7 @@ def test_create_storage_duplicate_path(
 
 
 def test_create_storage_unauthorized(
-    unauthorized_client: TestClient, cleanup_storages: None
+    unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized storage creation."""
     storage_data = {
