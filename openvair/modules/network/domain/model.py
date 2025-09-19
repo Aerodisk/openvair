@@ -11,7 +11,8 @@ Classes:
 """
 
 import abc
-from typing import Dict, Type, Mapping, ClassVar, cast
+from typing import ClassVar, cast
+from collections.abc import Mapping
 
 from openvair.modules.network.domain.base import BaseInterface
 from openvair.modules.network.domain.bridges import netplan, ovs_bridge
@@ -21,7 +22,7 @@ from openvair.modules.network.domain.interfaces import virtual, physical
 class AbstractInterfaceFactory(metaclass=abc.ABCMeta):
     """Abstract factory for creating objects of the BaseInterface class."""
 
-    def __call__(self, interface_data: Dict) -> BaseInterface:
+    def __call__(self, interface_data: dict) -> BaseInterface:
         """Create a BaseInterface object from the provided data.
 
         Args:
@@ -33,7 +34,7 @@ class AbstractInterfaceFactory(metaclass=abc.ABCMeta):
         return self.get_interface(interface_data)
 
     @abc.abstractmethod
-    def get_interface(self, interface_data: Dict) -> BaseInterface:
+    def get_interface(self, interface_data: dict) -> BaseInterface:
         """Get an object of the BaseInterface class.
 
         Args:
@@ -51,17 +52,17 @@ class InterfaceFactory(AbstractInterfaceFactory):
     # Значения: либо конкретный класс интерфейса,
     # либо мапа подтипов для "ubuntu"
     _interface_classes: ClassVar[
-        Dict[str, Type[BaseInterface] | Mapping[str, Type[BaseInterface]]]
+        dict[str, type[BaseInterface] | Mapping[str, type[BaseInterface]]]
     ] = {
         'physical': physical.PhysicalInterface,
         'virtual': virtual.VirtualInterface,
         'ubuntu': {
-            'ovs': cast('Type[BaseInterface]', ovs_bridge.OVSInterface),
-            'netplan': cast('Type[BaseInterface]', netplan.NetplanInterface),
+            'ovs': cast('type[BaseInterface]', ovs_bridge.OVSInterface),
+            'netplan': cast('type[BaseInterface]', netplan.NetplanInterface),
         },
     }
 
-    def get_interface(self, interface_data: Dict) -> BaseInterface:
+    def get_interface(self, interface_data: dict) -> BaseInterface:
         """Get an object of the BaseInterface class.
 
         Args:
@@ -79,13 +80,13 @@ class InterfaceFactory(AbstractInterfaceFactory):
                 'network_config_manager'
             ]
             ubuntu_classes = cast(
-                'Mapping[str, Type[BaseInterface]]',
+                'Mapping[str, type[BaseInterface]]',
                 self._interface_classes['ubuntu'],
             )
             interface_class = ubuntu_classes[network_config_manager]
         else:
             interface_class = cast(
-                'Type[BaseInterface]',
+                'type[BaseInterface]',
                 self._interface_classes[inf_type],
             )
 

@@ -14,7 +14,7 @@ Classes:
 from __future__ import annotations
 
 import enum
-from typing import Dict, List, Optional, cast
+from typing import cast
 from collections import namedtuple
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -106,8 +106,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
     def get_all_interfaces(
         self,
-        data: Dict,
-    ) -> List:
+        data: dict,
+    ) -> list:
         """Retrieve all network interfaces from the database.
 
         This method retrieves all network interfaces from the database and
@@ -136,7 +136,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     web_interfaces.append(web_interface)
         return web_interfaces
 
-    def get_interface(self, data: Dict) -> Dict:
+    def get_interface(self, data: dict) -> dict:
         """Retrieve a network interface by its ID.
 
         This method retrieves a network interface from the database based on
@@ -171,7 +171,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         )
         return web_iface
 
-    def get_bridges_list(self, data: Dict) -> List[Dict]:
+    def get_bridges_list(self, data: dict) -> list[dict]:
         """Retrieve the list of network bridges.
 
         This method retrieves a list of network bridges based on the operating
@@ -192,7 +192,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             )
         )
 
-    def create_bridge(self, data: Dict) -> Dict:
+    def create_bridge(self, data: dict) -> dict:
         """Create a new network bridge.
 
         This method creates a new network bridge in the database, sets its
@@ -228,7 +228,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer start creating bridge.')
         return web_iface
 
-    def delete_bridge(self, data: Dict) -> Dict:
+    def delete_bridge(self, data: dict) -> dict:
         """Delete a network bridge.
 
         This method deletes a network bridge from the database, sets its status
@@ -273,7 +273,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
         return serialized_iface
 
-    def turn_on(self, data: Dict) -> None:
+    def turn_on(self, data: dict) -> None:
         """Turn on the specified network interface.
 
         This method retrieves the specified network interface from the
@@ -311,7 +311,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             f'End service layer call for turning on interface: {iface_name}'
         )
 
-    def turn_off(self, data: Dict) -> None:
+    def turn_off(self, data: dict) -> None:
         """Turn off the specified network interface.
 
         This method retrieves the specified network interface from the
@@ -349,7 +349,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             f'End service layer call for turning off interface: {iface_name}'
         )
 
-    def _create_bridge(self, data: Dict) -> None:
+    def _create_bridge(self, data: dict) -> None:
         """Helper method to create a bridge.
 
         This method validates the provided data, sets the interface status
@@ -419,7 +419,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             finally:
                 uow.commit()
 
-    def _delete_bridge(self, data: Dict) -> None:
+    def _delete_bridge(self, data: dict) -> None:
         """Helper method to delete a network bridge.
 
         This method sends a command to the domain layer to delete the specified
@@ -470,7 +470,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     LOG.error(message)
                     raise exceptions.InterfaceDeletingError(message)
 
-    def _edit_interface_in_db(self, data: Dict) -> Dict:
+    def _edit_interface_in_db(self, data: dict) -> dict:
         """Edit a network interface and its extra specs in the database.
 
         This method updates the specified network interface and its extra specs
@@ -525,7 +525,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
             return DataSerializer.to_web(db_interface)
 
-    def _check_existance_and_port_compabilities(self, data: Dict) -> None:
+    def _check_existance_and_port_compabilities(self, data: dict) -> None:
         interfaces = self.get_all_interfaces(data)
         if data['name'] in [bridge['name'] for bridge in interfaces]:
             error = exceptions.InterfaceAlreadyExistException(data['name'])
@@ -537,7 +537,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             if iface['name'] in [bridge['ifname'] for bridge in ovs_bridges]:
                 raise exceptions.NestedOVSBridgeNotAllowedError(iface['name'])
 
-    def _create_interface_in_db(self, data: Dict) -> Dict:
+    def _create_interface_in_db(self, data: dict) -> dict:
         """Create a new network interface in the database.
 
         This protected method is used to create a new network interface in the
@@ -578,7 +578,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         )
         return web_interface
 
-    def _delete_interface_from_db(self, data: Dict) -> None:
+    def _delete_interface_from_db(self, data: dict) -> None:
         """Delete a network interface and its extra specs from the database.
 
         This protected method deletes a network interface and its extra specs
@@ -613,7 +613,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         )
 
     @staticmethod
-    def _validate_create_interface_info(data: Dict) -> CreateInterfaceInfo:
+    def _validate_create_interface_info(data: dict) -> CreateInterfaceInfo:
         """Validate and create a CreateInterfaceInfo object.
 
         This method validates the provided data and returns a
@@ -656,7 +656,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
     @staticmethod
     def _update_extra_specs(
         db_interface: orm.Interface,
-        specs: Dict,
+        specs: dict,
     ) -> None:
         """Update extra specifications for a network interface in the database.
 
@@ -748,8 +748,8 @@ class NetworkServiceLayerManager(BackgroundTasks):
 
     def __synchronize_os_to_db_info(
         self,
-        os_iface: Dict,
-        db_iface: Optional[orm.Interface],
+        os_iface: dict,
+        db_iface: orm.Interface | None,
     ) -> orm.Interface:
         """Synchronize the OS interface data with the database.
 

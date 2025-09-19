@@ -7,7 +7,7 @@ Classes:
     OVSInterface: Implementation of the network bridge interface using OVS.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.modules.network.domain.base import BaseOVSBridge
@@ -37,7 +37,7 @@ class OVSInterface(BaseOVSBridge):
         self.main_port: str = self.ip_manager.get_main_port_name()
         self.default_route = self.ip_manager.get_default_gateway_ip()
 
-    def create(self, data: Dict) -> None:
+    def create(self, data: dict) -> None:
         """Create a new interface bridge.
 
         This method creates a new network bridge using the selected

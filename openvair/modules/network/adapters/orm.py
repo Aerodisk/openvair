@@ -14,7 +14,6 @@ Functions:
 """
 
 import uuid
-from typing import List
 
 from sqlalchemy import UUID, String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column
@@ -73,7 +72,7 @@ class Interface(Base):
         String(20), nullable=False, default='available'
     )
 
-    extra_specs: Mapped[List['InterfaceExtraSpec']] = relationship(
+    extra_specs: Mapped[list['InterfaceExtraSpec']] = relationship(
         'InterfaceExtraSpec',
         back_populates='interface',
         uselist=True,

@@ -8,7 +8,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import TYPE_CHECKING, Dict, Type, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
 
@@ -30,7 +30,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Interface,
-    ) -> Dict:
+    ) -> dict:
         """Convert an Interface ORM object to a domain model dictionary.
 
         This method takes an Interface ORM object, converts it to a dictionary,
@@ -59,12 +59,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[Type[Interface], Type[InterfaceExtraSpec]] = Interface,
-    ) -> Union[
-        Interface,
-        InterfaceExtraSpec,
-    ]:
+        data: dict,
+        orm_class: type[Interface] | type[InterfaceExtraSpec] = Interface,
+    ) -> Interface | InterfaceExtraSpec:
         """Convert a dictionary to an ORM object.
 
         This method takes a dictionary of data and returns an instance of the
@@ -89,7 +86,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Interface,
-    ) -> Dict:
+    ) -> dict:
         """Convert an Interface ORM object to a dictionary for web output.
 
         This method takes an Interface ORM object, processes its extra

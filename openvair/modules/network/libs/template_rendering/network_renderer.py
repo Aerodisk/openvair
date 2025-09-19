@@ -8,7 +8,7 @@ Classes:
     NetworkRenderer: A renderer specialized for network YAML configurations.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.template_rendering.base_renderer import BaseTemplateRenderer
@@ -36,7 +36,7 @@ class NetworkRenderer(BaseTemplateRenderer):
         """Initialize with the network package templates."""
         super().__init__(module_path=__file__)
 
-    def create_ovs_bridge_netplan_yaml(self, raw_data: Dict[str, Any]) -> str:
+    def create_ovs_bridge_netplan_yaml(self, raw_data: dict[str, Any]) -> str:
         """Create a YAML configuration for an OVS bridge (Netplan).
 
         This method calls `self.render` following these steps:
@@ -63,7 +63,7 @@ class NetworkRenderer(BaseTemplateRenderer):
         )
         return yaml_result
 
-    def create_iface_yaml(self, raw_data: Dict[str, Any]) -> str:
+    def create_iface_yaml(self, raw_data: dict[str, Any]) -> str:
         """Create a YAML configuration for a network interface.
 
         This method calls `self.render` following these steps:
@@ -86,7 +86,7 @@ class NetworkRenderer(BaseTemplateRenderer):
         )
         return yaml_result
 
-    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_data(self, data: dict[str, Any]) -> dict[str, Any]:
         return data
 
     def _postprocess_result(self, rendered_str: str) -> str:

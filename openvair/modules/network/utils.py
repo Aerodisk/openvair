@@ -15,7 +15,7 @@ Classes:
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
@@ -51,7 +51,7 @@ class InterfacesFromSystem(list):
             inf_data for inf_data in self._get_all_interfaces_data()
         )
 
-    def _get_all_interfaces_data(self) -> List[Dict]:  # noqa: C901
+    def _get_all_interfaces_data(self) -> list[dict]:  # noqa: C901
         """Retrieve data for all network interfaces on the system.
 
         This method collects information about each network interface,
@@ -92,7 +92,7 @@ class InterfacesFromSystem(list):
             )
             raise GettingSystemInfoError(message)
 
-        sys_output_infs: List[Dict] = deserialize_json(exec_res.stdout)
+        sys_output_infs: list[dict] = deserialize_json(exec_res.stdout)
 
         for sys_inf in sys_output_infs:
             inf_data = {}
@@ -133,7 +133,7 @@ class InterfacesFromSystem(list):
         return all_interfaces_data
 
     @staticmethod
-    def _get_duplex_by_name(interface_name: str) -> Optional[str]:
+    def _get_duplex_by_name(interface_name: str) -> str | None:
         """Function for getting param duplex for interface by specified name.
 
         Args:
@@ -158,7 +158,7 @@ class InterfacesFromSystem(list):
         return duplex.strip() if duplex else None
 
     @staticmethod
-    def _get_speed_by_name(interface_name: str) -> Optional[str]:
+    def _get_speed_by_name(interface_name: str) -> str | None:
         exec_res = execute(
             'cat',
             f'/sys/class/net/{interface_name}/speed',
@@ -171,7 +171,7 @@ class InterfacesFromSystem(list):
         return speed.strip() if speed else None
 
     @staticmethod
-    def _get_slot_port_by_name(interface_name: str) -> Optional[str]:
+    def _get_slot_port_by_name(interface_name: str) -> str | None:
         """Function for getting param slot_port for interface by specified name.
 
         Args:
@@ -203,7 +203,7 @@ class InterfacesFromSystem(list):
         return None
 
     @staticmethod
-    def _get_physical_interfaces_list() -> List[str]:
+    def _get_physical_interfaces_list() -> list[str]:
         """Function that gets the list of physical interfaces names.
 
         Returns:
@@ -226,8 +226,8 @@ class InterfacesFromSystem(list):
         result = exec_res.stdout
         return re.findall(r'/net/(.+)(?:\s|$)', result)
 
-    def get_all(self) -> List:  # noqa: D102
+    def get_all(self) -> list:  # noqa: D102
         return self
 
-    def get_interfaces_names(self) -> List:  # noqa: D102
+    def get_interfaces_names(self) -> list:  # noqa: D102
         return [inf['name'] for inf in self]

@@ -8,7 +8,7 @@ Classes:
         standard IP commands to manage network interfaces.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -28,7 +28,7 @@ class IPManager:
     Designed to execute standard IP commands to manage network interfaces.
     """
 
-    def _get_addresses_data(self) -> Dict[str, Dict[str, Any]]:
+    def _get_addresses_data(self) -> dict[str, dict[str, Any]]:
         command = 'ip -j a'
         exec_res = execute(
             command,
@@ -41,10 +41,10 @@ class IPManager:
             message = f'Failure while getting addresses info: {exec_res.stderr}'
             LOG.error(message)
             raise IPManagerException(message)
-        addresses: List[Dict] = deserialize_json(exec_res.stdout)
+        addresses: list[dict] = deserialize_json(exec_res.stdout)
         return {iface['ifname']: iface for iface in addresses}
 
-    def _get_interfaces_data(self) -> Dict[str, Dict[str, Any]]:
+    def _get_interfaces_data(self) -> dict[str, dict[str, Any]]:
         command = 'ip -j link show'
         exec_res = execute(
             command,
@@ -57,10 +57,10 @@ class IPManager:
             message = f'Failure while gettin interfaces info: {exec_res.stderr}'
             LOG.error(message)
             raise IPManagerException(message)
-        interfaces: List[Dict] = deserialize_json(exec_res.stdout)
+        interfaces: list[dict] = deserialize_json(exec_res.stdout)
         return {iface['ifname']: iface for iface in interfaces}
 
-    def _get_routes_data(self) -> List[Dict]:
+    def _get_routes_data(self) -> list[dict]:
         command = 'ip -j route'
         exec_res = execute(
             command,
@@ -69,13 +69,13 @@ class IPManager:
         if exec_res.stderr:
             msg = f'Failure while getting main port name: {exec_res.stderr}'
             raise IPManagerException(msg)
-        routes_info: List[Dict] = deserialize_json(exec_res.stdout)
+        routes_info: list[dict] = deserialize_json(exec_res.stdout)
         return routes_info
 
-    def get_iface_data(self, iface_name: str) -> Dict:
+    def get_iface_data(self, iface_name: str) -> dict:
         """Find and return data about interface by name"""
         interfaces = self._get_interfaces_data()
-        interface: Dict = interfaces.get(iface_name, {})
+        interface: dict = interfaces.get(iface_name, {})
         if not interface:
             message = f'Interface data for {iface_name} not found'
             error = IPManagerException(message)
@@ -281,7 +281,7 @@ class IPManager:
         )
 
     @staticmethod
-    def get_interface_addresses(iface_name: str) -> List[str]:
+    def get_interface_addresses(iface_name: str) -> list[str]:
         """Get the IP addresses assigned to the given interface name.
 
         Args:
@@ -421,10 +421,10 @@ class IPManager:
         """
         LOG.info('Searching for default route')
         routes = self._get_routes_data()
-        default_routes: List[Dict[str, Any]] = list(
+        default_routes: list[dict[str, Any]] = list(
             filter(lambda x: x.get('dst') == 'default', routes)
         )
-        addresses: Tuple = tuple(dr.get('gateway') for dr in default_routes)
+        addresses: tuple = tuple(dr.get('gateway') for dr in default_routes)
 
         self._check_defaoult_gateways(addresses)
         LOG.info(f'Default route is: {addresses[0]}')
@@ -461,7 +461,7 @@ class IPManager:
 
         return exec_res.stdout.strip()
 
-    def get_json_ifaces(self) -> Dict:
+    def get_json_ifaces(self) -> dict:
         """Get network interfaces in JSON format.
 
         This method retrieves the list of network interfaces using the IP
@@ -484,10 +484,10 @@ class IPManager:
             raise IPManagerException(message)
 
         # Convert results of commands into dict
-        ifaces: Dict = deserialize_json(exec_res.stdout)
+        ifaces: dict = deserialize_json(exec_res.stdout)
         return ifaces
 
-    def _check_defaoult_gateways(self, addresses: Tuple) -> None:
+    def _check_defaoult_gateways(self, addresses: tuple) -> None:
         if len(addresses) == 1:
             return
 
