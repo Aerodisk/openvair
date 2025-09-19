@@ -4,7 +4,7 @@ This module implements the repository pattern to manage Notification entities
 in the database using SQLAlchemy.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, cast
 
 from openvair.modules.notification.adapters.orm import Notification
 from openvair.common.repositories.base_sqlalchemy import (
@@ -30,7 +30,7 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
 
     def _get_notifications_by_type(
         self, notifications_type: str
-    ) -> Optional[Notification]:
+    ) -> Notification | None:
         """Retrieve notifications by their type.
 
         Args:
@@ -48,7 +48,7 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
 
     def _get_notifications_by_subject(
         self, notification_subject: str
-    ) -> Optional[Notification]:
+    ) -> Notification | None:
         """Retrieve notifications by their subject.
 
         Args:
@@ -65,7 +65,7 @@ class NotificationSqlAlchemyRepository(BaseSqlAlchemyRepository[Notification]):
             .first()
         )
 
-    def _bulk_update(self, data: List[Dict]) -> None:
+    def _bulk_update(self, data: list[dict]) -> None:
         """Perform a bulk update on notifications.
 
         Args:

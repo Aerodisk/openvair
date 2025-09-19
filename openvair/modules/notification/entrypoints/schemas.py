@@ -7,7 +7,6 @@ Classes:
     - Notification: Schema for notification data used in the API.
 """
 
-from typing import List
 
 from pydantic import EmailStr, BaseModel, field_validator
 
@@ -20,7 +19,7 @@ class Notification(BaseModel):
     """
 
     msg_type: str
-    recipients: List[EmailStr]
+    recipients: list[EmailStr]
     subject: str
     message: str
 

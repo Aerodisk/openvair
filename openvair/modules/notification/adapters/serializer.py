@@ -8,7 +8,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import TYPE_CHECKING, Dict, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
 
@@ -26,7 +26,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Notification,
-    ) -> Dict:
+    ) -> dict:
         """Function for converting SQLAlchemy object to dictionary.
 
         It takes a Notification object and returns a dictionary with the same
@@ -56,8 +56,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[Notification] = Notification,
+        data: dict,
+        orm_class: type[Notification] = Notification,
     ) -> Notification:
         """Converts a dictionary to an SQLAlchemy object.
 
@@ -84,7 +84,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Notification,
-    ) -> Dict:
+    ) -> dict:
         """Function for converting SQLAlchemy object to dictionary for web.
 
         It takes a Notification object and returns a dictionary with the

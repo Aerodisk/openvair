@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -79,7 +79,7 @@ class NotificationServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def send_notification(self, data: Dict) -> Dict:
+    def send_notification(self, data: dict) -> dict:
         """Create a notification, set its status, and send it to the domain.
 
         Args:
