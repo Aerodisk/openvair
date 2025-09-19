@@ -197,7 +197,7 @@ class VMServiceLayerManager(BackgroundTasks):
         virtual machines, including the unit of work, RPC clients,
         and event store.
         """
-        super(VMServiceLayerManager, self).__init__()
+        super().__init__()
         self.uow = unit_of_work.VMSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=config.SERVICE_LAYER_DOMAIN_QUEUE_NAME

@@ -51,7 +51,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             **kwargs: A dictionary containing the virtual machine
                 configuration.
         """
-        super(LibvirtDriver, self).__init__()
+        super().__init__()
         self.snapshot_info = kwargs.pop('snapshot_info', None)
         self.vm_info = kwargs
         self.vm_xml = self.render_domain(self.vm_info)
