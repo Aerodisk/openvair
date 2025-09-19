@@ -9,12 +9,9 @@ Classes:
 
 import abc
 from uuid import UUID
-from typing import Generic, TypeVar
-
-T = TypeVar('T')
 
 
-class AbstractRepository(abc.ABC, Generic[T]):
+class AbstractRepository[T](abc.ABC):
     """Abstract base repository with CRUD methods.
 
     This class provides a template for repositories handling data storage

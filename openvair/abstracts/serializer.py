@@ -1,14 +1,11 @@
 """_summary_"""
 
 import abc
-from typing import Generic, TypeVar
 
 from sqlalchemy.orm import DeclarativeBase
 
-T = TypeVar('T', bound=DeclarativeBase)
 
-
-class AbstractDataSerializer(Generic[T], metaclass=abc.ABCMeta):
+class AbstractDataSerializer[T: DeclarativeBase](metaclass=abc.ABCMeta):
     """Abstract class for data serialization."""
 
     @classmethod

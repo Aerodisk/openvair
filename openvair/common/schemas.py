@@ -8,14 +8,14 @@ Classes:
         data, status, and error messages.
 """
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from pydantic import Field, BaseModel
 
 T = TypeVar('T')
 
 
-class BaseResponse(BaseModel, Generic[T]):
+class BaseResponse[T](BaseModel):
     """Generic schema for API responses.
 
     This schema is designed to standardize API responses by including

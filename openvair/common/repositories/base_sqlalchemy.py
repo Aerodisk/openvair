@@ -8,7 +8,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Generic, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import OperationalError
@@ -18,10 +17,8 @@ from openvair.abstracts.exceptions import DBCannotBeConnectedError
 from openvair.common.repositories.abstract import AbstractRepository
 from openvair.common.repositories.exceptions import EntityNotFoundError
 
-T = TypeVar('T', bound=DeclarativeBase)
 
-
-class BaseSqlAlchemyRepository(AbstractRepository[T], Generic[T]):
+class BaseSqlAlchemyRepository[T: DeclarativeBase](AbstractRepository[T]):
     """Base repository implementation using SQLAlchemy.
 
     This class provides CRUD operations for managing database entities
