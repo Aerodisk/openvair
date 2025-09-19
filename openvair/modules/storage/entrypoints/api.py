@@ -233,8 +233,7 @@ async def create_storage(
         The storage object is being returned.
     """
     LOG.info(
-        'Api start creating storage with data: %s.'
-        % data.model_dump(mode='json')
+        f'Api start creating storage with data: {data.model_dump(mode="json")}'
     )
     storage = await run_in_threadpool(
         crud.create_storage, data.model_dump(mode='json'), user_data
@@ -263,7 +262,7 @@ async def delete_storage(
     Returns:
         The storage object.
     """
-    LOG.info('Api start deleting storage: %s.' % storage_id)
+    LOG.info(f'Api start deleting storage: {storage_id}.')
     storage = await run_in_threadpool(
         crud.delete_storage, storage_id, user_data
     )

@@ -48,7 +48,7 @@ class StorageCrud:
             services.StorageServiceLayerManager.get_storage.__name__,
             data_for_method={'storage_id': str(storage_id)},
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def get_all_storages(self) -> list[schemas.Storage]:
@@ -62,7 +62,7 @@ class StorageCrud:
             services.StorageServiceLayerManager.get_all_storages.__name__,
             data_for_method={},
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return Validator.validate_objects(result, schemas.Storage)
 
     def create_storage(self, data: dict, user_data: dict) -> dict:
@@ -82,7 +82,7 @@ class StorageCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def delete_storage(self, storage_id: UUID, user_data: dict) -> dict:
@@ -104,7 +104,7 @@ class StorageCrud:
             },
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def get_local_disks(self, data: dict) -> schemas.ListOfLocalDisks:
@@ -126,7 +126,7 @@ class StorageCrud:
                 'free_local_disks': data.get('free_local_disks', False)
             },
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         local_disks = Validator.validate_objects(result, schemas.LocalDisk)
         return schemas.ListOfLocalDisks.model_validate({'disks': local_disks})
 
@@ -163,7 +163,7 @@ class StorageCrud:
             services.StorageServiceLayerManager.get_local_disk_partitions_info.__name__,
             data_for_method=data,
         )
-        LOG.info('Response from service layer: %s.' % result)
+        LOG.info(f'Response from service layer: {result}.')
         return result
 
     def delete_local_partition(self, data: dict, user_data: dict) -> dict:

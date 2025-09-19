@@ -101,14 +101,14 @@ class RemoteFSStorage(BaseStorage):
         storage_prefix (str): Prefix used for the storage mount point.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the RemoteFSStorage with given parameters.
 
         Args:
             args: Positional arguments passed to the BaseStorage initializer.
             kwargs: Keyword arguments passed to the BaseStorage initializer.
         """
-        super(RemoteFSStorage, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.share = ''
         self._mounted_shares: list[str] = []
         self._execute_as_root = True
@@ -238,14 +238,14 @@ class LocalFSStorage(BaseStorage):
         fs_type (str): The file system type (e.g., "ext4", "xfs").
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the LocalFSStorage with given parameters.
 
         Args:
             args: Positional arguments passed to the BaseStorage initializer.
             kwargs: Keyword arguments passed to the BaseStorage initializer.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = True
         self.storage_prefix = 'localfs'
         self.fs_type = kwargs.get('fs_type')  # "ext4"|"xfs"

@@ -166,7 +166,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on get storage.')
         storage_id = data['storage_id']
-        LOG.debug('Get storage id from request: %s.' % storage_id)
+        LOG.debug(f'Get storage id from request: {storage_id}.')
         if not storage_id:
             message = (
                 'Incorrect arguments were received '
@@ -177,7 +177,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_storage = uow.storages.get_or_fail(storage_id)
             web_storage = DataSerializer.to_web(db_storage)
-            LOG.debug('Got storage from db: %s.' % web_storage)
+            LOG.debug(f'Got storage from db: {web_storage}.')
         LOG.info('Service layer method get storage was successfully processed')
         return web_storage
 
@@ -731,7 +731,7 @@ class StorageServiceLayerManager(BackgroundTasks):
 
         domain_storage = DataSerializer.to_domain(db_storage)
         web_storage = DataSerializer.to_web(db_storage)
-        LOG.debug('Serialized db storage for web: %s.' % web_storage)
+        LOG.debug(f'Serialized db storage for web: {web_storage}.')
         LOG.info('Cast service layer on _create_storage asynchron.')
         self.service_layer_rpc.cast(
             self._create_storage.__name__, data_for_method=domain_storage
@@ -786,8 +786,8 @@ class StorageServiceLayerManager(BackgroundTasks):
             db_storage.status = StorageStatus.creating.name
             uow.commit()
             LOG.info(
-                'Db storage status was updated on %s.'
-                % StorageStatus.creating.name
+                f'Db storage status was updated on '
+                f'{StorageStatus.creating.name}.'
             )
         with self.uow() as uow:
             try:
@@ -800,14 +800,14 @@ class StorageServiceLayerManager(BackgroundTasks):
                     time_limit=180,
                     priority=10,
                 )
-                LOG.debug('Domain manager return result: %s.' % domain_storage)
+                LOG.debug(f'Domain manager return result: {domain_storage}.')
                 db_storage.status = StorageStatus.available.name
                 db_storage.size = domain_storage.get('size')
                 db_storage.available = domain_storage.get('available')
                 db_storage.initialized = True
                 LOG.info(
-                    'Db storage status was updated on %s.'
-                    % StorageStatus.available.name
+                    f'Db storage status was updated on '
+                    f'{StorageStatus.available.name}.'
                 )
                 for spec in db_storage.extra_specs:
                     if spec.key == 'mount_point':
@@ -815,7 +815,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                     if spec.key == 'fs_uuid':
                         spec.value = domain_storage.get('fs_uuid')
                 LOG.info(
-                    'Extra specs was added for storage: %s.' % db_storage.id
+                    f'Extra specs was added for storage: {db_storage.id}.'
                 )
                 self.event_store.add_event(
                     str(db_storage.id),
@@ -908,7 +908,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         storage_id = domain_storage.get('id', '')
         with self.uow() as uow:
             db_storage = uow.storages.get_or_fail(storage_id)
-            LOG.debug('Got storage: %s from db.' % domain_storage)
+            LOG.debug(f'Got storage: {domain_storage} from db.')
             try:
                 self._check_storage_has_no_objects(str(storage_id))
                 LOG.info('Call domain layer on delete storage.')
@@ -918,10 +918,10 @@ class StorageServiceLayerManager(BackgroundTasks):
                     time_limit=180,
                     priority=10,
                 )
-                LOG.debug('Domain manager return result: %s.' % result)
-                LOG.info('Storage: %s deleted from system.' % storage_id)
+                LOG.debug(f'Domain manager return result: {result}.')
+                LOG.info(f'Storage: {storage_id} deleted from system.')
                 uow.storages.delete(db_storage)
-                LOG.info('Storage: %s deleted from db.' % storage_id)
+                LOG.info(f'Storage: {storage_id} deleted from db.')
                 self.event_store.add_event(
                     str(db_storage.id),
                     str(db_storage.user_id),

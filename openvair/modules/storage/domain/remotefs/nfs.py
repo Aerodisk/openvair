@@ -36,7 +36,7 @@ class NfsStorage(RemoteFSStorage):
     the storage, checking availability, and retrieving capacity information.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initializes the NFS storage.
 
         This constructor initializes the NFS storage with the specified
@@ -49,7 +49,7 @@ class NfsStorage(RemoteFSStorage):
                 - path (str): The file path on the NFS server.
                 - mount_version (int): The NFS mount version (default is 4).
         """
-        super(NfsStorage, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = True
         self.ip = str(kwargs.get('ip', ''))
         self.path = kwargs.get('path', '')
@@ -70,7 +70,7 @@ class NfsStorage(RemoteFSStorage):
         """
         LOG.info('Starting do_setup method.')
         self._check_package_is_installed('mount.nfs')
-        super(NfsStorage, self).do_setup()
+        super().do_setup()
         self.get_capacity_info()
         LOG.info('Finished do_setup method.')
         return self.__dict__

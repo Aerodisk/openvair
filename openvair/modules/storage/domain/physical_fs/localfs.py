@@ -39,7 +39,7 @@ class LocalDiskStorage(LocalFSStorage):
             be executed as root.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a new instance of LocalDiskStorage.
 
         This constructor initializes the LocalDiskStorage instance with
@@ -53,7 +53,7 @@ class LocalDiskStorage(LocalFSStorage):
                 fs_uuid (str): The UUID of the file system.
         """
         LOG.info('LocalFS storage initializing')
-        super(LocalDiskStorage, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = True
         self.path = str(kwargs.get('path', ''))
         self.fs_uuid = kwargs.get('fs_uuid', '')
@@ -72,7 +72,7 @@ class LocalDiskStorage(LocalFSStorage):
         LOG.info('LocalFS storage do setup')
         if self.fs_type == 'xfs':
             self._check_package_is_installed('xfsprogs')
-        super(LocalDiskStorage, self).do_setup()
+        super().do_setup()
         self.get_capacity_info()
         return self.__dict__
 
