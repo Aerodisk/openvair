@@ -11,7 +11,7 @@ Attributes:
 
 import io
 import csv
-from typing import List, cast
+from typing import cast
 
 from fastapi import Depends, APIRouter, status
 from fastapi.responses import StreamingResponse
@@ -54,7 +54,7 @@ async def get_events(
     Raises:
         HTTPException: If any database error occurs or events are not found.
     """
-    result: List = crud.new_get_all_events()
+    result: list = crud.new_get_all_events()
     return cast('Page', paginate(result))
 
 
@@ -79,7 +79,7 @@ async def download_events(
     Returns:
         StreamingResponse: A streaming response with the CSV file content.
     """
-    result: List = crud.new_get_all_events()
+    result: list = crud.new_get_all_events()
     events_page: Page = paginate(
         result, params=Params(page=1, size=len(result))
     )

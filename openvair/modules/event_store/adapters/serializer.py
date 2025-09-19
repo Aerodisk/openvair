@@ -7,7 +7,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import TYPE_CHECKING, Dict, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
 
@@ -47,8 +47,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[EventsORM] = EventsORM,
+        data: dict,
+        orm_class: type[EventsORM] = EventsORM,
     ) -> EventsORM:
         """Convert web data to a database ORM object.
 
@@ -76,7 +76,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: EventsORM,
-    ) -> Dict:
+    ) -> dict:
         """Convert a database ORM object to web data.
 
         This method converts the ORM object to a dictionary and modifies certain

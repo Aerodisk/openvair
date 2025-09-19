@@ -4,7 +4,7 @@ This module implements the repository pattern to manage Event entities
 in the database using SQLAlchemy.
 """
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import desc
 
@@ -32,7 +32,7 @@ class EventStoreSqlAlchemyRepository(BaseSqlAlchemyRepository[Events]):
         """
         super().__init__(session, Events)
 
-    def get_all_by_module(self, module_name: str) -> List[Events]:
+    def get_all_by_module(self, module_name: str) -> list[Events]:
         """Retrieve all events for a specific module.
 
         Args:
@@ -43,7 +43,7 @@ class EventStoreSqlAlchemyRepository(BaseSqlAlchemyRepository[Events]):
         """
         return self.session.query(Events).filter_by(module=module_name).all()
 
-    def get_last_events(self, limit: int = 25) -> List[Events]:
+    def get_last_events(self, limit: int = 25) -> list[Events]:
         """Retrieve the most recent events from the repository.
 
         Args:

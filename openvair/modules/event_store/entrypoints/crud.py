@@ -11,7 +11,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List
 from collections import namedtuple
 
 from openvair.libs.log import get_logger
@@ -47,7 +46,7 @@ class EventCrud:
             EventStoreServiceLayerRPCClient(module_name)
         )
 
-    def new_get_all_events(self) -> List[Event]:
+    def new_get_all_events(self) -> list[Event]:
         """Retrieve all events from the database.
 
         This method retrieves all events from the database, serializes them
@@ -58,10 +57,10 @@ class EventCrud:
             Page[schemas.Event]: A paginated list of all events.
         """
         LOG.info('Call service layer on getting events.')
-        events: List = self.service_layer_rpc_client.get_all_events()
+        events: list = self.service_layer_rpc_client.get_all_events()
         return Validator.validate_objects(events, schemas.Event)
 
-    def new_get_all_events_by_module(self) -> List[Event]:
+    def new_get_all_events_by_module(self) -> list[Event]:
         """Retrieve all events by module from the database.
 
         This method retrieves all events for a specific module from the
@@ -72,10 +71,10 @@ class EventCrud:
             Page[schemas.Event]: A paginated list of events filtered by module.
         """
         LOG.info('Call service layer on getting events by module.')
-        events: List = self.service_layer_rpc_client.get_all_events_by_module()
+        events: list = self.service_layer_rpc_client.get_all_events_by_module()
         return Validator.validate_objects(events, schemas.Event)
 
-    def new_get_last_events(self, limit: int) -> List[Event]:
+    def new_get_last_events(self, limit: int) -> list[Event]:
         """Retrieve the last N events from the database.
 
         This method retrieves the last N events from the database, serializes
@@ -89,7 +88,7 @@ class EventCrud:
             Page[schemas.Event]: A paginated list of the last N events.
         """
         LOG.info('Call service layer on getting events by module.')
-        events: List = self.service_layer_rpc_client.get_last_events(
+        events: list = self.service_layer_rpc_client.get_last_events(
             limit=limit,
         )
 
