@@ -12,7 +12,6 @@ Endpoints:
     - DELETE `/backup/{snapshot_id}`: Delete a specific backup snapshot.
 """
 
-from typing import List
 
 from fastapi import Query, Depends, APIRouter
 from fastapi.concurrency import run_in_threadpool
@@ -103,11 +102,11 @@ async def restore(
 @router.get(
     '/',
     dependencies=[Depends(get_current_user)],
-    response_model=BaseResponse[List[ResticSnapshot]],
+    response_model=BaseResponse[list[ResticSnapshot]],
 )
 async def get_backups(
     crud: BackupCrud = Depends(BackupCrud),
-) -> BaseResponse[List[ResticSnapshot]]:
+) -> BaseResponse[list[ResticSnapshot]]:
     """Retrieve a list of backup snapshots.
 
     This endpoint fetches all available backup snapshots using the

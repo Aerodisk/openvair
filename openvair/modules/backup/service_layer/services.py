@@ -6,7 +6,7 @@ It acts as a bridge between the service layer and domain layer, coordinating
 tasks via messaging and background processes.
 """
 
-from typing import Any, Dict, List, Union
+from typing import Any
 from pathlib import Path
 
 from openvair.config import TMP_DIR, DB_CONTAINER, database as db_config
@@ -65,7 +65,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         self.event_store = EventCrud('networks')
         self.backup_file_name = 'backup.sql'
 
-    def create_backup(self) -> Dict[str, Union[str, int, None]]:
+    def create_backup(self) -> dict[str, str | int | None]:
         """Perform a database backup and trigger ResticBackuper.
 
         This method dumps the database, writes the dump to a temporary file,
@@ -79,7 +79,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         dump = self.__dump_database()
         self.__write_dump(dump)
 
-        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
+        result: dict[str, str | int | None] = self.domain_rpc.call(
             FSBackuper.backup.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
         )
@@ -87,8 +87,8 @@ class BackupServiceLayerManager(BackgroundTasks):
         return result
 
     def delete_snapshot(
-        self, data: Dict[str, str]
-    ) -> Dict[str, Union[str, int, None]]:
+        self, data: dict[str, str]
+    ) -> dict[str, str | int | None]:
         """Delete a specific snapshot.
 
         This method invokes the domain layer to remove a snapshot from the
@@ -102,7 +102,7 @@ class BackupServiceLayerManager(BackgroundTasks):
             Dict[str, Union[str, int, None]]: Information about the deletion
                 result.
         """
-        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
+        result: dict[str, str | int | None] = self.domain_rpc.call(
             FSBackuper.delete_snapshot.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={'snapshot_id': data.get('snapshot_id')},
@@ -111,11 +111,11 @@ class BackupServiceLayerManager(BackgroundTasks):
 
     def restore_backup(
         self,
-        data: Dict[
+        data: dict[
             str,
-            Union[str, int, None],
+            str | int | None,
         ],
-    ) -> Dict[str, Union[str, int, None]]:
+    ) -> dict[str, str | int | None]:
         """Restore data using a specific snapshot ID.
 
         This method restores the database and invokes the domain layer to manage
@@ -126,7 +126,7 @@ class BackupServiceLayerManager(BackgroundTasks):
                 as returned by the domain layer.
         """
         LOG.info('Start restoring backup')
-        result: Dict[str, Union[str, int, None]] = self.domain_rpc.call(
+        result: dict[str, str | int | None] = self.domain_rpc.call(
             FSBackuper.restore.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={'snapshot_id': data.get('snapshot_id', 'latest')},
@@ -135,7 +135,7 @@ class BackupServiceLayerManager(BackgroundTasks):
         LOG.info('Restoring successfully complete')
         return result
 
-    def get_snapshots(self) -> List[Dict]:
+    def get_snapshots(self) -> list[dict]:
         """Retrieve a list of available snapshots.
 
         This method queries the domain layer to fetch metadata for available
@@ -145,7 +145,7 @@ class BackupServiceLayerManager(BackgroundTasks):
             List[Dict]: A list of snapshot metadata.
         """
         LOG.info('Getting backup snapshots')
-        result: List[Dict] = self.domain_rpc.call(
+        result: list[dict] = self.domain_rpc.call(
             FSBackuper.get_snapshots.__name__,
             data_for_manager=self.__create_data_for_domain_manager(),
             data_for_method={},
@@ -271,7 +271,7 @@ class BackupServiceLayerManager(BackgroundTasks):
 
             LOG.info(f'Database restored successfully from: {backup_file}')
 
-    def __create_data_for_domain_manager(self) -> Dict[str, Any]:
+    def __create_data_for_domain_manager(self) -> dict[str, Any]:
         """Generate data for the domain layer manager.
 
         Returns:

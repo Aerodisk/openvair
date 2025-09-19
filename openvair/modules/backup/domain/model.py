@@ -11,7 +11,7 @@ Classes:
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Type, ClassVar
+from typing import ClassVar
 
 from openvair.modules.backup.domain.base import BaseBackuper
 from openvair.modules.backup.domain.backupers.restic_backuper import (
@@ -30,7 +30,7 @@ class AbstractBackuperFactory(metaclass=ABCMeta):
         get_backuper: Abstract method to create a BaseBackuper object.
     """
 
-    def __call__(self, backuper_data: Dict) -> BaseBackuper:
+    def __call__(self, backuper_data: dict) -> BaseBackuper:
         """Create a backuper by calling the factory instance.
 
         Args:
@@ -46,7 +46,7 @@ class AbstractBackuperFactory(metaclass=ABCMeta):
 
     @abstractmethod
     def get_backuper(
-        self, backuper_type: str, backuper_data: Dict
+        self, backuper_type: str, backuper_data: dict
     ) -> BaseBackuper:
         """Create a BaseBackuper object from the provided data.
 
@@ -80,7 +80,7 @@ class BackuperFactory(AbstractBackuperFactory):
     }
 
     def get_backuper(
-        self, backuper_type: str, backuper_data: Dict
+        self, backuper_type: str, backuper_data: dict
     ) -> BaseBackuper:
         """Create a BaseBackuper object from the provided data.
 
@@ -96,5 +96,5 @@ class BackuperFactory(AbstractBackuperFactory):
         Returns:
             BaseBackuper: An instance of the requested BaseBackuper type.
         """
-        backuper_cls: Type[BaseBackuper] = self._backuper_classes[backuper_type]
+        backuper_cls: type[BaseBackuper] = self._backuper_classes[backuper_type]
         return backuper_cls(**backuper_data)

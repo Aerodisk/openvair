@@ -10,7 +10,6 @@ Classes:
     BackupCrud: Provides CRUD operations for managing backups.
 """
 
-from typing import List
 
 from openvair.modules.backup.config import API_SERVICE_LAYER_QUEUE_NAME
 from openvair.modules.backup.schemas import (
@@ -80,7 +79,7 @@ class BackupCrud:
         )
         return ResticRestoreResult(**backup_info)
 
-    def get_snapshots(self) -> List[ResticSnapshot]:
+    def get_snapshots(self) -> list[ResticSnapshot]:
         """Retrieve a list of available snapshots.
 
         This method calls the service layer to fetch metadata for all snapshots.

@@ -10,7 +10,6 @@ Classes:
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List, Union
 from pathlib import Path
 
 
@@ -23,12 +22,12 @@ class BaseBackuper(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def backup(self) -> Dict[str, Union[str, int, None]]:
+    def backup(self) -> dict[str, str | int | None]:
         """For implementing backup logic"""
         ...
 
     @abstractmethod
-    def restore(self, data: Dict[str, str]) -> Dict[str, Union[str, int, None]]:
+    def restore(self, data: dict[str, str]) -> dict[str, str | int | None]:
         """For implementing restore logic"""
         ...
 
@@ -60,7 +59,7 @@ class FSBackuper(BaseBackuper):
         ...
 
     @abstractmethod
-    def get_snapshots(self) -> List[Dict]:
+    def get_snapshots(self) -> list[dict]:
         """Retrieve a list of snapshots.
 
         This abstract method should be implemented by subclasses to fetch
@@ -74,8 +73,8 @@ class FSBackuper(BaseBackuper):
 
     @abstractmethod
     def delete_snapshot(
-        self, data: Dict[str, str]
-    ) -> Dict[str, Union[str, int, None]]:
+        self, data: dict[str, str]
+    ) -> dict[str, str | int | None]:
         """Delete a specific snapshot.
 
         This abstract method should be implemented by subclasses to remove

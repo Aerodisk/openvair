@@ -6,7 +6,6 @@ backup results, restore results, and snapshot metadata across the
 application.
 """
 
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -32,7 +31,7 @@ class ResticBackupResult(BaseModel):
         data_added_packed (int): Total size of the packed data added, in bytes.
     """
 
-    snapshot_id: Optional[str] = None
+    snapshot_id: str | None = None
     total_files_processed: int
     files_new: int
     files_changed: int
@@ -71,9 +70,9 @@ class ResticRestoreResult(BaseModel):
     total_files: int
     files_restored: int
     files_skipped: int
-    total_bytes: Optional[int] = None
-    bytes_restored: Optional[int] = None
-    bytes_skipped: Optional[int] = None
+    total_bytes: int | None = None
+    bytes_restored: int | None = None
+    bytes_skipped: int | None = None
 
     class Config:
         """Pydantic configuration for the model.
@@ -105,7 +104,7 @@ class ResticSnapshot(BaseModel):
     id: str
     short_id: str
     time: str
-    paths: List
+    paths: list
     hostname: str
     username: str
 

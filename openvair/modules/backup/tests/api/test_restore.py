@@ -11,7 +11,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 from pathlib import Path
 
 from fastapi import status
@@ -19,7 +18,7 @@ from fastapi.testclient import TestClient
 
 
 def test_restore_backup_latest_snapshot_success(
-    client: TestClient, backup_snapshot: Dict
+    client: TestClient, backup_snapshot: dict
 ) -> None:
     """Test successful restore of the latest snapshot.
 
@@ -39,7 +38,7 @@ def test_restore_backup_latest_snapshot_success(
     assert data['error'] is None
 
     restore_data = data['data']
-    assert isinstance(restore_data, Dict)
+    assert isinstance(restore_data, dict)
 
     expected_fields = {
         'total_files',
@@ -57,7 +56,7 @@ def test_restore_backup_latest_snapshot_success(
 
 
 def test_restore_backup_specific_snapshot_success(
-    client: TestClient, backup_snapshot: Dict
+    client: TestClient, backup_snapshot: dict
 ) -> None:
     """Test restore from specific snapshot ID.
 
@@ -78,7 +77,7 @@ def test_restore_backup_specific_snapshot_success(
     assert data['error'] is None
 
     restore_data = data['data']
-    assert isinstance(restore_data, Dict)
+    assert isinstance(restore_data, dict)
 
     expected_fields = {
         'total_files',

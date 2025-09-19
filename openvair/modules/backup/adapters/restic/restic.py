@@ -7,7 +7,6 @@ Classes:
     ResticAdapter: Adapter class for managing backups.
 """
 
-from typing import Dict, List, Union
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -82,7 +81,7 @@ class ResticAdapter:
             LOG.error(actual_error)
             raise actual_error from err
 
-    def backup(self, source_path: Path) -> Dict[str, Union[str, int]]:
+    def backup(self, source_path: Path) -> dict[str, str | int]:
         """Performs a backup of the specified source path.
 
         Args:
@@ -125,12 +124,12 @@ class ResticAdapter:
             LOG.error(actual_error)
             raise actual_error from err
 
-        backup_info: Dict[str, Union[str, int]] = deserialize_json(
+        backup_info: dict[str, str | int] = deserialize_json(
             result.stdout
         )
         return backup_info
 
-    def snapshots(self) -> List[Dict[str, Union[str, int]]]:
+    def snapshots(self) -> list[dict[str, str | int]]:
         """Fetches a list of snapshots from the restic repository.
 
         Returns:
@@ -159,7 +158,7 @@ class ResticAdapter:
             result,
         )
 
-        snapshots_info: List[Dict[str, Union[str, int]]] = deserialize_json(
+        snapshots_info: list[dict[str, str | int]] = deserialize_json(
             result.stdout
         )
 
@@ -169,7 +168,7 @@ class ResticAdapter:
         self,
         target_path: Path,
         backup_id: str,
-    ) -> Dict[str, Union[str, int]]:
+    ) -> dict[str, str | int]:
         """Restores data from a specified backup.
 
         Args:
@@ -205,12 +204,12 @@ class ResticAdapter:
             LOG.error(actual_error)
             raise actual_error from err
 
-        restore_info: Dict[str, Union[str, int]] = deserialize_json(
+        restore_info: dict[str, str | int] = deserialize_json(
             result.stdout
         )
         return restore_info
 
-    def forget(self, snapshot_id: str) -> Dict[str, Union[str, int]]:
+    def forget(self, snapshot_id: str) -> dict[str, str | int]:
         """Remove a specific snapshot from the restic repository.
 
         This method executes the `forget --prune` command to delete a given
@@ -240,7 +239,7 @@ class ResticAdapter:
             LOG.error(actual_error)
             raise actual_error from err
 
-        forget_info: Dict[str, Union[str, int]] = {
+        forget_info: dict[str, str | int] = {
             'message': (
                 f'results of deleting snapshot {snapshot_id}:\n'
                 f'stdout: "{result.stdout}"'
