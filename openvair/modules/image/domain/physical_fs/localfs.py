@@ -9,7 +9,7 @@ Classes:
         methods for performing file operations related to the image.
 """
 
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from openvair.config import TMP_DIR
@@ -36,7 +36,7 @@ class LocalFSImage(BaseLocalFSImage):
         self._execute_as_root = False
         LOG.info('Initialized LocalImage.')
 
-    def upload(self) -> Dict:
+    def upload(self) -> dict:
         """Uploads the image to the local file system.
 
         This method converts the image file to the QCOW2 format using the
@@ -73,7 +73,7 @@ class LocalFSImage(BaseLocalFSImage):
             LOG.info(msg)
         return self.__dict__
 
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Deletes the image from the local file system.
 
         This method removes the image file from the file system. If the image
@@ -107,7 +107,7 @@ class LocalFSImage(BaseLocalFSImage):
             LOG.info('LocalFSImage successfully deleted.')
             return self.__dict__
 
-    def delete_from_tmp(self) -> Dict:
+    def delete_from_tmp(self) -> dict:
         """Deletes the image from the temporary directory.
 
         This method removes the image file from the temporary directory.
@@ -137,7 +137,7 @@ class LocalFSImage(BaseLocalFSImage):
         LOG.info('LocalFSImage successfully deleted from temporary directory.')
         return self.__dict__
 
-    def attach_image_info(self) -> Dict:
+    def attach_image_info(self) -> dict:
         """Attaches information about the local image.
 
         This method checks if the image exists and then returns its path

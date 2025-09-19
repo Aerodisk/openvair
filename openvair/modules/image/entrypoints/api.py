@@ -17,7 +17,7 @@ Endpoints:
 """
 
 from uuid import UUID
-from typing import Dict, Optional, cast
+from typing import cast
 from pathlib import Path
 
 import aiofiles
@@ -57,7 +57,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_images(
-    storage_id: Optional[UUID] = Query(
+    storage_id: UUID | None = Query(
         default=None,
         description='Storage id (UUID4)',
     ),
@@ -136,7 +136,7 @@ async def upload_image(  # noqa: PLR0913 не возможно передать 
         description='Image name',
     ),
     image: UploadFile = File(..., description='Upload image.'),
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
     """Upload a new image to the storage.
@@ -192,7 +192,7 @@ async def upload_image(  # noqa: PLR0913 не возможно передать 
 )
 async def delete_image(
     image_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> JSONResponse:
     """Delete an image by its ID.
@@ -226,7 +226,7 @@ async def delete_image(
 async def attach_image(
     data: schemas.AttachImage,
     image_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.AttachImageInfo:
     """Attach an image to a virtual machine (VM).
@@ -263,7 +263,7 @@ async def attach_image(
 async def detach_image(
     detach_info: schemas.DetachImage,
     image_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
     """Detach an image from a virtual machine (VM).

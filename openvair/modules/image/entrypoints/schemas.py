@@ -16,7 +16,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List, Optional
 from pathlib import Path
 
 from pydantic import Field, BaseModel, field_validator
@@ -40,7 +39,7 @@ class Attachment(BaseModel):
 
     id: int
     vm_id: UUID
-    target: Optional[Path] = None
+    target: Path | None = None
 
 
 class Image(BaseModel):
@@ -64,14 +63,14 @@ class Image(BaseModel):
 
     id: UUID
     name: str
-    size: Optional[int] = None
+    size: int | None = None
     path: Path
     status: str
-    information: Optional[str] = None
-    description: Optional[str] = None
+    information: str | None = None
+    description: str | None = None
     storage_id: UUID
-    user_id: Optional[str] = None
-    attachments: List[Attachment] = []
+    user_id: str | None = None
+    attachments: list[Attachment] = []
 
 
 class AttachImage(BaseModel):
@@ -92,7 +91,7 @@ class AttachImage(BaseModel):
     """
 
     vm_id: UUID
-    target: Optional[Path] = Field(default=None, min_length=1)
+    target: Path | None = Field(default=None, min_length=1)
 
     validate_target = field_validator('target')(
         lambda v: Validator.special_characters_validate(v, allow_slash=True)
@@ -130,4 +129,4 @@ class AttachImageInfo(BaseModel):
 
     path: Path
     size: int
-    provisioning: Optional[str] = None
+    provisioning: str | None = None

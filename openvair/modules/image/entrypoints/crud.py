@@ -10,7 +10,7 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Dict, List, Optional, cast
+from typing import cast
 
 from openvair.libs.log import get_logger
 from openvair.modules.image.config import (
@@ -71,7 +71,7 @@ class ImageCrud:
             LOG.error(message)
             raise NotSupportedExtensionError(message)
 
-    def get_image(self, image_id: UUID) -> Dict:
+    def get_image(self, image_id: UUID) -> dict:
         """Retrieve metadata of a specific image by its ID.
 
         This method sends a request to the service layer to fetch metadata
@@ -84,14 +84,14 @@ class ImageCrud:
             Dict: Metadata of the specified image.
         """
         LOG.info('Call service layer on get image.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.get_image.__name__,
             data_for_method={'image_id': str(image_id)},
         )
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_all_images(self, storage_id: Optional[UUID]) -> List[schemas.Image]:
+    def get_all_images(self, storage_id: UUID | None) -> list[schemas.Image]:
         """Retrieve a list of all images, optionally filtered by storage ID.
 
         This method sends a request to the service layer to fetch a list
@@ -104,8 +104,8 @@ class ImageCrud:
             List: A list of validated image metadata.
         """
         LOG.info('Call service layer on get all images.')
-        result: List = cast(
-            'List',
+        result: list = cast(
+            'list',
             self.service_layer_rpc.call(
                 services.ImageServiceLayerManager.get_all_images.__name__,
                 data_for_method={
@@ -121,8 +121,8 @@ class ImageCrud:
         name: str,
         storage_id: UUID,
         description: str,
-        user_info: Dict,
-    ) -> Dict:
+        user_info: dict,
+    ) -> dict:
         """Upload a new image to the storage.
 
         This method validates the file extension, then sends a request to the
@@ -144,7 +144,7 @@ class ImageCrud:
         """
         LOG.info('Call service layer on upload image.')
         self._check_image_extension(image_name=name)
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.upload_image.__name__,
             data_for_method={
                 'name': name,
@@ -159,8 +159,8 @@ class ImageCrud:
     def delete_image(
         self,
         image_id: UUID,
-        user_info: Dict,
-    ) -> Dict:
+        user_info: dict,
+    ) -> dict:
         """Delete an image by its ID.
 
         This method sends a request to the service layer to delete the image
@@ -175,7 +175,7 @@ class ImageCrud:
                 deletion.
         """
         LOG.info('Call service layer on delete image.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.delete_image.__name__,
             data_for_method={'image_id': str(image_id), 'user_info': user_info},
         )
@@ -185,9 +185,9 @@ class ImageCrud:
     def attach_image(
         self,
         image_id: UUID,
-        data: Dict,
-        user_info: Dict,
-    ) -> Dict:
+        data: dict,
+        user_info: dict,
+    ) -> dict:
         """Attach an image to a virtual machine.
 
         This method sends a request to the service layer to attach the image
@@ -204,7 +204,7 @@ class ImageCrud:
         """
         data.update({'image_id': str(image_id), 'user_info': user_info})
         LOG.info('Call service layer on attach image.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.attach_image.__name__,
             data_for_method=data,
         )
@@ -214,9 +214,9 @@ class ImageCrud:
     def detach_image(
         self,
         image_id: UUID,
-        detach_info: Dict,
-        user_info: Dict,
-    ) -> Dict:
+        detach_info: dict,
+        user_info: dict,
+    ) -> dict:
         """Detach an image from a virtual machine.
 
         This method sends a request to the service layer to detach the image
@@ -233,7 +233,7 @@ class ImageCrud:
         """
         LOG.info('Call service layer on attach image.')
         detach_info.update({'image_id': str(image_id), 'user_info': user_info})
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.ImageServiceLayerManager.detach_image.__name__,
             data_for_method=detach_info,
         )
