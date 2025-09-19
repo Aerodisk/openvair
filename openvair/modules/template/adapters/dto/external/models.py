@@ -5,7 +5,7 @@ by external services. These DTOs are used in service layer validation and logic.
 """
 
 from uuid import UUID
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 from pathlib import Path
 
 from pydantic import model_validator
@@ -47,22 +47,22 @@ class VolumeModelDTO(BaseDTOModel):
         """
 
         vm_id: UUID
-        target: Optional[Path]
+        target: Path | None
 
     id: UUID
     name: str
-    description: Optional[str] = None
-    storage_id: Optional[UUID] = None
-    user_id: Optional[UUID] = None
+    description: str | None = None
+    storage_id: UUID | None = None
+    user_id: UUID | None = None
     format: Literal['qcow2', 'raw']
     size: int
-    used: Optional[int] = None
-    status: Optional[str] = None
-    information: Optional[str] = None
-    read_only: Optional[bool] = False
+    used: int | None = None
+    status: str | None = None
+    information: str | None = None
+    read_only: bool | None = False
     path: Path
-    template_id: Optional[UUID]
-    attachments: List[VolumeAttachment]
+    template_id: UUID | None
+    attachments: list[VolumeAttachment]
 
 
 class StorageModelDTO(BaseDTOModel):
@@ -82,18 +82,18 @@ class StorageModelDTO(BaseDTOModel):
 
     id: UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     storage_type: str
     status: str
     size: int
     available: int
-    user_id: Optional[UUID] = None
-    information: Optional[str] = None
+    user_id: UUID | None = None
+    information: str | None = None
     mount_point: Path
 
     @model_validator(mode='before')
     @classmethod
-    def extract_mount_point(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # noqa: C901
+    def extract_mount_point(cls, values: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
         """Pre-validation:
 
         Extracts the 'mount_point' from the 'storage_extra_specs'

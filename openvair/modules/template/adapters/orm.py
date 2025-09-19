@@ -9,7 +9,7 @@ Classes:
 
 import uuid
 import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from sqlalchemy import (
     UUID,
@@ -58,7 +58,7 @@ class Template(Base):
         unique=True,
         nullable=False,
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -80,7 +80,7 @@ class Template(Base):
         nullable=False,
         default=TemplateStatus.NEW,
     )
-    information: Mapped[Optional[str]] = mapped_column(
+    information: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )

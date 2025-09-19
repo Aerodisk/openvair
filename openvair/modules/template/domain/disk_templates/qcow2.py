@@ -4,7 +4,7 @@ This module provides the concrete implementation of the `BaseTemplate` for
 QCOW2 disk images. It uses `qemu-img` operations to manage template files.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -35,8 +35,8 @@ class Qcow2Template(BaseTemplate):
         tmp_format: str,
         name: str,
         path: Path,
-        related_volumes: Optional[List],
-        description: Optional[str],
+        related_volumes: list | None,
+        description: str | None,
         *,
         is_backing: bool,
     ) -> None:
@@ -54,7 +54,7 @@ class Qcow2Template(BaseTemplate):
         )
         self.tmp_format: str = 'qcow2'
 
-    def create(self, creation_data: Dict) -> Dict[str, Any]:
+    def create(self, creation_data: dict) -> dict[str, Any]:
         """Create a QCOW2 template file from an existing volume.
 
         Args:
@@ -92,7 +92,7 @@ class Qcow2Template(BaseTemplate):
         LOG.info(f'Template {self.name} successfull created')
         return self._to_json_dict()
 
-    def edit(self, editing_data: Dict) -> Dict[str, Any]:
+    def edit(self, editing_data: dict) -> dict[str, Any]:
         """Rename the template file if not used as a backing image.
 
         Args:

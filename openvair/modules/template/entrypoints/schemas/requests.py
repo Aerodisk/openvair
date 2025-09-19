@@ -12,7 +12,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Optional
 
 from pydantic import Field
 
@@ -44,7 +43,7 @@ class RequestCreateTemplate(APIConfigRequestModel):
         min_length=1,
         max_length=40,
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         examples=['Template for Ubuntu server deployments'],
         description='Optional description for the template',
@@ -81,14 +80,14 @@ class RequestEditTemplate(APIConfigRequestModel):
         description (Optional[str]): New description.
     """
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None,
         examples=['ubuntu-template-renamed'],
         description='New name for the template',
         min_length=1,
         max_length=40,
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         examples=['Updated description for Ubuntu template'],
         description='New description for the template',

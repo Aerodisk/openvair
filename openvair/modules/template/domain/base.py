@@ -6,7 +6,7 @@ the required interface and shared fields used for managing templates.
 """
 
 import abc
-from typing import Any, Dict, List, Optional
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.qemu_img.adapter import QemuImgAdapter
@@ -37,8 +37,8 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         tmp_format: str,
         name: str,
         path: Path,
-        related_volumes: Optional[List],
-        description: Optional[str],
+        related_volumes: list | None,
+        description: str | None,
         *,
         is_backing: bool,
     ) -> None:
@@ -56,7 +56,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         self.description = description
 
     @abc.abstractmethod
-    def create(self, creation_data: Dict) -> Dict[str, Any]:
+    def create(self, creation_data: dict) -> dict[str, Any]:
         """Create the template on disk.
 
         Args:
@@ -65,7 +65,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def edit(self, editing_data: Dict) -> Dict[str, Any]:
+    def edit(self, editing_data: dict) -> dict[str, Any]:
         """Edit the template metadata or file.
 
         Args:
@@ -83,7 +83,7 @@ class BaseTemplate(metaclass=abc.ABCMeta):
         """Check the template not in use by volumes"""
         ...
 
-    def _to_json_dict(self) -> Dict[str, Any]:
+    def _to_json_dict(self) -> dict[str, Any]:
         """Serialize the template instance to a JSON-compatible dict.
 
         Returns:

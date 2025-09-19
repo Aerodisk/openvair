@@ -8,7 +8,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 import pytest
 from fastapi import status
@@ -19,7 +18,7 @@ from openvair.libs.log import get_logger
 LOG = get_logger(__name__)
 
 
-def test_get_templates_success(client: TestClient, template: Dict) -> None:
+def test_get_templates_success(client: TestClient, template: dict) -> None:
     """Test successful retrieval of templates."""
     response = client.get('/templates/')
     assert response.status_code == status.HTTP_200_OK, response.text

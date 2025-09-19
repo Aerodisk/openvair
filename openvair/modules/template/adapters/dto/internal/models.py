@@ -4,7 +4,7 @@ Includes models used between ORM and domain/service layers.
 """
 
 from uuid import UUID
-from typing import List, Literal, Optional
+from typing import Literal
 from pathlib import Path
 from datetime import datetime
 
@@ -30,7 +30,7 @@ class ApiTemplateModelDTO(BaseDTOModel):
 
     id: UUID
     name: str
-    description: Optional[str]
+    description: str | None
     path: Path
     tmp_format: str
     size: int
@@ -55,7 +55,7 @@ class DomainTemplateModelDTO(BaseDTOModel):
     tmp_format: str
     name: str
     path: Path
-    related_volumes: Optional[List] = None
+    related_volumes: list | None = None
     is_backing: bool
     description: str
 
@@ -73,7 +73,7 @@ class CreateTemplateModelDTO(BaseDTOModel):
     """
 
     name: str
-    description: Optional[str]
+    description: str | None
     path: Path
     tmp_format: Literal['qcow2', 'raw']
     storage_id: UUID

@@ -5,7 +5,7 @@ template implementations based on disk format (e.g., qcow2).
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import ClassVar, cast
 
 from openvair.modules.template.domain.base import BaseTemplate
 
@@ -19,7 +19,7 @@ from openvair.modules.template.adapters.dto.internal.models import (
 class AbstractTemplateFactory(metaclass=abc.ABCMeta):
     """Abstract factory for creating template instances."""
 
-    def __call__(self, template_data: Dict) -> BaseTemplate:
+    def __call__(self, template_data: dict) -> BaseTemplate:
         """Creates a template instance from provided data.
 
         Args:
@@ -31,7 +31,7 @@ class AbstractTemplateFactory(metaclass=abc.ABCMeta):
         return self.get_template(template_data)
 
     @abc.abstractmethod
-    def get_template(self, template_data: Dict) -> BaseTemplate:
+    def get_template(self, template_data: dict) -> BaseTemplate:
         """Returns a template instance based on the provided data.
 
         Args:
@@ -50,7 +50,7 @@ class TemplateFactory(AbstractTemplateFactory):
         'qcow2': Qcow2Template,
     }
 
-    def get_template(self, template_data: Dict) -> BaseTemplate:
+    def get_template(self, template_data: dict) -> BaseTemplate:
         """Creates and returns a concrete template instance.
 
         Selects the appropriate implementation based on `tmp_format`

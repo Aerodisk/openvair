@@ -7,7 +7,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -15,7 +14,7 @@ from fastapi.testclient import TestClient
 from openvair.libs.testing.utils import wait_for_field_value
 
 
-def test_edit_template_name_success(client: TestClient, template: Dict) -> None:
+def test_edit_template_name_success(client: TestClient, template: dict) -> None:
     """Test successful update of template name."""
     new_name = 'updated-name'
     response = client.patch(
@@ -34,7 +33,7 @@ def test_edit_template_name_success(client: TestClient, template: Dict) -> None:
 
 
 def test_edit_template_description_success(
-    client: TestClient, template: Dict
+    client: TestClient, template: dict
 ) -> None:
     """Test successful update of template description."""
     new_description = 'Updated description for the template'
@@ -55,7 +54,7 @@ def test_edit_template_description_success(
 
 
 def test_edit_template_both_fields_success(
-    client: TestClient, template: Dict
+    client: TestClient, template: dict
 ) -> None:
     """Test successful update of both name and description."""
     new_name = 'updated-template'
@@ -78,7 +77,7 @@ def test_edit_template_both_fields_success(
 
 
 def test_edit_template_invalid_name_too_short(
-    client: TestClient, template: Dict
+    client: TestClient, template: dict
 ) -> None:
     """Test that empty name is rejected (min_length=1)."""
     response = client.patch(f"/templates/{template['id']}", json={'name': ''})
@@ -86,7 +85,7 @@ def test_edit_template_invalid_name_too_short(
 
 
 def test_edit_template_invalid_name_too_long(
-    client: TestClient, template: Dict
+    client: TestClient, template: dict
 ) -> None:
     """Test that too long name (>40) is rejected."""
     long_name = 'a' * 41
@@ -97,7 +96,7 @@ def test_edit_template_invalid_name_too_long(
 
 
 def test_edit_template_invalid_description_too_long(
-    client: TestClient, template: Dict
+    client: TestClient, template: dict
 ) -> None:
     """Test that too long description (>255) is rejected."""
     long_description = 'd' * 256
@@ -108,7 +107,7 @@ def test_edit_template_invalid_description_too_long(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_edit_template_empty_body(client: TestClient, template: Dict) -> None:
+def test_edit_template_empty_body(client: TestClient, template: dict) -> None:
     """Test that empty request body is rejected."""
     response = client.patch(f"/templates/{template['id']}", json={})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -128,7 +127,7 @@ def test_edit_template_invalid_uuid(client: TestClient) -> None:
 
 
 def test_edit_template_unauthorized(
-    template: Dict, unauthorized_client: TestClient
+    template: dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized edit attempt returns 401."""
     response = unauthorized_client.patch(

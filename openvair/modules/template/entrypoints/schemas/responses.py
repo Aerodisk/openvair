@@ -7,7 +7,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Optional
 from datetime import datetime
 
 from pydantic import Field
@@ -40,7 +39,7 @@ class TemplateResponse(APIConfigResponseModel):
     name: str = Field(
         ..., examples=['ubuntu-template'], description='Name of the template'
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         examples=['Template for Ubuntu server deployments'],
         description='Description of the template',
