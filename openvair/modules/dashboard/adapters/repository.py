@@ -21,7 +21,7 @@ Classes:
 
 import abc
 import time
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.client.prometheus_client import PrometheusClient
@@ -33,7 +33,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
     """An abstract base class for retrieving node resource data."""
 
     # prometheus
-    def get_data(self) -> Dict:
+    def get_data(self) -> dict:
         """Get node resource data.
 
         Returns:
@@ -42,7 +42,7 @@ class AbstractRepository(metaclass=abc.ABCMeta):
         return self._get_data()
 
     @abc.abstractmethod
-    def _get_data(self) -> Dict:
+    def _get_data(self) -> dict:
         """Retrieve node resource data.
 
         Returns:
@@ -69,7 +69,7 @@ class PrometheusRepository(AbstractRepository):
         super().__init__()
         self.prometheus_client = PrometheusClient()
 
-    def _get_cpu_info(self) -> Dict:
+    def _get_cpu_info(self) -> dict:
         """It gets the number of cores from Prometheus gets the CPU usage info
 
         Info is a percentage from Prometheus
@@ -94,7 +94,7 @@ class PrometheusRepository(AbstractRepository):
 
         return cpu
 
-    def _get_storage_info(self) -> Dict:
+    def _get_storage_info(self) -> dict:
         """Get storage information from the node.
 
         Returns:
@@ -110,7 +110,7 @@ class PrometheusRepository(AbstractRepository):
         if not size:
             size = 0
 
-        storage: Dict[str, Any] = {
+        storage: dict[str, Any] = {
             'size': size,
             'used': self.prometheus_client.get_node_info('size-used'),
             'free': self.prometheus_client.get_node_info('size-free'),
@@ -134,7 +134,7 @@ class PrometheusRepository(AbstractRepository):
 
         return storage
 
-    def _get_memory_info(self) -> Dict:
+    def _get_memory_info(self) -> dict:
         """Get and calculate the percentage of memory used.
 
         It gets the total memory, used memory, and available memory from the
@@ -168,7 +168,7 @@ class PrometheusRepository(AbstractRepository):
 
         return mem
 
-    def _get_iops_info(self) -> Dict:
+    def _get_iops_info(self) -> dict:
         """Get IOPS information from the node.
 
         Returns:
@@ -183,7 +183,7 @@ class PrometheusRepository(AbstractRepository):
         LOG.info('Finished getting iops data from node.')
         return iops_read
 
-    def _get_latency(self) -> Dict:
+    def _get_latency(self) -> dict:
         """Get latency information from the node.
 
         Returns:
@@ -197,7 +197,7 @@ class PrometheusRepository(AbstractRepository):
         LOG.info('Finished getting latency info from node.')
         return io_latency
 
-    def _get_network_bandwidth(self) -> Dict:
+    def _get_network_bandwidth(self) -> dict:
         """Get network bandwidth information from the node.
 
         Returns:
@@ -213,7 +213,7 @@ class PrometheusRepository(AbstractRepository):
             'date': round(time.time() * 1000),
         }
 
-    def _get_disk_data(self) -> Dict:
+    def _get_disk_data(self) -> dict:
         """Get disk metrics from the node.
 
         This method queries Prometheus for disk metrics such as read and write
@@ -233,7 +233,7 @@ class PrometheusRepository(AbstractRepository):
         LOG.info('Finished getting disk data from node.')
         return disk_data
 
-    def _get_data(self) -> Dict:
+    def _get_data(self) -> dict:
         """Retrieve all node resource data from Prometheus.
 
         This method retrieves all the node resource data, including CPU, memory,

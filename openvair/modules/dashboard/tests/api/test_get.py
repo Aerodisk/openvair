@@ -9,7 +9,7 @@ Covers:
 """
 
 import copy
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient
 from openvair.libs.messaging.exceptions import RpcCallException
 from openvair.modules.dashboard.entrypoints.schemas import NodeInfo
 
-valid_data: Dict[str, Dict[str, Any]] = {
+valid_data: dict[str, dict[str, Any]] = {
     'cpu': {'count': 4, 'percentage': 50.5},
     'memory': {
         'value': 16000,
@@ -120,10 +120,10 @@ def test_get_dashboard_data_missing_required_fields(
     ],
 )
 def test_missing_nested_fields(
-    client: TestClient, field_path: List[str]
+    client: TestClient, field_path: list[str]
 ) -> None:
     """Test that missing any nested field triggers validation failure."""
-    data: Dict[str, Dict[str, Any]] = copy.deepcopy(valid_data)
+    data: dict[str, dict[str, Any]] = copy.deepcopy(valid_data)
     data[field_path[0]].pop(field_path[1], None)
 
     with patch(
@@ -148,7 +148,7 @@ def test_missing_nested_fields(
     ],
 )
 def test_get_dashboard_data_invalid_response_format(
-    client: TestClient, invalid_response: List[Any]
+    client: TestClient, invalid_response: list[Any]
 ) -> None:
     """Test that invalid response formats cause validation error"""
     with patch(

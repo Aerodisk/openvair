@@ -12,8 +12,6 @@ Classes:
 
 from __future__ import annotations
 
-from typing import Dict
-
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
 from openvair.modules.dashboard.service_layer import unit_of_work
@@ -40,7 +38,7 @@ class DashboardServiceLayerManager(BackgroundTasks):
         super(DashboardServiceLayerManager, self).__init__()
         self.uow = unit_of_work.PrometheusUnitOfWork
 
-    def get_data(self) -> Dict:
+    def get_data(self) -> dict:
         """Retrieve data from the node.
 
         This method uses the PrometheusUnitOfWork to get the necessary data
