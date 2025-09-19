@@ -138,7 +138,7 @@ class BackgroundTasks(metaclass=MetaBackgroundTasks):
 
     def __init__(self) -> None:
         """Initialize the BackgroundTasks instance."""
-        super(BackgroundTasks, self).__init__()
+        super().__init__()
 
     @classmethod
     def start(cls, *, block: bool) -> None:
