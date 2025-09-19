@@ -123,7 +123,7 @@ async def create_volume(
     Returns:
         JSONResponse: The created volume object.
     """
-    LOG.info('Api handle response on create volume with data: %s' % data)
+    LOG.info(f'Api handle response on create volume with data: {data}')
     volume = await run_in_threadpool(
         crud.create_volume, data.model_dump(mode='json'), user_info
     )
@@ -152,7 +152,7 @@ async def delete_volume(
     Returns:
         JSONResponse: The deleted volume object.
     """
-    LOG.info('Api handle response on delete volume: %s' % volume_id)
+    LOG.info(f'Api handle response on delete volume: {volume_id}')
     result = await run_in_threadpool(crud.delete_volume, volume_id, user_info)
     LOG.info('Api request was successfully processed.')
     return JSONResponse(result)
@@ -180,7 +180,7 @@ async def extend_volume(
     Returns:
         JSONResponse: The extended volume object.
     """
-    LOG.info('Api handle response on extend volume: %s' % volume_id)
+    LOG.info(f'Api handle response on extend volume: {volume_id}')
     volume = await run_in_threadpool(
         crud.extend_volume, volume_id, data.model_dump(), user_info
     )
@@ -211,7 +211,7 @@ async def edit_volume(
         JSONResponse: The updated volume object.
     """
     LOG.info(
-        'Api handle response on edit volume: %s with data:' % volume_id,
+        f'Api handle response on edit volume: {volume_id} with data:',
         data.model_dump(),
     )
     volume = await run_in_threadpool(
@@ -244,7 +244,7 @@ async def attach_volume(
         JSONResponse: Information about the attached volume.
     """
     LOG.info(
-        'Api handle response on attach volume: %s with data:' % volume_id,
+        f'Api handle response on attach volume: {volume_id} with data:',
         data.model_dump(mode='json'),
     )
     attached_volume = await run_in_threadpool(
@@ -276,9 +276,7 @@ async def detach_volume(
     Returns:
         JSONResponse: The detached volume object.
     """
-    LOG.info(
-        'Api handle response on detach ' 'volume: %s with data:' % volume_id
-    )
+    LOG.info('Api handle response on detach ' f'volume: {volume_id} with data:')
     detached_volume = await run_in_threadpool(
         crud.detach_volume, volume_id, detach_info.model_dump(), user_info
     )

@@ -11,14 +11,14 @@ Classes:
 """
 
 import abc
-from typing import Any, ClassVar, TypeAlias
+from typing import Any, ClassVar
 from collections.abc import Mapping
 
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import nfs
 from openvair.modules.volume.domain.physical_fs import localfs
 
-VolumeCls: TypeAlias = type[nfs.NfsVolume] | type[localfs.LocalFSVolume]
+type VolumeCls = type[nfs.NfsVolume] | type[localfs.LocalFSVolume]
 
 
 class AbstractVolumeFactory(metaclass=abc.ABCMeta):

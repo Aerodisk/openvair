@@ -55,7 +55,7 @@ class VolumeCrud:
             data_for_method={'volume_id': str(volume_id)},
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def get_all_volumes(
@@ -86,7 +86,7 @@ class VolumeCrud:
             },
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def create_volume(self, data: dict, user_info: dict) -> dict:
@@ -106,7 +106,7 @@ class VolumeCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def delete_volume(self, volume_id: UUID, user_info: dict) -> dict:
@@ -128,7 +128,7 @@ class VolumeCrud:
             },
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def extend_volume(
@@ -154,7 +154,7 @@ class VolumeCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def edit_volume(self, volume_id: UUID, data: dict, user_info: dict) -> dict:
@@ -180,7 +180,7 @@ class VolumeCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def attach_volume(
@@ -206,7 +206,7 @@ class VolumeCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def detach_volume(
@@ -234,7 +234,7 @@ class VolumeCrud:
             data_for_method=detach_info,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def create_from_template(  # noqa: D102

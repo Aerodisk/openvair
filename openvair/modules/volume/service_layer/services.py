@@ -173,7 +173,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         volume-related operations and maintain proper communication channels
         with other parts of the system.
         """
-        super(VolumeServiceLayerManager, self).__init__()
+        super().__init__()
         self.uow = unit_of_work.VolumeSqlAlchemyUnitOfWork
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
@@ -205,7 +205,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on get volume.')
         volume_id = data.pop('volume_id', None)
-        LOG.debug('Get volume id from request: %s.' % volume_id)
+        LOG.debug(f'Get volume id from request: {volume_id}.')
         if not volume_id:
             message = (
                 f'Incorrect arguments were received '
@@ -216,7 +216,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_volume = uow.volumes.get_or_fail(volume_id)
             web_volume = DataSerializer.to_web(db_volume)
-            LOG.debug('Got volume from db: %s.' % web_volume)
+            LOG.debug(f'Got volume from db: {web_volume}.')
         LOG.info('Service layer method get volume was successfully processed')
         return web_volume
 
@@ -279,7 +279,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             user_id=volume_info.pop('user_id', ''),
             read_only=volume_info.pop('read_only', False),
         )
-        LOG.debug('Volume Data for creating: %s.' % volume._asdict())
+        LOG.debug(f'Volume Data for creating: {volume._asdict()}.')
         if not (volume_info or volume.size or volume.storage_id):
             message = 'Comes unexpected data for creating volume.'
             LOG.error(message)
@@ -432,7 +432,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         """
         if volume_size >= storage.available_space:
             message = (
-                'Not enough available space on the storage %s.' % storage.id
+                f'Not enough available space on the storage {storage.id}.'
             )
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
@@ -471,8 +471,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 uow.volumes.add(db_volume)
                 serialized_volume = DataSerializer.to_web(db_volume)
                 LOG.debug(
-                    'Serialized volume ready for other steps: %s'
-                    % serialized_volume
+                    f'Serialized volume ready for other steps: '
+                    f'{serialized_volume}'
                 )
             except (
                 exceptions.VolumeExistsOnStorageException,
@@ -562,16 +562,16 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 domain_volume = DataSerializer.to_domain(db_volume)
                 LOG.info(
                     'Serialized volume which will call to domain '
-                    'for creating: %s.' % domain_volume
+                    f'for creating: {domain_volume}.'
                 )
                 result = self.domain_rpc.call(
                     BaseVolume.create.__name__, data_for_manager=domain_volume
                 )
-                LOG.debug('Result of rpc call to domain: %s.' % result)
+                LOG.debug(f'Result of rpc call to domain: {result}.')
                 db_volume.status = VolumeStatus.available.name
                 LOG.debug(
                     'Volume status was updated on '
-                    '%s.' % VolumeStatus.available.name
+                    f'{VolumeStatus.available.name}.'
                 )
                 self.event_store.add_event(
                     str(db_volume.id),
@@ -728,7 +728,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         user_info = data.pop('user_info', {})
         volume_id = data.get('volume_id')
         new_size = data.get('new_size')
-        LOG.debug('Get volume id from request: %s.' % volume_id)
+        LOG.debug(f'Get volume id from request: {volume_id}.')
         if not (volume_id and new_size):
             message = (
                 f'Incorrect arguments were received '
@@ -748,7 +748,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
                 db_volume.status = VolumeStatus.extending.name
                 serialized_volume = DataSerializer.to_domain(db_volume)
-                LOG.debug('Got volume from db: %s.' % serialized_volume)
+                LOG.debug(f'Got volume from db: {serialized_volume}.')
             except (
                 exceptions.ValidateArgumentsError,
                 exceptions.VolumeStatusException,
@@ -1152,7 +1152,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         if template.size >= storage.available_space:
             message = (
-                'Not enough available space on the storage %s.' % storage.id
+                f'Not enough available space on the storage {storage.id}.'
             )
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
