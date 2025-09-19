@@ -36,9 +36,9 @@ class NetplanInterface(BaseOVSBridge):
         main_port (str): The name of the main network port.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the NetplanInterface instance."""
-        super(NetplanInterface, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.netplan_manager = NetplanManager()
         self.main_port: str = self.ip_manager.get_main_port_name()
         self.default_route = self.ip_manager.get_default_gateway_ip()

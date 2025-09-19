@@ -69,7 +69,7 @@ class InterfaceCrud:
             services.NetworkServiceLayerManager.get_all_interfaces.__name__,
             data_for_method=data,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def get_interface(self, iface_id: UUID) -> dict:
@@ -90,7 +90,7 @@ class InterfaceCrud:
             data_for_method={'iface_id': str(iface_id)},
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def get_bridges_list(self) -> list[dict]:
@@ -111,7 +111,7 @@ class InterfaceCrud:
                 'network_config_manager': NETWORK_CONFIG_MANAGER,
             },
         )
-        LOG.info('Response from service layer : %s.' % result)
+        LOG.info(f'Response from service layer : {result}.')
         return result
 
     def create_bridge(self, data: dict, user_info: dict) -> dict:
@@ -142,7 +142,7 @@ class InterfaceCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer : %s.' % result)
+        LOG.debug(f'Response from service layer : {result}.')
         return result
 
     def delete_bridge(self, data: list, user_info: dict) -> list:
@@ -177,7 +177,7 @@ class InterfaceCrud:
                 data_for_method=iface,
             )
             result.append(rpc_result)
-            LOG.debug('Response from service layer : %s.' % result)
+            LOG.debug(f'Response from service layer : {result}.')
         return result
 
     def turn_on_interface(self, name: str) -> dict:

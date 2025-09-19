@@ -94,7 +94,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         SQLAlchemy interactions, setting up RPC protocols, and creating an event
         store.
         """
-        super(NetworkServiceLayerManager, self).__init__()
+        super().__init__()
         self.domain_rpc = MessagingClient(
             queue_name=SERVICE_LAYER_DOMAIN_QUEUE_NAME
         )
@@ -154,7 +154,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Service layer start handling response on get interface.')
         iface_id = data.pop('iface_id', None)
-        LOG.debug('Get interface id from request: %s.' % iface_id)
+        LOG.debug(f'Get interface id from request: {iface_id}.')
         if not iface_id:
             message = (
                 f'Incorrect arguments were received '
@@ -165,7 +165,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_iface = uow.interfaces.get_or_fail(iface_id)
             web_iface = DataSerializer.to_web(db_iface)
-            LOG.debug('Got interface from db: %s.' % web_iface)
+            LOG.debug(f'Got interface from db: {web_iface}.')
         LOG.info(
             'Service layer method get interface was successfully processed'
         )
@@ -392,11 +392,11 @@ class NetworkServiceLayerManager(BackgroundTasks):
                     data_for_manager=data,
                     data_for_method=data,
                 )
-                LOG.info('Result of rpc call to domain: %s.' % result)
+                LOG.info(f'Result of rpc call to domain: {result}.')
                 db_iface.status = InterfaceStatus.available.name
                 LOG.info(
-                    'Interface state was updated on %s.'
-                    % InterfaceStatus.available.name
+                    f'Interface state was updated on '
+                    f'{InterfaceStatus.available.name}.'
                 )
 
                 self.event_store.add_event(
@@ -494,8 +494,7 @@ class NetworkServiceLayerManager(BackgroundTasks):
             db_interface = uow.interfaces.get_by_name(interface_name)
             if not db_interface:
                 message = (
-                    'Interface with name %s is not found in DB.'
-                    % interface_name
+                    f'Interface with name {interface_name} is not found in DB.'
                 )
                 LOG.error(message)
                 raise exceptions.InterfaceNotFoundError(message)
@@ -569,10 +568,10 @@ class NetworkServiceLayerManager(BackgroundTasks):
                 )
             uow.interfaces.add(db_interface)
             uow.commit()
-            LOG.info('Interface inserted into db: %s.' % db_interface)
+            LOG.info(f'Interface inserted into db: {db_interface}.')
 
         web_interface = DataSerializer.to_web(db_interface)
-        LOG.debug('Serialized db interface for web: %s.' % web_interface)
+        LOG.debug(f'Serialized db interface for web: {web_interface}.')
         LOG.info(
             'Service layer method create interface was successfully processed'
         )
@@ -598,15 +597,15 @@ class NetworkServiceLayerManager(BackgroundTasks):
             db_interface = uow.interfaces.get_or_fail(interface_id)
             if not db_interface:
                 message = (
-                    'Interface with id %s is not found in DB.' % interface_id
+                    f'Interface with id {interface_id} is not found in DB.'
                 )
                 LOG.error(message)
                 raise exceptions.InterfaceNotFoundError(message)
 
             domain_interface = DataSerializer.to_domain(db_interface)
-            LOG.debug('Got interface: %s from db.' % domain_interface)
+            LOG.debug(f'Got interface: {domain_interface} from db.')
             uow.interfaces.delete(db_interface)
-            LOG.info('Interface: %s deleted from db.' % interface_id)
+            LOG.info(f'Interface: {interface_id} deleted from db.')
             uow.commit()
         LOG.info(
             'Service layer method delete interface was successfully processed'
@@ -706,10 +705,10 @@ class NetworkServiceLayerManager(BackgroundTasks):
             inf['name']: inf for inf in utils.InterfacesFromSystem().get_all()
         }
 
-        LOG.debug('Got interfaces from system %s' % interfaces_from_os)
+        LOG.debug(f'Got interfaces from system {interfaces_from_os}')
         with self.uow() as uow:
             db_interfaces = [iface.name for iface in uow.interfaces.get_all()]
-            LOG.debug('Got interfaces from db %s' % db_interfaces)
+            LOG.debug(f'Got interfaces from db {db_interfaces}')
 
         for (os_iface_name), os_iface_data in interfaces_from_os.items():
             with self.uow() as uow:
