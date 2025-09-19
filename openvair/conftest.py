@@ -1,7 +1,7 @@
 # noqa: D100
 from uuid import uuid4
-from typing import Dict, Generator
 from pathlib import Path
+from collections.abc import Generator
 
 import pytest
 from fastapi import status
@@ -134,7 +134,7 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='module')
-def storage(client: TestClient) -> Generator[Dict, None, None]:
+def storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     headers = {'Authorization': 'Bearer mocked_token'}
 
@@ -165,16 +165,16 @@ def storage(client: TestClient) -> Generator[Dict, None, None]:
     delete_response = client.delete(f'/storages/{storage["id"]}/delete')
     if delete_response.status_code != status.HTTP_202_ACCEPTED:
         LOG.warning(
-            (
+
                 f'Failed to delete test storage: {delete_response.status_code},'
                 f' {delete_response.text}'
-            )
+
         )
     LOG.info('FINISH DELETE STORAGE')
 
 
 @pytest.fixture(scope='function')
-def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
+def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
         name=generate_test_entity_name('volume'),
@@ -193,8 +193,8 @@ def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
 
 @pytest.fixture(scope='function')
 def template(
-    client: TestClient, storage: Dict, volume: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, storage: dict, volume: dict
+) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     template_data = RequestCreateTemplate(
         base_volume_id=volume['id'],
@@ -215,8 +215,8 @@ def template(
 @pytest.fixture(scope='function')
 def virtual_machine(
     client: TestClient,
-    volume: Dict,
-) -> Generator[Dict, None, None]:
+    volume: dict,
+) -> Generator[dict, None, None]:
     """Creates a test virtual machine and deletes it after each test."""
     vm_data = CreateVirtualMachine(
         name=generate_test_entity_name('virtual_machine'),
@@ -264,8 +264,8 @@ def virtual_machine(
 
 @pytest.fixture(scope='function')
 def deactivated_virtual_machine(
-    client: TestClient, virtual_machine: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, virtual_machine: dict
+) -> Generator[dict, None, None]:
     """Creates a test deactivated virtual machine."""
     if virtual_machine['power_state'] != 'shut_off':
         response = client.post(
@@ -287,8 +287,8 @@ def deactivated_virtual_machine(
 
 @pytest.fixture(scope='function')
 def activated_virtual_machine(
-    client: TestClient, virtual_machine: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, virtual_machine: dict
+) -> Generator[dict, None, None]:
     """Creates a test activated virtual machine."""
     response = client.post(
         f'/virtual-machines/{virtual_machine["id"]}/start/'
@@ -316,7 +316,7 @@ def activated_virtual_machine(
 
 
 @pytest.fixture
-def notification() -> Generator[Dict, None, None]:
+def notification() -> Generator[dict, None, None]:
     """Generates test notification data and cleans up after test."""
     test_data = {
         'msg_type': notification_settings.notification_type,

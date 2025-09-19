@@ -25,9 +25,9 @@ Functions:
         AssertionError.
 """
 
-from typing import Callable, Awaitable
 from pathlib import Path
 from datetime import datetime
+from collections.abc import Callable, Awaitable
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response, JSONResponse
