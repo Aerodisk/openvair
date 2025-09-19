@@ -49,5 +49,5 @@ class NotificationCrud:
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
