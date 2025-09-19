@@ -15,7 +15,6 @@ Classes:
 """
 
 import abc
-from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.connection import LibvirtConnection
@@ -49,7 +48,7 @@ class BaseVMDriver:
     """
 
     @abc.abstractmethod
-    def start(self) -> Dict:
+    def start(self) -> dict:
         """Start the virtual machine.
 
         Returns:
@@ -59,7 +58,7 @@ class BaseVMDriver:
         pass
 
     @abc.abstractmethod
-    def turn_off(self) -> Dict:
+    def turn_off(self) -> dict:
         """Turn off the virtual machine.
 
         Returns:
@@ -69,7 +68,7 @@ class BaseVMDriver:
         pass
 
     @abc.abstractmethod
-    def vnc(self) -> Dict:
+    def vnc(self) -> dict:
         """Start a VNC session for the virtual machine.
 
         Returns:
@@ -88,7 +87,7 @@ class BaseVMDriver:
         pass
 
     @abc.abstractmethod
-    def delete_snapshot(self) -> Dict:
+    def delete_snapshot(self) -> dict:
         """Delete a snapshot of the virtual machine.
 
         Returns:
@@ -119,10 +118,10 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         self.renderer = VMRenderer()
         self.connection = LibvirtConnection()
-        self.vm_info: Dict = {}
-        self.snapshot_info: Dict = {}
+        self.vm_info: dict = {}
+        self.snapshot_info: dict = {}
 
-    def render_domain(self, vm_info: Dict) -> str:
+    def render_domain(self, vm_info: dict) -> str:
         """Render the domain XML from the virtual machine information.
 
         Args:
@@ -134,7 +133,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         return self.renderer.render_domain({'domain': vm_info})
 
-    def start(self) -> Dict:
+    def start(self) -> dict:
         """Start the virtual machine.
 
         This method should be implemented by subclasses.
@@ -148,7 +147,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         raise NotImplementedError
 
-    def turn_off(self) -> Dict:
+    def turn_off(self) -> dict:
         """Turn off the virtual machine.
 
         This method should be implemented by subclasses.
@@ -162,7 +161,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         raise NotImplementedError
 
-    def vnc(self) -> Dict:
+    def vnc(self) -> dict:
         """Start a VNC session for the virtual machine.
 
         This method should be implemented by subclasses.
@@ -176,7 +175,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _get_graphic_port_from_xml(domain_xml: str) -> Optional[str]:
+    def _get_graphic_port_from_xml(domain_xml: str) -> str | None:
         """Extract the port number of the graphics device from the domain XML.
 
         This method parses the provided domain XML and retrieves the `port`
@@ -192,7 +191,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             GraphicPortNotFoundInXmlException: If the graphics port is missing
                 or the XML is invalid.
         """
-        port: Optional[str]
+        port: str | None
         try:
             parsed_xml = deserialize_xml(domain_xml)
             graphics_device = parsed_xml['domain']['devices']['graphics']
@@ -205,7 +204,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             return str(port) if port is not None else None
 
     @staticmethod
-    def _get_graphic_type_from_xml(domain_xml: str) -> Optional[str]:
+    def _get_graphic_type_from_xml(domain_xml: str) -> str | None:
         """Extract the type of the graphics device from the domain XML.
 
         This method parses the provided domain XML and retrieves the `type`
@@ -221,7 +220,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             GraphicTypeNotFoundInXmlException: If the graphics type is missing
                 or the XML is invalid.
         """
-        graphics_type: Optional[str]
+        graphics_type: str | None
         try:
             parsed_xml = deserialize_xml(domain_xml)
             graphics_device = parsed_xml['domain']['devices']['graphics']
@@ -233,7 +232,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         else:
             return graphics_type
 
-    def _get_graphic_url(self, domain_xml: str) -> Optional[str]:
+    def _get_graphic_url(self, domain_xml: str) -> str | None:
         """Generate the graphic URL from the domain XML.
 
         Args:
@@ -311,7 +310,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         raise NotImplementedError
 
-    def delete_snapshot(self) -> Dict:
+    def delete_snapshot(self) -> dict:
         """Delete a snapshot of the virtual machine.
 
         Type of snapshot in snapshot_info: None|'internal'|'external',
@@ -325,7 +324,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             return self.delete_external_snapshot()
         return self.delete_internal_snapshot()
 
-    def delete_internal_snapshot(self) -> Dict:
+    def delete_internal_snapshot(self) -> dict:
         """Delete an internal snapshot of the virtual machine.
 
         This method should be implemented by subclasses.
@@ -338,7 +337,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         """
         raise NotImplementedError
 
-    def delete_external_snapshot(self) -> Dict:
+    def delete_external_snapshot(self) -> dict:
         """Delete an external snapshot of the virtual machine.
 
         This method should be implemented by subclasses.
@@ -352,7 +351,7 @@ class BaseLibvirtDriver(BaseVMDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _get_snapshot_name_from_xml(xml_str: str) -> Optional[str]:
+    def _get_snapshot_name_from_xml(xml_str: str) -> str | None:
         """Extract snapshot name from Libvirt XML.
 
         Args:
@@ -376,7 +375,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             raise SnapshotXmlError(message)
 
     @staticmethod
-    def _get_snapshot_parent_from_xml(snapshot_xml: str) -> Optional[str]:
+    def _get_snapshot_parent_from_xml(snapshot_xml: str) -> str | None:
         """Extract parent snapshot name from XML description.
 
         Args:
@@ -421,7 +420,7 @@ class BaseLibvirtDriver(BaseVMDriver):
             snap_xml = deserialize_xml(snapshot_xml)
             devices = snap_xml['domainsnapshot']['domain']['devices']
             disks = devices['disk']
-            if not isinstance(disks, List):
+            if not isinstance(disks, list):
                 disks = [disks]
             for disk in disks:
                 if (
@@ -445,7 +444,7 @@ class BaseLibvirtDriver(BaseVMDriver):
     @staticmethod
     def _get_snapshot_creation_time_from_xml(
         snapshot_xml: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Extract creationTime from Libvirt XML.
 
         Args:
@@ -473,7 +472,7 @@ class BaseLibvirtDriver(BaseVMDriver):
 
     @staticmethod
     def _update_snapshot_child_xml(
-        child_xml: str, new_parent: Optional[str]
+        child_xml: str, new_parent: str | None
     ) -> str:
         """Update child snapshot XML with new parent reference.
 

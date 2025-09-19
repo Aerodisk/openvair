@@ -17,7 +17,7 @@ Exceptions:
         established.
 """
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import update
 
@@ -62,7 +62,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
         """
         return self.session.query(Disk).filter_by(id=disk_id).one()
 
-    def bulk_update_disks(self, disks: List) -> None:
+    def bulk_update_disks(self, disks: list) -> None:
         """Bulk update disk entities in the repository.
 
         Args:
@@ -70,7 +70,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
         """
         self.session.execute(update(Disk), disks)
 
-    def bulk_update_virtual_interfaces(self, virt_interfaces: List) -> None:
+    def bulk_update_virtual_interfaces(self, virt_interfaces: list) -> None:
         """Bulk update virtual interface entities in the repository.
 
         Args:
@@ -87,7 +87,7 @@ class VMSqlAlchemyRepository(BaseSqlAlchemyRepository[VirtualMachines]):
         """
         self.session.delete(disk)
 
-    def delete_virtual_interfaces(self, virt_interfaces: List) -> None:
+    def delete_virtual_interfaces(self, virt_interfaces: list) -> None:
         """Delete virtual interface entities from the repository.
 
         Args:
@@ -121,7 +121,7 @@ class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
         """
         super().__init__(session, Snapshots)
 
-    def get_by_name(self, vm_id: str, name: str) -> Optional[Snapshots]:
+    def get_by_name(self, vm_id: str, name: str) -> Snapshots | None:
         """Retrieve a snapshot by its ID.
 
         Args:
@@ -137,7 +137,7 @@ class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
             .first()
         )
 
-    def get_all_by_vm(self, vm_id: str) -> List[Snapshots]:
+    def get_all_by_vm(self, vm_id: str) -> list[Snapshots]:
         """Retrieve all snapshots for a virtual machine.
 
         Args:
@@ -153,7 +153,7 @@ class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
             .all()
         )
 
-    def get_current(self, vm_id: str) -> Optional[Snapshots]:
+    def get_current(self, vm_id: str) -> Snapshots | None:
         """Get current snapshot for VM (marked as is_current=True).
 
         Args:
@@ -194,7 +194,7 @@ class SnapshotSqlAlchemyRepository(BaseSqlAlchemyRepository[Snapshots]):
             .values(is_current=False)
         )
 
-    def get_children(self, snapshot: 'Snapshots') -> List[Snapshots]:
+    def get_children(self, snapshot: 'Snapshots') -> list[Snapshots]:
         """Get all child snapshots for given snapshot.
 
         Args:

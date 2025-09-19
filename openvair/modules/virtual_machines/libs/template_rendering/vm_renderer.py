@@ -7,7 +7,7 @@ Classes:
     VMRenderer: A renderer specialized for VM XML configurations.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.template_rendering.base_renderer import BaseTemplateRenderer
@@ -30,7 +30,7 @@ class VMRenderer(BaseTemplateRenderer):
         """Initialize with the virtual machine package templates."""
         super().__init__(module_path=__file__)
 
-    def render_domain(self, raw_data: Dict[str, Any]) -> str:
+    def render_domain(self, raw_data: dict[str, Any]) -> str:
         """Create an XML configuration for a virtual machine domain.
 
         Args:
@@ -46,7 +46,7 @@ class VMRenderer(BaseTemplateRenderer):
         )
         return xml_result
 
-    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_data(self, data: dict[str, Any]) -> dict[str, Any]:
         return data
 
     def _postprocess_result(self, rendered_str: str) -> str:
