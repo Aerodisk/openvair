@@ -9,7 +9,6 @@ Functions:
     method.
 """
 
-from typing import Tuple
 
 from openvair import config
 
@@ -31,7 +30,7 @@ def get_rabbitmq_url() -> str:
     return f'amqp://{user}:{password}@{host}:{port}'
 
 
-def get_messaging_type_and_transport() -> Tuple[str, str]:
+def get_messaging_type_and_transport() -> tuple[str, str]:
     """Get the messaging type and transport method.
 
     This function retrieves the messaging type and transport method from

@@ -9,7 +9,6 @@ Dependencies:
     - openvair.libs.cli.executor (execute)
 """
 
-from typing import Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
@@ -48,7 +47,7 @@ class QemuImgCommandExecutor:
     def execute(
         self,
         subcommand: str,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> ExecutionResult:
         """Executes the qemu-img command with optional timeout.
 

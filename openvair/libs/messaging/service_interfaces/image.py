@@ -14,7 +14,7 @@ Classes:
         layer operations.
 """
 
-from typing import Dict, List, Protocol
+from typing import Protocol
 
 
 class ImageServiceLayerProtocolInterface(Protocol):
@@ -24,7 +24,7 @@ class ImageServiceLayerProtocolInterface(Protocol):
     that manages image-related operations in the service layer.
     """
 
-    def get_image(self, data: Dict) -> Dict:
+    def get_image(self, data: dict) -> dict:
         """Retrieve an image by its ID.
 
         Args:
@@ -35,7 +35,7 @@ class ImageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_all_images(self, data: Dict) -> List[Dict]:
+    def get_all_images(self, data: dict) -> list[dict]:
         """Retrieve all images from the database.
 
         Args:
@@ -46,7 +46,7 @@ class ImageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def upload_image(self, image_info: Dict) -> Dict:
+    def upload_image(self, image_info: dict) -> dict:
         """Upload a new image.
 
         Args:
@@ -57,7 +57,7 @@ class ImageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def delete_image(self, data: Dict) -> None:
+    def delete_image(self, data: dict) -> None:
         """Delete an existing image.
 
         Args:
@@ -68,7 +68,7 @@ class ImageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def attach_image(self, data: Dict) -> Dict:
+    def attach_image(self, data: dict) -> dict:
         """Attach an image to a virtual machine.
 
         Args:
@@ -79,7 +79,7 @@ class ImageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def detach_image(self, data: Dict) -> Dict:
+    def detach_image(self, data: dict) -> dict:
         """Detach an image from a virtual machine.
 
         Args:

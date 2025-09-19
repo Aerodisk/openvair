@@ -13,13 +13,13 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List, Union, Protocol
+from typing import Protocol
 
 
 class EventStoreServiceLayerProtocolInterface(Protocol):
     """Interface for the EventStoreServiceLayerManager."""
 
-    def get_all_events(self) -> List:
+    def get_all_events(self) -> list:
         """Retrieve all events from the database.
 
         Returns:
@@ -27,7 +27,7 @@ class EventStoreServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_all_events_by_module(self) -> List:
+    def get_all_events_by_module(self) -> list:
         """Retrieve all events by module from the database.
 
         Returns:
@@ -35,7 +35,7 @@ class EventStoreServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_last_events(self, limit: int) -> List:
+    def get_last_events(self, limit: int) -> list:
         """Retrieve last events from the database.
 
         Args:
@@ -48,8 +48,8 @@ class EventStoreServiceLayerProtocolInterface(Protocol):
 
     def add_event(
         self,
-        object_id: Union[UUID, str],
-        user_id: Union[UUID, str],
+        object_id: UUID | str,
+        user_id: UUID | str,
         event: str,
         information: str,
     ) -> None:

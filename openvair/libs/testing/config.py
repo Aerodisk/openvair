@@ -8,7 +8,7 @@ Defines:
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 from pathlib import Path
 
 from pydantic import Field, field_validator
@@ -42,7 +42,7 @@ class BlockDeviceSettings(BaseSettings):
         inf_type (str): Interface type of the testing block_device.
     """
 
-    ip: Optional[str] = Field(default=None, alias='TEST_BLOCK_DEVICE_IP')
+    ip: str | None = Field(default=None, alias='TEST_BLOCK_DEVICE_IP')
     port: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_PORT')
     inf_type: str = Field(default='ext4', alias='TEST_BLOCK_DEVICE_INF_TYPE')
 
@@ -67,7 +67,7 @@ class NotificationSettings(BaseSettings):
 
     @field_validator('target_emails', mode='before')
     @classmethod
-    def convert_to_list(cls, v: str) -> List[str]:
+    def convert_to_list(cls, v: str) -> list[str]:
         """Validate the `target_emails` field parsing to list of emails"""
         return [email.strip() for email in v.split(',')]
 

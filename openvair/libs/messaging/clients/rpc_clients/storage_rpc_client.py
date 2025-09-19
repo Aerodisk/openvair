@@ -17,7 +17,6 @@ Classes:
         storage service.
 """
 
-from typing import Dict, List
 
 from openvair.rpc_queues import RPCQueueNames
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -48,7 +47,7 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
             queue_name=RPCQueueNames.Storage.SERVICE_LAYER
         )
 
-    def get_storage(self, data: Dict) -> Dict:
+    def get_storage(self, data: dict) -> dict:
         """Retrieve a storage by its ID.
 
         Args:
@@ -57,25 +56,25 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized storage data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.get_storage.__name__,
             data_for_method=data,
         )
         return result
 
-    def get_all_storages(self) -> List[Dict]:
+    def get_all_storages(self) -> list[dict]:
         """Retrieve all storages from the database.
 
         Returns:
             List[Dict]: List of serialized storage data.
         """
-        result: List[Dict] = self.service_rpc_client.call(
+        result: list[dict] = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.get_all_storages.__name__,
             data_for_method={},
         )
         return result
 
-    def create_local_partition(self, data: Dict) -> Dict:
+    def create_local_partition(self, data: dict) -> dict:
         """Create a local partition on the disk.
 
         Args:
@@ -84,13 +83,13 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized partition data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.create_local_partition.__name__,
             data_for_method=data,
         )
         return result
 
-    def get_local_disk_partitions_info(self, data: Dict) -> Dict:
+    def get_local_disk_partitions_info(self, data: dict) -> dict:
         """Get information about local disk partitions.
 
         Args:
@@ -99,13 +98,13 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             Dict: Partition information.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.get_local_disk_partitions_info.__name__,
             data_for_method=data,
         )
         return result
 
-    def delete_local_partition(self, data: Dict) -> Dict:
+    def delete_local_partition(self, data: dict) -> dict:
         """Delete a local partition.
 
         Args:
@@ -114,13 +113,13 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             Dict: Result of the delete operation.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.delete_local_partition.__name__,
             data_for_method=data,
         )
         return result
 
-    def create_storage(self, data: Dict) -> Dict:
+    def create_storage(self, data: dict) -> dict:
         """Create a new storage.
 
         Args:
@@ -129,13 +128,13 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized storage data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.create_storage.__name__,
             data_for_method=data,
         )
         return result
 
-    def delete_storage(self, data: Dict) -> Dict:
+    def delete_storage(self, data: dict) -> dict:
         """Delete a storage.
 
         Args:
@@ -144,13 +143,13 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized storage data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.delete_storage.__name__,
             data_for_method=data,
         )
         return result
 
-    def get_local_disks(self, data: Dict) -> List:
+    def get_local_disks(self, data: dict) -> list:
         """Retrieve local disks information.
 
         Args:
@@ -159,7 +158,7 @@ class StorageServiceLayerRPCClient(StorageServiceLayerProtocolInterface):
         Returns:
             List: List of local disks.
         """
-        result: List = self.service_rpc_client.call(
+        result: list = self.service_rpc_client.call(
             StorageServiceLayerProtocolInterface.get_local_disks.__name__,
             data_for_method=data,
         )

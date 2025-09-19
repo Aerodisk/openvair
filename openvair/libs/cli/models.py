@@ -5,7 +5,6 @@ Classes:
     ExecuteParams: Encapsulates parameters for executing a shell command.
 """
 
-from typing import Dict, Optional
 
 from pydantic import Field, BaseModel
 
@@ -53,13 +52,13 @@ class ExecuteParams(BaseModel):
         default='sudo',
         description="Command used to elevate privileges, such as 'sudo'.",
     )
-    timeout: Optional[float] = Field(
+    timeout: float | None = Field(
         default=None,
         description=(
             'Maximum time in seconds to wait for the command to complete.'
         ),
     )
-    env: Optional[Dict[str, str]] = Field(
+    env: dict[str, str] | None = Field(
         default=None, description='Environment variables for the command.'
     )
     raise_on_error: bool = Field(

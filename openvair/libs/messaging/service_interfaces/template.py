@@ -11,7 +11,7 @@ Classes:
         layer operations.
 """
 
-from typing import Dict, List, Protocol
+from typing import Protocol
 
 
 class TemplateServiceLayerProtocolInterface(Protocol):
@@ -21,12 +21,12 @@ class TemplateServiceLayerProtocolInterface(Protocol):
     that manages storage-related operations in the service layer.
     """
 
-    def get_all_templates(self) -> List: ...  # noqa: D102
+    def get_all_templates(self) -> list: ...  # noqa: D102
 
-    def get_template(self, getting_data: Dict) -> Dict: ...  # noqa: D102
+    def get_template(self, getting_data: dict) -> dict: ...  # noqa: D102
 
-    def create_template(self, creating_data: Dict) -> Dict: ...  # noqa: D102
+    def create_template(self, creating_data: dict) -> dict: ...  # noqa: D102
 
-    def edit_template(self, updating_data: Dict) -> Dict: ...  # noqa: D102
+    def edit_template(self, updating_data: dict) -> dict: ...  # noqa: D102
 
-    def delete_template(self, deleting_data: Dict) -> Dict: ...  # noqa: D102
+    def delete_template(self, deleting_data: dict) -> dict: ...  # noqa: D102

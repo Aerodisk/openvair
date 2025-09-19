@@ -11,7 +11,7 @@ Classes:
         layer operations.
 """
 
-from typing import Dict, List, Protocol
+from typing import Protocol
 
 
 class VMServiceLayerProtocolInterface(Protocol):
@@ -21,7 +21,7 @@ class VMServiceLayerProtocolInterface(Protocol):
     that manages VM-related operations in the service layer.
     """
 
-    def get_vm(self, data: Dict) -> Dict:
+    def get_vm(self, data: dict) -> dict:
         """Retrieve a VM by its ID.
 
         Args:
@@ -32,7 +32,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_all_vms(self) -> List[Dict]:
+    def get_all_vms(self) -> list[dict]:
         """Retrieve all VMs from the database.
 
         Returns:
@@ -40,7 +40,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def create_vm(self, data: Dict) -> Dict:
+    def create_vm(self, data: dict) -> dict:
         """Create a new VM.
 
         Args:
@@ -51,7 +51,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def delete_vm(self, data: Dict) -> Dict:
+    def delete_vm(self, data: dict) -> dict:
         """Delete an existing VM.
 
         Args:
@@ -62,7 +62,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def start_vm(self, data: Dict) -> Dict:
+    def start_vm(self, data: dict) -> dict:
         """Start a VM.
 
         Args:
@@ -73,7 +73,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def shut_off_vm(self, data: Dict) -> Dict:
+    def shut_off_vm(self, data: dict) -> dict:
         """Shut off a VM.
 
         Args:
@@ -84,7 +84,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def edit_vm(self, edit_info: Dict) -> Dict:
+    def edit_vm(self, edit_info: dict) -> dict:
         """Edit an existing VM.
 
         Args:
@@ -95,7 +95,7 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def vnc(self, data: Dict) -> Dict:
+    def vnc(self, data: dict) -> dict:
         """Retrieve VNC information for a VM.
 
         Args:

@@ -10,8 +10,7 @@ Functions:
     - create_tokens: Generates both access and refresh tokens.
 """
 
-from typing import Dict, Optional
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from fastapi import Depends, HTTPException, security
@@ -32,7 +31,7 @@ REFRESH_TOKEN_EXPIRATION_DAYS = config.data['jwt'].get(
 LOG = get_logger(__name__)
 
 
-def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
+def get_current_user(token: str = Depends(oauth2schema)) -> dict:
     """Retrieves the current user from a JWT token.
 
     Args:
@@ -45,7 +44,7 @@ def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
         HTTPException: If the token is invalid or expired.
     """
     try:
-        payload: Dict = jwt.decode(
+        payload: dict = jwt.decode(
             token,
             JWT_SECRET,
             algorithms=[ALGORITHM],
@@ -66,7 +65,7 @@ def get_current_user(token: str = Depends(oauth2schema)) -> Dict:
         return payload
 
 
-def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
+def create_access_token(user: dict, ttl_minutes: int | None = None) -> str:
     """Creates a JWT access token.
 
     Args:
@@ -84,7 +83,7 @@ def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
         payload = user.copy()
         LOG.info(f'Start creating access token with payload: {payload}')
 
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=ttl_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
         )
         payload.update({'exp': expire, 'type': 'access'})
@@ -100,7 +99,7 @@ def create_access_token(user: Dict, ttl_minutes: Optional[int] = None) -> str:
         return token
 
 
-def create_refresh_token(user: Dict, ttl_days: Optional[int] = None) -> str:
+def create_refresh_token(user: dict, ttl_days: int | None = None) -> str:
     """Creates a JWT refresh token.
 
     Args:
@@ -118,7 +117,7 @@ def create_refresh_token(user: Dict, ttl_days: Optional[int] = None) -> str:
         payload = user.copy()
         LOG.info(f'Start creating refresh token with payload: {payload}')
 
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             days=ttl_days or REFRESH_TOKEN_EXPIRATION_DAYS
         )
         payload.update({'exp': expire, 'type': 'refresh'})
@@ -134,7 +133,7 @@ def create_refresh_token(user: Dict, ttl_days: Optional[int] = None) -> str:
         return token
 
 
-def create_tokens(user: Dict) -> Dict:
+def create_tokens(user: dict) -> dict:
     """Creates a dictionary containing access and refresh tokens.
 
     Args:

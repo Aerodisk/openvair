@@ -17,7 +17,6 @@ Classes:
         VM service.
 """
 
-from typing import Dict, List
 
 from openvair.rpc_queues import RPCQueueNames
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -48,7 +47,7 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
             queue_name=RPCQueueNames.VMS.SERVICE_LAYER
         )
 
-    def get_vm(self, data: Dict) -> Dict:
+    def get_vm(self, data: dict) -> dict:
         """Retrieve a VM by its ID.
 
         Args:
@@ -57,25 +56,25 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized VM data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.get_vm.__name__,
             data_for_method=data,
         )
         return result
 
-    def get_all_vms(self) -> List[Dict]:
+    def get_all_vms(self) -> list[dict]:
         """Retrieve all VMs from the database.
 
         Returns:
             List[Dict]: List of serialized VM data.
         """
-        result: List[Dict] = self.service_rpc_client.call(
+        result: list[dict] = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.get_all_vms.__name__,
             data_for_method={},
         )
         return result
 
-    def create_vm(self, data: Dict) -> Dict:
+    def create_vm(self, data: dict) -> dict:
         """Create a new VM.
 
         Args:
@@ -84,13 +83,13 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized VM data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.create_vm.__name__,
             data_for_method=data,
         )
         return result
 
-    def delete_vm(self, data: Dict) -> Dict:
+    def delete_vm(self, data: dict) -> dict:
         """Delete an existing VM.
 
         Args:
@@ -99,13 +98,13 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized VM data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.delete_vm.__name__,
             data_for_method=data,
         )
         return result
 
-    def start_vm(self, data: Dict) -> Dict:
+    def start_vm(self, data: dict) -> dict:
         """Start a VM.
 
         Args:
@@ -114,13 +113,13 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized VM data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.start_vm.__name__,
             data_for_method=data,
         )
         return result
 
-    def shut_off_vm(self, data: Dict) -> Dict:
+    def shut_off_vm(self, data: dict) -> dict:
         """Shut off a VM.
 
         Args:
@@ -129,13 +128,13 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized VM data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.shut_off_vm.__name__,
             data_for_method=data,
         )
         return result
 
-    def edit_vm(self, edit_info: Dict) -> Dict:
+    def edit_vm(self, edit_info: dict) -> dict:
         """Edit an existing VM.
 
         Args:
@@ -144,13 +143,13 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized VM data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.edit_vm.__name__,
             data_for_method=edit_info,
         )
         return result
 
-    def vnc(self, data: Dict) -> Dict:
+    def vnc(self, data: dict) -> dict:
         """Retrieve VNC information for a VM.
 
         Args:
@@ -159,7 +158,7 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         Returns:
             Dict: VNC connection data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VMServiceLayerProtocolInterface.vnc.__name__,
             data_for_method=data,
         )

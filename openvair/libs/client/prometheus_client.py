@@ -8,7 +8,6 @@ Classes:
     PrometheusClient: A client class for interacting with the Prometheus API.
 """
 
-from typing import Dict, List
 
 from requests import RequestException
 
@@ -26,7 +25,7 @@ class PrometheusClient(PrometheusBaseClient):
     specific node information based on predefined metrics.
     """
 
-    def get_prometheus_data(self, query: str) -> Dict:
+    def get_prometheus_data(self, query: str) -> dict:
         """Retrieve data from Prometheus based on the specified query option.
 
         Args:
@@ -73,7 +72,7 @@ class PrometheusClient(PrometheusBaseClient):
                 PROMETHEUS_QUERIES[option]['query']
             )
 
-            data_result: List[Dict] = query_result['data']['result']
+            data_result: list[dict] = query_result['data']['result']
             for row in data_result:
                 node_info_values_sum += float(row['value'][1])
         except (KeyError, RequestException) as err:

@@ -8,7 +8,7 @@ Classes:
         data, status, and error messages.
 """
 
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar
 
 from pydantic import Field, BaseModel
 
@@ -32,11 +32,11 @@ class BaseResponse(BaseModel, Generic[T]):
         examples=['success'],
         description='Status of the response ("success" or "error")',
     )
-    data: Optional[T] = Field(
+    data: T | None = Field(
         default=None,
         description='Payload containing the response data (if any)',
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None,
         examples=['Template not found'],
         description='Error message (if any)',

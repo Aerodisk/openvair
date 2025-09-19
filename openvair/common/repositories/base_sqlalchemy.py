@@ -8,7 +8,7 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List, Type, Generic, TypeVar, Optional
+from typing import Generic, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import OperationalError
@@ -28,7 +28,7 @@ class BaseSqlAlchemyRepository(AbstractRepository[T], Generic[T]):
     using SQLAlchemy ORM.
     """
 
-    def __init__(self, session: Session, model_cls: Type[T]) -> None:
+    def __init__(self, session: Session, model_cls: type[T]) -> None:
         """Initializes the repository with a database session and model class.
 
         Args:
@@ -84,7 +84,7 @@ class BaseSqlAlchemyRepository(AbstractRepository[T], Generic[T]):
         self.session.add(entity)
         self.session.flush()  # To populate entity.id immediately
 
-    def get(self, entity_id: UUID) -> Optional[T]:
+    def get(self, entity_id: UUID) -> T | None:
         """Retrieves an entity by its ID.
 
         Args:
@@ -112,7 +112,7 @@ class BaseSqlAlchemyRepository(AbstractRepository[T], Generic[T]):
             raise EntityNotFoundError(msg)
         return entity
 
-    def get_all(self) -> List[T]:
+    def get_all(self) -> list[T]:
         """Retrieves all entities from the database.
 
         Returns:

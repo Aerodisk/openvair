@@ -12,7 +12,7 @@ functions for:
 
 import time
 import uuid
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -36,8 +36,8 @@ LOG = get_logger(__name__)
 
 
 def create_resource(
-    client: TestClient, endpoint: str, payload: Dict, resource_name: str
-) -> Dict[str, Any]:
+    client: TestClient, endpoint: str, payload: dict, resource_name: str
+) -> dict[str, Any]:
     """Creates a resource on a specified endpoint using the provided client and payload.
 
     This function sends a POST request to create a resource at the specified endpoint using the
@@ -70,7 +70,7 @@ def create_resource(
             f'{response.text}'
         )
         raise RuntimeError(msg)
-    return cast('Dict[str, Any]', response.json())
+    return cast('dict[str, Any]', response.json())
 
 
 def delete_resource(
@@ -194,7 +194,7 @@ def wait_for_field_value(  # noqa: PLR0913
             raw = response.json()
             data = (
                 raw['data']
-                if 'data' in raw and isinstance(raw['data'], Dict)
+                if 'data' in raw and isinstance(raw['data'], dict)
                 else raw
             )
             if data.get(field) == expected:
@@ -265,7 +265,7 @@ def wait_full_deleting(
             raw = response.json()
             data = (
                 raw['data']
-                if 'data' in raw and isinstance(raw['data'], Dict)
+                if 'data' in raw and isinstance(raw['data'], dict)
                 else raw
             )
             if data.get(object_id) is None:
@@ -278,9 +278,9 @@ def wait_full_deleting(
     raise TimeoutError(message)
 
 
-def _extract_data_field(response_json: Dict) -> Dict:
+def _extract_data_field(response_json: dict) -> dict:
     """Returns response['data'] if it's a BaseResponse, else root object."""
-    if 'data' in response_json and isinstance(response_json['data'], Dict):
+    if 'data' in response_json and isinstance(response_json['data'], dict):
         return response_json['data']
     return response_json
 

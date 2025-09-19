@@ -11,7 +11,7 @@ Classes:
         layer operations.
 """
 
-from typing import Dict, List, Protocol
+from typing import Protocol
 
 
 class StorageServiceLayerProtocolInterface(Protocol):
@@ -21,7 +21,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
     that manages storage-related operations in the service layer.
     """
 
-    def get_storage(self, data: Dict) -> Dict:
+    def get_storage(self, data: dict) -> dict:
         """Retrieve a storage by its ID.
 
         Args:
@@ -32,7 +32,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_all_storages(self) -> List[Dict]:
+    def get_all_storages(self) -> list[dict]:
         """Retrieve all storages from the database.
 
         Returns:
@@ -40,7 +40,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def create_local_partition(self, data: Dict) -> Dict:
+    def create_local_partition(self, data: dict) -> dict:
         """Create a local partition on the disk.
 
         Args:
@@ -51,7 +51,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_local_disk_partitions_info(self, data: Dict) -> Dict:
+    def get_local_disk_partitions_info(self, data: dict) -> dict:
         """Get information about local disk partitions.
 
         Args:
@@ -62,7 +62,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def delete_local_partition(self, data: Dict) -> Dict:
+    def delete_local_partition(self, data: dict) -> dict:
         """Delete a local partition.
 
         Args:
@@ -73,7 +73,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def create_storage(self, data: Dict) -> Dict:
+    def create_storage(self, data: dict) -> dict:
         """Create a new storage.
 
         Args:
@@ -84,7 +84,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def delete_storage(self, data: Dict) -> Dict:
+    def delete_storage(self, data: dict) -> dict:
         """Delete a storage.
 
         Args:
@@ -95,7 +95,7 @@ class StorageServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_local_disks(self, data: Dict) -> List:
+    def get_local_disks(self, data: dict) -> list:
         """Retrieve local disks information.
 
         Args:

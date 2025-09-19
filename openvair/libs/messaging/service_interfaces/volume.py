@@ -11,7 +11,7 @@ Classes:
         layer operations.
 """
 
-from typing import Dict, List, Protocol
+from typing import Protocol
 
 
 class VolumeServiceLayerProtocolInterface(Protocol):
@@ -21,7 +21,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
     that manages volume-related operations in the service layer.
     """
 
-    def get_volume(self, data: Dict) -> Dict:
+    def get_volume(self, data: dict) -> dict:
         """Retrieve a volume by its ID.
 
         Args:
@@ -32,7 +32,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def get_all_volumes(self, data: Dict) -> List[Dict]:
+    def get_all_volumes(self, data: dict) -> list[dict]:
         """Retrieve all volumes from the database.
 
         Args:
@@ -43,7 +43,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def create_volume(self, volume_info: Dict) -> Dict:
+    def create_volume(self, volume_info: dict) -> dict:
         """Create a new volume.
 
         Args:
@@ -54,7 +54,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def clone_volume(self, data: Dict) -> Dict:
+    def clone_volume(self, data: dict) -> dict:
         """Clone an existing volume.
 
         Args:
@@ -65,7 +65,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def create_from_template(self, data: Dict) -> Dict:
+    def create_from_template(self, data: dict) -> dict:
         """Create a new volume from a template.
 
         Args:
@@ -76,7 +76,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def extend_volume(self, data: Dict) -> Dict:
+    def extend_volume(self, data: dict) -> dict:
         """Extend the size of an existing volume.
 
         Args:
@@ -87,7 +87,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def delete_volume(self, data: Dict) -> Dict:
+    def delete_volume(self, data: dict) -> dict:
         """Delete an existing volume.
 
         Args:
@@ -98,7 +98,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def edit_volume(self, data: Dict) -> Dict:
+    def edit_volume(self, data: dict) -> dict:
         """Edit the details of an existing volume.
 
         Args:
@@ -109,7 +109,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def attach_volume(self, data: Dict) -> Dict:
+    def attach_volume(self, data: dict) -> dict:
         """Attach a volume to a virtual machine.
 
         Args:
@@ -120,7 +120,7 @@ class VolumeServiceLayerProtocolInterface(Protocol):
         """
         ...
 
-    def detach_volume(self, data: Dict) -> Dict:
+    def detach_volume(self, data: dict) -> dict:
         """Detach a volume from a virtual machine.
 
         Args:

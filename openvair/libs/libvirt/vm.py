@@ -15,7 +15,6 @@ Functions:
     current snapshot name.
 """
 
-from typing import Set, Dict, Tuple, Optional
 
 import libvirt
 
@@ -24,7 +23,7 @@ from openvair.libs.libvirt.connection import LibvirtConnection
 CONNECTION = LibvirtConnection()
 
 
-def get_vms_state() -> Dict[str, str]:
+def get_vms_state() -> dict[str, str]:
     """Retrieve the state of all virtual machines.
 
     This function connects to the libvirt service and retrieves the current
@@ -45,7 +44,7 @@ def get_vms_state() -> Dict[str, str]:
     return vms
 
 
-def get_vm_snapshots(vm_name: str) -> Tuple[Set[str], Optional[str]]:
+def get_vm_snapshots(vm_name: str) -> tuple[set[str], str | None]:
     """Get all snapshots for a VM and its current snapshot name.
 
     Args:

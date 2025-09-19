@@ -17,7 +17,7 @@ Functions:
 """
 
 import pathlib
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import sentry_sdk
 
@@ -54,7 +54,7 @@ def get_prometheus_url() -> str:
     return f'https://{host}:{port}'
 
 
-def get_default_user() -> Tuple[str, str]:
+def get_default_user() -> tuple[str, str]:
     """Retrieve the default user credentials from the config.
 
     This function reads the `default_user` configuration and returns the
@@ -78,7 +78,7 @@ def get_snmp_agent() -> str:
     Returns:
         str: The type of SNMP agent.
     """
-    snmp: Dict[str, str] = config.data.get('snmp', {})
+    snmp: dict[str, str] = config.data.get('snmp', {})
     return snmp.get('agent_type', '')
 
 
@@ -91,7 +91,7 @@ def get_os_type() -> str:
     Returns:
         str: The name of the operating system.
     """
-    os_data: Dict[str, str] = config.data.get('OS_data', {})
+    os_data: dict[str, str] = config.data.get('OS_data', {})
     return os_data.get('os_type', 'ubuntu')
 
 

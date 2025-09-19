@@ -9,7 +9,7 @@ Classes:
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class BaseRPCClient(metaclass=ABCMeta):
@@ -29,8 +29,8 @@ class BaseRPCClient(metaclass=ABCMeta):
     def call(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
     ) -> Any:  # noqa: ANN401 TODO need to spicify response by pydantic
         """Sends a request to the RPC server and wait for a response."""
         ...
@@ -39,8 +39,8 @@ class BaseRPCClient(metaclass=ABCMeta):
     def cast(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
     ) -> None:
         """Sends a request to the RPC server without waiting for a response."""
         ...

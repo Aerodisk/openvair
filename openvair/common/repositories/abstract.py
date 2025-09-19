@@ -9,7 +9,7 @@ Classes:
 
 import abc
 from uuid import UUID
-from typing import List, Generic, TypeVar, Optional
+from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
@@ -31,7 +31,7 @@ class AbstractRepository(abc.ABC, Generic[T]):
         ...
 
     @abc.abstractmethod
-    def get(self, entity_id: UUID) -> Optional[T]:
+    def get(self, entity_id: UUID) -> T | None:
         """Retrieves an entity by its ID.
 
         Args:
@@ -43,7 +43,7 @@ class AbstractRepository(abc.ABC, Generic[T]):
         ...
 
     @abc.abstractmethod
-    def get_all(self) -> List[T]:
+    def get_all(self) -> list[T]:
         """Retrieves all entities from the repository.
 
         Returns:

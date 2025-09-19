@@ -7,7 +7,7 @@ Classes:
     - LibvirtNetworkAdapter: Adapter class for managing virtual networks.
 """
 
-from typing import List, Optional, cast
+from typing import cast
 
 from libvirt import libvirtError
 
@@ -28,7 +28,7 @@ class LibvirtNetworkAdapter:
         """Initialize the LibvirtNetworkAdapter."""
         self.connection = LibvirtConnection()
 
-    def get_virt_network_names(self) -> List[str]:
+    def get_virt_network_names(self) -> list[str]:
         """Retrieves list of names virtual networks."""
         LOG.info('Getting virtual_networks from libvirt...')
         with self.connection as connection:
@@ -153,7 +153,7 @@ class LibvirtNetworkAdapter:
             else:
                 return True
 
-    def is_network_exist_by_uuid(self, network_id: str) -> Optional[bool]:
+    def is_network_exist_by_uuid(self, network_id: str) -> bool | None:
         """Checks if a virtual network exists by UUID.
 
         Args:
