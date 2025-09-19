@@ -52,5 +52,5 @@ class DashboardCrud:
         data: dict = self.service_layer_rpc.call(
             services.DashboardServiceLayerManager.get_data.__name__, {}
         )
-        LOG.info('Response from service layer: %s.' % data)
+        LOG.info(f'Response from service layer: {data}.')
         return data

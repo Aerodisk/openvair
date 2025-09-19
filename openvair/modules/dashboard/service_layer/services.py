@@ -35,7 +35,7 @@ class DashboardServiceLayerManager(BackgroundTasks):
         DashboardServiceLayerManager, including initializing the
         unit of work for Prometheus interactions.
         """
-        super(DashboardServiceLayerManager, self).__init__()
+        super().__init__()
         self.uow = unit_of_work.PrometheusUnitOfWork
 
     def get_data(self) -> dict:
