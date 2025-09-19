@@ -211,7 +211,7 @@ async def delete_image(
     Returns:
         JSONResponse: A response confirming successful deletion.
     """
-    LOG.info('Api handle response on delete image: %s.' % image_id)
+    LOG.info(f'Api handle response on delete image: {image_id}.')
     result = await run_in_threadpool(crud.delete_image, image_id, user_info)
     message = f'Image {image_id} successfully deleted.'
     LOG.info(message)
@@ -247,7 +247,7 @@ async def attach_image(
     Returns:
         schemas.AttachImageInfo: Metadata of the attached image.
     """
-    LOG.info('Api handle response on attach image: %s to vm:' % image_id)
+    LOG.info(f'Api handle response on attach image: {image_id} to vm:')
     attached_image = await run_in_threadpool(
         crud.attach_image, image_id, data.model_dump(mode='json'), user_info
     )
@@ -286,7 +286,7 @@ async def detach_image(
     """
     LOG.info(
         'Api handle response on detach '
-        'image: %s from vm: %s' % (image_id, detach_info)
+        f'image: {image_id} from vm: {detach_info}'
     )
     detached_image = await run_in_threadpool(
         crud.detach_image,

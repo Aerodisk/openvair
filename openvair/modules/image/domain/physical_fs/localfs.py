@@ -32,7 +32,7 @@ class LocalFSImage(BaseLocalFSImage):
             args: Variable length argument list.
             kwargs: Arbitrary keyword arguments.
         """
-        super(LocalFSImage, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._execute_as_root = False
         LOG.info('Initialized LocalImage.')
 

@@ -88,7 +88,7 @@ class ImageCrud:
             services.ImageServiceLayerManager.get_image.__name__,
             data_for_method={'image_id': str(image_id)},
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def get_all_images(self, storage_id: UUID | None) -> list[schemas.Image]:
@@ -113,7 +113,7 @@ class ImageCrud:
                 },
             ),
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return Validator.validate_objects(result, schemas.Image)
 
     def upload_image(
@@ -153,7 +153,7 @@ class ImageCrud:
                 'user_info': user_info,
             },
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def delete_image(
@@ -179,7 +179,7 @@ class ImageCrud:
             services.ImageServiceLayerManager.delete_image.__name__,
             data_for_method={'image_id': str(image_id), 'user_info': user_info},
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def attach_image(
@@ -208,7 +208,7 @@ class ImageCrud:
             services.ImageServiceLayerManager.attach_image.__name__,
             data_for_method=data,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
     def detach_image(
@@ -237,5 +237,5 @@ class ImageCrud:
             services.ImageServiceLayerManager.detach_image.__name__,
             data_for_method=detach_info,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result

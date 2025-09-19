@@ -463,7 +463,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             storage_id=image_info.pop('storage_id', ''),
             user_id=image_info.pop('user_id', ''),
         )
-        LOG.debug('Image Info for creating: %s.' % image._asdict())
+        LOG.debug(f'Image Info for creating: {image._asdict()}.')
         if not (image_info or image.size or image.storage_id):
             message = 'Comes unexpected data for uploading image.'
             LOG.error(message)
@@ -523,7 +523,7 @@ class ImageServiceLayerManager(BackgroundTasks):
             uow.commit()
             serialized_image = DataSerializer.to_web(db_image)
             LOG.debug(
-                'Serialized image ready for other steps: %s' % serialized_image
+                f'Serialized image ready for other steps: {serialized_image}'
             )
 
         LOG.info('Cast _create_image for other steps.')
@@ -573,7 +573,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
         with self.uow() as uow:
             db_image = uow.images.get_or_fail(uuid.UUID(image_id))
-            LOG.info('Got image from db: %s.' % db_image)
+            LOG.info(f'Got image from db: {db_image}.')
 
             try:
                 self._check_image_status(
@@ -591,7 +591,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 domain_image = DataSerializer.to_domain(db_image)
                 LOG.info(
                     'Serialized image which will call to domain '
-                    'for uploading: %s.' % domain_image
+                    f'for uploading: {domain_image}.'
                 )
                 LOG.info('Cast upload on domain.')
 
@@ -637,7 +637,7 @@ class ImageServiceLayerManager(BackgroundTasks):
                 self._delete_image_from_tmp(image_info.get('name', ''))
                 db_image.status = ImageStatus.available.name
                 uow.commit()
-                LOG.debug('Image status was updated on %s.' % db_image.status)
+                LOG.debug(f'Image status was updated on {db_image.status}.')
 
         LOG.info(
             'Service Layer method _create_image was successfully processed'
@@ -672,7 +672,7 @@ class ImageServiceLayerManager(BackgroundTasks):
 
                 domain_image = DataSerializer.to_domain(db_image)
                 domain_image.update({'user_info': user_info})
-                LOG.debug('Got image from db: %s.' % domain_image)
+                LOG.debug(f'Got image from db: {domain_image}.')
 
                 self.service_layer_rpc.cast(
                     self._delete_image.__name__, data_for_method=domain_image
