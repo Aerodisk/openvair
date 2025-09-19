@@ -16,7 +16,6 @@ Schemas:
 """
 
 from uuid import UUID
-from typing import Optional
 
 from pydantic import EmailStr, BaseModel, ConfigDict
 
@@ -31,7 +30,7 @@ class BaseUser(BaseModel):
     """
 
     username: str
-    email: Optional[EmailStr] = None
+    email: EmailStr | None = None
     is_superuser: bool
 
 

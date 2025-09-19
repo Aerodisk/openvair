@@ -20,7 +20,7 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import Dict, List, cast
+from typing import cast
 
 from fastapi import Depends, APIRouter, status
 from fastapi.security import HTTPBearer
@@ -50,7 +50,7 @@ router = APIRouter(
 )
 def get_user(
     crud: UserCrud = Depends(UserCrud),
-    user_dict: Dict = Depends(get_current_user),
+    user_dict: dict = Depends(get_current_user),
 ) -> schemas.User:
     """Retrieve current authenticated user information.
 
@@ -62,7 +62,7 @@ def get_user(
         schemas.User: The current authenticated user's information.
     """
     LOG.info('Api start getting current user info.')
-    user: Dict = crud.get_user(user_dict.get('id', ''))
+    user: dict = crud.get_user(user_dict.get('id', ''))
     LOG.info('Api request was successfully processed.')
     return schemas.User(**user)
 
@@ -83,9 +83,9 @@ def get_users(crud: UserCrud = Depends(UserCrud)) -> Page[schemas.User]:
         JSONResponse: A paginated list of information about all users.
     """
     LOG.info('Api start getting all users info.')
-    result: List = crud.get_users()
+    result: list = crud.get_users()
     LOG.info('Api request was successfully processed.')
-    users: List[schemas.User] = [schemas.User(**user) for user in result]
+    users: list[schemas.User] = [schemas.User(**user) for user in result]
     return cast('Page', paginate(users))
 
 
@@ -97,7 +97,7 @@ def get_users(crud: UserCrud = Depends(UserCrud)) -> Page[schemas.User]:
 def create_user(
     data: schemas.UserCreate,
     user_id: UUID,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: UserCrud = Depends(UserCrud),
 ) -> schemas.User:
     """Create a new user and return the user's credentials.
@@ -113,7 +113,7 @@ def create_user(
         schemas.User: The created user's credentials.
     """
     LOG.info('Api start creating user.')
-    user: Dict = crud.create_user(
+    user: dict = crud.create_user(
         data.model_dump(mode='json'), user_id, user_data
     )
     LOG.info('Api request was successfully processed.')
@@ -127,7 +127,7 @@ def create_user(
 )
 def delete_user(
     user_id: UUID,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: UserCrud = Depends(UserCrud),
 ) -> schemas.UserDelete:
     """Delete a user from the database.
@@ -141,7 +141,7 @@ def delete_user(
         schemas.UserDelete: Result of the delete operation.
     """
     LOG.info('Api start deleting user.')
-    result: Dict = crud.delete_user(user_id, user_data)
+    result: dict = crud.delete_user(user_id, user_data)
     LOG.info('Api request was successfully processed.')
     return schemas.UserDelete(**result)
 
@@ -171,6 +171,6 @@ def change_password(
             password.
     """
     LOG.info('Api start changing user password.')
-    result: Dict = crud.change_password(user_id, data.model_dump(mode='json'))
+    result: dict = crud.change_password(user_id, data.model_dump(mode='json'))
     LOG.info('Api request was successfully processed.')
     return schemas.User(**result)

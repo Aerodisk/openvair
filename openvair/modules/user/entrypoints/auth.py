@@ -16,7 +16,7 @@ Dependencies:
     - JWT utilities: For creating and verifying JWT tokens.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import jwt
 from fastapi import Depends, APIRouter, HTTPException, status
@@ -50,7 +50,7 @@ router = APIRouter(
 def auth(
     form_data: OAuth2PasswordRequestForm = Depends(),
     crud: UserCrud = Depends(UserCrud),
-) -> Dict:
+) -> dict:
     """Authenticate a user and return access and refresh tokens.
 
     Args:
@@ -62,8 +62,8 @@ def auth(
             the token type.
     """
     LOG.info('Api start user authentication.')
-    user: Dict = crud.auth(form_data.username, form_data.password)
-    tokens: Dict = create_tokens(user)
+    user: dict = crud.auth(form_data.username, form_data.password)
+    tokens: dict = create_tokens(user)
     LOG.info('Api request was successfully processed.')
     return tokens
 
@@ -73,7 +73,7 @@ def auth(
     response_model=schemas.Token,
     status_code=status.HTTP_200_OK,
 )
-def refresh_token(refresh_token: str) -> Dict:
+def refresh_token(refresh_token: str) -> dict:
     """Refresh an access token using a refresh token.
 
     Args:
@@ -93,7 +93,7 @@ def refresh_token(refresh_token: str) -> Dict:
             algorithms=[ALGORITHM],
         )
 
-        user: Dict[Any, Any] = {
+        user: dict[Any, Any] = {
             k: v for k, v in payload.items() if k not in ('exp', 'type')
         }
 

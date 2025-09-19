@@ -8,7 +8,6 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type
 
 from sqlalchemy import inspect
 
@@ -33,7 +32,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: User,
-    ) -> Dict:
+    ) -> dict:
         """Convert a user database model to a domain model dictionary.
 
         Args:
@@ -50,8 +49,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type = User,
+        data: dict,
+        orm_class: type = User,
     ) -> User:
         """Convert a domain model dictionary to a user database model.
 
@@ -63,7 +62,7 @@ class DataSerializer(AbstractDataSerializer):
             User: The user database model.
         """
         orm_dict = {}
-        inspected_orm_class = inspect(orm_class)
+        inspected_orm_class = inspect(orm_class)  # type: ignore # while not use new BaseSerializer
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)
@@ -74,7 +73,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: User,
-    ) -> Dict:
+    ) -> dict:
         """Convert a user database model to a web representation dictionary.
 
         Args:
