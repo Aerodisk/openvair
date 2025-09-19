@@ -717,7 +717,7 @@ clear_home_dir() {
 
 # Create hashed password
 make_hashed_password() {
-  HASHED_PASSWORD=$(uv run python -c """
+  HASHED_PASSWORD=$(cd $PROJECT_PATH && uv run python -c """
 from passlib import hash
 hash = hash.bcrypt.hash('$PASSWORD')
 print(hash)
