@@ -8,7 +8,6 @@ Classes:
     Disks: Updater class for disk usage statistics.
 """
 
-from typing import List
 
 import psutil
 import pyagentx3 as pyagentx
@@ -22,13 +21,13 @@ class Disks(pyagentx.Updater):
     the current disk usage statistics for each disk partition.
     """
 
-    def get_disks_data(self) -> List[sdiskpart]:
+    def get_disks_data(self) -> list[sdiskpart]:
         """Retrieve disk partition information.
 
         Returns:
             List[psutil._common.sdiskpart]: A list of disk partitions.
         """
-        result: List[sdiskpart] = psutil.disk_partitions()
+        result: list[sdiskpart] = psutil.disk_partitions()
         return result
 
     def update(self) -> None:
