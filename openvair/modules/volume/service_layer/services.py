@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from typing import Dict, List, Optional, cast
+from typing import cast
 from pathlib import Path
 from collections import namedtuple
 
@@ -186,7 +186,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         self.template_service_client = TemplateServiceLayerRPCClient()
         self.event_store = EventCrud('volumes')
 
-    def get_volume(self, data: Dict) -> Dict:
+    def get_volume(self, data: dict) -> dict:
         """Retrieve a specific volume from the database.
 
         This method fetches a volume from the database based on the provided
@@ -220,7 +220,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer method get volume was successfully processed')
         return web_volume
 
-    def get_all_volumes(self, data: Dict) -> List:
+    def get_all_volumes(self, data: dict) -> list:
         """Retrieve all volumes from the database.
 
         This method fetches all volumes from the database, optionally filtered
@@ -251,7 +251,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         return web_volumes
 
     @staticmethod
-    def _prepare_volume_data(volume_info: Dict) -> VolumeData:
+    def _prepare_volume_data(volume_info: dict) -> VolumeData:
         """Prepare volume data for creation.
 
         This method extracts and prepares the volume information necessary
@@ -316,7 +316,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
     @staticmethod
     def _check_volume_status(
         volume_status: str,
-        available_statuses: List,
+        available_statuses: list,
     ) -> None:
         """Check if the volume status is in the list of available statuses.
 
@@ -437,7 +437,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
 
-    def create_volume(self, volume_info: Dict) -> Dict:
+    def create_volume(self, volume_info: dict) -> dict:
         """Create a new volume in the system.
 
         This method creates a new volume in the database and initiates the
@@ -504,7 +504,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer method create_volume wassuccessfully processed')
         return serialized_volume
 
-    def _create_volume(self, volume_info: Dict) -> None:
+    def _create_volume(self, volume_info: dict) -> None:
         """The function handles the process of creating a volume in the system.
 
         This method validates the storage availability, checks space, and
@@ -599,7 +599,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             'Service layer method _create_volume wassuccessfully processed'
         )
 
-    def clone_volume(self, clone_volume_info: Dict) -> Dict:
+    def clone_volume(self, clone_volume_info: dict) -> dict:
         """Create a new volume by cloning an existing one.
 
         Args:
@@ -643,7 +643,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 mount_point=Path(target_storage_info.mount_point),
                 new_id=uuid.uuid4(),
             )
-            new_volume: Dict = self.domain_rpc.call(
+            new_volume: dict = self.domain_rpc.call(
                 BaseVolume.clone.__name__,
                 data_for_manager=data_for_manager,
                 data_for_method=data_for_method.model_dump(mode='json'),
@@ -706,7 +706,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.VmPowerStateIsNotShutOffException(message)
 
-    def extend_volume(self, data: Dict) -> Dict:
+    def extend_volume(self, data: dict) -> dict:
         """Extend the size of an existing volume.
 
         This method initiates the process of extending a volume's size and
@@ -799,7 +799,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.ValidateArgumentsError(message)
 
-    def _extend_volume(self, data: Dict) -> None:
+    def _extend_volume(self, data: dict) -> None:
         """Extend the size of a volume in the domain layer.
 
         This method calls the domain layer to handle the actual volume extension
@@ -894,7 +894,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         LOG.info('Service layer method extend_volumewas successfully processed')
 
-    def delete_volume(self, data: Dict) -> Dict:
+    def delete_volume(self, data: dict) -> dict:
         """Delete a volume from the system.
 
         This method initiates the process of deleting a volume and updates
@@ -953,7 +953,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 uow.commit()
         return DataSerializer.to_web(db_volume)
 
-    def _delete_volume(self, volume_info: Dict) -> None:
+    def _delete_volume(self, volume_info: dict) -> None:
         """Delete a volume from the system.
 
         This method handles the deletion of a volume from the system, ensuring
@@ -1005,7 +1005,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             finally:
                 uow.commit()
 
-    def edit_volume(self, data: Dict) -> Dict:
+    def edit_volume(self, data: dict) -> dict:
         """Edit the metadata of an existing volume.
 
         This method updates the name, read-only status, and description of a
@@ -1042,7 +1042,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer method edit_volume was successfully processed')
         return serialized_volume
 
-    def attach_volume(self, data: Dict) -> Dict:
+    def attach_volume(self, data: dict) -> dict:
         """Attach a volume to a virtual machine.
 
         This method creates an attachment between a volume and a VM and updates
@@ -1071,7 +1071,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 )
                 db_volume.attachments.append(attachment)
                 serialized_volume = DataSerializer.to_domain(db_volume)
-                result: Dict = self.domain_rpc.call(
+                result: dict = self.domain_rpc.call(
                     BaseVolume.attach_volume_info.__name__,
                     data_for_manager=serialized_volume,
                 )
@@ -1094,7 +1094,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             finally:
                 uow.commit()
 
-    def detach_volume(self, data: Dict) -> Dict:
+    def detach_volume(self, data: dict) -> dict:
         """Detach a volume from a virtual machine.
 
         This method removes the attachment between a volume and a VM and updates
@@ -1135,7 +1135,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 uow.commit()
         return DataSerializer.to_web(db_volume)
 
-    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+    def create_from_template(self, data: dict) -> dict:  # noqa: D102
         creation_dto = CreateVolumeFromTemplateServiceCommandDTO.model_validate(
             data
         )
@@ -1187,7 +1187,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
 
         return web_volume
 
-    def _create_from_template(self, creating_from_tmp_data: Dict) -> None:
+    def _create_from_template(self, creating_from_tmp_data: dict) -> None:
         volume_id = creating_from_tmp_data.pop('volume_id')
         creating_dto = CreateVolumeFromTemplateModelDTO.model_validate(
             creating_from_tmp_data
@@ -1222,7 +1222,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         )
         return StorageModelDTO(**storage_info)
 
-    def _get_all_storages_info(self) -> List[StorageInfo]:
+    def _get_all_storages_info(self) -> list[StorageInfo]:
         """Retrieve information about all available storages.
 
         This method uses the storage service client to fetch details about
@@ -1232,7 +1232,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             List[StorageInfo]: A list of `StorageInfo` objects containing
                 details about each storage.
         """
-        prepared_storages: List = []
+        prepared_storages: list = []
         try:
             storages = self.storage_service_client.get_all_storages()
         except (RpcCallException, RpcCallTimeoutException) as err:
@@ -1291,7 +1291,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
         self._update_volumes_in_db(updated_db_volumes)
         LOG.info('Stop monitoring.')
 
-    def _get_domain_volumes(self) -> List[Dict]:
+    def _get_domain_volumes(self) -> list[dict]:
         """Fetch all volumes as domain objects from the database.
 
         Returns:
@@ -1302,7 +1302,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
                 DataSerializer.to_domain(vol) for vol in uow.volumes.get_all()
             ]
 
-    def _get_storages_dict(self) -> Dict[str, StorageInfo]:
+    def _get_storages_dict(self) -> dict[str, StorageInfo]:
         """Get information about all available storages as a dictionary.
 
         Returns:
@@ -1314,8 +1314,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         }
 
     def _process_volumes(
-        self, domain_volumes: List[Dict], storages: Dict[str, StorageInfo]
-    ) -> List[Dict]:
+        self, domain_volumes: list[dict], storages: dict[str, StorageInfo]
+    ) -> list[dict]:
         """Process each volume and prepare updated information.
 
         This method processes volumes and returns a list of updated information
@@ -1352,8 +1352,8 @@ class VolumeServiceLayerManager(BackgroundTasks):
         return updated_db_volumes
 
     def _process_single_volume(
-        self, domain_volume: Dict, storages: Dict[str, StorageInfo]
-    ) -> Optional[Dict]:
+        self, domain_volume: dict, storages: dict[str, StorageInfo]
+    ) -> dict | None:
         """Process a single volume and get updated information.
 
         Checks if the storage for the volume exists, validates the volume
@@ -1397,7 +1397,7 @@ class VolumeServiceLayerManager(BackgroundTasks):
             'information': '',
         }
 
-    def _update_volumes_in_db(self, updated_db_volumes: List[Dict]) -> None:
+    def _update_volumes_in_db(self, updated_db_volumes: list[dict]) -> None:
         """Update volume information in the database.
 
         This method performs a bulk update of volume information in the

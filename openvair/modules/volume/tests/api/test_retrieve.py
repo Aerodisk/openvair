@@ -11,7 +11,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -21,7 +20,7 @@ from openvair.libs.log import get_logger
 LOG = get_logger(__name__)
 
 
-def test_get_all_volumes(client: TestClient, volume: Dict) -> None:
+def test_get_all_volumes(client: TestClient, volume: dict) -> None:
     """Test retrieving all volumes.
 
     Asserts:
@@ -34,7 +33,7 @@ def test_get_all_volumes(client: TestClient, volume: Dict) -> None:
     assert any(v['id'] == volume['id'] for v in data['items'])
 
 
-def test_get_volumes_by_storage_id(client: TestClient, volume: Dict) -> None:
+def test_get_volumes_by_storage_id(client: TestClient, volume: dict) -> None:
     """Test filtering volumes by specific storage ID."""
     storage_id = volume['storage_id']
     response = client.get(f'/volumes/?storage_id={storage_id}')
@@ -43,7 +42,7 @@ def test_get_volumes_by_storage_id(client: TestClient, volume: Dict) -> None:
     assert all(volume['storage_id'] == storage_id for volume in data['items'])
 
 
-def test_get_free_volumes_only(client: TestClient, volume: Dict) -> None:
+def test_get_free_volumes_only(client: TestClient, volume: dict) -> None:
     """Test filtering only unattached (free) volumes."""
     response = client.get('/volumes/?free_volumes=true')
     assert response.status_code == status.HTTP_200_OK
@@ -53,7 +52,7 @@ def test_get_free_volumes_only(client: TestClient, volume: Dict) -> None:
 
 def test_get_volumes_with_pagination(
     client: TestClient,
-    volume: Dict,  # noqa: ARG001
+    volume: dict,  # noqa: ARG001
 ) -> None:
     """Test that pagination metadata is returned correctly."""
     response = client.get('/volumes/?page=1&size=1')
@@ -95,7 +94,7 @@ def test_get_all_volumes_unauthorized(unauthorized_client: TestClient) -> None:
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_existing_volume_by_id(client: TestClient, volume: Dict) -> None:
+def test_get_existing_volume_by_id(client: TestClient, volume: dict) -> None:
     """Test retrieving volume by ID returns correct data."""
     volume_id = volume['id']
     response = client.get(f'/volumes/{volume_id}/')
@@ -120,7 +119,7 @@ def test_get_volume_with_invalid_uuid(client: TestClient) -> None:
 
 
 def test_get_existing_volume_by_id_unauthorized(
-    volume: Dict, unauthorized_client: TestClient
+    volume: dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_id = volume['id']

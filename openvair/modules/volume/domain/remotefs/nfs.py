@@ -7,7 +7,7 @@ Classes:
     NfsVolume: Class for managing NFS volumes.
 """
 
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -43,7 +43,7 @@ class NfsVolume(BaseVolume):
         self._execute_as_root = False
         self.provisioning = 'metadata'
 
-    def create(self) -> Dict:
+    def create(self) -> dict:
         """Create a new NFS volume.
 
         Raises:
@@ -79,7 +79,7 @@ class NfsVolume(BaseVolume):
         LOG.info(f'Created volume {volume_path}')
         return self.__dict__
 
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Delete an existing NFS volume.
 
         Raises:
@@ -109,7 +109,7 @@ class NfsVolume(BaseVolume):
         LOG.info(f'Deleted volume {volume_path}')
         return self.__dict__
 
-    def extend(self, new_size: str) -> Dict:
+    def extend(self, new_size: str) -> dict:
         """Extend the size of an existing NFS volume.
 
         Args:
@@ -143,7 +143,7 @@ class NfsVolume(BaseVolume):
         LOG.info(f'Extended volume {volume_path} to size {new_size}')
         return self.__dict__
 
-    def attach_volume_info(self) -> Dict:
+    def attach_volume_info(self) -> dict:
         """Get information about the NFS volume.
 
         Returns:
@@ -159,7 +159,7 @@ class NfsVolume(BaseVolume):
             'provisioning': self.provisioning,
         }
 
-    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+    def create_from_template(self, data: dict) -> dict:  # noqa: D102
         qemu_img_adapter = QemuImgAdapter()
         creation_data = CreateVolumeFromTemplateDomainCommandDTO.model_validate(
             data

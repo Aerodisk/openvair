@@ -7,7 +7,7 @@ Covers:
 - Unauthorized access.
 """
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_edit_volume_success(client: TestClient, volume: Dict) -> None:
+def test_edit_volume_success(client: TestClient, volume: dict) -> None:
     """Test successful metadata update for a volume."""
     volume_id = volume['id']
     payload = {
@@ -56,7 +56,7 @@ def test_edit_volume_with_invalid_uuid(client: TestClient) -> None:
 
 
 def test_edit_volume_with_invalid_data(
-    client: TestClient, volume: Dict
+    client: TestClient, volume: dict
 ) -> None:
     """Test failure when name field is empty.
 
@@ -74,7 +74,7 @@ def test_edit_volume_with_invalid_data(
 
 
 def test_edit_volume_when_status_not_available(
-    client: TestClient, volume: Dict
+    client: TestClient, volume: dict
 ) -> None:
     """Test failure when editing a volume with non-available status.
 
@@ -101,7 +101,7 @@ def test_edit_volume_when_status_not_available(
     assert 'VolumeStatusException' in response.text
 
 
-def test_edit_volume_duplicate_name(client: TestClient, storage: Dict) -> None:
+def test_edit_volume_duplicate_name(client: TestClient, storage: dict) -> None:
     """Test failure when renaming volume to name that already exists in storage.
 
     Asserts:
@@ -147,7 +147,7 @@ def test_edit_volume_duplicate_name(client: TestClient, storage: Dict) -> None:
 
 
 def test_edit_volume_unauthorized(
-    volume: Dict, unauthorized_client: TestClient
+    volume: dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_id = volume['id']

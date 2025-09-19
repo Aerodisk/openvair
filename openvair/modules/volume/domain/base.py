@@ -10,7 +10,7 @@ Classes:
 
 import re
 import abc
-from typing import Any, Dict, cast
+from typing import Any, cast
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -47,7 +47,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         self.path = kwargs.get('path', '')
 
     @abc.abstractmethod
-    def create(self) -> Dict:
+    def create(self) -> dict:
         """Create a new volume.
 
         Returns:
@@ -56,7 +56,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Delete an existing volume.
 
         Returns:
@@ -65,7 +65,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def extend(self, new_size: str) -> Dict:
+    def extend(self, new_size: str) -> dict:
         """Extend an existing volume to the given size.
 
         Args:
@@ -77,7 +77,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def clone(self, data: Dict) -> Dict:
+    def clone(self, data: dict) -> dict:
         """Clone an existing volume.
 
         Args:
@@ -89,7 +89,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def attach_volume_info(self) -> Dict:
+    def attach_volume_info(self) -> dict:
         """Get information about an existing volume.
 
         Returns:
@@ -98,7 +98,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+    def create_from_template(self, data: dict) -> dict:  # noqa: D102
         raise NotImplementedError
 
     def _check_volume_exists(self) -> None:
@@ -110,7 +110,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
         if not Path(f'{self.path}/volume-{self.id}').exists():
             raise VolumeDoesNotExistOnStorage(self.id)
 
-    def _get_info_about_volume(self) -> Dict:
+    def _get_info_about_volume(self) -> dict:
         """Get detailed information about the volume using `qemu-img`.
 
         Returns:
@@ -150,7 +150,7 @@ class BaseVolume(metaclass=abc.ABCMeta):
                 LOG.error('`qemu-img info` returned empty output.')
                 return {}
 
-            return cast('Dict', deserialize_json(exec_result.stdout))
+            return cast('dict', deserialize_json(exec_result.stdout))
         except Exception as err:  # noqa: BLE001
             LOG.error(f'Unexpected error in _get_info_about_volume: {err}')
             return {}

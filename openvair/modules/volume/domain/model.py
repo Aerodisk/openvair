@@ -11,9 +11,8 @@ Classes:
 """
 
 import abc
-from typing import Any, Mapping, ClassVar
-
-from typing_extensions import TypeAlias
+from typing import Any, ClassVar, TypeAlias
+from collections.abc import Mapping
 
 from openvair.modules.volume.domain.base import BaseVolume
 from openvair.modules.volume.domain.remotefs import nfs

@@ -20,7 +20,7 @@ Endpoints:
 """
 
 from uuid import UUID
-from typing import Dict, Optional, cast
+from typing import cast
 
 from fastapi import Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
@@ -48,7 +48,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volumes(
-    storage_id: Optional[UUID] = Query(default=None, description='Storage ID'),
+    storage_id: UUID | None = Query(default=None, description='Storage ID'),
     *,
     free_volumes: bool = Query(
         default=False,
@@ -110,7 +110,7 @@ async def get_volume(
 )
 async def create_volume(
     data: schemas.CreateVolume,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Create a new volume.
@@ -139,7 +139,7 @@ async def create_volume(
 )
 async def delete_volume(
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Delete an existing volume.
@@ -166,7 +166,7 @@ async def delete_volume(
 async def extend_volume(
     data: schemas.ExtendVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Extend an existing volume to a new size.
@@ -196,7 +196,7 @@ async def extend_volume(
 async def edit_volume(
     data: schemas.EditVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Edit an existing volume's metadata.
@@ -229,7 +229,7 @@ async def edit_volume(
 async def attach_volume(
     data: schemas.AttachVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Attach a volume to a virtual machine.
@@ -262,7 +262,7 @@ async def attach_volume(
 async def detach_volume(
     detach_info: schemas.DetachVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Detach a volume from a virtual machine.
@@ -294,7 +294,7 @@ async def detach_volume(
 )
 async def create_from_template(  # noqa: D103
     data: schemas.CreateVolumeFromTemplate,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> schemas.Volume:
     LOG.info('Api handle response on create volume from template')

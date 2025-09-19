@@ -14,7 +14,6 @@ Functions:
 """
 
 import uuid
-from typing import List
 
 from sqlalchemy import (
     UUID,
@@ -105,7 +104,7 @@ class Volume(Base):
         nullable=True,
     )
 
-    attachments: Mapped[List['VolumeAttachVM']] = relationship(
+    attachments: Mapped[list['VolumeAttachVM']] = relationship(
         'VolumeAttachVM',
         back_populates='volume',
         uselist=True,

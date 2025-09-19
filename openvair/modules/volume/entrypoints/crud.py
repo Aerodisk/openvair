@@ -9,7 +9,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.modules.volume.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -41,7 +40,7 @@ class VolumeCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_volume(self, volume_id: UUID) -> Dict:
+    def get_volume(self, volume_id: UUID) -> dict:
         """Retrieve a specific volume by its ID.
 
         Args:
@@ -51,7 +50,7 @@ class VolumeCrud:
             Dict: The retrieved volume's data as a dictionary.
         """
         LOG.info('Call service layer on getting volume.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.get_volume.__name__,
             data_for_method={'volume_id': str(volume_id)},
             priority=8,
@@ -61,10 +60,10 @@ class VolumeCrud:
 
     def get_all_volumes(
         self,
-        storage_id: Optional[UUID],
+        storage_id: UUID | None,
         *,
         free_volumes: bool = False,
-    ) -> List:
+    ) -> list:
         """Retrieve all volumes.
 
         Optionally filtering by storage or attachment status.
@@ -79,7 +78,7 @@ class VolumeCrud:
             Page: A paginated list of volumes.
         """
         LOG.info('Call service layer on getting all volumes.')
-        result: List = self.service_layer_rpc.call(
+        result: list = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.get_all_volumes.__name__,
             data_for_method={
                 'storage_id': str(storage_id) if storage_id else None,
@@ -90,7 +89,7 @@ class VolumeCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def create_volume(self, data: Dict, user_info: Dict) -> Dict:
+    def create_volume(self, data: dict, user_info: dict) -> dict:
         """Create a new volume.
 
         Args:
@@ -102,7 +101,7 @@ class VolumeCrud:
         """
         LOG.info('Call service layer on create volume.')
         data.update({'user_info': user_info})
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.create_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -110,7 +109,7 @@ class VolumeCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def delete_volume(self, volume_id: UUID, user_info: Dict) -> Dict:
+    def delete_volume(self, volume_id: UUID, user_info: dict) -> dict:
         """Delete a specific volume by its ID.
 
         Args:
@@ -121,7 +120,7 @@ class VolumeCrud:
             Dict: The deleted volume's data as a dictionary.
         """
         LOG.info('Call service layer on delete volume.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.delete_volume.__name__,
             data_for_method={
                 'volume_id': str(volume_id),
@@ -135,9 +134,9 @@ class VolumeCrud:
     def extend_volume(
         self,
         volume_id: UUID,
-        data: Dict,
-        user_info: Dict,
-    ) -> Dict:
+        data: dict,
+        user_info: dict,
+    ) -> dict:
         """Extend an existing volume to a new size.
 
         Args:
@@ -150,7 +149,7 @@ class VolumeCrud:
         """
         data.update({'volume_id': str(volume_id), 'user_info': user_info})
         LOG.info('Call service layer on extend volume.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.extend_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -158,7 +157,7 @@ class VolumeCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def edit_volume(self, volume_id: UUID, data: Dict, user_info: Dict) -> Dict:
+    def edit_volume(self, volume_id: UUID, data: dict, user_info: dict) -> dict:
         """Edit an existing volume's metadata.
 
         Args:
@@ -176,7 +175,7 @@ class VolumeCrud:
             }
         )
         LOG.info('Call service layer on edit volume.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.edit_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -187,9 +186,9 @@ class VolumeCrud:
     def attach_volume(
         self,
         volume_id: UUID,
-        data: Dict,
-        user_info: Dict,
-    ) -> Dict:
+        data: dict,
+        user_info: dict,
+    ) -> dict:
         """Attach a volume to a virtual machine.
 
         Args:
@@ -202,7 +201,7 @@ class VolumeCrud:
         """
         data.update({'volume_id': str(volume_id), 'user_info': user_info})
         LOG.info('Call service layer on attach volume.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.attach_volume.__name__,
             data_for_method=data,
             priority=8,
@@ -213,9 +212,9 @@ class VolumeCrud:
     def detach_volume(
         self,
         volume_id: UUID,
-        detach_info: Dict,
-        user_info: Dict,
-    ) -> Dict:
+        detach_info: dict,
+        user_info: dict,
+    ) -> dict:
         """Detach a volume from a virtual machine.
 
         Args:
@@ -230,7 +229,7 @@ class VolumeCrud:
         detach_info.update(
             {'volume_id': str(volume_id), 'user_info': user_info}
         )
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.VolumeServiceLayerManager.detach_volume.__name__,
             data_for_method=detach_info,
             priority=8,
@@ -241,7 +240,7 @@ class VolumeCrud:
     def create_from_template(  # noqa: D102
         self,
         data: CreateVolumeFromTemplate,
-        user_info: Dict,
+        user_info: dict,
     ) -> Volume:
         command = CreateVolumeFromTemplateServiceCommandDTO(
             user_id=user_info['id'],
