@@ -14,7 +14,7 @@ Classes:
     ISCSIInterface: Provides functionality to manage ISCSI connections.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -108,7 +108,7 @@ class ISCSIInterface(BaseISCSI):
         LOG.info(f'Discovered ISCSI target IQN: {discovered_iqn}')
         return discovered_iqn
 
-    def login(self) -> Dict:
+    def login(self) -> dict:
         """Log in to the specified iSCSI target.
 
         Returns:
@@ -140,7 +140,7 @@ class ISCSIInterface(BaseISCSI):
         LOG.info('Successfully logged in')
         return self.__dict__
 
-    def logout(self) -> Dict:
+    def logout(self) -> dict:
         """Log out from the specified iSCSI target.
 
         Returns:

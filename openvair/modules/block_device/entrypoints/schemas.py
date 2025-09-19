@@ -11,7 +11,6 @@ Classes:
     IQN: Represents an IQN (iSCSI Qualified Name).
 """
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -27,7 +26,7 @@ class Interface(BaseModel):
 
     inf_type: str
     ip: str
-    port: Optional[str] = None
+    port: str | None = None
 
 
 class InterfaceLogin(Interface):
@@ -80,4 +79,4 @@ class Session(BaseModel):
     status: str
     id: str
     inf_type: str
-    port: Optional[str] = None
+    port: str | None = None

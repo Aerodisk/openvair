@@ -12,7 +12,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import ClassVar, cast
 
 from openvair.modules.block_device.domain.base import BaseBlockInterface
 from openvair.modules.block_device.domain.iscsi import iscsi
@@ -22,7 +22,7 @@ from openvair.modules.block_device.domain.fibre_channel import fibre_channel
 class AbstractInterfaceFactory(metaclass=abc.ABCMeta):
     """Abstract factory for creating BaseBlockInterface objects."""
 
-    def __call__(self, interface_data: Dict) -> BaseBlockInterface:
+    def __call__(self, interface_data: dict) -> BaseBlockInterface:
         """Create an interface by calling the factory instance.
 
         Args:
@@ -35,7 +35,7 @@ class AbstractInterfaceFactory(metaclass=abc.ABCMeta):
         return self.get_interface(interface_data)
 
     @abc.abstractmethod
-    def get_interface(self, interface_data: Dict) -> BaseBlockInterface:
+    def get_interface(self, interface_data: dict) -> BaseBlockInterface:
         """Create a BaseBlockInterface object from the provided data.
 
         Args:
@@ -58,7 +58,7 @@ class InterfaceFactory(AbstractInterfaceFactory):
         'fibre_channel': fibre_channel.FibreChannelInterface,
     }
 
-    def get_interface(self, interface_data: Dict) -> BaseBlockInterface:
+    def get_interface(self, interface_data: dict) -> BaseBlockInterface:
         """Create a BaseBlockInterface object using provided interface data.
 
         Args:

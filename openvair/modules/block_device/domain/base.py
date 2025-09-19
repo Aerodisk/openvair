@@ -16,7 +16,7 @@ Classes:
 from __future__ import annotations
 
 import abc
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 
@@ -71,7 +71,7 @@ class BaseBlockInterface(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def login(self) -> Dict:
+    def login(self) -> dict:
         """Log in to the block device interface.
 
         Returns:
@@ -80,7 +80,7 @@ class BaseBlockInterface(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def logout(self) -> Dict:
+    def logout(self) -> dict:
         """Log out of the block device interface.
 
         Returns:
@@ -153,7 +153,7 @@ class BaseISCSI(BaseBlockInterface):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def login(self) -> Dict:
+    def login(self) -> dict:
         """Log in to the block device interface.
 
         Raises:
@@ -165,7 +165,7 @@ class BaseISCSI(BaseBlockInterface):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def logout(self) -> Dict:
+    def logout(self) -> dict:
         """Log out of the block device interface.
 
         Raises:

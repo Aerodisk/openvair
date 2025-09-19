@@ -8,7 +8,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import TYPE_CHECKING, Dict, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
 
@@ -30,7 +30,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: ISCSIInterface,
-    ) -> Dict:
+    ) -> dict:
         """Convert an ISCSIInterface object to a domain dictionary.
 
         Args:
@@ -47,8 +47,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[ISCSIInterface] = ISCSIInterface,
+        data: dict,
+        orm_class: type[ISCSIInterface] = ISCSIInterface,
     ) -> ISCSIInterface:
         """Convert a dictionary to an ISCSIInterface ORM object.
 
@@ -71,7 +71,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: ISCSIInterface,
-    ) -> Dict:
+    ) -> dict:
         """Convert an ISCSIInterface object to a web dictionary.
 
         Args:

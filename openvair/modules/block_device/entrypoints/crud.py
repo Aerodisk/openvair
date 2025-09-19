@@ -14,7 +14,7 @@ Classes:
     InterfaceCrud: Provides CRUD operations on block device interfaces.
 """
 
-from typing import Dict, List, cast
+from typing import cast
 
 from openvair.libs.log import get_logger
 from openvair.modules.block_device.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -46,7 +46,7 @@ class InterfaceCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_sessions(self) -> List:
+    def get_sessions(self) -> list:
         """Get all iSCSI sessions.
 
         Returns:
@@ -58,22 +58,22 @@ class InterfaceCrud:
             data_for_method={},
         )
         LOG.info('Complete getting all ISCSI sessions')
-        return cast('List', result)
+        return cast('list', result)
 
-    def get_host_iqn(self) -> Dict:
+    def get_host_iqn(self) -> dict:
         """Get the current host IQN.
 
         Returns:
             Dict: The result of the get_host_iqn operation.
         """
         LOG.info('Start getting current host IQN')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.get_host_iqn.__name__
         )
         LOG.info('Complete getting current host IQN')
         return result
 
-    def login(self, data: Dict, user_data: Dict) -> Dict:
+    def login(self, data: dict, user_data: dict) -> dict:
         """Log in to an iSCSI block device.
 
         Args:
@@ -86,14 +86,14 @@ class InterfaceCrud:
         """
         LOG.info(f'Login to the ISCSI block device: {data}')
         data.update({'user_data': user_data})
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.login.__name__,
             data_for_method=data,
         )
         LOG.info('Successfully logged in with ISCSI block device')
         return result
 
-    def logout(self, data: Dict, user_data: Dict) -> Dict:
+    def logout(self, data: dict, user_data: dict) -> dict:
         """Log out of an iSCSI block device.
 
         Args:
@@ -106,7 +106,7 @@ class InterfaceCrud:
         """
         LOG.info('Logging out with ISCSI block device')
         data.update({'user_data': user_data})
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.BlockDevicesServiceLayerManager.logout.__name__,
             data_for_method=data,
         )
