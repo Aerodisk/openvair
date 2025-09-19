@@ -8,7 +8,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import TYPE_CHECKING, Dict, Type, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
 from sqlalchemy import inspect
@@ -42,9 +42,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_domain(
         cls,
-        orm_object: Union[db.VirtualNetwork, db.PortGroup],
-        domain_class: Type = BridgeNetwork,
-    ) -> Dict:
+        orm_object: db.VirtualNetwork | db.PortGroup,
+        domain_class: type = BridgeNetwork,
+    ) -> dict:
         """Converts data to a domain object.
 
         Args:
@@ -71,7 +71,7 @@ class DataSerializer(AbstractDataSerializer):
                 }
             )
         domain_object = domain_class(**orm_obj_dict)
-        domain_dict: Dict = domain_object.as_dict()
+        domain_dict: dict = domain_object.as_dict()
 
         LOG.info('Data success converted to domain object.')
         return domain_dict
@@ -79,15 +79,10 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[
-            Type[db.VirtualNetwork],
-            Type[db.PortGroup],
-        ] = db.VirtualNetwork,
-    ) -> Union[
-        db.VirtualNetwork,
-        db.PortGroup,
-    ]:
+        data: dict,
+        orm_class: type[db.VirtualNetwork] |
+                   type[db.PortGroup] = db.VirtualNetwork,
+    ) -> db.VirtualNetwork | db.PortGroup:
         """Converts data to a database object.
 
         Args:
@@ -112,9 +107,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_web(
         cls,
-        orm_object: Union[db.VirtualNetwork, db.PortGroup],
-        web_class: Type[BaseModel] = web.VirtualNetworkResponse,
-    ) -> Dict:
+        orm_object: db.VirtualNetwork | db.PortGroup,
+        web_class: type[BaseModel] = web.VirtualNetworkResponse,
+    ) -> dict:
         """Converts data to a web response object.
 
         Args:
@@ -129,7 +124,7 @@ class DataSerializer(AbstractDataSerializer):
         LOG.info('Converting data to web json serializable object...')
 
         pydantic_model = web_class.model_validate(orm_object)
-        result_web_info: Dict = pydantic_model.model_dump(mode='json')
+        result_web_info: dict = pydantic_model.model_dump(mode='json')
 
         LOG.info('Data success converted to web json serializable object.')
         return result_web_info

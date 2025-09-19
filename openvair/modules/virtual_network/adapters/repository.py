@@ -9,7 +9,7 @@ Classes:
         network repository.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from openvair.common.repositories.base_sqlalchemy import (
     BaseSqlAlchemyRepository,
@@ -35,7 +35,7 @@ class VirtualNetworkSqlAlchemyRepository(
         """
         super().__init__(session, VirtualNetwork)
 
-    def get_by_name(self, vn_name: str) -> Optional[VirtualNetwork]:
+    def get_by_name(self, vn_name: str) -> VirtualNetwork | None:
         """Get a virtual network by name.
 
         Args:

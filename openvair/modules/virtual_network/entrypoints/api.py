@@ -34,7 +34,6 @@ Dependencies:
 """  # noqa: E501, W505
 
 from uuid import UUID
-from typing import Dict
 
 from fastapi import Depends, APIRouter, status
 from fastapi.responses import JSONResponse
@@ -165,7 +164,7 @@ async def get_virtual_network_by_name(
 )
 async def create_virtual_network(
     data: schemas.VirtualNetwork,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> schemas.VirtualNetworkResponse:
     """Creates a new virtual network.
@@ -201,7 +200,7 @@ async def create_virtual_network(
 )
 async def delete_virtual_network(
     virtual_network_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> JSONResponse:
     """Deletes a virtual network by its ID.
@@ -317,7 +316,7 @@ async def turn_off_virtual_network(
 async def add_port_group(
     virtual_network_id: str,
     port_group: schemas.PortGroup,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> schemas.VirtualNetworkResponse:
     """Adds a port group to a virtual network.
@@ -359,7 +358,7 @@ async def add_port_group(
 async def delete_port_group(
     virtual_network_id: str,
     port_group_name: str,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> JSONResponse:
     """Deletes a port group from a virtual network.
@@ -403,7 +402,7 @@ async def add_tag_to_trunk_port_group(
     virtual_network_id: str,
     port_group_name: str,
     tag_id: str,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VirtualNetworkCrud = Depends(VirtualNetworkCrud),
 ) -> schemas.PortGroup:
     """Adds a tag to a trunk port group in a virtual network.

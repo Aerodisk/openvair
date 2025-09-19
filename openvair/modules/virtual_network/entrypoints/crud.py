@@ -11,7 +11,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.virtual_network.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -38,7 +37,7 @@ class VirtualNetworkCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_all_virtual_networks(self) -> Dict:
+    def get_all_virtual_networks(self) -> dict:
         """Retrieves all virtual networks from the service layer.
 
         Returns:
@@ -47,7 +46,7 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on getting virtual networks...')
 
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_all_virtual_networks.__name__,
             data_for_method={},
         )
@@ -55,7 +54,7 @@ class VirtualNetworkCrud:
         LOG.info('Call service layer on getting virtual networks complete.')
         return result
 
-    def get_virtual_network_by_id(self, vn_id: UUID) -> Dict:
+    def get_virtual_network_by_id(self, vn_id: UUID) -> dict:
         """Retrieves a virtual network by its ID from the service layer.
 
         Args:
@@ -66,7 +65,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on getting virtual networks: {vn_id}...')
 
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_virtual_network_by_id.__name__,
             data_for_method={'id': str(vn_id)},
         )
@@ -74,7 +73,7 @@ class VirtualNetworkCrud:
         LOG.info('Call service layer on getting virtual network complete.')
         return result
 
-    def get_virtual_network_by_name(self, vn_name: str) -> Dict:
+    def get_virtual_network_by_name(self, vn_name: str) -> dict:
         """Retrieves a virtual network by its name from the service layer.
 
         Args:
@@ -85,7 +84,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on getting virtual network: {vn_name}...')
 
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.get_virtual_network_by_name.__name__,
             data_for_method={'virtual_network_name': vn_name},
         )
@@ -96,8 +95,8 @@ class VirtualNetworkCrud:
     def create_virtual_network(
         self,
         vn_info: schemas.VirtualNetwork,
-        user_info: Dict,
-    ) -> Dict:
+        user_info: dict,
+    ) -> dict:
         """Creates a new virtual network in the service layer.
 
         Args:
@@ -114,7 +113,7 @@ class VirtualNetworkCrud:
         service_data = vn_info.model_dump(mode='json')
         service_data['user_info'] = user_info
 
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.create_virtual_network.__name__,
             data_for_method=service_data,
             priority=8,
@@ -126,7 +125,7 @@ class VirtualNetworkCrud:
     def delete_virtual_network(
         self,
         vn_id: UUID,
-        user_info: Dict,
+        user_info: dict,
     ) -> None:
         """Deletes a virtual network by its ID in the service layer.
 
@@ -136,7 +135,7 @@ class VirtualNetworkCrud:
         """
         LOG.info(f'Call service layer on deleting virtual network: {vn_id}...')
 
-        service_data: Dict = {'virtual_network_id': str(vn_id)}
+        service_data: dict = {'virtual_network_id': str(vn_id)}
         service_data['user_info'] = user_info
         self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.delete_virtual_network.__name__,
@@ -182,8 +181,8 @@ class VirtualNetworkCrud:
         self,
         vn_id: str,
         port_group: schemas.PortGroup,
-        user_info: Dict,
-    ) -> Dict:
+        user_info: dict,
+    ) -> dict:
         """Adds a port group to a virtual network in the service layer.
 
         Args:
@@ -203,7 +202,7 @@ class VirtualNetworkCrud:
             'port_group_info': port_group.model_dump(mode='json'),
         }
         service_data['user_info'] = user_info
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.add_port_group.__name__,
             data_for_method=service_data,
         )
@@ -215,7 +214,7 @@ class VirtualNetworkCrud:
         self,
         vn_id: str,
         port_group_name: str,
-        user_info: Dict,
+        user_info: dict,
     ) -> None:
         """Deletes a port group from a virtual network in the service layer.
 
@@ -227,7 +226,7 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on deleting port group...')
 
-        service_data: Dict = {
+        service_data: dict = {
             'virtual_network_id': vn_id,
             'port_group_name': port_group_name,
         }
@@ -240,8 +239,8 @@ class VirtualNetworkCrud:
         LOG.info('Call service layer on deleting port group complete')
 
     def add_tag_to_trunk_port_group(
-        self, vn_id: str, pg_name: str, tag_id: str, user_info: Dict
-    ) -> Dict:
+        self, vn_id: str, pg_name: str, tag_id: str, user_info: dict
+    ) -> dict:
         """Adds a tag to a trunk port group in a virtual network.
 
         Args:
@@ -256,13 +255,13 @@ class VirtualNetworkCrud:
         """
         LOG.info('Call service layer on adding tag to trunk port group...')
 
-        service_data: Dict = {
+        service_data: dict = {
             'vn_id': vn_id,
             'pg_name': pg_name,
             'tag': tag_id,
         }
         service_data['user_info'] = user_info
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             VirtualNetworkServiceLayerManager.add_tag_to_port_group.__name__,
             data_for_method=service_data,
         )
