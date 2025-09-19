@@ -8,7 +8,7 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import TYPE_CHECKING, Dict, Type, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
 
@@ -30,7 +30,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Storage,
-    ) -> Dict:
+    ) -> dict:
         """Its get dictonary of data about the storage
 
         This method takes a storage object and a list of extra specs, and
@@ -65,9 +65,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[Type[Storage], Type[StorageExtraSpecs]] = Storage,
-    ) -> Union[Storage, StorageExtraSpecs]:
+        data: dict,
+        orm_class: type[Storage] | type[StorageExtraSpecs] = Storage,
+    ) -> Storage | StorageExtraSpecs:
         """It takes a dictionary and returns an object of the class Storage
 
         Args:
@@ -88,7 +88,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Storage,
-    ) -> Dict:
+    ) -> dict:
         """It takes a dictionary and returns an object of the class Storage
 
         This method takes a storage object and a list of extra specs, and

@@ -10,7 +10,7 @@ Classes:
 """
 
 import re
-from typing import Dict, List, Tuple, Union, Literal, ClassVar
+from typing import Literal, ClassVar
 
 from pydantic import BaseModel, field_validator
 
@@ -35,12 +35,12 @@ class DiskSizeValueObject(BaseModel):
         unit (Literal['B', 'kB', 'MB', 'GB', 'TB']): The unit of the disk size.
     """
 
-    value: Union[int, float]
+    value: int | float
     unit: Literal['B', 'kB', 'MB', 'GB', 'TB'] = 'GB'
 
     @field_validator('value')
     @classmethod
-    def value_validator(cls, v: Union[int, float]) -> Union[int, float]:
+    def value_validator(cls, v: int | float) -> int | float:
         """Validate that the value is a positive number.
 
         Args:
@@ -92,7 +92,7 @@ class PartedParser:
         'TB': 1024**4,
     }
 
-    def parse_partitions_info(self, print_stdout: str) -> Dict:
+    def parse_partitions_info(self, print_stdout: str) -> dict:
         """Collect partition information from parsed data rows.
 
         Args:
@@ -147,7 +147,7 @@ class PartedParser:
 
     def _collect_data_rows_from_print(
         self, parted_print_output: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Get data rows from the output of the 'parted' command.
 
         Args:
@@ -212,7 +212,7 @@ class PartedParser:
 
     def _collect_headers_with_column_length(
         self, headers_str: str
-    ) -> Dict[str, Dict[str, int]]:
+    ) -> dict[str, dict[str, int]]:
         """Extract headers from the headers string.
 
         Args:
@@ -253,7 +253,7 @@ class PartedParser:
         return header_indexes
 
     @staticmethod
-    def _parse_size(size_str: str) -> Tuple[float, str]:
+    def _parse_size(size_str: str) -> tuple[float, str]:
         """Parse a size string into a numeric value and unit.
 
         Args:

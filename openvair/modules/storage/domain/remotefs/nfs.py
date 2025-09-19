@@ -11,7 +11,7 @@ Classes:
 
 import os
 import re
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -58,7 +58,7 @@ class NfsStorage(RemoteFSStorage):
         self.mount_point = str(self.mount_point_path())
         self.share = f'{self.ip}:{self.path}'
 
-    def do_setup(self) -> Dict:
+    def do_setup(self) -> dict:
         """Performs any necessary setup steps for the NFS storage.
 
         This method checks if the required NFS package is installed,
@@ -147,7 +147,7 @@ class NfsStorage(RemoteFSStorage):
             raise NfsPathDoesNotExistOnShareError(message)
         LOG.info('Finished _check_ip_and_path method.')
 
-    def _create(self) -> Dict:
+    def _create(self) -> dict:
         """Creates the NFS storage.
 
         By checking the IP address and path, setting it up, and returning its
@@ -190,7 +190,7 @@ class NfsStorage(RemoteFSStorage):
         )
         LOG.info('Finished _delete method.')
 
-    def _get_capacity_info(self) -> Dict:
+    def _get_capacity_info(self) -> dict:
         """Retrieves the capacity of the NFS storage.
 
         This method gets the total size and available space of the

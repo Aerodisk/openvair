@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from typing import Dict, List, cast
+from typing import cast
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks, periodic_task
@@ -147,7 +147,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         self.template_service_client = TemplateServiceLayerRPCClient()
         self.event_store = EventCrud('storages')
 
-    def get_storage(self, data: Dict) -> Dict:
+    def get_storage(self, data: dict) -> dict:
         """Retrieve a specific storage from the database.
 
         The function gets a storage id from the request data, gets the storage
@@ -181,7 +181,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer method get storage was successfully processed')
         return web_storage
 
-    def get_all_storages(self) -> List[Dict]:
+    def get_all_storages(self) -> list[dict]:
         """Retrieve all storages from the database.
 
         The function gets all storages from the database, serializes them
@@ -226,7 +226,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                 LOG.error(message)
                 raise exceptions.StorageExistsError(message)
 
-    def _check_spec_exists_for_nfs_storage(self, specs: Dict) -> None:
+    def _check_spec_exists_for_nfs_storage(self, specs: dict) -> None:
         """Check if a storage with the given spec for NFS already exists.
 
         Args:
@@ -247,7 +247,7 @@ class StorageServiceLayerManager(BackgroundTasks):
     def _check_storage_specs(
         self,
         db_spec: orm.StorageExtraSpecs,
-        specs: Dict,
+        specs: dict,
     ) -> None:
         """Check if the database spec matches the given specs.
 
@@ -274,7 +274,7 @@ class StorageServiceLayerManager(BackgroundTasks):
     def _spec_matches(
         self,
         storage_spec: orm.StorageExtraSpecs,
-        specs: Dict,
+        specs: dict,
     ) -> bool:
         """Check if a storage spec matches the given specs.
 
@@ -293,7 +293,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             and storage_spec.value == specs.get('path')
         )
 
-    def _check_specs_localfs_storage(self, specs_to_check: Dict) -> None:
+    def _check_specs_localfs_storage(self, specs_to_check: dict) -> None:
         """Check if a storage with the given spec for LocalFS already exists.
 
         Args:
@@ -323,7 +323,7 @@ class StorageServiceLayerManager(BackgroundTasks):
                         raise exceptions.StorageExistsError(message)
 
     def _check_spec_exists_for_storage(
-        self, specs: Dict, storage_type: str
+        self, specs: dict, storage_type: str
     ) -> None:
         """Check if a storage with the given specifications already exists.
 
@@ -376,7 +376,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             message: str = f'Storage {storage_id} has {details}'
             raise exceptions.StorageHasObjects(message)
 
-    def _get_volumes(self, storage_id: str) -> List[Dict]:
+    def _get_volumes(self, storage_id: str) -> list[dict]:
         """Retrieve and return all volumes by storage id"""
         try:
             volumes = self.volume_service_client.get_all_volumes(
@@ -387,7 +387,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             raise
         return volumes
 
-    def _get_images(self, storage_id: str) -> List[Dict]:
+    def _get_images(self, storage_id: str) -> list[dict]:
         """Retrieve and return all images by storage id"""
         try:
             images = self.image_service_client.get_all_images(
@@ -398,7 +398,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             raise
         return images
 
-    def _get_templates(self, storage_id: str) -> List[Dict]:
+    def _get_templates(self, storage_id: str) -> list[dict]:
         """Retrieve and return all templates by storage id"""
         try:
             all_templates = self.template_service_client.get_all_templates()
@@ -455,7 +455,7 @@ class StorageServiceLayerManager(BackgroundTasks):
 
     @staticmethod
     def _check_storage_status(
-        storage_status: str, available_statuses: List
+        storage_status: str, available_statuses: list
     ) -> None:
         """Check if the storage status is valid ащк the given list of statuses.
 
@@ -475,7 +475,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             LOG.error(message)
             raise exceptions.StorageStatusError(message)
 
-    def create_local_partition(self, data: Dict) -> Dict:
+    def create_local_partition(self, data: dict) -> dict:
         """Create a new local partition on a disk.
 
         Args:
@@ -553,7 +553,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Finish creating local partition.')
         return new_part
 
-    def get_local_disk_partitions_info(self, data: Dict) -> Dict:
+    def get_local_disk_partitions_info(self, data: dict) -> dict:
         """Get information about local disk partitions.
 
         This method collects information about partitions on the specified local
@@ -570,7 +570,7 @@ class StorageServiceLayerManager(BackgroundTasks):
 
         """
         LOG.info('Starting collecting local disk partitions info.')
-        parted_info: Dict = self.domain_rpc.call(
+        parted_info: dict = self.domain_rpc.call(
             base.BasePartition.get_partitions_info.__name__,
             data_for_manager={
                 'local_disk_path': data.get('disk_path'),
@@ -580,7 +580,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Finish collecting local disk partitions info.')
         return parted_info
 
-    def delete_local_partition(self, data: Dict) -> Dict:
+    def delete_local_partition(self, data: dict) -> dict:
         """Delete a local partition.
 
         This method deletes the specified local partition.
@@ -630,7 +630,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Finish deleting local partition.')
         return {'message': 'partition successfully deleted.'}
 
-    def _get_storages_on_partition(self, disk_path: str, part_num: str) -> List:
+    def _get_storages_on_partition(self, disk_path: str, part_num: str) -> list:
         """Get a list of storages associated with a partition.
 
         Args:
@@ -675,7 +675,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             )
             raise exceptions.PartitionHasStorage(message)
 
-    def create_storage(self, data: Dict) -> Dict:
+    def create_storage(self, data: dict) -> dict:
         """Create a new storage.
 
         Args:
@@ -745,7 +745,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         LOG.info('Service layer method create_storage executed successfully.')
         return web_storage
 
-    def _create_storage(self, storage_info: Dict) -> None:
+    def _create_storage(self, storage_info: dict) -> None:
         """Create a new storage
 
         Creates a storage in the database and then calls the domain
@@ -844,7 +844,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             'Service layer method _create_storage was ' 'successfully processed'
         )
 
-    def delete_storage(self, data: Dict) -> Dict:
+    def delete_storage(self, data: dict) -> dict:
         """Deletes a storage from the database and from the system.
 
         Args:
@@ -890,7 +890,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         )
         return DataSerializer.to_web(db_storage)
 
-    def _delete_storage(self, domain_storage: Dict) -> None:
+    def _delete_storage(self, domain_storage: dict) -> None:
         """Asynchronous method to delete a storage from the system.
 
         Args:
@@ -944,7 +944,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             'Service layer method _delete storage ' 'was successfully processed'
         )
 
-    def get_local_disks(self, data: Dict) -> List:
+    def get_local_disks(self, data: dict) -> list:
         """Retrieve a list of local disks and partitions.
 
         Args:
@@ -1030,7 +1030,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         self._update_all_storages(updated_storages)
         LOG.info('Stop monitoring.')
 
-    def _validate_storage_status(self, domain_storage: Dict) -> None:
+    def _validate_storage_status(self, domain_storage: dict) -> None:
         """Validate the storage status before monitoring.
 
         Args:
@@ -1049,7 +1049,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             domain_storage.get('status', ''), monitoring_statuses
         )
 
-    def _get_updated_storage_info(self, domain_storage: Dict) -> Dict:
+    def _get_updated_storage_info(self, domain_storage: dict) -> dict:
         """Get updated storage information from the domain layer.
 
         Args:
@@ -1074,8 +1074,8 @@ class StorageServiceLayerManager(BackgroundTasks):
         return self._get_updated_storage_info_for_db(storage_info)
 
     def _handle_monitoring_error(
-        self, domain_storage: Dict, err: Exception
-    ) -> Dict:
+        self, domain_storage: dict, err: Exception
+    ) -> dict:
         """Handle errors that occur during storage monitoring.
 
         Args:
@@ -1096,7 +1096,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         }
 
     def _get_monitoring_error_message(
-        self, err: Exception, domain_storage: Dict
+        self, err: Exception, domain_storage: dict
     ) -> str:
         """Get the error message for a monitoring error.
 
@@ -1122,7 +1122,7 @@ class StorageServiceLayerManager(BackgroundTasks):
             )
         return str(err)
 
-    def _get_local_disk_by_fs_uuid(self, fs_uuid: str) -> Dict:
+    def _get_local_disk_by_fs_uuid(self, fs_uuid: str) -> dict:
         """Retrieve a local disk by its file system UUID.
 
         Args:
@@ -1132,13 +1132,13 @@ class StorageServiceLayerManager(BackgroundTasks):
             Dict: A dictionary representing the local disk information, or an
                 empty dictionary if not found.
         """
-        local_disks: List[Dict] = self.get_local_disks({})
+        local_disks: list[dict] = self.get_local_disks({})
         for disk in local_disks:
             if disk.get('fs_uuid') == fs_uuid:
                 return disk
         return {}
 
-    def _collect_serialized_storages(self) -> List:
+    def _collect_serialized_storages(self) -> list:
         """Collect and serialize all storages from the database.
 
         Returns:
@@ -1157,7 +1157,7 @@ class StorageServiceLayerManager(BackgroundTasks):
         return serialized_storages
 
     @staticmethod
-    def _get_updated_storage_info_for_db(storage_info: Dict) -> Dict:
+    def _get_updated_storage_info_for_db(storage_info: dict) -> dict:
         """Get updated storage information for the def.
 
         Args:
@@ -1199,7 +1199,7 @@ class StorageServiceLayerManager(BackgroundTasks):
 
         return updated_storage
 
-    def _update_all_storages(self, storages: List) -> None:
+    def _update_all_storages(self, storages: list) -> None:
         """Update all storages in the database.
 
         Args:

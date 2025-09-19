@@ -10,7 +10,7 @@ Classes:
     LocalPartition: A class for managing partitions on local disks.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -60,7 +60,7 @@ class LocalDiskStorage(LocalFSStorage):
         self.mount_point = str(self.mount_point_path())
         self.do_setup()
 
-    def do_setup(self) -> Dict:
+    def do_setup(self) -> dict:
         """Set up the local filesystem storage.
 
         This method ensures that the necessary packages are installed,
@@ -106,7 +106,7 @@ class LocalDiskStorage(LocalFSStorage):
         )
         return exec_result.stdout.split('"')[1]
 
-    def _create(self) -> Dict:
+    def _create(self) -> dict:
         """Create the storage by retrieving its UUID.
 
         Returns:
@@ -141,7 +141,7 @@ class LocalDiskStorage(LocalFSStorage):
             LOG.warning(f'Error during unmounting storage - {e}')
             raise UnmountError(str(e))
 
-    def _get_capacity_info(self) -> Dict:
+    def _get_capacity_info(self) -> dict:
         """Get the size and available space of the storage.
 
         Returns:
@@ -228,9 +228,9 @@ class LocalPartition(BasePartition):
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize a new instance of LocalPartition."""
         super().__init__(*args, **kwargs)
-        self.partitions: Dict = self._get_partitions_info()
+        self.partitions: dict = self._get_partitions_info()
 
-    def create_partition(self, data: Dict) -> Optional[int]:
+    def create_partition(self, data: dict) -> int | None:
         """Create a partition on the local disk.
 
         Args:
@@ -264,7 +264,7 @@ class LocalPartition(BasePartition):
                 LOG.info('Finish creating partition on local disk.')
         return part_num
 
-    def delete_partition(self, data: Dict) -> None:
+    def delete_partition(self, data: dict) -> None:
         """Delete a partition from the local disk.
 
         Args:
@@ -275,7 +275,7 @@ class LocalPartition(BasePartition):
         self.parted_adapter.rm(partition_number)
         LOG.info('Finish deleting partition on local disk.')
 
-    def get_partitions_info(self) -> Dict:
+    def get_partitions_info(self) -> dict:
         """Retrieve information about partitions on the local disk.
 
         Returns:
@@ -283,7 +283,7 @@ class LocalPartition(BasePartition):
         """
         return self._get_partitions_info()
 
-    def _get_partitions_info(self) -> Dict:
+    def _get_partitions_info(self) -> dict:
         """Get information about partitions on the local disk.
 
         Returns:
@@ -295,7 +295,7 @@ class LocalPartition(BasePartition):
 
     def _calculate_creating_bounds(
         self, creating_value: DiskSizeValueObject
-    ) -> Dict[str, DiskSizeValueObject]:
+    ) -> dict[str, DiskSizeValueObject]:
         """Calculate bounds for creating a new partition.
 
         Args:
@@ -308,7 +308,7 @@ class LocalPartition(BasePartition):
         """
         LOG.debug('Calculating creating partition resource availability.')
 
-        available_space_info: Dict = self._get_partitions_info().popitem()[1]
+        available_space_info: dict = self._get_partitions_info().popitem()[1]
         if available_space_info.get('File system') != 'Free Space':
             message = 'Disk has no free space'
             LOG.error(message)
@@ -344,7 +344,7 @@ class LocalPartition(BasePartition):
             LOG.error(message)
             raise exc.WrongPartitionRangeError(message)
 
-        creating_bounds: Dict[str, DiskSizeValueObject] = {
+        creating_bounds: dict[str, DiskSizeValueObject] = {
             'start': DiskSizeValueObject(value=byte_available_start, unit='B'),
             'end': DiskSizeValueObject(value=calculated_end, unit='B'),
         }

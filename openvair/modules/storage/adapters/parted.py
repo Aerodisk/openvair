@@ -9,7 +9,6 @@ Classes:
         utility.
 """
 
-from typing import Dict
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -37,7 +36,7 @@ class PartedAdapter:
         """
         self.disk_path = disk_path
 
-    def mkpart(self, start_part: str, end_part: str) -> Dict[str, str]:
+    def mkpart(self, start_part: str, end_part: str) -> dict[str, str]:
         """Create a partition using parted.
 
         Args:
