@@ -134,6 +134,7 @@ def test_get_events_filtered_by_different_module(
     - No events returned when filtering.
     """
     module_name = f'not_{created_event["module"]}'
+    assert created_event['module'] != module_name
     response = client.get(f'/event/?module_name={module_name}')
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -259,6 +260,7 @@ def test_download_events_filtered_by_different_module(
     - CSV contains only header when no events match filter.
     """
     module_name = f'not_{created_event["module"]}'
+    assert created_event['module'] != module_name
     response = client.get(f'/event/download?module_name={module_name}')
     assert response.status_code == status.HTTP_200_OK
     assert_csv_events_empty(response)
