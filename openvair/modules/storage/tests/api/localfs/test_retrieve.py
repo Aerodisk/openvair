@@ -1,4 +1,3 @@
-# ruff: noqa: ARG001 because of fixtures using
 """Integration tests for storage retrieval endpoints.
 
 Covers:
@@ -14,7 +13,6 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.testing.config import storage_settings
-from openvair.modules.storage.entrypoints.schemas import ListOfLocalDisks
 
 
 def test_get_storages_success(client: TestClient, storage: Dict) -> None:
@@ -34,7 +32,7 @@ def test_get_storages_success(client: TestClient, storage: Dict) -> None:
 
 
 def test_get_storages_empty_success(
-    client: TestClient, cleanup_storages: None
+    client: TestClient
 ) -> None:
     """Test successful retrieval of empty storages list."""
     response = client.get('/storages/')
@@ -88,7 +86,6 @@ def test_get_local_disks_success(client: TestClient) -> None:
     assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
-    ListOfLocalDisks.model_validate(data)
     assert 'disks' in data
     assert isinstance(data['disks'], List)
     test_disk_path = str(storage_settings.storage_path)

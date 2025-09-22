@@ -19,7 +19,7 @@ from openvair.modules.storage.entrypoints.schemas import CreateLocalPartition
 LOG = get_logger(__name__)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='function', autouse=True)
 def cleanup_storages() -> Generator[None, Any, None]:
     """Cleanup all storages before and after test"""
     cleanup_all_storages()
