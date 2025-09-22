@@ -18,9 +18,9 @@ from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
 from openvair.libs.testing.utils import (
-    wait_full_deleting,
     wait_for_field_not_empty,
     generate_test_entity_name,
+    wait_full_deleting_object,
 )
 
 LOG = get_logger(__name__)
@@ -98,7 +98,7 @@ def test_delete_bridge_ovs_success(
     assert data[0]['id'] == bridge['id']
     assert data[0]['status'] == 'deleting'
 
-    wait_full_deleting(client, '/interfaces/', bridge['id'])
+    wait_full_deleting_object(client, '/interfaces/', bridge['id'])
     _check_bridge_deleted_in_ovs(bridge['name'])
     _check_connection()
 
@@ -128,7 +128,7 @@ def test_delete_bridge_netplan_success(
     assert data[0]['id'] == bridge['id']
     assert data[0]['status'] == 'deleting'
 
-    wait_full_deleting(client, '/interfaces/', bridge['id'])
+    wait_full_deleting_object(client, '/interfaces/', bridge['id'])
     _check_bridge_deleted_in_netplan(bridge['name'])
     _check_connection()
 
@@ -176,7 +176,7 @@ def test_delete_multiple_bridges_ovs_success(
         )
 
     for bridge_id in bridge_ids:
-        wait_full_deleting(client, '/interfaces/', bridge_id)
+        wait_full_deleting_object(client, '/interfaces/', bridge_id)
     wait_for_field_not_empty(
         client, f'/interfaces/{physical_interface["id"]}', 'ip'
     )
