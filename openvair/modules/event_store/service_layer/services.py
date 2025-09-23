@@ -72,6 +72,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
                 ApiSerializer.to_dict(event) for event in uow.events.get_all()
             ]
 
+    @validate_call
     def get_all_events_by_module(
         self,
         getting_data: GetEventsByModuleServiceCommand,
@@ -79,7 +80,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
         """Retrieve all events by module from the database.
 
         Args:
-            getting_data (GetLastEventsServiceCommand): Object with modul name
+            getting_data (GetLastEventsServiceCommand): Object with module name
                 for filtering
 
         Returns:
