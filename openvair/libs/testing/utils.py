@@ -14,11 +14,13 @@ import time
 import uuid
 from typing import Any, Dict, cast
 
+import libvirt
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
+from openvair.libs.libvirt.connection import LibvirtConnection
 from openvair.modules.volume.domain.model import VolumeFactory
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
@@ -40,6 +42,9 @@ from openvair.modules.template.service_layer.unit_of_work import (
 )
 from openvair.modules.notification.service_layer.unit_of_work import (
     NotificationSqlAlchemyUnitOfWork,
+)
+from openvair.modules.virtual_machines.service_layer.unit_of_work import (
+    VMSqlAlchemyUnitOfWork,
 )
 
 LOG = get_logger(__name__)
@@ -183,6 +188,27 @@ def cleanup_all_templates() -> None:
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_virtual_machines() -> None:
+    """Remove all virtual machines from DB and libvirt."""
+    unit_of_work = VMSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            vms = uow.virtual_machines.get_all()
+            for vm in vms:
+                with LibvirtConnection() as conn:
+                    try:
+                        domain = conn.lookupByName(vm.name)
+                        if domain.isActive():
+                            domain.destroy()
+                        domain.undefine()
+                    except libvirt.libvirtError:
+                        pass
+                uow.virtual_machines.delete(vm)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up virtual machines: {err}')
 
 
 def wait_for_field_value(  # noqa: PLR0913
