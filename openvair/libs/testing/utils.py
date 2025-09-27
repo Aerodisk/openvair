@@ -12,7 +12,10 @@ functions for:
 
 import time
 import uuid
+
 from typing import Any, Dict, List, cast
+from pathlib import Path
+
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -32,6 +35,9 @@ from openvair.modules.storage.adapters.serializer import (
     DataSerializer as StorageSerializer,
 )
 from openvair.modules.network.domain.bridges.netplan import NetplanInterface
+from openvair.modules.image.service_layer.unit_of_work import (
+    ImageSqlAlchemyUnitOfWork,
+)
 from openvair.modules.network.domain.utils.ovs_manager import OVSManager
 from openvair.modules.network.domain.bridges.ovs_bridge import OVSInterface
 from openvair.modules.volume.service_layer.unit_of_work import (
@@ -138,6 +144,11 @@ def generate_test_entity_name(entity_type: str, prefix: str = 'test') -> str:
         A unique name string for the test entity
     """
     return f'{prefix}-{entity_type}-{uuid.uuid4().hex[:6]}'
+
+
+def generate_image_name() -> str:
+    """Generates a unique name for an image."""
+    return f'{generate_test_entity_name("image")}.iso'
 
 
 def cleanup_all_volumes() -> None:
@@ -266,6 +277,31 @@ def cleanup_partitions(
             LOG.warning(f'Error during partition {part_path} deletion: {err}')
 
 
+def cleanup_all_images() -> None:
+    """Remove all image from both database and filesystem.
+
+    This utility function is typically used after storage tests to ensure
+    a clean state. It:
+    1. Retrieves all images from the database
+    2. For each image:
+        - Creates a domain model instance
+        - Deletes the image record from the database
+        - Removes the image file from the filesystem
+        - Commits the transaction
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = ImageSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            images = uow.images.get_all()
+            for orm_image in images:
+                uow.images.delete(orm_image)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
 def cleanup_all_events() -> None:
     """Remove all events from the database.
 
@@ -274,7 +310,6 @@ def cleanup_all_events() -> None:
     1. Retrieves all events from the database
     2. Deletes each event record
     3. Commits the transaction
-
     Any errors during cleanup are logged as warnings but do not interrupt
     the cleanup process.
     """
@@ -382,7 +417,7 @@ def wait_until_404(
     raise TimeoutError(message)
 
 
-def wait_full_deleting(
+def wait_full_deleting_object(
     client: TestClient,
     path: str,
     object_id: str,
@@ -422,6 +457,33 @@ def wait_full_deleting(
         f'Object with id "{object_id}" at "{path}" was not deleted '
         f'within {timeout} seconds.'
     )
+    raise TimeoutError(message)
+
+
+def wait_full_deleting_file(
+    file_path: Path,
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Waits until a specific file is deleted.
+
+    This function repeatedly checks if a certain file exists.
+
+    Args:
+        file_path (str): A path to an object.
+        timeout (int): Maximum wait time in seconds before timing out.
+        interval (float): Time in seconds between successive requests.
+
+    Raises:
+        TimeoutError: If the object is still present after the timeout expires.
+    """
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if not file_path.exists():
+            return
+        time.sleep(interval)
+
+    message = f'"{file_path}" was not deleted within {timeout} seconds.'
     raise TimeoutError(message)
 
 
