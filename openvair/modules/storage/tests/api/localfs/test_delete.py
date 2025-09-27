@@ -17,9 +17,9 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.testing.utils import (
-    wait_full_deleting,
     cleanup_all_volumes,
     get_disk_partitions,
+    wait_full_deleting_object,
 )
 from openvair.modules.storage.service_layer.services import StorageStatus
 
@@ -35,7 +35,7 @@ def test_delete_storage_success(
     data = delete_response.json()
     assert data['id'] == storage_id
     assert data['status'] == StorageStatus.deleting.name
-    wait_full_deleting(client, '/storages/', storage_id)
+    wait_full_deleting_object(client, '/storages/', storage_id)
 
 
 def test_delete_storage_invalid_uuid(client: TestClient) -> None:
