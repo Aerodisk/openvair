@@ -13,7 +13,7 @@ from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
-    wait_full_deleting,
+    cleanup_all_images,
     cleanup_all_volumes,
     cleanup_test_bridges,
     wait_for_field_value,
@@ -21,6 +21,7 @@ from openvair.libs.testing.utils import (
     wait_for_field_not_empty,
     cleanup_all_notifications,
     generate_test_entity_name,
+    wait_full_deleting_object,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import (
@@ -162,6 +163,7 @@ def storage(client: TestClient) -> Generator[Dict, None, None]:
 
     storage = response.json()
     yield storage
+    cleanup_all_images()
     cleanup_all_volumes()
     cleanup_all_templates()
 
@@ -262,7 +264,7 @@ def virtual_machine(
     yield created_vm
 
     delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
-    wait_full_deleting(client, '/virtual-machines/', created_vm['id'])
+    wait_full_deleting_object(client, '/virtual-machines/', created_vm['id'])
 
 
 @pytest.fixture(scope='function')
