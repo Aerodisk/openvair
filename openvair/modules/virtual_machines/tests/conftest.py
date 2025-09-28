@@ -3,14 +3,17 @@
 Provides:
 - `cleanup_vms`: Clean up all virtual machines before and after each test.
 """
-
-from typing import Generator
+from typing import Dict, Generator
 
 import pytest
+from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
+    create_resource,
     cleanup_all_volumes,
+    wait_for_field_value,
+    generate_test_entity_name,
     cleanup_all_virtual_machines,
 )
 
@@ -23,3 +26,40 @@ def cleanup_vms() -> Generator:
     yield
     cleanup_all_virtual_machines()
     cleanup_all_volumes()
+
+
+@pytest.fixture(scope='function')
+def vm_snapshot(
+        client: TestClient, activated_virtual_machine: Dict
+) -> Generator[Dict, None, None]:
+    """Creates a snapshot in activated (running) VM."""
+    vm_id = activated_virtual_machine['id']
+    snapshot_data = {
+        "name": generate_test_entity_name('snapshot'),
+        "description": "Test snapshot",
+    }
+    snapshot_info = create_resource(
+        client,
+        f'/virtual-machines/{vm_id}/snapshots/',
+        snapshot_data,
+        'snapshot',
+    )
+    wait_for_field_value(
+        client,
+        f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}',
+        'status',
+        'running',
+        timeout=120,
+    )
+    wait_for_field_value(
+        client,
+        f'/virtual-machines/{vm_id}/',
+        'power_state',
+        'running',
+        timeout=120,
+    )
+    snapshot = client.get(
+        f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}'
+    ).json()
+
+    yield snapshot

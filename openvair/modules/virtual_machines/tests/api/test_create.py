@@ -26,8 +26,8 @@ from openvair.libs.testing.utils import (
 def create_base_vm_data(volume_id: str) -> Dict[str, Any]:
     """Create base VM data for testing."""
     return {
-        'name': generate_test_entity_name('vm'),
-        'description': 'Test VM',
+        'name': generate_test_entity_name('virtual_machine'),
+        'description': 'Virtual machine for integration tests',
         'cpu': {
             'cores': 1,
             'threads': 1,

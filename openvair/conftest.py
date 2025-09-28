@@ -14,6 +14,7 @@ from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
     wait_full_deleting,
+    check_object_exists,
     cleanup_all_volumes,
     cleanup_test_bridges,
     wait_for_field_value,
@@ -226,7 +227,7 @@ def virtual_machine(
         description='Virtual machine for integration tests',
         cpu=Cpu(cores=1, threads=1, sockets=1, model='host', type='static'),
         ram=RAM(size=1000000000),
-        os=Os(boot_device='hd', bios='LEGACY', graphic_driver='virtio'),
+        os=Os(boot_device='cdrom', bios='UEFI', graphic_driver='virtio'),
         graphic_interface=GraphicInterfaceBase(connect_type='vnc'),
         disks=CreateVmDisks(
             attach_disks=[
@@ -261,8 +262,9 @@ def virtual_machine(
 
     yield created_vm
 
-    delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
-    wait_full_deleting(client, '/virtual-machines/', created_vm['id'])
+    if check_object_exists(client, '/virtual-machines/', created_vm['id']):
+        delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
+        wait_full_deleting(client, '/virtual-machines/', created_vm['id'])
 
 
 @pytest.fixture(scope='function')
@@ -270,7 +272,10 @@ def deactivated_virtual_machine(
     client: TestClient, virtual_machine: Dict
 ) -> Generator[Dict, None, None]:
     """Creates a test deactivated virtual machine."""
-    if virtual_machine['power_state'] != 'shut_off':
+    actual_vm = client.get(
+        f'/virtual-machines/{virtual_machine["id"]}/'
+    ).json()
+    if actual_vm['power_state'] != 'shut_off':
         response = client.post(
             f'/virtual-machines/{virtual_machine["id"]}/shut-off/'
         ).json()
@@ -293,29 +298,40 @@ def activated_virtual_machine(
     client: TestClient, virtual_machine: Dict
 ) -> Generator[Dict, None, None]:
     """Creates a test activated virtual machine."""
-    response = client.post(
-        f'/virtual-machines/{virtual_machine["id"]}/start/'
+    actual_vm = client.get(
+        f'/virtual-machines/{virtual_machine["id"]}/'
     ).json()
-    wait_for_field_value(
-        client,
-        f'/virtual-machines/{response["id"]}/',
-        'power_state',
-        'running',
-    )
+    if actual_vm['power_state'] != 'running':
+        response = client.post(
+            f'/virtual-machines/{virtual_machine["id"]}/start/'
+        ).json()
+        wait_for_field_value(
+            client,
+            f'/virtual-machines/{response["id"]}/',
+            'power_state',
+            'running',
+        )
 
-    activated = client.get(f'/virtual-machines/{virtual_machine["id"]}/').json()
-
-    yield activated
-
-    response = client.post(
-        f'/virtual-machines/{virtual_machine["id"]}/shut-off/'
+    activated_vm = client.get(
+        f'/virtual-machines/{virtual_machine["id"]}/'
     ).json()
-    wait_for_field_value(
-        client,
-        f'/virtual-machines/{response["id"]}/',
-        'power_state',
-        'shut_off',
-    )
+
+    yield activated_vm
+
+    if check_object_exists(client, '/virtual-machines/', virtual_machine['id']):
+        actual_vm = client.get(
+            f'/virtual-machines/{virtual_machine["id"]}/'
+        ).json()
+        if actual_vm['power_state'] != 'shut_off':
+            response = client.post(
+                f'/virtual-machines/{virtual_machine["id"]}/shut-off/'
+            ).json()
+            wait_for_field_value(
+                client,
+                f'/virtual-machines/{response["id"]}/',
+                'power_state',
+                'shut_off',
+            )
 
 
 @pytest.fixture
