@@ -12,7 +12,7 @@ functions for:
 
 import time
 import uuid
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, cast
 from pathlib import Path
 
 from fastapi import status
@@ -21,11 +21,16 @@ from fastapi.testclient import TestClient
 from openvair.libs.log import get_logger
 from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 from openvair.modules.volume.domain.model import VolumeFactory
+from openvair.modules.storage.domain.model import StorageFactory
+from openvair.modules.storage.adapters.parted import PartedAdapter
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
 from openvair.modules.network.adapters.serializer import (
     DataSerializer as InterfaceSerializer,
+)
+from openvair.modules.storage.adapters.serializer import (
+    DataSerializer as StorageSerializer,
 )
 from openvair.modules.network.domain.bridges.netplan import NetplanInterface
 from openvair.modules.image.service_layer.unit_of_work import (
@@ -38,6 +43,9 @@ from openvair.modules.volume.service_layer.unit_of_work import (
 )
 from openvair.modules.network.service_layer.unit_of_work import (
     NetworkSqlAlchemyUnitOfWork,
+)
+from openvair.modules.storage.service_layer.unit_of_work import (
+    StorageSqlAlchemyUnitOfWork as StorageUOW,
 )
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
@@ -195,6 +203,76 @@ def cleanup_all_templates() -> None:
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_storages() -> None:
+    """Delete all storages from both database and OS using StorageFactory.
+
+    This utility function:
+    1. Retrieves all storages from the database
+    2. For each storage:
+        - Creates appropriate domain storage instance using StorageFactory
+        - Deletes physical storage resources
+        - Removes the storage record from database
+    3. Handles errors gracefully with logging
+    """
+    unit_of_work = StorageUOW()
+    with unit_of_work as uow:
+        all_storages = uow.storages.get_all()
+        for db_storage in all_storages:
+            try:
+                domain_storage = StorageSerializer.to_domain(db_storage)
+                storage = StorageFactory().get_storage(domain_storage)
+                storage.delete()
+            except Exception as err:  # noqa: BLE001
+                LOG.warning(f'Error during storages cleanup: {err}')
+            finally:
+                uow.storages.delete(db_storage)
+                uow.commit()
+
+
+def get_disk_partitions(disk_path: str) -> List[str]:
+    """Returns a list of partition numbers on the given disk.
+
+    Args:
+        disk_path: Path to the disk (e.g. /dev/sdb)
+
+    Returns:
+        List of partition numbers as strings
+    """
+    adapter = PartedAdapter(disk_path)
+    try:
+        output = adapter.print()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f"Failed to read partitions on disk {disk_path}: {err}")
+        return []
+
+    partitions = []
+    for line in output.splitlines():
+        parts = line.split()
+        if parts and parts[0].isdigit():
+            partitions.append(parts[0])
+    return partitions
+
+
+def cleanup_partitions(
+        disk_path: str, partition_numbers: List[str]
+) -> None:
+    """Deletes a list of partitions from a disk.
+
+    Deletes local partitions in descending order to avoid shifting numbers.
+
+    Args:
+        disk_path: Path to the disk
+        partition_numbers: List of partition numbers to delete
+    """
+    for part_number in sorted(partition_numbers, reverse=True):
+        try:
+            adapter = PartedAdapter(disk_path)
+            adapter.rm(part_number)
+        except Exception as err:  # noqa: BLE001
+            part_path = disk_path + part_number
+            LOG.warning(f'Error during partition {part_path} deletion: {err}')
 
 
 def cleanup_all_images() -> None:

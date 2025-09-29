@@ -8,7 +8,7 @@ Defines:
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 from pathlib import Path
 
 from pydantic import Field, field_validator
@@ -23,7 +23,9 @@ class StorageSettings(BaseSettings):
         storage_fs_type (str): Filesystem type (e.g. ext4, xfs).
     """
     storage_path: Path = Field(default=None, alias='TEST_STORAGE_PATH')
-    storage_fs_type: str = Field(default='ext4', alias='TEST_STORAGE_FS_TYPE')
+    storage_fs_type: Literal['xfs', 'ext4'] = Field(
+        default='ext4', alias='TEST_STORAGE_FS_TYPE'
+    )
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / '.env.test',
