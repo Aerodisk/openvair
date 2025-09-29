@@ -20,18 +20,12 @@ valid_port = block_device_settings.port
 valid_inf_type = block_device_settings.inf_type
 
 
-valid_input = {
-    "inf_type": valid_inf_type,
-    "ip": valid_ip,
-    "port": valid_port
-}
+valid_input = {'inf_type': valid_inf_type, 'ip': valid_ip, 'port': valid_port}
 
 
 @pytest.mark.parametrize(
-    'input_data', [
-        valid_input,
-        {k: v for k, v in valid_input.items() if k != "port"}
-    ]
+    'input_data',
+    [valid_input, {k: v for k, v in valid_input.items() if k != 'port'}],
 )
 def test_login_success(
     client_with_logout: TestClient, input_data: dict
@@ -43,22 +37,20 @@ def test_login_success(
     - Returned data contains correct 'inf_type', 'ip', 'port', and status.
     - Returned 'id' is a valid UUID.
     """
-    resp = client_with_logout.post("/block-devices/login", json=input_data)
+    resp = client_with_logout.post('/block-devices/login', json=input_data)
     assert resp.status_code == status.HTTP_200_OK, resp
     response = resp.json()
     assert response['inf_type'] == valid_inf_type
     assert response['ip'] == valid_ip
     assert response['port'] == valid_port
-    assert response['status'] == "available"
+    assert response['status'] == 'available'
     try:
         uuid.UUID(response['id'])
     except ValueError:
         assert AssertionError(), f"Invalid UUID: {response['id']}"
 
 
-@pytest.mark.parametrize(
-    'missing_field', ["inf_type", "ip"]
-)
+@pytest.mark.parametrize('missing_field', ['inf_type', 'ip'])
 def test_login_missing_required_field(
     client_with_logout: TestClient, missing_field: str
 ) -> None:
@@ -67,8 +59,7 @@ def test_login_missing_required_field(
     invalid_input.pop(missing_field)
 
     response = client_with_logout.post(
-        "/block-devices/login",
-        json=invalid_input
+        '/block-devices/login', json=invalid_input
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -80,13 +71,14 @@ def test_login_unauthorized(unauthorized_client: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    'invalid_field', [
-        ("inf_type", 1),
-        ("inf_type", None),
-        ("ip", None),
-        ("ip", 12),
-        ("port", 3260)
-    ]
+    'invalid_field',
+    [
+        ('inf_type', 1),
+        ('inf_type', None),
+        ('ip', None),
+        ('ip', 12),
+        ('port', 3260),
+    ],
 )
 def test_login_invalid_required_field_type(
     client_with_logout: TestClient, invalid_field: dict
@@ -96,20 +88,20 @@ def test_login_invalid_required_field_type(
     invalid_input[invalid_field[0]] = invalid_field[1]
 
     response = client_with_logout.post(
-        "/block-devices/login",
-        json=invalid_input
+        '/block-devices/login', json=invalid_input
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.parametrize(
-    'invalid_field', [
-        ("inf_type", "string"),
-        ("ip", "string"),
-        ("ip", "127.0.0.1"),
-        ("port", "string"),
-        ("port", "123123")
-    ]
+    'invalid_field',
+    [
+        ('inf_type', 'string'),
+        ('ip', 'string'),
+        ('ip', '127.0.0.1'),
+        ('port', 'string'),
+        ('port', '123123'),
+    ],
 )
 def test_login_invalid_required_field(
     client_with_logout: TestClient, invalid_field: dict
@@ -119,14 +111,13 @@ def test_login_invalid_required_field(
     invalid_input[invalid_field[0]] = invalid_field[1]
 
     response = client_with_logout.post(
-        "/block-devices/login",
-        json=invalid_input
+        '/block-devices/login', json=invalid_input
     )
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def test_double_login(client_with_logout: TestClient) -> None:
     """Second login returns 500 Internal Server Error."""
-    response = client_with_logout.post("/block-devices/login", json=valid_input)
-    response = client_with_logout.post("/block-devices/login", json=valid_input)
+    response = client_with_logout.post('/block-devices/login', json=valid_input)
+    response = client_with_logout.post('/block-devices/login', json=valid_input)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

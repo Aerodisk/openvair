@@ -1,5 +1,6 @@
 # noqa: D100
 from uuid import uuid4
+from typing import cast
 from pathlib import Path
 from collections.abc import Generator
 
@@ -13,23 +14,31 @@ from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
     create_resource,
     delete_resource,
-    wait_full_deleting,
+    cleanup_all_images,
     cleanup_all_volumes,
+    cleanup_all_storages,
+    cleanup_test_bridges,
     wait_for_field_value,
     cleanup_all_templates,
+    wait_for_field_not_empty,
     cleanup_all_notifications,
     generate_test_entity_name,
+    wait_full_deleting_object,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import (
+    network_settings,
     storage_settings,
     notification_settings,
 )
+from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
     LocalFSStorageExtraSpecsCreate,
 )
+from openvair.modules.volume.service_layer.services import VolumeStatus
+from openvair.modules.storage.service_layer.services import StorageStatus
 from openvair.modules.virtual_machines.entrypoints.schemas import (
     QOS,
     RAM,
@@ -133,9 +142,10 @@ def configure_pagination() -> None:
 #
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
+    cleanup_all_storages()
     headers = {'Authorization': 'Bearer mocked_token'}
 
     storage_disk = Path(storage_settings.storage_path)
@@ -158,7 +168,16 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
         raise RuntimeError(message)
 
     storage = response.json()
+    wait_for_field_value(
+        client=client,
+        path=f"/storages/{storage['id']}/",
+        field="status",
+        expected=StorageStatus.available.name,
+    )
+
     yield storage
+
+    cleanup_all_images()
     cleanup_all_volumes()
     cleanup_all_templates()
 
@@ -170,7 +189,6 @@ def storage(client: TestClient) -> Generator[dict, None, None]:
                 f' {delete_response.text}'
 
         )
-    LOG.info('FINISH DELETE STORAGE')
 
 
 @pytest.fixture(scope='function')
@@ -185,6 +203,12 @@ def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
         read_only=False,
     ).model_dump(mode='json')
     volume = create_resource(client, '/volumes/create/', volume_data, 'volume')
+    wait_for_field_value(
+        client=client,
+        path=f'/volumes/{volume["id"]}/',
+        field='status',
+        expected=VolumeStatus.available.name,
+    )
 
     yield volume
 
@@ -206,6 +230,12 @@ def template(
     template = create_resource(
         client, '/templates/', template_data, 'template'
     )['data']
+    wait_for_field_value(
+        client=client,
+        path=f"/templates/{template['id']}/",
+        field="status",
+        expected=TemplateStatus.AVAILABLE,
+    )
 
     yield template
 
@@ -259,7 +289,7 @@ def virtual_machine(
     yield created_vm
 
     delete_resource(client, '/virtual-machines', created_vm['id'], 'vm')
-    wait_full_deleting(client, '/virtual-machines/', created_vm['id'])
+    wait_full_deleting_object(client, '/virtual-machines/', created_vm['id'])
 
 
 @pytest.fixture(scope='function')
@@ -328,3 +358,69 @@ def notification() -> Generator[dict, None, None]:
     yield test_data
 
     cleanup_all_notifications()
+
+
+@pytest.fixture
+def physical_interface(client: TestClient) -> dict | None:
+    """Get physical interface by name from environment variable."""
+    response = client.get('/interfaces/')
+    interfaces_data = response.json()
+    interfaces = interfaces_data.get('items', [])
+
+    for interface in interfaces:
+        if interface['name'] == network_settings.network_interface:
+            wait_for_field_not_empty(
+                client, f'/interfaces/{interface["id"]}', 'ip'
+            )
+            return cast('dict', interface)
+
+    return None
+
+
+@pytest.fixture
+def bridge(
+    client: TestClient, physical_interface: dict
+) -> Generator[dict, None, None]:
+    """Create a test bridge and delete it after test."""
+    bridge_data_to_create = {
+        'name': generate_test_entity_name('br'),
+        'type': 'bridge',
+        'interfaces': [physical_interface],
+        'ip': '',
+    }
+
+    response = client.post('/interfaces/create/', json=bridge_data_to_create)
+    bridge_data_response = response.json()
+    wait_for_field_value(
+        client,
+        f'/interfaces/{bridge_data_response["id"]}',
+        'status',
+        'available',
+    )
+    wait_for_field_not_empty(
+        client,
+        f'/interfaces/{bridge_data_response["id"]}',
+        'ip',
+    )
+
+    response = client.get(f'/interfaces/{bridge_data_response["id"]}')
+    bridge_data = response.json()
+
+    yield bridge_data
+
+    # TODO: Remove when fixed https://github.com/Aerodisk/openvair/issues/117
+    #       (or other tests will fail due to network error)
+    response = client.get('/interfaces/')
+    interfaces_data = response.json()
+    interfaces = interfaces_data.get('items', [])
+    for interface in interfaces:
+        if interface['id'] == bridge_data['id']:
+            client.request('PUT', f'/interfaces/{bridge_data["name"]}/turn_on')
+            wait_for_field_value(
+                client,
+                f'/interfaces/{bridge_data["id"]}/',
+                'power_state',
+                'UNKNOWN',
+            )
+
+    cleanup_test_bridges()

@@ -17,11 +17,11 @@ import libvirt
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.virtual_machines.config import (
-    SERVER_IP,
-    SNAPSHOTS_PATH,
+from openvair.modules.virtual_machines.vnc import (
+    VNCManager,
+    VncManagerError,
 )
+from openvair.modules.virtual_machines.config import SNAPSHOTS_PATH
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 from openvair.modules.virtual_machines.domain.exceptions import (
     SnapshotError,
@@ -55,6 +55,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         self.snapshot_info = kwargs.pop('snapshot_info', None)
         self.vm_info = kwargs
         self.vm_xml = self.render_domain(self.vm_info)
+        self.vnc_manager = VNCManager()
 
     def start(self) -> dict:
         """Start the virtual machine.
@@ -80,7 +81,6 @@ class LibvirtDriver(BaseLibvirtDriver):
             LOG.info(f'Generated graphic_url: {graphic_url}')
             LOG.info(f'Generated graphic_port: {graphic_port}')
 
-            # Save the graphic interface information
             self.vm_info['graphic_interface'] = {
                 'url': f'{graphic_url}:{graphic_port}' if graphic_url else '',
             }
@@ -169,7 +169,8 @@ class LibvirtDriver(BaseLibvirtDriver):
     def turn_off(self) -> dict:
         """Turn off the virtual machine.
 
-        This method stops the virtual machine using the Libvirt API.
+        This method stops the virtual machine using the Libvirt API and
+        cleans up any associated VNC resources.
 
         Returns:
             Dict: An empty dictionary representing the result of the operation.
@@ -179,23 +180,55 @@ class LibvirtDriver(BaseLibvirtDriver):
             virtual machine.
         """
         LOG.info(f'Turning off VM {self.vm_info.get("name")}')
-        with self.connection as connection:
-            domain = connection.lookupByName(self.vm_info.get('name'))
-            domain.destroy()
+
+        try:
+            with self.connection as connection:
+                domain = connection.lookupByName(self.vm_info.get('name'))
+                domain.destroy()
+        finally:
+            self._cleanup_vnc_session()
+
         return {}
+
+    def _cleanup_vnc_session(self) -> None:
+        """Clean up VNC session resources for this VM.
+
+        This method stops the websockify process and releases the allocated
+        WebSocket port if a VNC session was active.
+        """
+        vnc_session = self.vm_info.get('vnc_session')
+        if not vnc_session:
+            return
+
+        vm_name = self.vm_info.get('name')
+        LOG.info(f'Cleaning up VNC session for VM {vm_name}')
+
+        try:
+            success = self.vnc_manager.stop_vnc_session(str(vm_name))
+            if success:
+                LOG.info(f'VNC session stopped for VM {vm_name}')
+            else:
+                LOG.warning(f'No active VNC session found for VM {vm_name}')
+
+            if 'vnc_session' in self.vm_info:
+                del self.vm_info['vnc_session']
+            LOG.info(f'VNC session cleanup completed for VM {vm_name}')
+        except Exception as e:  # noqa: BLE001 TODO: Should be more specific
+            msg = f'Error during VNC session cleanup for VM {vm_name}: {e}'
+            LOG.warning(msg)
 
     def vnc(self) -> dict:
         """Start a VNC session for the virtual machine.
 
-        This method starts a VNC session using the `websockify` tool and
-        returns the URL for accessing the VNC session.
+        This method starts a VNC session using the VNC manager
+        to ensure no port conflicts occur during mass VM startup.
 
         Returns:
             Dict: A dictionary containing the URL of the VNC session.
 
         Raises:
             ValueError: If the graphic interface URL is not set or is invalid.
-            RuntimeError: If starting `websockify` fails.
+            VNCSessionError: If starting VNC session fails.
         """
         LOG.info(f'Starting VNC for VM {self.vm_info.get("name")}')
 
@@ -214,35 +247,40 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         try:
             port = vm_url.split(':')[-1]
-            vnc_port = f'6{port[1:]}'
-        except (AttributeError, IndexError) as err:
+            vnc_port = int(port)
+        except (AttributeError, IndexError, ValueError) as err:
             LOG.error(f'Invalid graphic interface URL format: {vm_url}')
             msg = f'Invalid graphic interface URL format: {vm_url}'
             raise ValueError(msg) from err
 
-        try:
-            execute(
-                'websockify',
-                '-D',
-                '--run-once',
-                '--web',
-                '/opt/aero/openvair/openvair/libs/noVNC/',
-                vnc_port,
-                f'localhost:{port}',
-                params=ExecuteParams(  # noqa: S604
-                    run_as_root=True, shell=True, raise_on_error=True
-                ),
-            )
-        except (ExecuteError, OSError) as err:
-            msg = f'Failed to start websockify: {err!s}'
-            LOG.error(msg)
-            raise VNCSessionError(msg)
+        vm_name = self.vm_info.get('name')
 
-        vnc_url = (
-            f'http://{SERVER_IP}:{vnc_port}/vnc.html?'
-            f'host={SERVER_IP}&port={vnc_port}'
-        )
-        return {'url': vnc_url}
+        try:
+            session_result = self.vnc_manager.start_vnc_session(
+                vm_name=str(vm_name),
+                vnc_host='localhost',
+                vnc_port=vnc_port,
+            )
+
+            self.vm_info['vnc_session'] = {
+                'ws_port': int(session_result['ws_port']),
+                'pid': int(session_result['pid']),
+                'url': session_result['url'],
+            }
+
+            LOG.info(
+                f'Successfully started VNC session for VM {vm_name}: '
+                f'{session_result["url"]}'
+            )
+            return {'url': session_result['url']}
+        except VncManagerError as err:
+            msg = f'VNC manager error: {err!s}'
+            LOG.error(msg)
+            raise VNCSessionError(msg) from err
+        except Exception as err:
+            msg = f'Unexpected error starting VNC session: {err!s}'
+            LOG.error(msg)
+            raise VNCSessionError(msg) from err
 
     def create_internal_snapshot(self) -> None:
         """Create an internal snapshot of the virtual machine.

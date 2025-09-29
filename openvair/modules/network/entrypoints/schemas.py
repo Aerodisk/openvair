@@ -13,7 +13,7 @@ Schemas:
 """
 
 
-from pydantic import BaseModel
+from pydantic import Field, BaseModel
 
 
 class InterfaceExtraSpecs(BaseModel):
@@ -72,7 +72,7 @@ class BridgeCreate(BaseModel):
     """
 
     ip: str | None = None
-    name: str
+    name: str = Field(max_length=15)
     type: str
     interfaces: list[Interface]
     status: str | None = None

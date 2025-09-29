@@ -15,7 +15,7 @@ from typing import cast
 
 from fastapi import Depends, APIRouter, status
 from fastapi.responses import StreamingResponse
-from fastapi_pagination import Page, Params, paginate
+from fastapi_pagination import Page, paginate
 
 from openvair.libs.log import get_logger
 from openvair.libs.auth.jwt_utils import get_current_user
@@ -42,8 +42,10 @@ async def get_events(
 ) -> Page[schemas.Event]:
     """Retrieve all events from the database.
 
-    This endpoint retrieves all events using the EventCrud class and returns
-    them in a paginated format.
+    This endpoint retrieves events using the EventCrud class and returns
+    them in a paginated format. Automatically chooses method to call:
+    - If the module name is the default 'event-store' - `new_get_all_events()`.
+    - If the module name specified - calls `new_get_all_events_by_module()`.
 
     Args:
         crud (EventCrud): Instance of EventCrud for database operations.
@@ -54,7 +56,11 @@ async def get_events(
     Raises:
         HTTPException: If any database error occurs or events are not found.
     """
-    result: list = crud.new_get_all_events()
+    result: list[schemas.Event]
+    if crud.module_name == 'event-store':
+        result = crud.new_get_all_events()
+    else:
+        result = crud.new_get_all_events_by_module()
     return cast('Page', paginate(result))
 
 
@@ -71,7 +77,9 @@ async def download_events(
 
     This endpoint retrieves all events using the EventCrud class, generates
     a CSV file containing the event data, and returns it as a streaming
-    response.
+    response. Automatically chooses method to call:
+    - If the module name is the default 'event-store' - `new_get_all_events()`.
+    - If a specific module name is set - calls `new_get_all_events_by_module()`.
 
     Args:
         crud (EventCrud): Instance of EventCrud for database operations.
@@ -79,16 +87,15 @@ async def download_events(
     Returns:
         StreamingResponse: A streaming response with the CSV file content.
     """
-    result: list = crud.new_get_all_events()
-    events_page: Page = paginate(
-        result, params=Params(page=1, size=len(result))
-    )
+    result: list[schemas.Event]
+    if crud.module_name == 'event-store':
+        result = crud.new_get_all_events()
+    else:
+        result = crud.new_get_all_events_by_module()
 
-    # Создаем CSV файл в памяти
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # Записываем заголовки
     writer.writerow(
         [
             'id',
@@ -101,17 +108,16 @@ async def download_events(
         ]
     )
 
-    # Записываем данные
-    for event in events_page.items:
+    for event in result:
         writer.writerow(
             [
-                event['id'],
-                event['module'],
-                event['object_id'],
-                event['user_id'],
-                event['event'],
-                event['timestamp'],
-                event['information'],
+                event.id,
+                event.module,
+                event.object_id,
+                event.user_id,
+                event.event,
+                event.timestamp,
+                event.information,
             ]
         )
 
