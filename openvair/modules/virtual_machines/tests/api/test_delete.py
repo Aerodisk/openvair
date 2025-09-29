@@ -15,7 +15,10 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.libvirt.vm import get_vms_state
-from openvair.libs.testing.utils import wait_full_deleting, wait_for_field_value
+from openvair.libs.testing.utils import (
+    wait_for_field_value,
+    wait_full_deleting_object,
+)
 from openvair.modules.virtual_machines.service_layer.unit_of_work import (
     VMSqlAlchemyUnitOfWork,
 )
@@ -35,7 +38,7 @@ def test_delete_vm_success(
     data = response.json()
     assert data['id'] == vm_id
     assert data['status'] == 'deleting'
-    wait_full_deleting(client, '/virtual-machines/', vm_id)
+    wait_full_deleting_object(client, '/virtual-machines/', vm_id)
     assert vm_name not in get_vms_state()
     with VMSqlAlchemyUnitOfWork() as uow:
         assert not uow.virtual_machines.get(vm_id)
@@ -47,7 +50,7 @@ def test_delete_vm_invalid_uuid(client: TestClient) -> None:
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_delete_vm_running_state(
+def test_delete_vm_running(
         client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test failure when trying to delete a running VM."""
@@ -121,7 +124,7 @@ def test_delete_vm_with_snapshots_success(
     data = delete_response.json()
     assert data['id'] == vm_id
     assert data['status'] == 'deleting'
-    wait_full_deleting(client, '/virtual-machines/', vm_id)
+    wait_full_deleting_object(client, '/virtual-machines/', vm_id)
     assert vm_name not in get_vms_state()
     with VMSqlAlchemyUnitOfWork() as uow:
         assert not uow.virtual_machines.get(vm_id)

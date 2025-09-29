@@ -123,7 +123,7 @@ def test_get_nonexistent_vm_by_id(client: TestClient) -> None:
     assert 'not found' in response.text.lower()
 
 
-def test_get_vm_with_invalid_uuid(client: TestClient) -> None:
+def test_get_vm_invalid_uuid(client: TestClient) -> None:
     """Test invalid UUID format in path returns HTTP 422."""
     response = client.get('/virtual-machines/invalid-uuid/')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

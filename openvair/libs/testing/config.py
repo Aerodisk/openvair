@@ -8,7 +8,7 @@ Defines:
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 from pathlib import Path
 
 from pydantic import Field, field_validator
@@ -22,9 +22,10 @@ class StorageSettings(BaseSettings):
         storage_path (Path): Filesystem path to use for test storage.
         storage_fs_type (str): Filesystem type (e.g. ext4, xfs).
     """
-
     storage_path: Path = Field(default=None, alias='TEST_STORAGE_PATH')
-    storage_fs_type: str = Field(default='ext4', alias='TEST_STORAGE_FS_TYPE')
+    storage_fs_type: Literal['xfs', 'ext4'] = Field(
+        default='ext4', alias='TEST_STORAGE_FS_TYPE'
+    )
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / '.env.test',
@@ -51,7 +52,6 @@ class BlockDeviceSettings(BaseSettings):
         env_file_encoding='utf-8',
         extra='ignore',
     )
-
 
 class NotificationSettings(BaseSettings):
     """Pydantic settings for notification tests.
@@ -98,7 +98,6 @@ class NetworkSettings(BaseSettings):
         env_file_encoding='utf-8',
         extra='ignore',
     )
-
 
 storage_settings = StorageSettings()
 block_device_settings = BlockDeviceSettings()

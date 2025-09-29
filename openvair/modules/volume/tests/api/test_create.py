@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
+    cleanup_all_storages,
     wait_for_field_value,
     generate_test_entity_name,
 )
@@ -183,6 +184,7 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
     Asserts:
     - HTTP 500 with 'storage' mentioned in response.
     """
+    cleanup_all_storages()
     volume_data = {
         'name': 'nonexistent-storage-volume',
         'description': 'Attempt to use bad storage_id',
@@ -201,7 +203,7 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
 
 
 def test_create_volume_unauthorized(
-    unauthorized_client: TestClient, storage: Dict
+   storage: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_data = CreateVolume(

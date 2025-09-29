@@ -13,6 +13,7 @@ functions for:
 import time
 import uuid
 from typing import Any, Dict, List, cast
+from pathlib import Path
 
 import libvirt
 from fastapi import status
@@ -22,13 +23,21 @@ from openvair.libs.log import get_logger
 from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 from openvair.libs.libvirt.connection import LibvirtConnection
 from openvair.modules.volume.domain.model import VolumeFactory
+from openvair.modules.storage.domain.model import StorageFactory
+from openvair.modules.storage.adapters.parted import PartedAdapter
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
 from openvair.modules.network.adapters.serializer import (
     DataSerializer as InterfaceSerializer,
 )
+from openvair.modules.storage.adapters.serializer import (
+    DataSerializer as StorageSerializer,
+)
 from openvair.modules.network.domain.bridges.netplan import NetplanInterface
+from openvair.modules.image.service_layer.unit_of_work import (
+    ImageSqlAlchemyUnitOfWork,
+)
 from openvair.modules.network.domain.utils.ovs_manager import OVSManager
 from openvair.modules.network.domain.bridges.ovs_bridge import OVSInterface
 from openvair.modules.volume.service_layer.unit_of_work import (
@@ -37,8 +46,14 @@ from openvair.modules.volume.service_layer.unit_of_work import (
 from openvair.modules.network.service_layer.unit_of_work import (
     NetworkSqlAlchemyUnitOfWork,
 )
+from openvair.modules.storage.service_layer.unit_of_work import (
+    StorageSqlAlchemyUnitOfWork as StorageUOW,
+)
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
+)
+from openvair.modules.event_store.service_layer.unit_of_work import (
+    EventStoreSqlAlchemyUnitOfWork as EventStoreUOW,
 )
 from openvair.modules.notification.service_layer.unit_of_work import (
     NotificationSqlAlchemyUnitOfWork,
@@ -134,6 +149,11 @@ def generate_test_entity_name(entity_type: str, prefix: str = 'test') -> str:
     return f'{prefix}-{entity_type}-{uuid.uuid4().hex[:6]}'
 
 
+def generate_image_name() -> str:
+    """Generates a unique name for an image."""
+    return f'{generate_test_entity_name("image")}.iso'
+
+
 def cleanup_all_volumes() -> None:
     """Remove all volumes from both database and filesystem.
 
@@ -209,6 +229,123 @@ def cleanup_all_virtual_machines() -> None:
                 uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up virtual machines: {err}')
+
+
+def cleanup_all_storages() -> None:
+    """Delete all storages from both database and OS using StorageFactory.
+
+    This utility function:
+    1. Retrieves all storages from the database
+    2. For each storage:
+        - Creates appropriate domain storage instance using StorageFactory
+        - Deletes physical storage resources
+        - Removes the storage record from database
+    3. Handles errors gracefully with logging
+    """
+    unit_of_work = StorageUOW()
+    with unit_of_work as uow:
+        all_storages = uow.storages.get_all()
+        for db_storage in all_storages:
+            try:
+                domain_storage = StorageSerializer.to_domain(db_storage)
+                storage = StorageFactory().get_storage(domain_storage)
+                storage.delete()
+            except Exception as err:  # noqa: BLE001
+                LOG.warning(f'Error during storages cleanup: {err}')
+            finally:
+                uow.storages.delete(db_storage)
+                uow.commit()
+
+
+def get_disk_partitions(disk_path: str) -> List[str]:
+    """Returns a list of partition numbers on the given disk.
+
+    Args:
+        disk_path: Path to the disk (e.g. /dev/sdb)
+
+    Returns:
+        List of partition numbers as strings
+    """
+    adapter = PartedAdapter(disk_path)
+    try:
+        output = adapter.print()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f"Failed to read partitions on disk {disk_path}: {err}")
+        return []
+
+    partitions = []
+    for line in output.splitlines():
+        parts = line.split()
+        if parts and parts[0].isdigit():
+            partitions.append(parts[0])
+    return partitions
+
+
+def cleanup_partitions(
+        disk_path: str, partition_numbers: List[str]
+) -> None:
+    """Deletes a list of partitions from a disk.
+
+    Deletes local partitions in descending order to avoid shifting numbers.
+
+    Args:
+        disk_path: Path to the disk
+        partition_numbers: List of partition numbers to delete
+    """
+    for part_number in sorted(partition_numbers, reverse=True):
+        try:
+            adapter = PartedAdapter(disk_path)
+            adapter.rm(part_number)
+        except Exception as err:  # noqa: BLE001
+            part_path = disk_path + part_number
+            LOG.warning(f'Error during partition {part_path} deletion: {err}')
+
+
+def cleanup_all_images() -> None:
+    """Remove all image from both database and filesystem.
+
+    This utility function is typically used after storage tests to ensure
+    a clean state. It:
+    1. Retrieves all images from the database
+    2. For each image:
+        - Creates a domain model instance
+        - Deletes the image record from the database
+        - Removes the image file from the filesystem
+        - Commits the transaction
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = ImageSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            images = uow.images.get_all()
+            for orm_image in images:
+                uow.images.delete(orm_image)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_events() -> None:
+    """Remove all events from the database.
+
+    This utility function is used to ensure a clean state for event store tests.
+    It:
+    1. Retrieves all events from the database
+    2. Deletes each event record
+    3. Commits the transaction
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = EventStoreUOW()
+    try:
+        with unit_of_work as uow:
+            events = uow.events.get_all()
+            for event in events:
+                uow.events.delete(event)
+            uow.commit()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f'Failed to cleanup events: {e}')
 
 
 def wait_for_field_value(  # noqa: PLR0913
@@ -304,7 +441,7 @@ def wait_until_404(
     raise TimeoutError(message)
 
 
-def wait_full_deleting(
+def wait_full_deleting_object(
     client: TestClient,
     path: str,
     object_id: str,
@@ -344,6 +481,33 @@ def wait_full_deleting(
         f'Object with id "{object_id}" at "{path}" was not deleted '
         f'within {timeout} seconds.'
     )
+    raise TimeoutError(message)
+
+
+def wait_full_deleting_file(
+    file_path: Path,
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Waits until a specific file is deleted.
+
+    This function repeatedly checks if a certain file exists.
+
+    Args:
+        file_path (str): A path to an object.
+        timeout (int): Maximum wait time in seconds before timing out.
+        interval (float): Time in seconds between successive requests.
+
+    Raises:
+        TimeoutError: If the object is still present after the timeout expires.
+    """
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if not file_path.exists():
+            return
+        time.sleep(interval)
+
+    message = f'"{file_path}" was not deleted within {timeout} seconds.'
     raise TimeoutError(message)
 
 

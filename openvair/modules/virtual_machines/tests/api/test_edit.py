@@ -141,7 +141,6 @@ def test_edit_vm_running(
     )
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-
 def test_edit_vm_duplicate_name(
         client: TestClient,
         vm_create_data: Dict,
