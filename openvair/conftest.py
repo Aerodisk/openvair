@@ -39,11 +39,14 @@ from openvair.modules.virtual_machines.entrypoints.schemas import (
     RAM,
     Os,
     Cpu,
+    EditVm,
+    EditVmDisks,
     AttachVolume,
     CreateVmDisks,
     VirtualInterface,
     CreateVirtualMachine,
     GraphicInterfaceBase,
+    EditVirtualInterfaces,
 )
 from openvair.modules.template.entrypoints.schemas.requests import (
     RequestCreateTemplate,
@@ -217,12 +220,9 @@ def template(
 
 
 @pytest.fixture(scope='function')
-def virtual_machine(
-    client: TestClient,
-    volume: Dict,
-) -> Generator[Dict, None, None]:
-    """Creates a test virtual machine and deletes it after each test."""
-    vm_data = CreateVirtualMachine(
+def vm_create_data(volume: Dict) -> Dict:
+    """Return a base VM payload for testing."""
+    vm_data: Dict = CreateVirtualMachine(
         name=generate_test_entity_name('virtual_machine'),
         description='Virtual machine for integration tests',
         cpu=Cpu(cores=1, threads=1, sockets=1, model='host', type='static'),
@@ -254,7 +254,61 @@ def virtual_machine(
             )
         ],
     ).model_dump(mode='json')
-    vm = create_resource(client, '/virtual-machines/create/', vm_data, 'vm')
+
+    return vm_data
+
+
+@pytest.fixture(scope='function')
+def vm_edit_data(volume: Dict) -> Dict:
+    """Return a VM edit payload for testing."""
+    return EditVm(
+        name=generate_test_entity_name("vm_edited"),
+        description="Edited testing VM: Updated description",
+        cpu=Cpu(cores=1, threads=1, sockets=1, model="host", type="static"),
+        ram=RAM(size=1000000000),
+        os=Os(boot_device="cdrom", bios="UEFI", graphic_driver="virtio"),
+        graphic_interface=GraphicInterfaceBase(connect_type="vnc"),
+        disks=EditVmDisks(
+            attach_disks=[
+                AttachVolume(
+                    volume_id=volume["id"],
+                    qos=QOS(
+                        iops_read=500,
+                        iops_write=500,
+                        mb_read=150,
+                        mb_write=100,
+                    ),
+                    boot_order=1,
+                    order=1,
+                )
+            ],
+            detach_disks=[],
+            edit_disks=[],
+        ),
+        virtual_interfaces=EditVirtualInterfaces(
+            new_virtual_interfaces=[
+                VirtualInterface(
+                    mode="bridge",
+                    model="virtio",
+                    mac="6C:4A:74:EC:CC:D9",
+                    interface="virbr0",
+                    order=0,
+                )
+            ],
+            detach_virtual_interfaces=[],
+            edit_virtual_interfaces=[],
+        ),
+    ).model_dump(mode="json")
+
+
+@pytest.fixture(scope='function')
+def virtual_machine(
+        client: TestClient, vm_create_data: Dict
+) -> Generator[Dict, None, None]:
+    """Creates a test virtual machine and deletes it after each test."""
+    vm = create_resource(
+        client, '/virtual-machines/create/', vm_create_data, 'vm'
+    )
     wait_for_field_value(
         client, f'/virtual-machines/{vm["id"]}/', 'status', 'available'
     )

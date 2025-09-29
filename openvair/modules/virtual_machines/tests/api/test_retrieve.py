@@ -116,9 +116,9 @@ def test_get_all_vms_with_pagination(
 
 def test_get_nonexistent_vm_by_id(client: TestClient) -> None:
     """Test requesting nonexistent VM ID returns appropriate error."""
-    fake_vm_id = str(uuid.uuid4())
+    fake_id = str(uuid.uuid4())
 
-    response = client.get(f'/virtual-machines/{fake_vm_id}/')
+    response = client.get(f'/virtual-machines/{fake_id}/')
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'not found' in response.text.lower()
 
