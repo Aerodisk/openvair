@@ -55,8 +55,8 @@ def test_upload_image_success(
 
 
 def test_upload_image_unauthorized(
-    unauthorized_client: TestClient,
     storage: Dict,
+    unauthorized_client: TestClient,
     name: str,
     image_file: BinaryIO
 ) -> None:
