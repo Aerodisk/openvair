@@ -12,21 +12,46 @@ functions for:
 
 import time
 import uuid
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, cast
+from pathlib import Path
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.log import get_logger
+from openvair.modules.network.config import NETWORK_CONFIG_MANAGER
 from openvair.modules.volume.domain.model import VolumeFactory
+from openvair.modules.storage.domain.model import StorageFactory
+from openvair.modules.storage.adapters.parted import PartedAdapter
 from openvair.modules.volume.adapters.serializer import (
     DataSerializer as VolumeSerializer,
 )
+from openvair.modules.network.adapters.serializer import (
+    DataSerializer as InterfaceSerializer,
+)
+from openvair.modules.storage.adapters.serializer import (
+    DataSerializer as StorageSerializer,
+)
+from openvair.modules.network.domain.bridges.netplan import NetplanInterface
+from openvair.modules.image.service_layer.unit_of_work import (
+    ImageSqlAlchemyUnitOfWork,
+)
+from openvair.modules.network.domain.utils.ovs_manager import OVSManager
+from openvair.modules.network.domain.bridges.ovs_bridge import OVSInterface
 from openvair.modules.volume.service_layer.unit_of_work import (
     VolumeSqlAlchemyUnitOfWork as VolumeUOW,
 )
+from openvair.modules.network.service_layer.unit_of_work import (
+    NetworkSqlAlchemyUnitOfWork,
+)
+from openvair.modules.storage.service_layer.unit_of_work import (
+    StorageSqlAlchemyUnitOfWork as StorageUOW,
+)
 from openvair.modules.template.service_layer.unit_of_work import (
     TemplateSqlAlchemyUnitOfWork,
+)
+from openvair.modules.event_store.service_layer.unit_of_work import (
+    EventStoreSqlAlchemyUnitOfWork as EventStoreUOW,
 )
 from openvair.modules.notification.service_layer.unit_of_work import (
     NotificationSqlAlchemyUnitOfWork,
@@ -119,6 +144,11 @@ def generate_test_entity_name(entity_type: str, prefix: str = 'test') -> str:
     return f'{prefix}-{entity_type}-{uuid.uuid4().hex[:6]}'
 
 
+def generate_image_name() -> str:
+    """Generates a unique name for an image."""
+    return f'{generate_test_entity_name("image")}.iso'
+
+
 def cleanup_all_volumes() -> None:
     """Remove all volumes from both database and filesystem.
 
@@ -175,6 +205,123 @@ def cleanup_all_templates() -> None:
         LOG.warning(f'Error while cleaning up volumes: {err}')
 
 
+def cleanup_all_storages() -> None:
+    """Delete all storages from both database and OS using StorageFactory.
+
+    This utility function:
+    1. Retrieves all storages from the database
+    2. For each storage:
+        - Creates appropriate domain storage instance using StorageFactory
+        - Deletes physical storage resources
+        - Removes the storage record from database
+    3. Handles errors gracefully with logging
+    """
+    unit_of_work = StorageUOW()
+    with unit_of_work as uow:
+        all_storages = uow.storages.get_all()
+        for db_storage in all_storages:
+            try:
+                domain_storage = StorageSerializer.to_domain(db_storage)
+                storage = StorageFactory().get_storage(domain_storage)
+                storage.delete()
+            except Exception as err:  # noqa: BLE001
+                LOG.warning(f'Error during storages cleanup: {err}')
+            finally:
+                uow.storages.delete(db_storage)
+                uow.commit()
+
+
+def get_disk_partitions(disk_path: str) -> List[str]:
+    """Returns a list of partition numbers on the given disk.
+
+    Args:
+        disk_path: Path to the disk (e.g. /dev/sdb)
+
+    Returns:
+        List of partition numbers as strings
+    """
+    adapter = PartedAdapter(disk_path)
+    try:
+        output = adapter.print()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f"Failed to read partitions on disk {disk_path}: {err}")
+        return []
+
+    partitions = []
+    for line in output.splitlines():
+        parts = line.split()
+        if parts and parts[0].isdigit():
+            partitions.append(parts[0])
+    return partitions
+
+
+def cleanup_partitions(
+        disk_path: str, partition_numbers: List[str]
+) -> None:
+    """Deletes a list of partitions from a disk.
+
+    Deletes local partitions in descending order to avoid shifting numbers.
+
+    Args:
+        disk_path: Path to the disk
+        partition_numbers: List of partition numbers to delete
+    """
+    for part_number in sorted(partition_numbers, reverse=True):
+        try:
+            adapter = PartedAdapter(disk_path)
+            adapter.rm(part_number)
+        except Exception as err:  # noqa: BLE001
+            part_path = disk_path + part_number
+            LOG.warning(f'Error during partition {part_path} deletion: {err}')
+
+
+def cleanup_all_images() -> None:
+    """Remove all image from both database and filesystem.
+
+    This utility function is typically used after storage tests to ensure
+    a clean state. It:
+    1. Retrieves all images from the database
+    2. For each image:
+        - Creates a domain model instance
+        - Deletes the image record from the database
+        - Removes the image file from the filesystem
+        - Commits the transaction
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = ImageSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            images = uow.images.get_all()
+            for orm_image in images:
+                uow.images.delete(orm_image)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up volumes: {err}')
+
+
+def cleanup_all_events() -> None:
+    """Remove all events from the database.
+
+    This utility function is used to ensure a clean state for event store tests.
+    It:
+    1. Retrieves all events from the database
+    2. Deletes each event record
+    3. Commits the transaction
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = EventStoreUOW()
+    try:
+        with unit_of_work as uow:
+            events = uow.events.get_all()
+            for event in events:
+                uow.events.delete(event)
+            uow.commit()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f'Failed to cleanup events: {e}')
+
+
 def wait_for_field_value(  # noqa: PLR0913
     client: TestClient,
     path: str,
@@ -202,6 +349,39 @@ def wait_for_field_value(  # noqa: PLR0913
         time.sleep(interval)
     message = (
         f'Field "{field}" at "{path}" did not become "{expected}" '
+        f'within {timeout} seconds.'
+    )
+    raise TimeoutError(message)
+
+
+def wait_for_field_not_empty(
+    client: TestClient,
+    path: str,
+    field: str,
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Polls a GET endpoint until a specific field becomes non-empty.
+
+    Checks for: None, empty string, list, dict.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        response = client.get(path)
+        if response.status_code == status.HTTP_200_OK:
+            raw = response.json()
+            data = (
+                raw['data']
+                if 'data' in raw and isinstance(raw['data'], Dict)
+                else raw
+            )
+            if field in data:
+                value = data[field]
+                if value is not None and value not in ('', [], {}):
+                    return
+        time.sleep(interval)
+    message = (
+        f'Field "{field}" at "{path}" did not become non-empty '
         f'within {timeout} seconds.'
     )
     raise TimeoutError(message)
@@ -235,7 +415,7 @@ def wait_until_404(
     raise TimeoutError(message)
 
 
-def wait_full_deleting(
+def wait_full_deleting_object(
     client: TestClient,
     path: str,
     object_id: str,
@@ -278,6 +458,33 @@ def wait_full_deleting(
     raise TimeoutError(message)
 
 
+def wait_full_deleting_file(
+    file_path: Path,
+    timeout: int = 30,
+    interval: float = 0.5,
+) -> None:
+    """Waits until a specific file is deleted.
+
+    This function repeatedly checks if a certain file exists.
+
+    Args:
+        file_path (str): A path to an object.
+        timeout (int): Maximum wait time in seconds before timing out.
+        interval (float): Time in seconds between successive requests.
+
+    Raises:
+        TimeoutError: If the object is still present after the timeout expires.
+    """
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if not file_path.exists():
+            return
+        time.sleep(interval)
+
+    message = f'"{file_path}" was not deleted within {timeout} seconds.'
+    raise TimeoutError(message)
+
+
 def _extract_data_field(response_json: Dict) -> Dict:
     """Returns response['data'] if it's a BaseResponse, else root object."""
     if 'data' in response_json and isinstance(response_json['data'], Dict):
@@ -304,3 +511,74 @@ def cleanup_all_notifications() -> None:
             uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up notifications: {err}')
+
+
+def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified after fix issue #260
+    """Remove only test bridges from OVS/Netplan and database.
+
+    This function targets only bridges with names starting with 'test-'
+    """
+    unit_of_work = NetworkSqlAlchemyUnitOfWork()
+    try:
+        if NETWORK_CONFIG_MANAGER == 'ovs':
+            ovs_manager = OVSManager()
+            ovs_bridges = ovs_manager.get_bridges()
+            name_index = ovs_bridges['headings'].index('name')
+            ovs_bridge_names = [
+                bridge[name_index] for bridge in ovs_bridges['data']
+            ]
+            test_ovs_bridge_names = [
+                name for name in ovs_bridge_names if name.startswith('test-')
+            ]
+            for bridge_name in test_ovs_bridge_names:
+                with unit_of_work as uow:
+                    db_bridge = uow.interfaces.get_by_name(bridge_name)
+                    if db_bridge:
+                        bridge_data: Dict = {
+                            'id': str(db_bridge.id),
+                            'name': db_bridge.name,
+                            'type': 'bridge',
+                            'interfaces': [],
+                        }
+                        bridge = OVSInterface(**bridge_data)
+                        bridge.delete()
+        else:
+            # TODO: Remove when fixed issue
+            #       https://github.com/Aerodisk/openvair/issues/260
+            with unit_of_work as uow:
+                all_interfaces = uow.interfaces.get_all()
+                test_db_bridge_interfaces = [
+                    iface for iface in all_interfaces
+                    if iface.name.startswith('test-')
+                ]
+                for db_bridge in test_db_bridge_interfaces:
+                    if db_bridge.status == 'error':
+                        bridge_data = InterfaceSerializer.to_domain(db_bridge)
+                        netplan_bridge = NetplanInterface(**bridge_data)
+                        netplan_bridge.delete()
+            with unit_of_work as uow:
+                all_interfaces = uow.interfaces.get_all()
+                test_db_bridge_interfaces = [
+                    iface for iface in all_interfaces
+                    if iface.name.startswith('test-')
+                ]
+                for db_bridge in test_db_bridge_interfaces:
+                    bridge_data = InterfaceSerializer.to_domain(db_bridge)
+                    netplan_bridge = NetplanInterface(**bridge_data)
+                    netplan_bridge.delete()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f'Error during test bridges cleanup: {e}')
+
+    try:
+        with unit_of_work as uow:
+            all_interfaces = uow.interfaces.get_all()
+            test_db_bridge_interfaces = [
+                iface for iface in all_interfaces
+                if iface.name.startswith('test-')
+            ]
+        for interface in test_db_bridge_interfaces:
+            with unit_of_work as uow:
+                uow.interfaces.delete(interface)
+                uow.commit()
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f'Error during test bridges cleanup: {e}')
