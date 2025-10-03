@@ -11,8 +11,11 @@ from fastapi.testclient import TestClient
 from openvair.libs.log import get_logger
 from openvair.libs.testing.utils import (
     create_resource,
+    cleanup_all_images,
     cleanup_all_volumes,
+    cleanup_all_storages,
     wait_for_field_value,
+    cleanup_all_templates,
     generate_test_entity_name,
     cleanup_all_virtual_machines,
 )
@@ -23,9 +26,16 @@ LOG = get_logger(__name__)
 def cleanup_vms() -> Generator:
     """Clean up all virtual machines before and after each test."""
     cleanup_all_virtual_machines()
+    cleanup_all_images()
+    cleanup_all_volumes()
+    cleanup_all_templates()
+    cleanup_all_storages()
     yield
     cleanup_all_virtual_machines()
+    cleanup_all_images()
     cleanup_all_volumes()
+    cleanup_all_templates()
+    cleanup_all_storages()
 
 
 @pytest.fixture(scope='function')

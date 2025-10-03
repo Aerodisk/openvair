@@ -46,7 +46,7 @@ def test_delete_vm_success(
 
 def test_delete_vm_invalid_uuid(client: TestClient) -> None:
     """Test deletion attempt using invalid UUID format."""
-    response = client.delete('/virtual-machines/not-a-valid-uuid/')
+    response = client.delete('/virtual-machines/invalid-uuid/')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
