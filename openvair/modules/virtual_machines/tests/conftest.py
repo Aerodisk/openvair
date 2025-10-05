@@ -63,6 +63,13 @@ def vm_snapshot(
     )
     wait_for_field_value(
         client,
+        f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}',
+        'is_current',
+        expected=True,
+        timeout=120
+    )
+    wait_for_field_value(
+        client,
         f'/virtual-machines/{vm_id}/',
         'power_state',
         'running',

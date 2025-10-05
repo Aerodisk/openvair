@@ -406,12 +406,18 @@ def activated_virtual_machine(
             f'/virtual-machines/{virtual_machine["id"]}/'
         ).json()
         if actual_vm['power_state'] != 'shut_off':
-            response = client.post(
+            wait_for_field_value(
+                client,
+                f'/virtual-machines/{virtual_machine["id"]}/',
+                'power_state',
+                'running',
+            )
+            client.post(
                 f'/virtual-machines/{virtual_machine["id"]}/shut-off/'
             ).json()
             wait_for_field_value(
                 client,
-                f'/virtual-machines/{response["id"]}/',
+                f'/virtual-machines/{virtual_machine["id"]}/',
                 'power_state',
                 'shut_off',
             )

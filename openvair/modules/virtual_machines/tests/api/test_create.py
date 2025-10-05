@@ -65,7 +65,7 @@ def test_create_vm_success(
         '/virtual-machines/create/',
         json=vm_create_data
     )
-    assert response.status_code == status.HTTP_201_CREATED, response.text
+    assert response.status_code == status.HTTP_201_CREATED
 
     data = response.json()
     assert 'id' in data
