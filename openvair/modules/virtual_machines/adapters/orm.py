@@ -150,6 +150,7 @@ class VirtualMachines(Base):
         'Snapshots',
         back_populates='virtual_machine',
         order_by='Snapshots.created_at',
+        cascade='all, delete-orphan',
     )
 
 
