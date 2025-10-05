@@ -9,7 +9,7 @@ Covers:
 
 
 import uuid
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import pytest
 from fastapi import status
@@ -276,5 +276,160 @@ def test_create_vm_unauthorized(
     response = unauthorized_client.post(
         '/virtual-machines/create/',
         json=vm_create_data
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_clone_vm_success(
+        client: TestClient,
+        storage: Dict,
+        deactivated_virtual_machine: Dict
+) -> None:
+    """Test successful virtual machine cloning."""
+    vm_id = deactivated_virtual_machine['id']
+    clone_data = {"count": 1, "target_storage_id": storage['id']}
+
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert isinstance(data, List)
+    assert len(data) == 1
+
+    cloned_vm = data[0]
+    assert 'id' in cloned_vm
+    assert cloned_vm['name'] != deactivated_virtual_machine['name']
+    wait_for_field_value(
+        client, f'/virtual-machines/{cloned_vm["id"]}/', 'status', 'available'
+    )
+    assert_vm_startup(client, cloned_vm["id"], cloned_vm["name"])
+
+
+def test_clone_vm_multiple_success(
+        client: TestClient,
+        deactivated_virtual_machine: Dict,
+        storage: Dict
+) -> None:
+    """Test successful cloning of multiple virtual machines."""
+    vm_id = deactivated_virtual_machine['id']
+    num_of_clones = 3
+    clone_data = {"count": 3, "target_storage_id": storage['id']}
+
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert isinstance(data, List)
+    assert len(data) == num_of_clones
+
+    clone_names = {vm['name'] for vm in data}
+    clone_ids = {vm['id'] for vm in data}
+    assert len(clone_names) == num_of_clones
+    assert len(clone_ids) == num_of_clones
+    assert deactivated_virtual_machine['name'] not in clone_names
+    for cloned_vm in data:
+        wait_for_field_value(
+            client,
+            f'/virtual-machines/{cloned_vm["id"]}/',
+            'status',
+            'available'
+        )
+
+
+@pytest.mark.parametrize("invalid_count", [0, -1, 1000])
+def test_clone_vm_invalid_count(
+        client: TestClient,
+        deactivated_virtual_machine: Dict,
+        storage: Dict,
+        invalid_count: int,
+) -> None:
+    """Test VM cloning with invalid count values."""
+    vm_id = deactivated_virtual_machine["id"]
+    clone_data = {"count": invalid_count, "target_storage_id": storage["id"]}
+    response = client.post(f"/virtual-machines/{vm_id}/clone/", json=clone_data)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_clone_vm_nonexistent_vm(
+        client: TestClient,
+        storage: Dict
+) -> None:
+    """Test cloning of nonexistent virtual machine."""
+    nonexistent_vm_id = str(uuid.uuid4())
+    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    response = client.post(
+        f'/virtual-machines/{nonexistent_vm_id}/clone/',
+        json=clone_data
+    )
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'not found' in response.text.lower()
+
+
+def test_clone_vm_nonexistent_storage(
+        client: TestClient,
+        deactivated_virtual_machine: Dict
+) -> None:
+    """Test VM cloning with nonexistent storage."""
+    vm_id = deactivated_virtual_machine['id']
+    nonexistent_storage_id = str(uuid.uuid4())
+    clone_data = {"count": 1, "target_storage_id": nonexistent_storage_id}
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'storage' in response.text.lower()
+
+
+def test_clone_vm_running_vm(
+        client: TestClient,
+        activated_virtual_machine: Dict,
+        storage: Dict
+) -> None:
+    """Test cloning of running virtual machine (should fail)."""
+    vm_id = activated_virtual_machine['id']
+    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'power' in response.text.lower()
+
+
+def test_clone_vm_missing_target_storage(
+        client: TestClient,
+        deactivated_virtual_machine: Dict
+) -> None:
+    """Test VM cloning with missing target storage."""
+    vm_id = deactivated_virtual_machine['id']
+    clone_data = {"count": 1}
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_clone_vm_invalid_uuid(client: TestClient, storage: dict) -> None:
+    """Test cloning attempt using invalid VM UUID format."""
+    clone_data = {"count": 1, "target_storage_id": storage["id"]}
+    response = client.post(
+        '/virtual-machines/invalid-uuid/clone/', json=clone_data
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_clone_vm_invalid_target_storage_uuid(
+        client: TestClient,
+        deactivated_virtual_machine: Dict
+) -> None:
+    """Test VM cloning with invalid target storage UUID format."""
+    vm_id = deactivated_virtual_machine['id']
+    clone_data = {"count": 1, "target_storage_id": "invalid-uuid"}
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_clone_vm_unauthorized(
+        deactivated_virtual_machine: Dict,
+        storage: Dict,
+        unauthorized_client: TestClient
+) -> None:
+    """Test unauthorized VM cloning request."""
+    vm_id = deactivated_virtual_machine['id']
+    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    response = unauthorized_client.post(
+        f'/virtual-machines/{vm_id}/clone/',
+        json=clone_data
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

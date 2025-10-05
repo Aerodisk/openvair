@@ -259,6 +259,7 @@ def vm_create_data(volume: Dict) -> Dict:
             attach_disks=[
                 AttachVolume(
                     volume_id=volume['id'],
+                    name=generate_test_entity_name('disk'),
                     qos=QOS(
                         iops_read=500,
                         iops_write=500,
