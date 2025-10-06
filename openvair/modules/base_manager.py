@@ -25,10 +25,6 @@ import signal
 from typing import Any, Callable, NoReturn, Optional
 from threading import Event, Thread
 
-from openvair.libs.log import get_logger
-
-LOG = get_logger(__name__)
-
 
 class ServiceExitError(Exception):
     """Custom exception used to signal service shutdown."""
@@ -101,10 +97,7 @@ class Task(Thread):
     def run(self) -> None:
         """Run the task periodically until stopped."""
         while not self.stopped.wait(self.interval):
-            try:
-                self.execute(self.manager())
-            except Exception as err:  # noqa: BLE001 because catching all exceptions
-                LOG.error(f"Periodic task failed: {err}")
+            self.execute(self.manager())
 
 
 class MetaBackgroundTasks(type):
