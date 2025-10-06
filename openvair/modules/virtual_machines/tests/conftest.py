@@ -24,7 +24,7 @@ LOG = get_logger(__name__)
 
 @pytest.fixture(scope='function', autouse=True)
 def cleanup_vms() -> Generator:
-    """Clean up all virtual machines before and after each test."""
+    """Clean up all virtual machines and resources before and after test."""
     cleanup_all_virtual_machines()
     cleanup_all_images()
     cleanup_all_volumes()

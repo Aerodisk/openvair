@@ -168,7 +168,9 @@ allow-multiline = false
 
 # Do not lint calling this functions in args of another function.
 [lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.File", "openvair.libs.cli.models.ExecuteParams"]
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.Path", "fastapi.Query", "fastapi.File", "openvair.libs.cli.models.ExecuteParams"
+]
 
 # isort configuration
 [lint.isort]
