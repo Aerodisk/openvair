@@ -33,7 +33,7 @@ def test_get_all_vms_success(client: TestClient, virtual_machine: Dict) -> None:
 
 
 def test_get_vm_by_id_success(
-        client: TestClient, virtual_machine: Dict
+    client: TestClient, virtual_machine: Dict
 ) -> None:
     """Test retrieving specific VM by ID returns correct data."""
     vm_id = virtual_machine['id']
@@ -52,13 +52,13 @@ def test_get_vm_by_id_success(
         'virtual_interfaces',
         'graphic_interface',
         'status',
-        'power_state'
+        'power_state',
     ]
     assert all(field in data for field in fields)
 
 
 def test_get_vm_validate_structure_success(
-        client: TestClient, virtual_machine: Dict
+    client: TestClient, virtual_machine: Dict
 ) -> None:
     """Test that returned VM data matches expected schema structure."""
     vm_id = virtual_machine['id']
@@ -67,7 +67,12 @@ def test_get_vm_validate_structure_success(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     vm_fields = [
-        'id', 'name', 'status', 'power_state', 'description', 'information'
+        'id',
+        'name',
+        'status',
+        'power_state',
+        'description',
+        'information',
     ]
     assert all(field in data for field in vm_fields)
 
@@ -136,8 +141,7 @@ def test_get_all_vms_unauthorized(unauthorized_client: TestClient) -> None:
 
 
 def test_get_vm_by_id_unauthorized(
-        virtual_machine: Dict,
-        unauthorized_client: TestClient
+    virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request to get specific VM returns 401."""
     vm_id = virtual_machine['id']

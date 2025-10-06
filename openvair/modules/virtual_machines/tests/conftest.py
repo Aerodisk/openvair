@@ -3,6 +3,7 @@
 Provides:
 - `cleanup_vms`: Clean up all virtual machines before and after each test.
 """
+
 from typing import Dict, Generator
 
 import pytest
@@ -22,6 +23,7 @@ from openvair.libs.testing.utils import (
 
 LOG = get_logger(__name__)
 
+
 @pytest.fixture(scope='function', autouse=True)
 def cleanup_vms() -> Generator:
     """Clean up all virtual machines and resources before and after test."""
@@ -40,13 +42,13 @@ def cleanup_vms() -> Generator:
 
 @pytest.fixture(scope='function')
 def vm_snapshot(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> Generator[Dict, None, None]:
     """Creates a snapshot in activated (running) VM."""
     vm_id = activated_virtual_machine['id']
     snapshot_data = {
-        "name": generate_test_entity_name('snapshot'),
-        "description": "Test snapshot",
+        'name': generate_test_entity_name('snapshot'),
+        'description': 'Test snapshot',
     }
     snapshot_info = create_resource(
         client,
@@ -66,7 +68,7 @@ def vm_snapshot(
         f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}',
         'is_current',
         expected=True,
-        timeout=120
+        timeout=120,
     )
     wait_for_field_value(
         client,

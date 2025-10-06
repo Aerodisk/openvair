@@ -25,7 +25,7 @@ from openvair.modules.virtual_machines.service_layer.unit_of_work import (
 
 
 def test_delete_vm_success(
-        client: TestClient, deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test successful deletion of a VM."""
     vm_id = deactivated_virtual_machine['id']
@@ -51,7 +51,7 @@ def test_delete_vm_invalid_uuid(client: TestClient) -> None:
 
 
 def test_delete_vm_running(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test failure when trying to delete a running VM."""
     vm_id = activated_virtual_machine['id']
@@ -72,11 +72,9 @@ def test_delete_vm_nonexistent(client: TestClient) -> None:
     assert 'not found' in response.text.lower()
 
 
-@pytest.mark.parametrize("invalid_status", ["creating", "starting"])
+@pytest.mark.parametrize('invalid_status', ['creating', 'starting'])
 def test_delete_vm_invalid_statuses(
-        client: TestClient,
-        deactivated_virtual_machine: Dict,
-        invalid_status: str
+    client: TestClient, deactivated_virtual_machine: Dict, invalid_status: str
 ) -> None:
     """Test deletion attempts for VMs in various invalid statuses.
 
@@ -99,19 +97,15 @@ def test_delete_vm_invalid_statuses(
 
 
 def test_delete_vm_with_snapshots_success(
-        client: TestClient, vm_snapshot: Dict
+    client: TestClient, vm_snapshot: Dict
 ) -> None:
     """Test deletion of VM that has snapshots."""
     vm_id = vm_snapshot['vm_id']
     vm_name = vm_snapshot['vm_name']
 
-    actual_vm = client.get(
-        f'/virtual-machines/{vm_id}/'
-    ).json()
+    actual_vm = client.get(f'/virtual-machines/{vm_id}/').json()
     if actual_vm['power_state'] != 'shut_off':
-        response = client.post(
-            f'/virtual-machines/{vm_id}/shut-off/'
-        ).json()
+        response = client.post(f'/virtual-machines/{vm_id}/shut-off/').json()
         wait_for_field_value(
             client,
             f'/virtual-machines/{response["id"]}/',
@@ -132,7 +126,7 @@ def test_delete_vm_with_snapshots_success(
 
 
 def test_delete_vm_unauthorized(
-        deactivated_virtual_machine: Dict, unauthorized_client: TestClient
+    deactivated_virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized deletion attempt."""
     vm_id = deactivated_virtual_machine['id']

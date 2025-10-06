@@ -21,7 +21,7 @@ from openvair.libs.testing.utils import wait_for_field_value
 
 
 def test_start_vm_success(
-        client: TestClient, deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test success starting shut-off VM and ensure it's added to libvirt."""
     vm_id = deactivated_virtual_machine['id']
@@ -49,7 +49,7 @@ def test_start_vm_success(
 
 
 def test_start_vm_already_running(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test attempt to start a VM that's already running."""
     vm_id = activated_virtual_machine['id']
@@ -73,7 +73,7 @@ def test_start_vm_nonexistent(client: TestClient) -> None:
 
 
 def test_start_vm_unauthorized(
-        deactivated_virtual_machine: Dict, unauthorized_client: TestClient
+    deactivated_virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Unauthorized request must return 401."""
     vm_id = deactivated_virtual_machine['id']
@@ -82,7 +82,7 @@ def test_start_vm_unauthorized(
 
 
 def test_shut_off_vm_success(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test success shut off running VM and ensure it's removed from libvirt."""
     vm_id = activated_virtual_machine['id']
@@ -105,7 +105,7 @@ def test_shut_off_vm_success(
 
 
 def test_shut_off_vm_already_shutoff(
-        client: TestClient, deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test attempt to shut off a VM that's already shut-off."""
     vm_id = deactivated_virtual_machine['id']
@@ -129,7 +129,7 @@ def test_shut_off_vm_nonexistent(client: TestClient) -> None:
 
 
 def test_shut_off_vm_unauthorized(
-        activated_virtual_machine: Dict, unauthorized_client: TestClient
+    activated_virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Unauthorized request must return 401."""
     vm_id = activated_virtual_machine['id']
@@ -138,7 +138,7 @@ def test_shut_off_vm_unauthorized(
 
 
 def test_vnc_vm_success(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test successful VNC access for running VM."""
     vm_id = activated_virtual_machine['id']
@@ -151,7 +151,7 @@ def test_vnc_vm_success(
 
 
 def test_vnc_vm_shutoff(
-        client: TestClient, deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test VNC access failure for shut off VM."""
     vm_id = deactivated_virtual_machine['id']
@@ -176,7 +176,7 @@ def test_vnc_vm_invalid_uuid(client: TestClient) -> None:
 
 
 def test_vnc_vm_unauthorized(
-        activated_virtual_machine: Dict, unauthorized_client: TestClient
+    activated_virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized VNC access attempt."""
     vm_id = activated_virtual_machine['id']
@@ -186,7 +186,7 @@ def test_vnc_vm_unauthorized(
 
 
 def test_vm_restart_with_snapshot(
-        client: TestClient, vm_snapshot: Dict, virtual_machine: Dict
+    client: TestClient, vm_snapshot: Dict, virtual_machine: Dict
 ) -> None:
     """Test that snapshots persist after VM shutdown and restart."""
     vm_id = virtual_machine['id']

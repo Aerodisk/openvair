@@ -22,19 +22,18 @@ from openvair.libs.testing.utils import (
 
 
 def test_create_snapshot_success(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test successful snapshot creation."""
     vm_id = activated_virtual_machine['id']
     vm_name = activated_virtual_machine['name']
     snapshot_data = {
-        "name": generate_test_entity_name("snapshot"),
-        "description": "Test successful snapshot creation"
+        'name': generate_test_entity_name('snapshot'),
+        'description': 'Test successful snapshot creation',
     }
 
     response = client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
@@ -52,14 +51,14 @@ def test_create_snapshot_success(
         f'/virtual-machines/{vm_id}/snapshots/{data["id"]}',
         'status',
         'running',
-        timeout=120
+        timeout=120,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/snapshots/{data["id"]}',
         'is_current',
         expected=True,
-        timeout=120
+        timeout=120,
     )
     wait_for_field_value(
         client,
@@ -79,7 +78,7 @@ def test_create_snapshot_success(
 
 
 def test_create_snapshot_missing_name(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test snapshot creation with missing required name field."""
     vm_id = activated_virtual_machine['id']
@@ -89,42 +88,39 @@ def test_create_snapshot_missing_name(
 
 
 def test_create_snapshot_duplicate_name(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test snapshot creation with duplicate name."""
     vm_id = activated_virtual_machine['id']
     snapshot_data = {
-        "name": "duplicate_snapshot",
-        "description": "First snapshot"
+        'name': 'duplicate_snapshot',
+        'description': 'First snapshot',
     }
 
     response1 = client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response1.status_code == status.HTTP_201_CREATED
 
     response2 = client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response2.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'exist' in response2.text.lower()
 
 
 def test_create_snapshot_shutoff_vm(
-        client: TestClient, deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test snapshot creation on shut down VM."""
     vm_id = deactivated_virtual_machine['id']
     snapshot_data = {
-        "name": generate_test_entity_name("snapshot"),
-        "description": "Test snapshot on stopped VM"
+        'name': generate_test_entity_name('snapshot'),
+        'description': 'Test snapshot on stopped VM',
     }
 
     response = client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'power' in response.text.lower()
@@ -134,48 +130,40 @@ def test_create_snapshot_nonexistent_vm(client: TestClient) -> None:
     """Test snapshot creation for nonexistent VM."""
     nonexistent_vm_id = str(uuid.uuid4())
     snapshot_data = {
-        "name": generate_test_entity_name("snapshot"),
-        "description": "Test snapshot"
+        'name': generate_test_entity_name('snapshot'),
+        'description': 'Test snapshot',
     }
 
     response = client.post(
-        f'/virtual-machines/{nonexistent_vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{nonexistent_vm_id}/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'not found' in response.text.lower()
 
 
-@pytest.mark.parametrize("invalid_name", ["a" * 256, ""])
+@pytest.mark.parametrize('invalid_name', ['a' * 256, ''])
 def test_create_snapshot_invalid_name(
-        client: TestClient, activated_virtual_machine: Dict, invalid_name: str
+    client: TestClient, activated_virtual_machine: Dict, invalid_name: str
 ) -> None:
     """Test snapshot creation with invalid name."""
     vm_id = activated_virtual_machine['id']
-    snapshot_data = {
-        "name": invalid_name,
-        "description": "Test snapshot"
-    }
+    snapshot_data = {'name': invalid_name, 'description': 'Test snapshot'}
 
     response = client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_create_snapshot_no_description(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test snapshot creation without description."""
     vm_id = activated_virtual_machine['id']
-    snapshot_data = {
-        "name": generate_test_entity_name("snapshot")
-    }
+    snapshot_data = {'name': generate_test_entity_name('snapshot')}
 
     response = client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -183,20 +171,18 @@ def test_create_snapshot_no_description(
 def test_create_snapshot_invalid_vm_uuid(client: TestClient) -> None:
     """Test snapshot creation with invalid VM UUID format."""
     snapshot_data = {
-        "name": generate_test_entity_name("snapshot"),
-        "description": "Test snapshot"
+        'name': generate_test_entity_name('snapshot'),
+        'description': 'Test snapshot',
     }
 
     response = client.post(
-        '/virtual-machines/invalid-uuid/snapshots/',
-        json=snapshot_data
+        '/virtual-machines/invalid-uuid/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_create_multiple_snapshots_chain(
-        client: TestClient,
-        activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test creating multiple snapshots in chain with parent relationships."""
     vm_id = activated_virtual_machine['id']
@@ -206,13 +192,12 @@ def test_create_multiple_snapshots_chain(
 
     for i in range(snapshots_num):
         snapshot_data = {
-            "name": f"chain_snapshot_{i}",
-            "description": f"Chain snapshot {i}"
+            'name': f'chain_snapshot_{i}',
+            'description': f'Chain snapshot {i}',
         }
 
         response = client.post(
-            f'/virtual-machines/{vm_id}/snapshots/',
-            json=snapshot_data
+            f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
         )
         assert response.status_code == status.HTTP_201_CREATED
         snapshot = response.json()
@@ -222,14 +207,14 @@ def test_create_multiple_snapshots_chain(
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'status',
             'running',
-            timeout=120
+            timeout=120,
         )
         wait_for_field_value(
             client,
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'is_current',
             expected=True,
-            timeout=120
+            timeout=120,
         )
         wait_for_field_value(
             client,
@@ -247,28 +232,29 @@ def test_create_multiple_snapshots_chain(
         ).json()
 
         assert snapshot_details['status'] == 'running'
-        assert snapshot_details['is_current'] == (i == snapshots_num-1)
+        assert snapshot_details['is_current'] == (i == snapshots_num - 1)
         assert snapshot_details['name'] == f'chain_snapshot_{i}'
         assert snapshot_details['vm_id'] == vm_id
         assert snapshot_details['vm_name'] == vm_name
-        assert snapshot_details['parent'] is None if (i == 0) else (
-            f'chain_snapshot_{i-1}'
+        assert (
+            snapshot_details['parent'] is None
+            if (i == 0)
+            else (f'chain_snapshot_{i-1}')
         )
         assert f'chain_snapshot_{i}' in libvirt_snapshots
 
 
 def test_create_snapshot_unauthorized(
-        activated_virtual_machine: Dict, unauthorized_client: TestClient
+    activated_virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized snapshot creation request."""
     vm_id = activated_virtual_machine['id']
     snapshot_data = {
-        "name": generate_test_entity_name("snapshot"),
-        "description": "Test snapshot"
+        'name': generate_test_entity_name('snapshot'),
+        'description': 'Test snapshot',
     }
 
     response = unauthorized_client.post(
-        f'/virtual-machines/{vm_id}/snapshots/',
-        json=snapshot_data
+        f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

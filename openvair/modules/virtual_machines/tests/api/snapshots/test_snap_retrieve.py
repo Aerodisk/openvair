@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 
 
 def test_get_all_snapshots_success(
-        client: TestClient, vm_snapshot: Dict, virtual_machine: Dict
+    client: TestClient, vm_snapshot: Dict, virtual_machine: Dict
 ) -> None:
     """Test retrieving all snapshots for a virtual machine."""
     vm_id = virtual_machine['id']
@@ -27,8 +27,15 @@ def test_get_all_snapshots_success(
     assert len(data['snapshots']) == 1
     snapshot = data['snapshots'][0]
     expected_fields = [
-        'id', 'name', 'description', 'vm_id', 'vm_name', 'parent',
-        'created_at', 'is_current', 'status'
+        'id',
+        'name',
+        'description',
+        'vm_id',
+        'vm_name',
+        'parent',
+        'created_at',
+        'is_current',
+        'status',
     ]
     assert all(field in snapshot for field in expected_fields)
     assert snapshot['id'] == vm_snapshot['id']
@@ -43,7 +50,7 @@ def test_get_all_snapshots_success(
 
 
 def test_get_snapshot_by_id_success(
-        client: TestClient, vm_snapshot: Dict, virtual_machine: Dict
+    client: TestClient, vm_snapshot: Dict, virtual_machine: Dict
 ) -> None:
     """Test retrieving specific snapshot by ID."""
     vm_id = virtual_machine['id']
@@ -53,8 +60,15 @@ def test_get_snapshot_by_id_success(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     expected_fields = [
-        'id', 'name', 'description', 'vm_id', 'vm_name', 'parent',
-        'created_at', 'is_current', 'status'
+        'id',
+        'name',
+        'description',
+        'vm_id',
+        'vm_name',
+        'parent',
+        'created_at',
+        'is_current',
+        'status',
     ]
     assert all(field in data for field in expected_fields)
     assert data['id'] == snapshot_id
@@ -69,7 +83,7 @@ def test_get_snapshot_by_id_success(
 
 
 def test_get_all_snapshots_empty_list_success(
-        client: TestClient, virtual_machine: Dict
+    client: TestClient, virtual_machine: Dict
 ) -> None:
     """Test getting all snapshots when there are none."""
     vm_id = virtual_machine['id']
@@ -95,7 +109,7 @@ def test_get_snapshot_nonexistent_vm(client: TestClient) -> None:
 
 
 def test_get_snapshot_nonexistent_snapshot(
-        client: TestClient, virtual_machine: Dict
+    client: TestClient, virtual_machine: Dict
 ) -> None:
     """Test requesting nonexistent snapshot ID."""
     vm_id = virtual_machine['id']
@@ -119,7 +133,7 @@ def test_get_snapshot_invalid_vm_uuid(client: TestClient) -> None:
 
 
 def test_get_snapshot_invalid_snapshot_uuid(
-        client: TestClient, virtual_machine: Dict
+    client: TestClient, virtual_machine: Dict
 ) -> None:
     """Test invalid snapshot UUID format in path."""
     vm_id = virtual_machine['id']
@@ -128,9 +142,7 @@ def test_get_snapshot_invalid_snapshot_uuid(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_get_snapshot_wrong_vm(
-        client: TestClient, vm_snapshot: Dict
-) -> None:
+def test_get_snapshot_wrong_vm(client: TestClient, vm_snapshot: Dict) -> None:
     """Test getting snapshot with correct ID but wrong VM ID."""
     wrong_vm_id = str(uuid.uuid4())
     snapshot_id = vm_snapshot['id']
@@ -143,7 +155,7 @@ def test_get_snapshot_wrong_vm(
 
 
 def test_get_all_snapshots_unauthorized(
-        virtual_machine: Dict, unauthorized_client: TestClient
+    virtual_machine: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request to get all snapshots."""
     vm_id = virtual_machine['id']
@@ -153,9 +165,9 @@ def test_get_all_snapshots_unauthorized(
 
 
 def test_get_snapshot_by_id_unauthorized(
-        vm_snapshot: Dict,
-        virtual_machine: Dict,
-        unauthorized_client: TestClient,
+    vm_snapshot: Dict,
+    virtual_machine: Dict,
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized request to get specific snapshot."""
     vm_id = virtual_machine['id']

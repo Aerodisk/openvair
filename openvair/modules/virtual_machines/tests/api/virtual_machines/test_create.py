@@ -7,7 +7,6 @@ Covers:
 - Unauthorized access.
 """
 
-
 import uuid
 from typing import Dict, List, Union
 
@@ -57,14 +56,9 @@ def assert_vm_startup(client: TestClient, vm_id: str, vm_name: str) -> None:
     assert vm_name not in vms_states
 
 
-def test_create_vm_success(
-        client: TestClient, vm_create_data: Dict
-) -> None:
+def test_create_vm_success(client: TestClient, vm_create_data: Dict) -> None:
     """Test successful virtual machine creation."""
-    response = client.post(
-        '/virtual-machines/create/',
-        json=vm_create_data
-    )
+    response = client.post('/virtual-machines/create/', json=vm_create_data)
     assert response.status_code == status.HTTP_201_CREATED
 
     data = response.json()
@@ -75,50 +69,46 @@ def test_create_vm_success(
     wait_for_field_value(
         client, f'/virtual-machines/{data["id"]}/', 'status', 'available'
     )
-    assert_vm_startup(client, data["id"], data["name"])
+    assert_vm_startup(client, data['id'], data['name'])
 
 
 def test_create_vm_auto_volume_success(
-        client: TestClient, volume: Dict, vm_create_data: Dict
+    client: TestClient, volume: Dict, vm_create_data: Dict
 ) -> None:
     """Test successful VM creation with auto-created volume."""
     vm_data = {
         **vm_create_data,
-        "disks": {
-            "attach_disks": [
+        'disks': {
+            'attach_disks': [
                 {
-                    "name": "test_auto_created",
-                    "format": "qcow2",
-                    "emulation": "virtio",
-                    "storage_id": volume["storage_id"],
-                    "size": 1000000000,
-                    "read_only": False,
-                    "qos": {
-                        "iops_read": 500,
-                        "iops_write": 500,
-                        "mb_read": 150,
-                        "mb_write": 100
+                    'name': 'test_auto_created',
+                    'format': 'qcow2',
+                    'emulation': 'virtio',
+                    'storage_id': volume['storage_id'],
+                    'size': 1000000000,
+                    'read_only': False,
+                    'qos': {
+                        'iops_read': 500,
+                        'iops_write': 500,
+                        'mb_read': 150,
+                        'mb_write': 100,
                     },
-                    "boot_order": 1,
-                    "order": 1,
+                    'boot_order': 1,
+                    'order': 1,
                 }
             ]
         },
     }
 
-    response = client.post(
-        '/virtual-machines/create/', json=vm_data
-    )
+    response = client.post('/virtual-machines/create/', json=vm_data)
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
-    wait_for_field_not_empty(
-        client, f'/virtual-machines/{data["id"]}', 'disks'
-    )
-    assert_vm_startup(client, data["id"], data["name"])
+    wait_for_field_not_empty(client, f'/virtual-machines/{data["id"]}', 'disks')
+    assert_vm_startup(client, data['id'], data['name'])
 
 
 def test_create_vm_missing_fields(
-        client: TestClient, vm_create_data: Dict
+    client: TestClient, vm_create_data: Dict
 ) -> None:
     """Test VM creation with missing required fields."""
     required_fields = [
@@ -128,7 +118,7 @@ def test_create_vm_missing_fields(
         'ram',
         'graphic_interface',
         'disks',
-        'virtual_interfaces'
+        'virtual_interfaces',
     ]
 
     for field in required_fields:
@@ -138,7 +128,7 @@ def test_create_vm_missing_fields(
 
 
 def test_create_vm_duplicate_name(
-        client: TestClient, vm_create_data: Dict
+    client: TestClient, vm_create_data: Dict
 ) -> None:
     """Test VM creation with duplicate name."""
     response_1 = client.post('/virtual-machines/create/', json=vm_create_data)
@@ -149,10 +139,10 @@ def test_create_vm_duplicate_name(
 
 
 def test_create_vm_nonexistent_volume(
-        client: TestClient, vm_create_data: Dict
+    client: TestClient, vm_create_data: Dict
 ) -> None:
     """Test VM creation with nonexistent volume_id."""
-    vm_create_data["disks"]["attach_disks"][0]["volume_id"] = str(uuid.uuid4())
+    vm_create_data['disks']['attach_disks'][0]['volume_id'] = str(uuid.uuid4())
 
     response = client.post('/virtual-machines/create/', json=vm_create_data)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -160,7 +150,7 @@ def test_create_vm_nonexistent_volume(
 
 
 def test_create_vm_invalid_graphic_interface(
-        client: TestClient, vm_create_data: Dict
+    client: TestClient, vm_create_data: Dict
 ) -> None:
     """Test VM creation with invalid graphic interface type."""
     vm_create_data['graphic_interface']['connect_type'] = 'invalid_connect_type'
@@ -169,18 +159,21 @@ def test_create_vm_invalid_graphic_interface(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@pytest.mark.parametrize("field,value", [
-    ("cores", 0),
-    ("threads", 0),
-    ("sockets", 0),
-    ("type", "wrong_type"),
-    ("model", "wrong_model"),
-])
+@pytest.mark.parametrize(
+    'field,value',
+    [
+        ('cores', 0),
+        ('threads', 0),
+        ('sockets', 0),
+        ('type', 'wrong_type'),
+        ('model', 'wrong_model'),
+    ],
+)
 def test_create_vm_invalid_cpu(
-        client: TestClient,
-        vm_create_data: Dict,
-        field: str,
-        value: Union[int, str],
+    client: TestClient,
+    vm_create_data: Dict,
+    field: str,
+    value: Union[int, str],
 ) -> None:
     """Test VM creation with invalid CPU configuration."""
     vm_create_data['cpu'][field] = value
@@ -188,9 +181,9 @@ def test_create_vm_invalid_cpu(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@pytest.mark.parametrize("ram_size", [-1, 0])
+@pytest.mark.parametrize('ram_size', [-1, 0])
 def test_create_vm_invalid_ram(
-        client: TestClient, vm_create_data: Dict, ram_size: int
+    client: TestClient, vm_create_data: Dict, ram_size: int
 ) -> None:
     """Test VM creation with invalid RAM size."""
     vm_create_data['ram']['size'] = ram_size
@@ -198,13 +191,16 @@ def test_create_vm_invalid_ram(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@pytest.mark.parametrize("field,value", [
-    ("boot_device", "wrong_boot_device"),
-    ("bios", "wrong_bios"),
-    ("graphic_driver", "wrong_graphic_driver"),
-])
+@pytest.mark.parametrize(
+    'field,value',
+    [
+        ('boot_device', 'wrong_boot_device'),
+        ('bios', 'wrong_bios'),
+        ('graphic_driver', 'wrong_graphic_driver'),
+    ],
+)
 def test_create_vm_invalid_os(
-        client: TestClient, vm_create_data: Dict, field: str, value: str
+    client: TestClient, vm_create_data: Dict, field: str, value: str
 ) -> None:
     """Test VM creation with invalid OS configuration."""
     vm_create_data['os'][field] = value
@@ -213,7 +209,7 @@ def test_create_vm_invalid_os(
 
 
 def test_create_vm_invalid_mac(
-        client: TestClient, vm_create_data: Dict
+    client: TestClient, vm_create_data: Dict
 ) -> None:
     """Test VM creation with invalid MAC address format."""
     vm_create_data['virtual_interfaces'][0]['mac'] = 'bad_mac'
@@ -225,13 +221,16 @@ def test_create_vm_invalid_mac(
     )
 
 
-@pytest.mark.parametrize("field,value", [
-    ("model", "wrong_model"),
-    ("mac", "wrong_mac"),
-    ("interface", ""),
-])
+@pytest.mark.parametrize(
+    'field,value',
+    [
+        ('model', 'wrong_model'),
+        ('mac', 'wrong_mac'),
+        ('interface', ''),
+    ],
+)
 def test_create_vm_invalid_virtual_interface(
-        client: TestClient, vm_create_data: Dict, field: str, value: str
+    client: TestClient, vm_create_data: Dict, field: str, value: str
 ) -> None:
     """Test VM creation with invalid virtual network interface."""
     vm_create_data['virtual_interfaces'][0][field] = value
@@ -239,12 +238,15 @@ def test_create_vm_invalid_virtual_interface(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@pytest.mark.parametrize("field,value", [
-    ("format", "wrong_format"),
-    ("emulation", "wrong_emulation"),
-])
+@pytest.mark.parametrize(
+    'field,value',
+    [
+        ('format', 'wrong_format'),
+        ('emulation', 'wrong_emulation'),
+    ],
+)
 def test_create_vm_invalid_disks(
-        client: TestClient, vm_create_data: Dict, field: str, value: str
+    client: TestClient, vm_create_data: Dict, field: str, value: str
 ) -> None:
     """Test VM creation with invalid disk configuration."""
     vm_create_data['disks']['attach_disks'][0][field] = value
@@ -252,9 +254,11 @@ def test_create_vm_invalid_disks(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@pytest.mark.parametrize("invalid_name", [str("a" * 256), ""])
+@pytest.mark.parametrize('invalid_name', [str('a' * 256), ''])
 def test_create_vm_invalid_name(
-        client: TestClient, vm_create_data: Dict, invalid_name: str,
+    client: TestClient,
+    vm_create_data: Dict,
+    invalid_name: str,
 ) -> None:
     """Test VM creation with invalid name size."""
     vm_create_data['name'] = invalid_name
@@ -263,7 +267,7 @@ def test_create_vm_invalid_name(
 
 
 def test_create_vm_empty_disks(
-        client: TestClient, vm_create_data: Dict
+    client: TestClient, vm_create_data: Dict
 ) -> None:
     """Test VM creation without any disks attached."""
     vm_create_data['disks']['attach_disks'] = []
@@ -276,24 +280,21 @@ def test_create_vm_empty_disks(
 
 
 def test_create_vm_unauthorized(
-        vm_create_data: Dict, unauthorized_client: TestClient
+    vm_create_data: Dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request."""
     response = unauthorized_client.post(
-        '/virtual-machines/create/',
-        json=vm_create_data
+        '/virtual-machines/create/', json=vm_create_data
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_clone_vm_success(
-        client: TestClient,
-        storage: Dict,
-        deactivated_virtual_machine: Dict
+    client: TestClient, storage: Dict, deactivated_virtual_machine: Dict
 ) -> None:
     """Test successful virtual machine cloning."""
     vm_id = deactivated_virtual_machine['id']
-    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    clone_data = {'count': 1, 'target_storage_id': storage['id']}
 
     response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_200_OK
@@ -307,18 +308,16 @@ def test_clone_vm_success(
     wait_for_field_value(
         client, f'/virtual-machines/{cloned_vm["id"]}/', 'status', 'available'
     )
-    assert_vm_startup(client, cloned_vm["id"], cloned_vm["name"])
+    assert_vm_startup(client, cloned_vm['id'], cloned_vm['name'])
 
 
 def test_clone_vm_multiple_success(
-        client: TestClient,
-        deactivated_virtual_machine: Dict,
-        storage: Dict
+    client: TestClient, deactivated_virtual_machine: Dict, storage: Dict
 ) -> None:
     """Test successful cloning of multiple virtual machines."""
     vm_id = deactivated_virtual_machine['id']
     num_of_clones = 3
-    clone_data = {"count": 3, "target_storage_id": storage['id']}
+    clone_data = {'count': 3, 'target_storage_id': storage['id']}
 
     response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_200_OK
@@ -336,79 +335,71 @@ def test_clone_vm_multiple_success(
             client,
             f'/virtual-machines/{cloned_vm["id"]}/',
             'status',
-            'available'
+            'available',
         )
 
 
-@pytest.mark.parametrize("invalid_count", [0, -1, 1000])
+@pytest.mark.parametrize('invalid_count', [0, -1, 1000])
 def test_clone_vm_invalid_count(
-        client: TestClient,
-        deactivated_virtual_machine: Dict,
-        storage: Dict,
-        invalid_count: int,
+    client: TestClient,
+    deactivated_virtual_machine: Dict,
+    storage: Dict,
+    invalid_count: int,
 ) -> None:
     """Test VM cloning with invalid count values."""
-    vm_id = deactivated_virtual_machine["id"]
-    clone_data = {"count": invalid_count, "target_storage_id": storage["id"]}
-    response = client.post(f"/virtual-machines/{vm_id}/clone/", json=clone_data)
+    vm_id = deactivated_virtual_machine['id']
+    clone_data = {'count': invalid_count, 'target_storage_id': storage['id']}
+    response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_clone_vm_nonexistent_vm(
-        client: TestClient,
-        storage: Dict
-) -> None:
+def test_clone_vm_nonexistent_vm(client: TestClient, storage: Dict) -> None:
     """Test cloning of nonexistent virtual machine."""
     nonexistent_vm_id = str(uuid.uuid4())
-    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    clone_data = {'count': 1, 'target_storage_id': storage['id']}
     response = client.post(
-        f'/virtual-machines/{nonexistent_vm_id}/clone/',
-        json=clone_data
+        f'/virtual-machines/{nonexistent_vm_id}/clone/', json=clone_data
     )
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'not found' in response.text.lower()
 
 
 def test_clone_vm_nonexistent_storage(
-        client: TestClient,
-        deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test VM cloning with nonexistent storage."""
     vm_id = deactivated_virtual_machine['id']
     nonexistent_storage_id = str(uuid.uuid4())
-    clone_data = {"count": 1, "target_storage_id": nonexistent_storage_id}
+    clone_data = {'count': 1, 'target_storage_id': nonexistent_storage_id}
     response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'storage' in response.text.lower()
 
 
 def test_clone_vm_running_vm(
-        client: TestClient,
-        activated_virtual_machine: Dict,
-        storage: Dict
+    client: TestClient, activated_virtual_machine: Dict, storage: Dict
 ) -> None:
     """Test cloning of running virtual machine (should fail)."""
     vm_id = activated_virtual_machine['id']
-    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    clone_data = {'count': 1, 'target_storage_id': storage['id']}
     response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert 'power' in response.text.lower()
 
 
 def test_clone_vm_missing_target_storage(
-        client: TestClient,
-        deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test VM cloning with missing target storage."""
     vm_id = deactivated_virtual_machine['id']
-    clone_data = {"count": 1}
+    clone_data = {'count': 1}
     response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_clone_vm_invalid_uuid(client: TestClient, storage: dict) -> None:
     """Test cloning attempt using invalid VM UUID format."""
-    clone_data = {"count": 1, "target_storage_id": storage["id"]}
+    clone_data = {'count': 1, 'target_storage_id': storage['id']}
     response = client.post(
         '/virtual-machines/invalid-uuid/clone/', json=clone_data
     )
@@ -416,26 +407,24 @@ def test_clone_vm_invalid_uuid(client: TestClient, storage: dict) -> None:
 
 
 def test_clone_vm_invalid_target_storage_uuid(
-        client: TestClient,
-        deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: Dict
 ) -> None:
     """Test VM cloning with invalid target storage UUID format."""
     vm_id = deactivated_virtual_machine['id']
-    clone_data = {"count": 1, "target_storage_id": "invalid-uuid"}
+    clone_data = {'count': 1, 'target_storage_id': 'invalid-uuid'}
     response = client.post(f'/virtual-machines/{vm_id}/clone/', json=clone_data)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_clone_vm_unauthorized(
-        deactivated_virtual_machine: Dict,
-        storage: Dict,
-        unauthorized_client: TestClient
+    deactivated_virtual_machine: Dict,
+    storage: Dict,
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized VM cloning request."""
     vm_id = deactivated_virtual_machine['id']
-    clone_data = {"count": 1, "target_storage_id": storage['id']}
+    clone_data = {'count': 1, 'target_storage_id': storage['id']}
     response = unauthorized_client.post(
-        f'/virtual-machines/{vm_id}/clone/',
-        json=clone_data
+        f'/virtual-machines/{vm_id}/clone/', json=clone_data
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

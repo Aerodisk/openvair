@@ -18,7 +18,7 @@ from openvair.libs.testing.utils import wait_for_field_value
 
 
 def test_revert_snapshot_success(
-        client: TestClient, vm_snapshot: Dict, activated_virtual_machine: Dict
+    client: TestClient, vm_snapshot: Dict, activated_virtual_machine: Dict
 ) -> None:
     """Test successful snapshot revert on running VM."""
     vm_id = activated_virtual_machine['id']
@@ -40,14 +40,14 @@ def test_revert_snapshot_success(
         f'/virtual-machines/{vm_id}/snapshots/{snapshot_id}',
         'status',
         'running',
-        timeout=120
+        timeout=120,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/',
         'power_state',
         'running',
-        timeout=120
+        timeout=120,
     )
 
     final_snapshot = client.get(
@@ -61,7 +61,7 @@ def test_revert_snapshot_success(
 
 
 def test_revert_snapshot_chain_success(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test reverting to non-current snapshot in a chain."""
     vm_id = activated_virtual_machine['id']
@@ -70,12 +70,11 @@ def test_revert_snapshot_chain_success(
 
     for i in range(3):
         snapshot_data = {
-            "name": f"chain_snapshot_{i}",
-            "description": f"Revert chain snapshot {i}"
+            'name': f'chain_snapshot_{i}',
+            'description': f'Revert chain snapshot {i}',
         }
         response = client.post(
-            f'/virtual-machines/{vm_id}/snapshots/',
-            json=snapshot_data
+            f'/virtual-machines/{vm_id}/snapshots/', json=snapshot_data
         )
         assert response.status_code == status.HTTP_201_CREATED
         snapshot = response.json()
@@ -86,7 +85,7 @@ def test_revert_snapshot_chain_success(
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'status',
             'running',
-            timeout=120
+            timeout=120,
         )
 
     snap1, snap2, snap3 = snapshots
@@ -105,14 +104,14 @@ def test_revert_snapshot_chain_success(
         f'/virtual-machines/{vm_id}/snapshots/{snap1["id"]}',
         'status',
         'running',
-        timeout=120
+        timeout=120,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/',
         'power_state',
         'running',
-        timeout=120
+        timeout=120,
     )
 
     # Verify snap1 is now current
@@ -121,11 +120,11 @@ def test_revert_snapshot_chain_success(
     ).json()
     assert snap1_after['is_current'] is True
     libvirt_snapshots, current_snapshot = get_vm_snapshots(vm_name)
-    assert current_snapshot == snap1["name"]
+    assert current_snapshot == snap1['name']
 
 
 def test_revert_snapshot_shutoff_vm(
-        client: TestClient, vm_snapshot: Dict, deactivated_virtual_machine: Dict
+    client: TestClient, vm_snapshot: Dict, deactivated_virtual_machine: Dict
 ) -> None:
     """Test revert failure on shut off VM."""
     vm_id = deactivated_virtual_machine['id']
@@ -151,7 +150,7 @@ def test_revert_snapshot_nonexistent_vm(client: TestClient) -> None:
 
 
 def test_revert_snapshot_nonexistent_snapshot(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test revert attempt for nonexistent snapshot."""
     vm_id = activated_virtual_machine['id']
@@ -175,7 +174,7 @@ def test_revert_snapshot_invalid_vm_uuid(client: TestClient) -> None:
 
 
 def test_revert_snapshot_invalid_snapshot_uuid(
-        client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: Dict
 ) -> None:
     """Test revert attempt using invalid snapshot UUID format."""
     vm_id = activated_virtual_machine['id']
@@ -187,7 +186,7 @@ def test_revert_snapshot_invalid_snapshot_uuid(
 
 
 def test_revert_snapshot_wrong_vm(
-        client: TestClient, vm_snapshot: Dict
+    client: TestClient, vm_snapshot: Dict
 ) -> None:
     """Test revert attempt with correct snapshot ID but wrong VM ID."""
     wrong_vm_id = str(uuid.uuid4())
@@ -201,9 +200,9 @@ def test_revert_snapshot_wrong_vm(
 
 
 def test_revert_snapshot_unauthorized(
-        vm_snapshot: Dict,
-        activated_virtual_machine: Dict,
-        unauthorized_client: TestClient,
+    vm_snapshot: Dict,
+    activated_virtual_machine: Dict,
+    unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized snapshot revert attempt."""
     vm_id = activated_virtual_machine['id']
