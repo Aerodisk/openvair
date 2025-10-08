@@ -233,7 +233,7 @@ class VMCrud:
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def get_snapshot(self, vm_id: UUID, snap_id: str, user_info: Dict) -> Dict:
+    def get_snapshot(self, vm_id: UUID, snap_id: UUID, user_info: Dict) -> Dict:
         """Retrieve a snapshot of a specific virtual machine by snapshot ID.
 
         Args:

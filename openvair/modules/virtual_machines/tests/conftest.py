@@ -1,7 +1,7 @@
 """Fixtures for virtual machines integration tests.
 
 Provides:
-- `cleanup_vms`: Clean up all virtual machines before and after each test.
+- `cleanup_vms`: Clean up all virtual machines after each test.
 """
 
 from typing import Dict, Generator
@@ -26,12 +26,7 @@ LOG = get_logger(__name__)
 
 @pytest.fixture(scope='function', autouse=True)
 def cleanup_vms() -> Generator:
-    """Clean up all virtual machines and resources before and after test."""
-    cleanup_all_virtual_machines()
-    cleanup_all_images()
-    cleanup_all_volumes()
-    cleanup_all_templates()
-    cleanup_all_storages()
+    """Clean up all virtual machines and resources after test."""
     yield
     cleanup_all_virtual_machines()
     cleanup_all_images()

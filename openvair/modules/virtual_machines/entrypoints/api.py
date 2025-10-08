@@ -369,7 +369,7 @@ async def get_snapshot(
         f'of virtual machine with ID: {vm_id}.'
     )
     snapshot = await run_in_threadpool(
-        crud.get_snapshot, vm_id, str(snap_id), user_info
+        crud.get_snapshot, vm_id, snap_id, user_info
     )
     LOG.info('API request was successfully processed.')
     return schemas.SnapshotInfo(**snapshot)

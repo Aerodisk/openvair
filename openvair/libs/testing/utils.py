@@ -216,19 +216,36 @@ def cleanup_all_virtual_machines() -> None:
     try:
         with unit_of_work as uow:
             vms = uow.virtual_machines.get_all()
-            for vm in vms:
-                with LibvirtConnection() as conn:
-                    try:
-                        domain = conn.lookupByName(vm.name)
-                        if domain.isActive():
-                            domain.destroy()
-                        domain.undefine()
-                    except libvirt.libvirtError:
-                        pass
-                uow.virtual_machines.delete(vm)
-                uow.commit()
+            vm_names = [vm.name for vm in vms]
+            vm_ids = [vm.id for vm in vms]
+
+        _delete_libvirt_vms(vm_names)
+
+        with unit_of_work as uow:
+            for vm_id in vm_ids:
+                vm = uow.virtual_machines.get(vm_id)
+                if vm:
+                    uow.virtual_machines.delete(vm)
+            uow.commit()
     except Exception as err:  # noqa: BLE001
         LOG.warning(f'Error while cleaning up virtual machines: {err}')
+
+
+def _delete_libvirt_vms(vm_names: List) -> None:
+    """Delete virtual machines from libvirt by names.
+
+    Args:
+        vm_names (List): List of virtual machine names to delete.
+    """
+    with LibvirtConnection() as conn:
+        for name in vm_names:
+            try:
+                domain = conn.lookupByName(name)
+                if domain.isActive():
+                    domain.destroy()
+                domain.undefine()
+            except libvirt.libvirtError:
+                continue
 
 
 def cleanup_all_storages() -> None:
