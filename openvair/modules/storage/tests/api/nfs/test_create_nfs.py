@@ -1,4 +1,3 @@
-# ruff: noqa: ARG001 because of fixtures using
 """Integration tests for storage creation (NFS).
 
 Covers:
@@ -20,9 +19,7 @@ from openvair.libs.testing.utils import (
 from openvair.libs.testing.config import storage_settings
 
 
-def test_create_storage_nfs_success(
-    client: TestClient, cleanup_storages: None
-) -> None:
+def test_create_storage_nfs_success(client: TestClient) -> None:
     """Test successful NFS storage creation."""
     storage_data = {
         'name': generate_test_entity_name('storage'),
@@ -58,9 +55,7 @@ def test_create_storage_nfs_success(
     assert storage_extra_specs['path'] == str(storage_settings.storage_nfs_path)
 
 
-def test_create_storage_nfs_invalid_ip(
-    client: TestClient, cleanup_storages: None
-) -> None:
+def test_create_storage_nfs_invalid_ip(client: TestClient) -> None:
     """Test failure with invalid IP address."""
     storage_data = {
         'name': generate_test_entity_name('storage'),
@@ -78,9 +73,7 @@ def test_create_storage_nfs_invalid_ip(
     assert 'ip' in response.text.lower()
 
 
-def test_create_storage_nfs_invalid_mount_version(
-    client: TestClient, cleanup_storages: None
-) -> None:
+def test_create_storage_nfs_invalid_mount_version(client: TestClient) -> None:
     """Test failure with invalid mount version."""
     storage_data = {
         'name': generate_test_entity_name('storage'),
@@ -99,9 +92,7 @@ def test_create_storage_nfs_invalid_mount_version(
     assert '3' in response.text and '4' in response.text
 
 
-def test_create_storage_nfs_invalid_path(
-    client: TestClient, cleanup_storages: None
-) -> None:
+def test_create_storage_nfs_invalid_path(client: TestClient) -> None:
     """Test failure with invalid path characters."""
     storage_data = {
         'name': generate_test_entity_name('storage'),
@@ -119,9 +110,7 @@ def test_create_storage_nfs_invalid_path(
     assert 'path' in response.text.lower()
 
 
-def test_create_storage_nfs_missing_required_fields(
-    client: TestClient, cleanup_storages: None
-) -> None:
+def test_create_storage_nfs_missing_required_fields(client: TestClient) -> None:
     """Test failure when required fields are missing."""
     test_cases = [
         {
@@ -151,9 +140,7 @@ def test_create_storage_nfs_missing_required_fields(
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_create_storage_nfs_duplicate_name(
-    client: TestClient, cleanup_storages: None
-) -> None:
+def test_create_storage_nfs_duplicate_name(client: TestClient) -> None:
     """Test failure with duplicate storage name."""
     storage_data1 = {
         'name': 'duplicate-test',
@@ -189,7 +176,7 @@ def test_create_storage_nfs_duplicate_name(
 
 
 def test_create_storage_nfs_unauthorized(
-    unauthorized_client: TestClient, cleanup_storages: None
+    unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized NFS storage creation."""
     storage_data = {

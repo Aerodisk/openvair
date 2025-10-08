@@ -27,7 +27,9 @@ class StorageSettings(BaseSettings):
         default='ext4', alias='TEST_STORAGE_FS_TYPE'
     )
     storage_nfs_ip: str = Field(default=None, alias='TEST_STORAGE_NFS_IP')
-    storage_nfs_path: Path = Field(default=None, alias='TEST_STORAGE_NFS_PATH')
+    storage_nfs_path: Path = Field(
+        default=Path(), alias='TEST_STORAGE_NFS_PATH'
+    )
 
 
     model_config = SettingsConfigDict(
