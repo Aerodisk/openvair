@@ -252,7 +252,7 @@ class VMCrud:
             services.VMServiceLayerManager.get_snapshot.__name__,
             data_for_method={
                 'vm_id': str(vm_id),
-                'snap_id': snap_id,
+                'snap_id': str(snap_id),
                 'user_info': user_info,
             },
         )
