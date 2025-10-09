@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from openvair.libs.libvirt.vm import get_vm_snapshots
 from openvair.libs.testing.utils import wait_for_field_value
+from openvair.modules.virtual_machines.tests.conftest import SNAPSHOT_TIMEOUT
 
 
 def test_revert_snapshot_success(
@@ -40,14 +41,13 @@ def test_revert_snapshot_success(
         f'/virtual-machines/{vm_id}/snapshots/{snapshot_id}',
         'status',
         'running',
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/',
         'power_state',
         'running',
-        timeout=120,
     )
 
     final_snapshot = client.get(
@@ -85,7 +85,7 @@ def test_revert_snapshot_chain_success(
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'status',
             'running',
-            timeout=120,
+            timeout=SNAPSHOT_TIMEOUT,
         )
 
     snap1, snap2, snap3 = snapshots
@@ -104,14 +104,13 @@ def test_revert_snapshot_chain_success(
         f'/virtual-machines/{vm_id}/snapshots/{snap1["id"]}',
         'status',
         'running',
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/',
         'power_state',
         'running',
-        timeout=120,
     )
 
     # Verify snap1 is now current

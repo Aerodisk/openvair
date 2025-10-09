@@ -18,6 +18,7 @@ from openvair.libs.testing.utils import (
     wait_for_field_value,
     wait_full_deleting_object,
 )
+from openvair.modules.virtual_machines.tests.conftest import SNAPSHOT_TIMEOUT
 from openvair.modules.virtual_machines.service_layer.unit_of_work import (
     VMSqlAlchemyUnitOfWork,
 )
@@ -106,7 +107,7 @@ def test_delete_snapshot_chain_success(
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'status',
             'running',
-            timeout=120,
+            timeout=SNAPSHOT_TIMEOUT,
         )
 
     snap1, snap2, snap3 = snapshots  # Snapshot chain: snap1 -> snap2 -> snap3

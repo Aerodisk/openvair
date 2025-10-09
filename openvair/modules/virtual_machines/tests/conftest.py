@@ -23,6 +23,8 @@ from openvair.libs.testing.utils import (
 
 LOG = get_logger(__name__)
 
+SNAPSHOT_TIMEOUT = 120
+
 
 @pytest.fixture(scope='function', autouse=True)
 def cleanup_vms() -> Generator:
@@ -56,21 +58,20 @@ def vm_snapshot(
         f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}',
         'status',
         'running',
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}',
         'is_current',
         expected=True,
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/',
         'power_state',
-        'running',
-        timeout=120,
+        'running'
     )
     snapshot = client.get(
         f'/virtual-machines/{vm_id}/snapshots/{snapshot_info["id"]}'

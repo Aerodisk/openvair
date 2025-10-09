@@ -24,8 +24,8 @@ def test_edit_vm_success(
 ) -> None:
     """Test successful VM metadata edit."""
     vm_id = virtual_machine['id']
-    assert vm_edit_data["name"] != virtual_machine["name"]
-    assert vm_edit_data["description"] != virtual_machine["description"]
+    assert vm_edit_data['name'] != virtual_machine['name']
+    assert vm_edit_data['description'] != virtual_machine['description']
     response = client.post(
         f'/virtual-machines/{vm_id}/edit/', json=vm_edit_data
     )

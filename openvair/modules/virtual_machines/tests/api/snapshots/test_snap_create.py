@@ -19,6 +19,7 @@ from openvair.libs.testing.utils import (
     wait_for_field_value,
     generate_test_entity_name,
 )
+from openvair.modules.virtual_machines.tests.conftest import SNAPSHOT_TIMEOUT
 
 
 def test_create_snapshot_success(
@@ -51,14 +52,14 @@ def test_create_snapshot_success(
         f'/virtual-machines/{vm_id}/snapshots/{data["id"]}',
         'status',
         'running',
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     wait_for_field_value(
         client,
         f'/virtual-machines/{vm_id}/snapshots/{data["id"]}',
         'is_current',
         expected=True,
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     wait_for_field_value(
         client,
@@ -207,14 +208,14 @@ def test_create_multiple_snapshots_chain(
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'status',
             'running',
-            timeout=120,
+            timeout=SNAPSHOT_TIMEOUT,
         )
         wait_for_field_value(
             client,
             f'/virtual-machines/{vm_id}/snapshots/{snapshot["id"]}',
             'is_current',
             expected=True,
-            timeout=120,
+            timeout=SNAPSHOT_TIMEOUT,
         )
         wait_for_field_value(
             client,

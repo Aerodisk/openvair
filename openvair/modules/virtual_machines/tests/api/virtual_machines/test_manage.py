@@ -18,6 +18,7 @@ from openvair.libs.libvirt.vm import (
     get_vm_snapshots,
 )
 from openvair.libs.testing.utils import wait_for_field_value
+from openvair.modules.virtual_machines.tests.conftest import SNAPSHOT_TIMEOUT
 
 
 def test_start_vm_success(
@@ -239,7 +240,7 @@ def test_vm_restart_with_snapshot(
         f'/virtual-machines/{vm_id}/snapshots/{vm_snapshot["id"]}',
         'status',
         'running',
-        timeout=120,
+        timeout=SNAPSHOT_TIMEOUT,
     )
     restored_libvirt_snapshots, restored_current = get_vm_snapshots(vm_name)
     assert snapshot_name in restored_libvirt_snapshots
