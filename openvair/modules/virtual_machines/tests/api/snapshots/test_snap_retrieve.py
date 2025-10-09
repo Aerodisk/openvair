@@ -1,9 +1,9 @@
 """Integration tests for virtual machine snapshots retrieval.
 
 Covers:
-- Getting all snapshots for a VM / specific snapshot by ID
+- Getting all snapshots for a VM / specific snapshot by ID.
 - Logical errors (e.g. nonexistent VM, wrong VM ID).
-- Unauthorized access
+- Unauthorized access.
 """
 
 import uuid

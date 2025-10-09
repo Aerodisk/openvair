@@ -1,10 +1,10 @@
 """Integration tests for virtual machine snapshots deletion.
 
 Covers:
-- Successful snapshot deletion from running and shut off VMs
-- Validation errors (e.g. invalid IDs)
-- Logical errors (e.g. nonexistent VM/snapshot)
-- Unauthorized access
+- Successful snapshot deletion from running and shut off VMs.
+- Validation errors (e.g. invalid IDs).
+- Logical errors (e.g. nonexistent VM/snapshot).
+- Unauthorized access.
 """
 
 import uuid

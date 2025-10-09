@@ -1,10 +1,10 @@
 """Integration tests for starting and shutting off virtual machines.
 
 Covers:
-- Successful start / shut-off flows
-- Invalid UUID / nonexistent VM errors
-- Attempts to start an already-running VM or shut-off an already stopped VM
-- Unauthorized access
+- Successful start / shut-off flows.
+- Invalid UUID / nonexistent VM errors.
+- Attempts to start an already-running VM or shut-off an already stopped VM.
+- Unauthorized access.
 """
 
 import uuid

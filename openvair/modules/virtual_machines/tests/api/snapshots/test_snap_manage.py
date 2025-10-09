@@ -1,10 +1,10 @@
 """Integration tests for virtual machine snapshots revert.
 
 Covers:
-- Successful snapshot revert on running VM
-- Validation errors (e.g. invalid IDs)
-- Logical errors (e.g. nonexistent VM/snapshot, shutoff VM, invalid status)
-- Unauthorized access
+- Successful snapshot revert on running VM.
+- Validation errors (e.g. invalid IDs).
+- Logical errors (e.g. nonexistent VM/snapshot, shutoff VM, invalid status).
+- Unauthorized access.
 """
 
 import uuid

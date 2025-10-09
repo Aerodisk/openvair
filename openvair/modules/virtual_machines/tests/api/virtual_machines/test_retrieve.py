@@ -1,10 +1,10 @@
 """Integration tests for virtual machines retrieval.
 
 Covers:
-- Getting all VMs with pagination
-- Getting specific VM by ID
-- Handling errors for invalid or nonexistent VM IDs
-- Unauthorized access
+- Getting all VMs with pagination.
+- Getting specific VM by ID.
+- Handling errors for invalid or nonexistent VM IDs.
+- Unauthorized access.
 """
 
 import uuid

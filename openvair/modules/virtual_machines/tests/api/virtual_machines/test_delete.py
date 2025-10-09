@@ -1,10 +1,10 @@
 """Integration tests for virtual machines deletion.
 
 Covers:
-- Successful VM deletion
-- Validation errors (e.g. invalid ID)
-- Logical errors (e.g. running/non-existent VM, invalid status, with snapshots)
-- Unauthorized access
+- Successful VM deletion.
+- Validation errors (e.g. invalid ID).
+- Logical errors (e.g. running/non-existent VM, invalid status, with snapshots).
+- Unauthorized access.
 """
 
 import uuid
