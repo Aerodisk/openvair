@@ -625,34 +625,3 @@ def cleanup_test_bridges() -> None:  # noqa: C901 because it will be simplified 
                 uow.commit()
     except Exception as e:  # noqa: BLE001
         LOG.warning(f'Error during test bridges cleanup: {e}')
-
-
-def check_object_exists(
-    client: TestClient,
-    path: str,
-    object_id: str,
-) -> bool:
-    """Checks if object with given ID exists in the API response.
-
-    Args:
-        client (TestClient): The test client to use for sending request.
-        path (str): The API path to poll for object presence.
-        object_id (str): The ID of the object to check.
-
-    Returns:
-        bool: True if the object exists, False otherwise.
-    """
-    response = client.get(path).json()
-
-    if isinstance(response, Dict):
-        objects = response.get("items", response)
-        if isinstance(objects, Dict):
-            objects = [objects]
-    elif isinstance(response, List):
-        objects = response
-    else:
-        return False
-
-    return any(
-        isinstance(obj, Dict) and obj.get("id") == object_id for obj in objects
-    )
