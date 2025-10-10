@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo 'Running mypy check'
-if ! ./.venv/bin/mypy --config-file=mypy.ini .; then
+if ! uv run mypy .; then
     echo
     echo
     echo "=========================================================================="
