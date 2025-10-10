@@ -48,6 +48,7 @@ from sqlalchemy.exc import NoResultFound
 from openvair.libs.log import get_logger
 from openvair.libs.libvirt.vm import get_vms_state, get_vm_snapshots
 from openvair.libs.clone.utils import (
+    generate_unique_macs,
     get_max_clone_number,
     create_new_clone_name,
 )
@@ -1522,10 +1523,10 @@ class VMServiceLayerManager(BackgroundTasks):
         disk_names = [volume['name'] for volume in volumes]
         attached_disks = [disk['name'] for disk in original_vm.get('disks', [])]
 
-        max_numbers = {}
+        max_disk_numbers = {}
         for disk in attached_disks:
-            max_number = get_max_clone_number(disk, disk_names, count)
-            max_numbers[disk] = max_number
+            max_disk_number = get_max_clone_number(disk, disk_names, count)
+            max_disk_numbers[disk] = max_disk_number
 
         vms = self.get_all_vms()
 
@@ -1534,11 +1535,32 @@ class VMServiceLayerManager(BackgroundTasks):
             original_vm['name'], vm_names, count
         )
 
+        with self.uow() as uow:
+            db_vms = uow.virtual_machines.get_all()
+            existing_macs = {
+                interface.mac
+                for db_vm in db_vms
+                for interface in db_vm.virtual_interfaces
+                if interface.mac
+            }
+        interfaces_per_vm = len(original_vm.get('virtual_interfaces', []))
+        total_macs_num = count * interfaces_per_vm
+        unique_macs = generate_unique_macs(existing_macs, total_macs_num)
+
         # Create *count* of clones
         for i in range(count):
             # 1. Build minimal create_VM payload
+            start_idx = i * interfaces_per_vm
+            end_idx = start_idx + interfaces_per_vm
+            clone_macs = unique_macs[start_idx:end_idx]
+
             clone_payload = self._transform_clone_vm_data(
-                original_vm, user_info, target_storage_id, max_numbers, i
+                original_vm,
+                user_info,
+                target_storage_id,
+                max_disk_numbers,
+                clone_macs,
+                i,
             )
 
             clone_payload['name'] = create_new_clone_name(
@@ -1567,12 +1589,13 @@ class VMServiceLayerManager(BackgroundTasks):
 
         return result
 
-    def _transform_clone_vm_data(  # noqa: C901 # TODO: refactor using DTO
+    def _transform_clone_vm_data(  # noqa: C901, PLR0913 # TODO: refactor using DTO and reduce parameters
         self,
         vm: Dict,
         user_info: Dict,
         target_storage_id: UUID,
-        max_numbers: Dict,
+        max_disk_numbers: Dict,
+        clone_macs: List[str],
         current_copy: int,
     ) -> Dict:
         """Convert VM data for cloning.
@@ -1586,14 +1609,12 @@ class VMServiceLayerManager(BackgroundTasks):
             user_info (Dict): User information to be included in the new VM.
             target_storage_id (UUID): ID of storage where the volume will be
                 created
-            max_numbers (Dict): Dictionary of disk names and max suffix number
-            for each disk
+            max_disk_numbers (Dict): Dictionary of disk names and max suffix
+            number for each disk.
+            clone_macs (List[str]): Pre-generated MAC addresses for this clone.
             current_copy (int): current copy number
         Returns:
             Dict: The transformed VM data ready for cloning.
-            This function prepares the VM data for cloning by removing
-            unnecessary fields and ensuring the data structure is compatible
-            with the expected input for creating a new VM.
         """
         try:
             data = deepcopy(vm)
@@ -1609,13 +1630,14 @@ class VMServiceLayerManager(BackgroundTasks):
                     )
 
             virtual_interfaces: List[Dict] = []
-            for vif in vm.get('virtual_interfaces', []):
+            for idx, vif in enumerate(vm.get('virtual_interfaces', [])):
+                mac_address = clone_macs[idx]
                 virtual_interfaces.append(
                     {
                         'mode': vif['mode'],
                         'portgroup': vif.get('portgroup'),
                         'interface': vif['interface'],
-                        'mac': vif['mac'],  # TODO: generate unique MAC
+                        'mac': mac_address,
                         'model': vif['model'],
                         'order': vif.get('order', 0),
                     }
@@ -1625,7 +1647,7 @@ class VMServiceLayerManager(BackgroundTasks):
             attach_disks: List[Dict] = self._vm_clone_disks_payload(
                 data.get('disks', []),
                 user_info,
-                max_numbers,
+                max_disk_numbers,
                 target_storage_id,
                 current_copy,
             )

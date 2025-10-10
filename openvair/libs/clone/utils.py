@@ -8,11 +8,13 @@ Functions:
 """
 
 import re
-from typing import List, Optional
+import secrets
+from typing import Set, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.clone.exceptions import (
     CloneNameTooLong,
+    NoAvailableMacForClone,
     NoAvailableNameForClone,
 )
 
@@ -67,3 +69,52 @@ def create_new_clone_name(
         raise CloneNameTooLong(msg)
 
     return f'{name}_clone_{num:03d}'
+
+
+def generate_mac_address() -> str:
+    """Generates a random MAC address.
+
+    Returns:
+        str: Random MAC address (default format: '6C:4A:74:XX:XX:XX')
+    """
+    prefix = "6C:4A:74"  # default
+    random_part = ":".join(
+        "".join(secrets.choice("0123456789ABCDEF") for _ in range(2))
+        for _ in range(3)
+    )
+    return f"{prefix}:{random_part}"
+
+
+def generate_unique_macs(
+        existing_macs: Set[str],
+        count: int,
+        max_attempts: int = 100
+) -> List[str]:
+    """Generates multiple unique MAC addresses.
+
+    Args:
+        existing_macs (Set[str]): Set of existing MAC addresses to avoid.
+        count (int): Number of unique MAC addresses to generate.
+        max_attempts (int): Maximum attempts to generate unique MAC.
+
+    Raises:
+        NoAvailableMacForClone: If can't generate unique MAC after max_attempts.
+
+    Returns:
+        List[str]: List of generated unique MAC addresses.
+    """
+    generated_macs = set()
+
+    for _ in range(count):
+        for __ in range(max_attempts):
+            mac = generate_mac_address()
+            if mac not in existing_macs and mac not in generated_macs:
+                generated_macs.add(mac)
+                break
+        else:
+            msg = (f'Cannot generate unique MAC '
+                   f'address after {max_attempts} attempts')
+            LOG.error(msg)
+            raise NoAvailableMacForClone(msg)
+
+    return list(generated_macs)
