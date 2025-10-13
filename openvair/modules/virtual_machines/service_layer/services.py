@@ -979,6 +979,12 @@ class VMServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
             vm_name = db_vm.name
+            self._check_vm_status(
+                db_vm.status, [VmStatus.available.name, VmStatus.error.name]
+            )
+            self._check_vm_power_state(
+                db_vm.power_state, [VmPowerState.shut_off.name]
+            )
             db_vm.status = VmStatus.starting.name
             uow.commit()
         self.event_store.add_event(
