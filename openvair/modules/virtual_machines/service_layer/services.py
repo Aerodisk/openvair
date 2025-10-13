@@ -2223,7 +2223,9 @@ class VMServiceLayerManager(BackgroundTasks):
         Args:
             db_vm: VirtualMachines database object to update snapshots for.
         """
-        libvirt_snaps, libvirt_current_snap = get_vm_snapshots(db_vm.name)
+        snapshots_info = get_vm_snapshots(db_vm.name)
+        libvirt_snaps = snapshots_info['snapshots']
+        libvirt_current_snap = snapshots_info['current_snapshot']
         vm_id = str(db_vm.id)
         with self.uow() as uow:
             db_snaps = uow.snapshots.get_all_by_vm(vm_id)
