@@ -29,6 +29,7 @@ def test_delete_storage_success(
 ) -> None:
     """Test successful storage deletion using fixture."""
     storage_id = storage['id']
+    assert storage['storage_type'] == 'localfs'
     delete_response = client.delete(f'/storages/{storage_id}/delete')
     assert delete_response.status_code == status.HTTP_202_ACCEPTED
     data = delete_response.json()

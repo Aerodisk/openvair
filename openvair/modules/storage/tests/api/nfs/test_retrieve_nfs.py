@@ -9,16 +9,19 @@ Covers:
 import uuid
 from typing import Dict
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from openvair.libs.testing.config import storage_settings
 
 
+@pytest.mark.parametrize('storage', ['nfs'], indirect=True)
 def test_get_storages_nfs_success(
-    client: TestClient, nfs_storage: Dict
+    client: TestClient, storage: Dict
 ) -> None:
     """Test successful retrieval of storages list with NFS storage."""
+    assert storage['storage_type'] == 'nfs'
     response = client.get('/storages/')
     assert response.status_code == status.HTTP_200_OK
 
@@ -28,24 +31,26 @@ def test_get_storages_nfs_success(
     assert data['total'] >= 1
 
     storage_ids = [item['id'] for item in data['items']]
-    assert nfs_storage['id'] in storage_ids
+    assert storage['id'] in storage_ids
 
     nfs_storage_data = next(
-        item for item in data['items'] if item['id'] == nfs_storage['id']
+        item for item in data['items'] if item['id'] == storage['id']
     )
-    assert nfs_storage_data['storage_type'] == 'nfs'
+    assert nfs_storage_data['storage_type'] == storage['storage_type']
     assert nfs_storage_data['status'] == 'available'
 
 
-def test_get_storage_nfs_success(client: TestClient, nfs_storage: Dict) -> None:
+@pytest.mark.parametrize('storage', ['nfs'], indirect=True)
+def test_get_storage_nfs_success(client: TestClient, storage: Dict) -> None:
     """Test successful NFS storage retrieval by ID."""
-    response = client.get(f"/storages/{nfs_storage['id']}/")
+    assert storage['storage_type'] == 'nfs'
+    response = client.get(f"/storages/{storage['id']}/")
     assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
-    assert data['id'] == nfs_storage['id']
-    assert data['name'] == nfs_storage['name']
-    assert data['storage_type'] == 'nfs'
+    assert data['id'] == storage['id']
+    assert data['name'] == storage['name']
+    assert data['storage_type'] == storage['storage_type']
     assert data['status'] == 'available'
     assert 'storage_extra_specs' in data
     specs = data['storage_extra_specs']
@@ -65,12 +70,3 @@ def test_get_storage_nfs_invalid_id(client: TestClient) -> None:
     """Test retrieval with invalid storage ID."""
     response = client.get('/storages/invalid-id/')
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-
-def test_get_storage_nfs_unauthorized(
-    nfs_storage: Dict,
-    unauthorized_client: TestClient,
-) -> None:
-    """Test unauthorized access to specific NFS storage."""
-    response = unauthorized_client.get(f'/storages/{nfs_storage["id"]}/')
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED

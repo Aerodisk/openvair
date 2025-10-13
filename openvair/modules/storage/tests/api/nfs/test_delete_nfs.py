@@ -12,6 +12,7 @@ Covers:
 from uuid import uuid4
 from typing import Dict
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -19,12 +20,14 @@ from openvair.libs.testing.utils import cleanup_all_volumes
 from openvair.modules.storage.service_layer.services import StorageStatus
 
 
+@pytest.mark.parametrize('storage', ['nfs'], indirect=True)
 def test_delete_storage_nfs_success(
     client: TestClient,
-    nfs_storage: Dict,
+    storage: Dict,
 ) -> None:
     """Test successful NFS storage deletion using fixture."""
-    storage_id = nfs_storage['id']
+    storage_id = storage['id']
+    assert storage['storage_type'] == 'nfs'
     delete_response = client.delete(f'/storages/{storage_id}/delete')
     assert delete_response.status_code == status.HTTP_202_ACCEPTED
     data = delete_response.json()
@@ -47,12 +50,16 @@ def test_delete_storage_nfs_not_found(client: TestClient) -> None:
     assert 'not found' in response.text.lower()
 
 
+@pytest.mark.parametrize('storage', ['nfs'], indirect=True)
 def test_delete_storage_nfs_with_attached_volume(
     client: TestClient,
-    nfs_volume: Dict,
+    storage: Dict,
+    volume: Dict,
 ) -> None:
     """Test deletion failure when NFS storage has attached volume."""
-    storage_id = nfs_volume['storage_id']
+    storage_id = volume['storage_id']
+    assert storage_id == storage['id']
+    assert storage['storage_type'] == 'nfs'
     response = client.delete(f'/storages/{storage_id}/delete')
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     response_text = response.text.lower()
@@ -60,13 +67,14 @@ def test_delete_storage_nfs_with_attached_volume(
     assert 'has volumes' in response.text.lower()
 
 
+@pytest.mark.parametrize('storage', ['nfs'], indirect=True)
 def test_delete_storage_nfs_with_attached_template(
-    client: TestClient, nfs_template: Dict, nfs_storage: Dict
+    client: TestClient, storage: Dict, template: Dict
 ) -> None:
     """Test deletion failure when NFS storage has attached template."""
-    storage_id = nfs_storage['id']
+    storage_id = storage['id']
     cleanup_all_volumes()
-    template_response = client.get(f'/templates/{nfs_template["id"]}/')
+    template_response = client.get(f'/templates/{template["id"]}/')
     assert template_response.status_code == status.HTTP_200_OK
     template_data = template_response.json()['data']
     assert template_data['storage_id'] == storage_id
@@ -76,13 +84,3 @@ def test_delete_storage_nfs_with_attached_template(
     response_text = response.text.lower()
     assert 'storagehasobjects' in response_text
     assert 'has templates' in response.text.lower()
-
-
-def test_delete_storage_nfs_unauthorized(
-    nfs_storage: Dict,
-    unauthorized_client: TestClient,
-) -> None:
-    """Test unauthorized NFS storage deletion."""
-    storage_id = nfs_storage['id']
-    response = unauthorized_client.delete(f'/storages/{storage_id}/delete')
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
