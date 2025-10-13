@@ -94,7 +94,11 @@ class VirtualInterface(BaseModel):
     ] = 'bridge'  # default???????
     portgroup: Optional[str] = None
     interface: str = Field(..., min_length=1, description="Virtual Interface")
-    mac: str = '6C:4A:74:B4:FD:59'  # default start 6C:4A:74:
+    mac: str = Field(
+        default='6C:4A:74:B4:FD:59',  # default start 6C:4A:74:
+        pattern=r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$',
+        description="MAC address in format XX:XX:XX:XX:XX:XX",
+    )
     model: Literal['virtio', 'bridge'] = 'virtio'
     order: Optional[int] = None
 
