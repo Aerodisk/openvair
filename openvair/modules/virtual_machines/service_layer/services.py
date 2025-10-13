@@ -1348,7 +1348,6 @@ class VMServiceLayerManager(BackgroundTasks):
             available_states = [VmStatus.available.name, VmStatus.error.name]
             available_power_states = [
                 VmPowerState.shut_off.name,
-                VmPowerState.running.name,
             ]
             try:
                 self._check_vm_status(db_vm.status, available_states)
@@ -1357,14 +1356,13 @@ class VMServiceLayerManager(BackgroundTasks):
                 )
                 vm_edit_info = self._prepare_vm_info_for_edit(edit_info)
                 db_vm.status = VmStatus.editing.name
-                if db_vm.power_state == VmPowerState.shut_off.name:
-                    self.service_layer_rpc.cast(
-                        self._edit_shut_offed_vm.__name__,
-                        data_for_method={
-                            'edit_info': vm_edit_info._asdict(),
-                            'user_info': user_info,
-                        },
-                    )
+                self.service_layer_rpc.cast(
+                    self._edit_shut_offed_vm.__name__,
+                    data_for_method={
+                        'edit_info': vm_edit_info._asdict(),
+                        'user_info': user_info,
+                    },
+                )
             except (
                 exceptions.VMStatusException,
                 exceptions.VMPowerStateException,
@@ -1373,6 +1371,7 @@ class VMServiceLayerManager(BackgroundTasks):
                 message = f'Handle error: {err!s} while editing VM.'
                 LOG.error(message)
                 db_vm.information = message
+                raise
             finally:
                 uow.commit()
         LOG.info('Response on edit VM was successfully processed.')
