@@ -56,6 +56,9 @@ from openvair.modules.event_store.service_layer.unit_of_work import (
 from openvair.modules.notification.service_layer.unit_of_work import (
     NotificationSqlAlchemyUnitOfWork,
 )
+from openvair.modules.virtual_network.service_layer.unit_of_work import (
+    VirtualNetworkSqlAlchemyUnitOfWork,
+)
 
 LOG = get_logger(__name__)
 
@@ -320,6 +323,30 @@ def cleanup_all_events() -> None:
             uow.commit()
     except Exception as e:  # noqa: BLE001
         LOG.warning(f'Failed to cleanup events: {e}')
+
+def cleanup_all_virtual_networks() -> None:
+    """Remove all virtual networks from both database and filesystem.
+
+    This utility function is typically used after network tests to ensure
+    a clean state. It:
+    1. Retrieves all virtual networks from the database
+    2. For each virtual network:
+        - Creates a domain model instance
+        - Deletes the virtual network record from the database
+        - Removes the virtual network file from the filesystem
+        - Commits the transaction
+    Any errors during cleanup are logged as warnings but do not interrupt
+    the cleanup process.
+    """
+    unit_of_work = VirtualNetworkSqlAlchemyUnitOfWork()
+    try:
+        with unit_of_work as uow:
+            vnets = uow.virtual_networks.get_all()
+            for vnet in vnets:
+                uow.virtual_networks.delete(vnet)
+                uow.commit()
+    except Exception as err:  # noqa: BLE001
+        LOG.warning(f'Error while cleaning up virtual_networks: {err}')
 
 
 def wait_for_field_value(  # noqa: PLR0913

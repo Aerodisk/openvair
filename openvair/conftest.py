@@ -23,6 +23,7 @@ from openvair.libs.testing.utils import (
     cleanup_all_notifications,
     generate_test_entity_name,
     wait_full_deleting_object,
+    cleanup_all_virtual_networks,
 )
 from openvair.libs.auth.jwt_utils import oauth2schema, get_current_user
 from openvair.libs.testing.config import (
@@ -409,6 +410,7 @@ def bridge(
 
     # TODO: Remove when fixed https://github.com/Aerodisk/openvair/issues/117
     #       (or other tests will fail due to network error)
+    cleanup_all_virtual_networks()
     response = client.get('/interfaces/')
     interfaces_data = response.json()
     interfaces = interfaces_data.get('items', [])
