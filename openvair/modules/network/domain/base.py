@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import abc
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.modules.network.domain.utils.ip_manager import IPManager
@@ -57,10 +57,10 @@ class BaseBridge(metaclass=abc.ABCMeta):
         self.id = str(kwargs.get('id', uuid.uuid4()))
         self.name = str(kwargs.pop('name', ''))
         self.type = str(kwargs.pop('type', 'bridge'))
-        self.interfaces: List[Dict] = list(kwargs.pop('interfaces', []))
+        self.interfaces: list[dict] = list(kwargs.pop('interfaces', []))
 
     @abc.abstractmethod
-    def create(self, data: Dict) -> None:
+    def create(self, data: dict) -> None:
         """Create a network bridge."""
         ...
 
@@ -70,7 +70,7 @@ class BaseBridge(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def get_bridges_list(self) -> List[Dict]:
+    def get_bridges_list(self) -> list[dict]:
         """Get a list of all network bridges."""
         ...
 
@@ -104,7 +104,7 @@ class BaseOVSBridge(BaseBridge):
         self.ip_manager = IPManager()
 
     @abc.abstractmethod
-    def create(self, data: Dict) -> None:
+    def create(self, data: dict) -> None:
         """Create a ovs bridge."""
         ...
 
@@ -113,7 +113,7 @@ class BaseOVSBridge(BaseBridge):
         """Delete the ovs bridge."""
         ...
 
-    def get_bridges_list(self) -> List[Dict]:
+    def get_bridges_list(self) -> list[dict]:
         """Retrieve the list of network bridges.
 
         This method gathers bridge information from OVS and Linux network

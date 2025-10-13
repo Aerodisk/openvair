@@ -22,7 +22,7 @@ Classes:
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 from collections import namedtuple
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -110,7 +110,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         self.uow = unit_of_work.BlockDeviceSqlAlchemyUnitOfWork()
         self.event_store: EventCrud = EventCrud('block_devices')
 
-    def get_host_iqn(self) -> Dict:
+    def get_host_iqn(self) -> dict:
         """Get the IQN of the host initiator.
 
         Returns:
@@ -133,7 +133,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         else:
             return {'iqn': result}
 
-    def get_all_sessions(self) -> List[Dict[str, Any]]:
+    def get_all_sessions(self) -> list[dict[str, Any]]:
         """Gets all the ISCSI sessions from database
 
         Returns:
@@ -142,13 +142,13 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         LOG.info('Getting all sessions from database')
         with self.uow:
             iscsi_sessions = self.uow.interfaces.get_all()
-            result: List[Dict[str, Any]] = [
+            result: list[dict[str, Any]] = [
                 DataSerializer.to_web(session) for session in iscsi_sessions
             ]
             LOG.info(f'ISCSI sessions list: {result}')
         return result
 
-    def login(self, data: Dict) -> Dict:
+    def login(self, data: dict) -> dict:
         """Logs in to the specified ISCSI block device.
 
         Args:
@@ -164,7 +164,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
         """
         LOG.info('Start to login to the ISCSI block device.')
 
-        user_data: Dict = data.get('user_data', {})
+        user_data: dict = data.get('user_data', {})
         create_iface_info = CreateInterfaceInfo(
             inf_type=data.get('inf_type'),
             ip=data.get('ip'),
@@ -232,7 +232,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
 
                 return DataSerializer.to_web(db_interface)
 
-    def logout(self, data: Dict) -> Dict:
+    def logout(self, data: dict) -> dict:
         """Logs out from the specified ISCSI block device.
 
         Args:
@@ -253,7 +253,7 @@ class BlockDevicesServiceLayerManager(BackgroundTasks):
             db_interface.status = ISCSIInterfaceStatus.deleting.name
             self.uow.commit()
             try:
-                result: Dict = self.domain_rpc.call(
+                result: dict = self.domain_rpc.call(
                     BaseISCSI.logout.__name__,
                     data_for_manager=data,
                 )

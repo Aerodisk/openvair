@@ -20,7 +20,7 @@ Classes:
 
 import ipaddress
 from uuid import UUID
-from typing import List, Union, Literal, Optional
+from typing import Literal
 from pathlib import Path
 
 from pydantic import (
@@ -58,7 +58,7 @@ class NfsStorageExtraSpecsInfo(NfsStorageExtraSpecsCreate):
         mount_point (Optional[str]): The mount point of the NFS share.
     """
 
-    mount_point: Optional[str] = None
+    mount_point: str | None = None
 
 
 class LocalFSStorageExtraSpecsCreate(BaseModel):
@@ -86,7 +86,7 @@ class LocalFSStorageExtraSpecsInfo(LocalFSStorageExtraSpecsCreate):
         mount_point (Optional[str]): The mount point of the local storage.
     """
 
-    mount_point: Optional[str] = None
+    mount_point: str | None = None
 
 
 class Storage(BaseModel):
@@ -109,16 +109,14 @@ class Storage(BaseModel):
 
     id: UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     storage_type: str
     status: str
     size: int
     available: int
-    user_id: Optional[UUID] = None
-    information: Optional[str] = None
-    storage_extra_specs: Union[
-        NfsStorageExtraSpecsInfo, LocalFSStorageExtraSpecsInfo
-    ]
+    user_id: UUID | None = None
+    information: str | None = None
+    storage_extra_specs: NfsStorageExtraSpecsInfo | LocalFSStorageExtraSpecsInfo
 
 
 class CreateStorage(BaseModel):
@@ -137,7 +135,7 @@ class CreateStorage(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     description: str = Field(max_length=255)
     storage_type: Literal['nfs', 'localfs']
-    specs: Union[NfsStorageExtraSpecsCreate, LocalFSStorageExtraSpecsCreate]
+    specs: NfsStorageExtraSpecsCreate | LocalFSStorageExtraSpecsCreate
     model_config = ConfigDict(extra='forbid')
 
     validate_name = field_validator('name')(
@@ -163,11 +161,11 @@ class LocalDisk(BaseModel):
 
     path: Path
     size: int
-    mountpoint: Optional[str] = None
-    fs_uuid: Optional[str] = None
-    type: Optional[str] = None
-    fstype: Optional[str] = None
-    parent: Optional[str] = None
+    mountpoint: str | None = None
+    fs_uuid: str | None = None
+    type: str | None = None
+    fstype: str | None = None
+    parent: str | None = None
 
 
 class ListOfLocalDisks(BaseModel):
@@ -177,7 +175,7 @@ class ListOfLocalDisks(BaseModel):
         disks (List[Optional[LocalDisk]]): A list of local disks.
     """
 
-    disks: List[Optional[LocalDisk]]
+    disks: list[LocalDisk | None]
 
 
 class CreateLocalPartition(BaseModel):

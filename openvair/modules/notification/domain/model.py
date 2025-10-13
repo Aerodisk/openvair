@@ -6,7 +6,7 @@ input data.
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import ClassVar, cast
 
 from openvair.modules.notification.domain.base import BaseNotification
 from openvair.modules.notification.domain.email_notification import (
@@ -17,7 +17,7 @@ from openvair.modules.notification.domain.email_notification import (
 class AbstractNotificationFactory(metaclass=abc.ABCMeta):
     """Abstract base class for creating `BaseNotification` objects."""
 
-    def __call__(self, db_notification: Dict) -> BaseNotification:
+    def __call__(self, db_notification: dict) -> BaseNotification:
         """Call the factory to get a notification object.
 
         Args:
@@ -30,7 +30,7 @@ class AbstractNotificationFactory(metaclass=abc.ABCMeta):
         return self.get_notification(db_notification)
 
     @abc.abstractmethod
-    def get_notification(self, db_notification: Dict) -> BaseNotification:
+    def get_notification(self, db_notification: dict) -> BaseNotification:
         """Create and return a notification object.
 
         Args:
@@ -50,7 +50,7 @@ class NotificationFactory(AbstractNotificationFactory):
         'email': email_notification.EmailNotification,
     }
 
-    def get_notification(self, db_notification: Dict) -> BaseNotification:
+    def get_notification(self, db_notification: dict) -> BaseNotification:
         """Create and return a notification object.
 
         Args:
@@ -67,4 +67,4 @@ class NotificationFactory(AbstractNotificationFactory):
         notification_class = self._notification_classes[
             db_notification['msg_type']
         ]
-        return cast(BaseNotification, notification_class(**db_notification))
+        return cast('BaseNotification', notification_class(**db_notification))

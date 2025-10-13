@@ -10,7 +10,6 @@ Classes:
         interfaces.
 """
 
-from typing import Dict, List, Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -60,7 +59,7 @@ class OVSManager:
         LOG.debug(f'Constructed command: {command}')
         return command
 
-    def create_bridge(self, bridge_name: Optional[str] = None) -> str:
+    def create_bridge(self, bridge_name: str | None = None) -> str:
         """Create a new OVS bridge with optional custom name.
 
         Args:
@@ -115,7 +114,7 @@ class OVSManager:
             raise BridgeNotFoundException(messsage)
 
     def add_interface(
-        self, bridge_name: str, iface_name: str, tag: Optional[int] = None
+        self, bridge_name: str, iface_name: str, tag: int | None = None
     ) -> str:
         """Add an interface to an OVS bridge with an optional VLAN tag.
 
@@ -153,7 +152,7 @@ class OVSManager:
             raise InterfaceNotFoundException(message)
         return exec_res.stdout.strip()
 
-    def get_ports_in_bridge(self, bridge_name: str) -> List:
+    def get_ports_in_bridge(self, bridge_name: str) -> list:
         """Retrieve a list of ports within a specified OVS bridge.
 
         Args:
@@ -180,7 +179,7 @@ class OVSManager:
             raise OVSManagerException(message)
         return exec_res.stdout.split()
 
-    def get_bridges(self) -> Dict:
+    def get_bridges(self) -> dict:
         """Retrieve all OVS bridges in JSON format.
 
         Returns:
@@ -202,5 +201,5 @@ class OVSManager:
             message = f'Error retrieving bridge list: {exec_res.stderr}'
             LOG.error(message)
             raise OVSManagerException(message)
-        bridges: Dict = deserialize_json(exec_res.stdout)
+        bridges: dict = deserialize_json(exec_res.stdout)
         return bridges

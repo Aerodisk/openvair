@@ -13,7 +13,7 @@ Dependencies:
 """
 
 from uuid import UUID, uuid4
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.modules.base_manager import BackgroundTasks
@@ -116,7 +116,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         self.storage_service_client = StorageServiceLayerRPCClient()
         self.event_store = EventCrud('templates')
 
-    def get_all_templates(self) -> List[Dict[str, Any]]:
+    def get_all_templates(self) -> list[dict[str, Any]]:
         """Retrieve all templates from the database.
 
         Returns:
@@ -127,7 +127,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             orm_templates = uow.templates.get_all()
 
-        api_templates: List[Dict[str, Any]] = [
+        api_templates: list[dict[str, Any]] = [
             ApiSerializer.to_dict(orm_template)
             for orm_template in orm_templates
         ]
@@ -138,7 +138,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return api_templates
 
-    def get_template(self, getting_data: Dict) -> Dict:
+    def get_template(self, getting_data: dict) -> dict:
         """Retrieve a single template by its ID.
 
         Args:
@@ -158,7 +158,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         with self.uow() as uow:
             orm_template = uow.templates.get_or_fail(template_id)
 
-        api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
+        api_template: dict[str, Any] = ApiSerializer.to_dict(orm_template)
 
         LOG.info(
             f'Service layer request on getting template {template_id} '
@@ -166,7 +166,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return api_template
 
-    def create_template(self, creating_data: Dict) -> Dict:
+    def create_template(self, creating_data: dict) -> dict:
         """Create a new template, persist it in the db, start async creation.
 
         Args:
@@ -221,10 +221,10 @@ class TemplateServiceLayerManager(BackgroundTasks):
             'Service layer request on creating template'
             'was successfully processed'
         )
-        api_template: Dict[str, Any] = ApiSerializer.to_dict(orm_template)
+        api_template: dict[str, Any] = ApiSerializer.to_dict(orm_template)
         return api_template
 
-    def edit_template(self, updating_data: Dict) -> Dict:
+    def edit_template(self, updating_data: dict) -> dict:
         """Initiate the editing process for an existing template.
 
         Args:
@@ -250,7 +250,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
         )
         return ApiSerializer.to_dict(orm_template)
 
-    def delete_template(self, deleting_data: Dict) -> Dict:
+    def delete_template(self, deleting_data: dict) -> dict:
         """Initiate the deletion process for a template.
 
         Args:
@@ -278,7 +278,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
         return ApiSerializer.to_dict(orm_template)
 
-    def _create_template(self, prepared_create_command_data: Dict) -> None:
+    def _create_template(self, prepared_create_command_data: dict) -> None:
         """Perform the async creation of a template file via the domain layer.
 
         This method is invoked via cast-RPC after initial template DB
@@ -308,7 +308,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             creation_domain_command_dto = CreateTemplateDomainCommandDTO(
                 source_disk_path=async_creating_command.source_disk_path
             )
-            domain_result: Dict = self.domain_rpc.call(
+            domain_result: dict = self.domain_rpc.call(
                 BaseTemplate.create.__name__,
                 data_for_manager=domain_template.model_dump(mode='json'),
                 data_for_method=creation_domain_command_dto.model_dump(
@@ -332,7 +332,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template, TemplateStatus.AVAILABLE, 'TemplateCreated'
         )
 
-    def _edit_template(self, edit_command_data: Dict) -> None:
+    def _edit_template(self, edit_command_data: dict) -> None:
         """Perform the async renaming/editing of a template via the domain layer
 
         Args:
@@ -380,7 +380,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
             orm_template, TemplateStatus.AVAILABLE, 'TemplateEdited'
         )
 
-    def _delete_template(self, delete_command_data: Dict) -> None:
+    def _delete_template(self, delete_command_data: dict) -> None:
         """Delete a template file from the filesystem and remove the DB record.
 
         Args:
@@ -498,8 +498,8 @@ class TemplateServiceLayerManager(BackgroundTasks):
             raise VolumeRetrievalException(message) from rpc_volume_err
 
     def _get_volumes(
-        self, storage_id: Optional[UUID] = None
-    ) -> List[VolumeModelDTO]:
+        self, storage_id: UUID | None = None
+    ) -> list[VolumeModelDTO]:
         """Retrieve all volumes from the volume service.
 
         Optionally filtered by storage.
@@ -528,7 +528,7 @@ class TemplateServiceLayerManager(BackgroundTasks):
 
     def _get_related_volumes(
         self, template_id: UUID, storage_id: UUID
-    ) -> List[str]:
+    ) -> list[str]:
         """Get names of volumes that were created from the given template.
 
         Args:

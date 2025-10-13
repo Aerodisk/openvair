@@ -9,7 +9,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 import pytest
 from fastapi import status
@@ -24,8 +23,8 @@ from openvair.modules.template.entrypoints.schemas.requests import (
 @pytest.mark.parametrize('is_backing', [True, False])
 def test_create_template_success(
     client: TestClient,
-    storage: Dict,
-    volume: Dict,
+    storage: dict,
+    volume: dict,
     *,
     is_backing: bool,
 ) -> None:
@@ -50,12 +49,12 @@ def test_create_template_success(
 )
 def test_create_template_missing_required_field(
     client: TestClient,
-    storage: Dict,
-    volume: Dict,
+    storage: dict,
+    volume: dict,
     missing_field: str,
 ) -> None:
     """Test that missing required fields result in HTTP 422."""
-    request_data: Dict = {
+    request_data: dict = {
         'base_volume_id': volume['id'],
         'name': generate_test_entity_name('template'),
         'description': 'Test',
@@ -69,7 +68,7 @@ def test_create_template_missing_required_field(
 
 def test_create_template_unauthorized(unauthorized_client: TestClient) -> None:
     """Test unauthorized request returns 401."""
-    request_data: Dict = RequestCreateTemplate(
+    request_data: dict = RequestCreateTemplate(
         base_volume_id=uuid.uuid4(),
         name=generate_test_entity_name('template'),
         description='Unauthorized attempt',
@@ -83,10 +82,10 @@ def test_create_template_unauthorized(unauthorized_client: TestClient) -> None:
 
 def test_create_template_with_invalid_storage_id(
     client: TestClient,
-    volume: Dict,
+    volume: dict,
 ) -> None:
     """Test creation with nonexistent storage_id returns 500."""
-    request_data: Dict = {
+    request_data: dict = {
         'base_volume_id': volume['id'],
         'name': generate_test_entity_name('template'),
         'description': 'Invalid storage',
@@ -99,10 +98,10 @@ def test_create_template_with_invalid_storage_id(
 
 def test_create_template_missing_base_volume(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test creation without base_volume_id returns 422."""
-    request_data: Dict = {
+    request_data: dict = {
         'name': generate_test_entity_name('template'),
         'description': 'Missing base_volume_id',
         'storage_id': storage['id'],
@@ -114,10 +113,10 @@ def test_create_template_missing_base_volume(
 
 def test_create_template_with_null_base_volume_id(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test creation with null base_volume_id returns 422."""
-    request_data: Dict = {
+    request_data: dict = {
         'base_volume_id': None,
         'name': generate_test_entity_name('template'),
         'description': 'Null base_volume_id',
@@ -130,10 +129,10 @@ def test_create_template_with_null_base_volume_id(
 
 def test_create_template_with_nonexistent_base_volume(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test creation with nonexistent base_volume_id returns 500."""
-    request_data: Dict = {
+    request_data: dict = {
         'base_volume_id': str(uuid.uuid4()),
         'name': generate_test_entity_name('template'),
         'description': 'Nonexistent volume',
@@ -145,7 +144,7 @@ def test_create_template_with_nonexistent_base_volume(
 
 
 def test_create_with_attached_volume_to_deactivated_vm(
-    client: TestClient, deactivated_virtual_machine: Dict
+    client: TestClient, deactivated_virtual_machine: dict
 ) -> None:
     """Test creation from attached volume to deactivated vm ."""
     volume_id = deactivated_virtual_machine['disks'][0]['disk_id']
@@ -172,7 +171,7 @@ def test_create_with_attached_volume_to_deactivated_vm(
 
 
 def test_create_with_attached_volume_to_activated_vm(
-    client: TestClient, activated_virtual_machine: Dict
+    client: TestClient, activated_virtual_machine: dict
 ) -> None:
     """Test creation from attached volume to activated vm."""
     volume_id = activated_virtual_machine['disks'][0]['disk_id']

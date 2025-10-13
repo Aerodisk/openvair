@@ -15,7 +15,7 @@ Classes:
 """
 
 import abc
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -47,7 +47,7 @@ class BaseImage(metaclass=abc.ABCMeta):
         self.path = str(kwargs.get('path', ''))
 
     @abc.abstractmethod
-    def upload(self) -> Dict:
+    def upload(self) -> dict:
         """Uploads the image.
 
         Returns:
@@ -56,7 +56,7 @@ class BaseImage(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Deletes the image.
 
         Returns:
@@ -65,7 +65,7 @@ class BaseImage(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def attach_image_info(self) -> Dict:
+    def attach_image_info(self) -> dict:
         """Attaches information about the image.
 
         Returns:
@@ -74,7 +74,7 @@ class BaseImage(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def delete_from_tmp(self) -> Dict:
+    def delete_from_tmp(self) -> dict:
         """Deletes the image from the temporary directory.
 
         Returns:
@@ -106,7 +106,7 @@ class BaseRemoteFSImage(BaseImage):
         LOG.info('Initialized RemoteFSImage')
         super().__init__(*args, **kwargs)
 
-    def upload(self) -> Dict:
+    def upload(self) -> dict:
         """Uploads the image.
 
         Returns:
@@ -117,7 +117,7 @@ class BaseRemoteFSImage(BaseImage):
         """
         raise NotImplementedError
 
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Deletes the image.
 
         Returns:
@@ -128,7 +128,7 @@ class BaseRemoteFSImage(BaseImage):
         """
         raise NotImplementedError
 
-    def attach_image_info(self) -> Dict:
+    def attach_image_info(self) -> dict:
         """Attaches information about the image.
 
         Returns:
@@ -139,7 +139,7 @@ class BaseRemoteFSImage(BaseImage):
         """
         raise NotImplementedError
 
-    def delete_from_tmp(self) -> Dict:
+    def delete_from_tmp(self) -> dict:
         """Deletes the image from the temporary directory.
 
         Returns:
@@ -162,7 +162,7 @@ class BaseLocalFSImage(BaseImage):
         """Initializes a `BaseLocalFSImage` instance."""
         super().__init__(*args, **kwargs)
 
-    def upload(self) -> Dict:
+    def upload(self) -> dict:
         """Uploads the image.
 
         Returns:
@@ -173,7 +173,7 @@ class BaseLocalFSImage(BaseImage):
         """
         raise NotImplementedError
 
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Deletes the image.
 
         Returns:
@@ -184,7 +184,7 @@ class BaseLocalFSImage(BaseImage):
         """
         raise NotImplementedError
 
-    def attach_image_info(self) -> Dict:
+    def attach_image_info(self) -> dict:
         """Attaches information about the image.
 
         Returns:
@@ -195,7 +195,7 @@ class BaseLocalFSImage(BaseImage):
         """
         raise NotImplementedError
 
-    def delete_from_tmp(self) -> Dict:
+    def delete_from_tmp(self) -> dict:
         """Deletes the image from the temporary directory.
 
         Returns:

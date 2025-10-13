@@ -25,7 +25,6 @@ Routes:
     /block-devices/lip_scan: Perform a LIP scan on Fibre Channel host adapters.
 """
 
-from typing import Dict, List
 
 from fastapi import Depends, APIRouter, status
 from starlette.concurrency import run_in_threadpool
@@ -52,7 +51,7 @@ router = APIRouter(
 )
 async def get_sessions(
     crud: InterfaceCrud = Depends(InterfaceCrud),
-) -> List[schemas.Session]:
+) -> list[schemas.Session]:
     """Retrieve sessions associated with block devices.
 
     Args:
@@ -118,7 +117,7 @@ async def get_host_iqn(
 )
 async def login(
     data: schemas.Interface,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> schemas.InterfaceLogin:
     """Log in to the specified iSCSI target.
@@ -163,7 +162,7 @@ async def login(
 )
 async def logout(
     data: schemas.InterfaceDeleted,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> schemas.InterfaceDeleted:
     """Log out from the specified iSCSI target.

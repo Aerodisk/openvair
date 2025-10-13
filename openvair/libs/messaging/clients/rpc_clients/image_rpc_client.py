@@ -17,7 +17,6 @@ Classes:
         image service.
 """
 
-from typing import Dict, List
 
 from openvair.rpc_queues import RPCQueueNames
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -48,7 +47,7 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
             queue_name=RPCQueueNames.Image.SERVICE_LAYER
         )
 
-    def get_image(self, data: Dict) -> Dict:
+    def get_image(self, data: dict) -> dict:
         """Retrieve an image by its ID.
 
         Args:
@@ -57,13 +56,13 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized image data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             ImageServiceLayerProtocolInterface.get_image.__name__,
             data_for_method=data,
         )
         return result
 
-    def get_all_images(self, data: Dict) -> List[Dict]:
+    def get_all_images(self, data: dict) -> list[dict]:
         """Retrieve all images from the database.
 
         Args:
@@ -72,13 +71,13 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
         Returns:
             List[Dict]: List of serialized image data.
         """
-        result: List[Dict] = self.service_rpc_client.call(
+        result: list[dict] = self.service_rpc_client.call(
             ImageServiceLayerProtocolInterface.get_all_images.__name__,
             data_for_method=data,
         )
         return result
 
-    def upload_image(self, image_info: Dict) -> Dict:
+    def upload_image(self, image_info: dict) -> dict:
         """Upload a new image.
 
         Args:
@@ -87,13 +86,13 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized image data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             ImageServiceLayerProtocolInterface.upload_image.__name__,
             data_for_method=image_info,
         )
         return result
 
-    def delete_image(self, data: Dict) -> None:
+    def delete_image(self, data: dict) -> None:
         """Delete an existing image.
 
         Args:
@@ -107,7 +106,7 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
             data_for_method=data,
         )
 
-    def attach_image(self, data: Dict) -> Dict:
+    def attach_image(self, data: dict) -> dict:
         """Attach an image to a virtual machine.
 
         Args:
@@ -116,13 +115,13 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
         Returns:
             Dict: Result of the attach operation.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             ImageServiceLayerProtocolInterface.attach_image.__name__,
             data_for_method=data,
         )
         return result
 
-    def detach_image(self, data: Dict) -> Dict:
+    def detach_image(self, data: dict) -> dict:
         """Detach an image from a virtual machine.
 
         Args:
@@ -131,7 +130,7 @@ class ImageServiceLayerRPCClient(ImageServiceLayerProtocolInterface):
         Returns:
             Dict: Result of the detach operation.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             ImageServiceLayerProtocolInterface.detach_image.__name__,
             data_for_method=data,
         )

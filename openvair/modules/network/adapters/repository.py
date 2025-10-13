@@ -12,7 +12,7 @@ Classes:
         SQLAlchemy for database operations.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from openvair.modules.network.adapters.orm import Interface
 from openvair.common.repositories.base_sqlalchemy import (
@@ -40,7 +40,7 @@ class NetworkSqlAlchemyRepository(BaseSqlAlchemyRepository[Interface]):
         """
         super().__init__(session, Interface)
 
-    def get_by_name(self, interface_name: str) -> Optional[Interface]:
+    def get_by_name(self, interface_name: str) -> Interface | None:
         """Retrieve a network interface by its name.
 
         Args:

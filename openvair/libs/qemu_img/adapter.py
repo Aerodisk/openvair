@@ -8,7 +8,6 @@ Classes:
     QemuImgAdapter: Adapter class for managing qcow2/raw disk operations.
 """
 
-from typing import Dict
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -42,7 +41,7 @@ class QemuImgAdapter:
         """
         self.executor = QemuImgCommandExecutor()
 
-    def get_info(self, image_path: Path) -> Dict:
+    def get_info(self, image_path: Path) -> dict:
         """Retrieves detailed information about a disk image.
 
         Args:
@@ -56,7 +55,7 @@ class QemuImgAdapter:
         """
         result = self.executor.execute(f'{self.INFO_SUBCOMMAND} {image_path}')
         self._check_result(self.INFO_SUBCOMMAND, result)
-        info: Dict = deserialize_json(result.stdout)
+        info: dict = deserialize_json(result.stdout)
         return info
 
     def check_valid(self, image_path: Path) -> bool:

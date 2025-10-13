@@ -8,7 +8,7 @@ Classes:
         interface.
 """
 
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -36,14 +36,14 @@ class NetplanInterface(BaseOVSBridge):
         main_port (str): The name of the main network port.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the NetplanInterface instance."""
-        super(NetplanInterface, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.netplan_manager = NetplanManager()
         self.main_port: str = self.ip_manager.get_main_port_name()
         self.default_route = self.ip_manager.get_default_gateway_ip()
 
-    def create(self, data: Dict) -> None:
+    def create(self, data: dict) -> None:
         """Create a new interface bridge.
 
         This method creates a new ovs bridge based on the provided data
@@ -91,7 +91,7 @@ class NetplanInterface(BaseOVSBridge):
         self.netplan_manager.delete_iface_yaml(bridge_file)
         self.netplan_manager.apply()
 
-    def _prepare_ifaces_for_creating(self, bridge_data: Dict) -> None:
+    def _prepare_ifaces_for_creating(self, bridge_data: dict) -> None:
         """Prepare interfaces for bridge configuration.
 
         This method retrieves and updates the configuration of network
@@ -125,7 +125,7 @@ class NetplanInterface(BaseOVSBridge):
             )
         LOG.info('Interfaces prepaired!')
 
-    def _prepare_ifaces_for_deleting(self, bridge_data: Dict) -> None:
+    def _prepare_ifaces_for_deleting(self, bridge_data: dict) -> None:
         """Restore the network interfaces before bridge deletion.
 
         This method restores the original configuration of the network
@@ -171,8 +171,8 @@ class NetplanInterface(BaseOVSBridge):
 
     def _move_main_port_params_into_bridge(
         self,
-        bridge_data: Dict,
-        main_iface_data: Dict,
+        bridge_data: dict,
+        main_iface_data: dict,
     ) -> None:
         """Edit bridge and main port configuration.
 
@@ -208,8 +208,8 @@ class NetplanInterface(BaseOVSBridge):
 
     def _move_iface_params_from_bridge(
         self,
-        bridge_data: Dict,
-        iface_data: Dict,
+        bridge_data: dict,
+        iface_data: dict,
     ) -> None:
         LOG.info('Start moving params into port from bridge...')
         params_for_move = ['nameservers', 'dhcp4', 'routes', 'addresses']
@@ -268,9 +268,9 @@ class NetplanInterface(BaseOVSBridge):
         file = self.netplan_manager.get_path_yaml(iface_name)
         return 'MAIN_PORT.yaml' in str(file.name)
 
-    def _collect_iface_info(self, iface_name: str) -> Dict[str, Any]:
+    def _collect_iface_info(self, iface_name: str) -> dict[str, Any]:
         LOG.info(f'Collecting info from {iface_name}...')
-        iface_info: Dict[str, Any] = {}
+        iface_info: dict[str, Any] = {}
         ip = self.ip_manager.get_iface_ip(iface_name)
         dhcp4 = self.ip_manager.is_dhcp_ip(iface_name)
         iface_info['dhcp4'] = dhcp4

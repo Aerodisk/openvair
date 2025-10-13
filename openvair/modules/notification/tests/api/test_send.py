@@ -8,7 +8,6 @@ Covers:
 - Unauthorized access.
 """
 
-from typing import Dict
 from unittest.mock import MagicMock, patch
 
 from fastapi import status
@@ -27,7 +26,7 @@ LOG = get_logger(__name__)
 
 
 def test_send_notification_email_success(
-    client: TestClient, notification: Dict
+    client: TestClient, notification: dict
 ) -> None:
     """Test successful email notification sending.
 
@@ -60,7 +59,7 @@ def test_send_notification_email_success(
 
 
 def test_send_notification_unauthorized(
-    unauthorized_client: TestClient, notification: Dict
+    unauthorized_client: TestClient, notification: dict
 ) -> None:
     """Test unauthorized access to notification endpoint.
 
@@ -100,7 +99,7 @@ def test_send_notification_missing_required_fields(client: TestClient) -> None:
 
 
 def test_send_notification_invalid_msg_type(
-    client: TestClient, notification: Dict
+    client: TestClient, notification: dict
 ) -> None:
     """Test invalid message type validation.
 
@@ -115,7 +114,7 @@ def test_send_notification_invalid_msg_type(
 
 
 def test_send_notification_invalid_email_format(
-    client: TestClient, notification: Dict
+    client: TestClient, notification: dict
 ) -> None:
     """Test invalid email format validation.
 
@@ -130,7 +129,7 @@ def test_send_notification_invalid_email_format(
 
 
 def test_send_notification_empty_message(
-    client: TestClient, notification: Dict
+    client: TestClient, notification: dict
 ) -> None:
     """Test validation for empty message content.
 
@@ -145,7 +144,7 @@ def test_send_notification_empty_message(
 
 
 def test_send_notification_empty_subject(
-    client: TestClient, notification: Dict
+    client: TestClient, notification: dict
 ) -> None:
     """Test validation for empty subject.
 
@@ -163,7 +162,7 @@ def test_send_notification_empty_subject(
     'openvair.modules.notification.service_layer.services.MessagingClient.call'
 )
 def test_send_notification_service_layer_error(
-    mock_rpc_call: MagicMock, client: TestClient, notification: Dict
+    mock_rpc_call: MagicMock, client: TestClient, notification: dict
 ) -> None:
     """Test service layer exception during notification sending.
 
@@ -180,7 +179,7 @@ def test_send_notification_service_layer_error(
     'openvair.modules.notification.service_layer.services.MessagingClient.call'
 )
 def test_send_notification_service_layer_timeout(
-    mock_rpc_call: MagicMock, client: TestClient, notification: Dict
+    mock_rpc_call: MagicMock, client: TestClient, notification: dict
 ) -> None:
     """Test timeout handling during notification sending.
 
@@ -195,7 +194,7 @@ def test_send_notification_service_layer_timeout(
 
 def test_send_notification_long_message(
     client: TestClient,
-    notification: Dict,
+    notification: dict,
 ) -> None:
     """Test successful sending with big length message.
 

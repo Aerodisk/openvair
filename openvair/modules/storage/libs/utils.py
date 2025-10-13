@@ -14,8 +14,6 @@ Functions:
 
 from typing import (
     Any,
-    Dict,
-    List,
 )
 
 from openvair.libs.log import get_logger
@@ -64,7 +62,7 @@ SYSTEM_MOUNTPOINTS = [
 ]
 
 
-def get_block_devices_info() -> List[Dict[str, Any]]:
+def get_block_devices_info() -> list[dict[str, Any]]:
     """Retrieve information about block devices on the system.
 
     Uses the 'lsblk' command (with JSON output) to gather details about block
@@ -85,11 +83,11 @@ def get_block_devices_info() -> List[Dict[str, Any]]:
         '--json',
         params=ExecuteParams(shell=True),  # noqa: S604
     )
-    result: List[Dict[str, str]] = deserialize_json(res.stdout)['blockdevices']
+    result: list[dict[str, str]] = deserialize_json(res.stdout)['blockdevices']
     return result
 
 
-def get_system_disks(*, is_need_children: bool = False) -> List[Dict[str, Any]]:
+def get_system_disks(*, is_need_children: bool = False) -> list[dict[str, Any]]:
     """Retrieve information about local disks on the system.
 
     Uses `get_block_devices_info` to gather details about local disks
@@ -109,7 +107,7 @@ def get_system_disks(*, is_need_children: bool = False) -> List[Dict[str, Any]]:
             - 'fstype'
             - 'children' (optional, if is_need_children=True)
     """
-    block_devices: List[Dict[str, Any]] = get_block_devices_info()
+    block_devices: list[dict[str, Any]] = get_block_devices_info()
 
     disks = []
     for block_device in block_devices:
@@ -153,7 +151,7 @@ def is_system_disk(path: str) -> bool:
     return False
 
 
-def get_local_partitions() -> List[Dict[str, Any]]:
+def get_local_partitions() -> list[dict[str, Any]]:
     """Retrieve information about local partitions on the system.
 
     Uses `get_system_disks` with `is_need_children=True` to gather details
@@ -201,12 +199,12 @@ def is_system_partition(disk_path: str, part_num: str) -> bool:
     """  # noqa: E501, W505
     block_devices = get_system_disks(is_need_children=True)
 
-    disk: Dict = next(
+    disk: dict = next(
         filter(lambda device: device.get('path') == disk_path, block_devices)
     )
 
     partition_path = f'{disk_path}{part_num}'
-    partition: Dict = next(
+    partition: dict = next(
         filter(
             lambda part: part.get('name') == partition_path,
             disk['children'],

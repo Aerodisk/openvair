@@ -10,7 +10,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import Dict, List
 
 from openvair.libs.log import get_logger
 from openvair.libs.client.config import get_os_type
@@ -50,7 +49,7 @@ class InterfaceCrud:
         self,
         *,
         is_need_filter: bool = False,
-    ) -> List:
+    ) -> list:
         """Retrieve all network interfaces.
 
         This method calls the service layer to retrieve all network interfaces,
@@ -66,14 +65,14 @@ class InterfaceCrud:
         """
         LOG.info('Call service layer on getting all interfaces.')
         data = {'is_need_filter': is_need_filter}
-        result: List = self.service_layer_rpc.call(
+        result: list = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_all_interfaces.__name__,
             data_for_method=data,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
-    def get_interface(self, iface_id: UUID) -> Dict:
+    def get_interface(self, iface_id: UUID) -> dict:
         """Retrieve a specific network interface.
 
         This method calls the service layer to retrieve data for a specific
@@ -86,15 +85,15 @@ class InterfaceCrud:
             Dict: A dictionary containing data about the specified interface.
         """
         LOG.info('Call service layer on getting interface.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_interface.__name__,
             data_for_method={'iface_id': str(iface_id)},
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result
 
-    def get_bridges_list(self) -> List[Dict]:
+    def get_bridges_list(self) -> list[dict]:
         """Retrieve the list of network bridges.
 
         This method calls the service layer to retrieve a list of all network
@@ -105,17 +104,17 @@ class InterfaceCrud:
         """
         LOG.info('Getting the list of network bridges')
         os_type_interface = get_os_type()
-        result: List = self.service_layer_rpc.call(
+        result: list = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.get_bridges_list.__name__,
             data_for_method={
                 'inf_type': os_type_interface,
                 'network_config_manager': NETWORK_CONFIG_MANAGER,
             },
         )
-        LOG.info('Response from service layer : %s.' % result)
+        LOG.info(f'Response from service layer : {result}.')
         return result
 
-    def create_bridge(self, data: Dict, user_info: Dict) -> Dict:
+    def create_bridge(self, data: dict, user_info: dict) -> dict:
         """Create a new network bridge.
 
         This method calls the service layer to create a new network bridge
@@ -138,15 +137,15 @@ class InterfaceCrud:
                 'network_config_manager': NETWORK_CONFIG_MANAGER,
             }
         )
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.create_bridge.__name__,
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer : %s.' % result)
+        LOG.debug(f'Response from service layer : {result}.')
         return result
 
-    def delete_bridge(self, data: List, user_info: Dict) -> List:
+    def delete_bridge(self, data: list, user_info: dict) -> list:
         """Delete a network bridge by ID.
 
         This method calls the service layer to delete a network bridge based
@@ -178,10 +177,10 @@ class InterfaceCrud:
                 data_for_method=iface,
             )
             result.append(rpc_result)
-            LOG.debug('Response from service layer : %s.' % result)
+            LOG.debug(f'Response from service layer : {result}.')
         return result
 
-    def turn_on_interface(self, name: str) -> Dict:
+    def turn_on_interface(self, name: str) -> dict:
         """Turn on the specified virtual network interface.
 
         This method calls the service layer to turn on a virtual network
@@ -197,7 +196,7 @@ class InterfaceCrud:
         """
         LOG.info(f'Call service layer for turn on virtual network: {name}...')
 
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.turn_on.__name__,
             data_for_method={'name': name},
             priority=8,
@@ -206,7 +205,7 @@ class InterfaceCrud:
         LOG.info('Call service layer for turn on virtual network complete')
         return result
 
-    def turn_off_interface(self, name: str) -> Dict:
+    def turn_off_interface(self, name: str) -> dict:
         """Turn off the specified virtual network interface.
 
         This method calls the service layer to turn off a virtual network
@@ -222,7 +221,7 @@ class InterfaceCrud:
         """
         LOG.info(f'Call service layer for turn off virtual network: {name}...')
 
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.NetworkServiceLayerManager.turn_off.__name__,
             data_for_method={'name': name},
             priority=8,

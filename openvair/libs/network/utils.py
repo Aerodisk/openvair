@@ -17,10 +17,9 @@ author: Open vAIR Development Team
 """
 
 import socket
-from typing import Set, Dict, Optional
+from typing import Any
 
 import psutil
-from typing_extensions import Any
 
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
@@ -53,8 +52,8 @@ def is_port_free(port: int) -> bool:
 
 
 def find_free_port_in_range(
-    port_start: int, port_end: int, allocated_ports: Set[int]
-) -> Optional[int]:
+    port_start: int, port_end: int, allocated_ports: set[int]
+) -> int | None:
     """Find the first available port in the port range.
 
     Iterates through the configured port range (port_start to port_end)
@@ -84,7 +83,7 @@ def find_free_port_in_range(
     return None
 
 
-def find_process_id_by_port(port: int) -> Optional[int]:
+def find_process_id_by_port(port: int) -> int | None:
     """Find the process ID listening on a specific port.
 
     Uses lsof to identify which process is currently listening on the
@@ -149,7 +148,7 @@ def create_vnc_session_info(
     vnc_host: str,
     vnc_port: int,
     pid: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create session information dictionary.
 
     Args:
@@ -179,7 +178,7 @@ def extract_port_from_cmdline_by_range(
     port_start: int,
     port_end: int,
     cmdline: list,
-) -> Optional[int]:
+) -> int | None:
     """Extract port number from command line arguments by range.
 
     Searches through command line arguments to find a numeric argument

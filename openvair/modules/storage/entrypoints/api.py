@@ -19,7 +19,7 @@ Entrypoints:
 """
 
 from uuid import UUID
-from typing import Dict, Optional, cast
+from typing import cast
 
 from fastapi import Depends, APIRouter, status
 from fastapi.responses import JSONResponse
@@ -60,7 +60,7 @@ async def get_storages(
     LOG.info('Api start getting list of storages')
     storages = await run_in_threadpool(crud.get_all_storages)
     LOG.info('Api request was successfully processed.')
-    return cast(Page, paginate(storages))
+    return cast('Page', paginate(storages))
 
 
 @router.get(
@@ -70,8 +70,9 @@ async def get_storages(
     dependencies=[Depends(get_current_user)],
 )
 async def get_local_disks(
-    free_local_disks: Optional[bool] = None,
     crud: StorageCrud = Depends(StorageCrud),
+    *,
+    free_local_disks: bool | None = None,
 ) -> schemas.ListOfLocalDisks:
     """It gets a list of free local disks
 
@@ -97,7 +98,7 @@ async def get_local_disks(
 )
 async def create_local_partition(
     data: schemas.CreateLocalPartition,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.LocalDisk:
     """Create a local disk partition.
@@ -144,14 +145,14 @@ async def get_local_disk_partitions_info(
     """
     LOG.info('Api start getting list of partitions')
     return JSONResponse(
-        (
+
             await run_in_threadpool(
                 crud.get_local_disk_partitions_info,
                 {
                     'disk_path': disk_path,
                 },
             )
-        )
+
     )
 
 
@@ -161,7 +162,7 @@ async def get_local_disk_partitions_info(
 )
 async def delete_local_partition(
     data: schemas.DeleteLocalPartition,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: StorageCrud = Depends(StorageCrud),
 ) -> JSONResponse:
     """Delete a local disk partition.
@@ -216,7 +217,7 @@ async def get_storage(
 )
 async def create_storage(
     data: schemas.CreateStorage,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.Storage:
     """It creates a storage
@@ -232,8 +233,7 @@ async def create_storage(
         The storage object is being returned.
     """
     LOG.info(
-        'Api start creating storage with data: %s.'
-        % data.model_dump(mode='json')
+        f'Api start creating storage with data: {data.model_dump(mode="json")}'
     )
     storage = await run_in_threadpool(
         crud.create_storage, data.model_dump(mode='json'), user_data
@@ -249,7 +249,7 @@ async def create_storage(
 )
 async def delete_storage(
     storage_id: UUID,
-    user_data: Dict = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     crud: StorageCrud = Depends(StorageCrud),
 ) -> schemas.Storage:
     """It deletes a storage
@@ -262,7 +262,7 @@ async def delete_storage(
     Returns:
         The storage object.
     """
-    LOG.info('Api start deleting storage: %s.' % storage_id)
+    LOG.info(f'Api start deleting storage: {storage_id}.')
     storage = await run_in_threadpool(
         crud.delete_storage, storage_id, user_data
     )

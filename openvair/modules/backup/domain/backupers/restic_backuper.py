@@ -6,7 +6,6 @@ initialization using the Restic tool. It includes error handling specific
 to Restic operations.
 """
 
-from typing import Dict, List, Union
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -64,7 +63,7 @@ class ResticBackuper(FSBackuper):
         self.restic_path = restic_path
         self.restic = ResticAdapter(Path(restic_path), restic_password)
 
-    def backup(self) -> Dict[str, Union[str, int, None]]:
+    def backup(self) -> dict[str, str | int | None]:
         """Performs a backup of the specified source path.
 
         This method uses the ResticAdapter to back up files or directories to
@@ -89,7 +88,7 @@ class ResticBackuper(FSBackuper):
             LOG.error(message)
             raise BackupResticBackuperError(message)
 
-    def restore(self, data: Dict[str, str]) -> Dict[str, Union[str, int, None]]:
+    def restore(self, data: dict[str, str]) -> dict[str, str | int | None]:
         """Restores data from a specific snapshot.
 
         This method restores files or directories from a snapshot stored in the
@@ -138,7 +137,7 @@ class ResticBackuper(FSBackuper):
             LOG.error(message)
             raise InitRepositoryResticBackuperError(message)
 
-    def get_snapshots(self) -> List[Dict]:
+    def get_snapshots(self) -> list[dict]:
         """Restores data from a specific snapshot.
 
         This method restores files or directories from a snapshot stored in the
@@ -170,8 +169,8 @@ class ResticBackuper(FSBackuper):
             raise SnapshotGettingResticBackuperError(message)
 
     def delete_snapshot(
-        self, data: Dict[str, str]
-    ) -> Dict[str, Union[str, int, None]]:
+        self, data: dict[str, str]
+    ) -> dict[str, str | int | None]:
         """Delete a specific snapshot from the Restic repository.
 
         This method removes a snapshot from the Restic repository using

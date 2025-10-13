@@ -11,7 +11,6 @@ Covers:
 """
 
 from uuid import uuid4
-from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -26,7 +25,7 @@ from openvair.modules.storage.service_layer.services import StorageStatus
 
 def test_delete_storage_success(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test successful storage deletion using fixture."""
     storage_id = storage['id']
@@ -55,7 +54,7 @@ def test_delete_storage_not_found(client: TestClient) -> None:
 
 def test_delete_storage_with_attached_volume(
     client: TestClient,
-    volume: Dict,
+    volume: dict,
 ) -> None:
     """Test deletion failure when storage has attached resources."""
     storage_id = volume['storage_id']
@@ -67,7 +66,7 @@ def test_delete_storage_with_attached_volume(
 
 
 def test_delete_storage_with_attached_template(
-    client: TestClient, template: Dict, storage: Dict
+    client: TestClient, template: dict, storage: dict
 ) -> None:
     """Test deletion failure when storage has attached template."""
     storage_id = storage['id']
@@ -86,7 +85,7 @@ def test_delete_storage_with_attached_template(
 
 
 def test_delete_storage_unauthorized(
-    storage: Dict,
+    storage: dict,
     unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized storage deletion."""
@@ -96,7 +95,7 @@ def test_delete_storage_unauthorized(
 
 
 def test_delete_local_partition_success(
-    client: TestClient, target_disk_path: str, local_partition: Dict
+    client: TestClient, target_disk_path: str, local_partition: dict
 ) -> None:
     """Test successful deletion of local disk partition."""
     partition_number = local_partition['path'].replace(target_disk_path, '')

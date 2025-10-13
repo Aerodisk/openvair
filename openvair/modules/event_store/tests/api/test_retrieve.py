@@ -9,7 +9,6 @@ Covers:
 
 import io
 import csv
-from typing import Dict, List
 
 from httpx import Response
 from fastapi import status
@@ -41,7 +40,7 @@ def assert_csv_events_empty(response: Response) -> None:
     ]
 
 
-def test_get_events_success(client: TestClient, created_event: Dict) -> None:
+def test_get_events_success(client: TestClient, created_event: dict) -> None:
     """Test successful retrieval of all events.
 
     Asserts:
@@ -84,7 +83,7 @@ def test_get_events_empty(client: TestClient) -> None:
 
 
 def test_get_events_pagination(
-    client: TestClient, multiple_events: List[Dict]
+    client: TestClient, multiple_events: list[dict]
 ) -> None:
     """Test event pagination with page and size parameters.
 
@@ -105,7 +104,7 @@ def test_get_events_pagination(
 
 
 def test_get_events_filtered_by_module_name(
-    client: TestClient, created_event: Dict
+    client: TestClient, created_event: dict
 ) -> None:
     """Test filtering events by specific module name.
 
@@ -125,7 +124,7 @@ def test_get_events_filtered_by_module_name(
 
 
 def test_get_events_filtered_by_different_module(
-    client: TestClient, created_event: Dict
+    client: TestClient, created_event: dict
 ) -> None:
     """Test filtering events by different module name, returns empty.
 
@@ -143,7 +142,7 @@ def test_get_events_filtered_by_different_module(
 
 
 def test_get_events_by_module_with_multiple_events(
-    client: TestClient, multiple_events: List[Dict]
+    client: TestClient, multiple_events: list[dict]
 ) -> None:
     """Test filtering events by module when multiple events exist.
 
@@ -181,7 +180,7 @@ def test_get_events_unauthorized(unauthorized_client: TestClient) -> None:
 
 
 def test_download_events_success(
-    client: TestClient, created_event: Dict
+    client: TestClient, created_event: dict
 ) -> None:
     """Test successful CSV download of events.
 
@@ -229,7 +228,7 @@ def test_download_events_empty(client: TestClient) -> None:
 
 
 def test_download_events_filtered_by_module_name(
-    client: TestClient, created_event: Dict
+    client: TestClient, created_event: dict
 ) -> None:
     """Test CSV download filtered by specific module name.
 
@@ -251,7 +250,7 @@ def test_download_events_filtered_by_module_name(
 
 
 def test_download_events_filtered_by_different_module(
-    client: TestClient, created_event: Dict
+    client: TestClient, created_event: dict
 ) -> None:
     """Test CSV download filtered by different module, returns empty.
 
@@ -267,7 +266,7 @@ def test_download_events_filtered_by_different_module(
 
 
 def test_download_events_by_module_with_multiple_events(
-    client: TestClient, multiple_events: List[Dict]
+    client: TestClient, multiple_events: list[dict]
 ) -> None:
     """Test CSV download filtered by module with multiple matching events.
 

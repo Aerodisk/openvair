@@ -9,7 +9,7 @@ Classes:
         Libvirt API.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from pathlib import Path
 
 import libvirt
@@ -51,13 +51,13 @@ class LibvirtDriver(BaseLibvirtDriver):
             **kwargs: A dictionary containing the virtual machine
                 configuration.
         """
-        super(LibvirtDriver, self).__init__()
+        super().__init__()
         self.snapshot_info = kwargs.pop('snapshot_info', None)
         self.vm_info = kwargs
         self.vm_xml = self.render_domain(self.vm_info)
         self.vnc_manager = VNCManager()
 
-    def start(self) -> Dict:
+    def start(self) -> dict:
         """Start the virtual machine.
 
         This method creates a virtual machine using the Libvirt API and
@@ -94,7 +94,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             'redefined_snapshots': redefined_snapshots,
         }
 
-    def redefine_snapshots(self) -> List[Optional[str]]:
+    def redefine_snapshots(self) -> list[str | None]:
         """Redefine saved snapshots for the virtual machine.
 
         Returns:
@@ -120,7 +120,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                     continue
                 creation_time = int(creation_time_str)
                 snap_list.append((snap_file, xml_content, creation_time))
-            except (IOError, OSError) as e:
+            except OSError as e:
                 LOG.error(f'Error reading snapshot file {snap_file}: {e}')
             except SnapshotXmlError as err:
                 LOG.error(f'XML parsing error in snapshot {snap_file}: {err}')
@@ -131,7 +131,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         LOG.info(f'Finished redefine snapshots of VM {vm_name}')
         return redefined_snapshots
 
-    def _redefine_snapshots(self, snap_list: List) -> List[Optional[str]]:
+    def _redefine_snapshots(self, snap_list: list) -> list[str | None]:
         """Redefine saved snapshots for the virtual machine.
 
         Args:
@@ -166,7 +166,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                     LOG.error(message)
         return successful_snaps
 
-    def turn_off(self) -> Dict:
+    def turn_off(self) -> dict:
         """Turn off the virtual machine.
 
         This method stops the virtual machine using the Libvirt API and
@@ -217,7 +217,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             msg = f'Error during VNC session cleanup for VM {vm_name}: {e}'
             LOG.warning(msg)
 
-    def vnc(self) -> Dict:
+    def vnc(self) -> dict:
         """Start a VNC session for the virtual machine.
 
         This method starts a VNC session using the VNC manager
@@ -323,7 +323,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                     with snapshot_file.open('w', encoding='utf-8') as f:
                         f.write(snap_xml_desc)
                     LOG.debug(f'Saved snapshot XML to {snapshot_file}')
-                except (IOError, OSError) as e:
+                except OSError as e:
                     message = f'Failed to save snapshot XML: {e}'
                     raise SnapshotError(message)
 
@@ -370,7 +370,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                 LOG.error(message)
                 raise SnapshotError(message)
 
-    def delete_internal_snapshot(self) -> Dict:
+    def delete_internal_snapshot(self) -> dict:
         """Delete an internal snapshot of the virtual machine.
 
         Deletes a snapshot of the virtual machine using the Libvirt API or QEMU
@@ -410,7 +410,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             return {}
 
     def _update_snapshots_xml(
-        self, vm_name: str, snapshot_name: str, children_names: List[str]
+        self, vm_name: str, snapshot_name: str, children_names: list[str]
     ) -> None:
         """Update XML references for child snapshots after parent deletion.
 
@@ -427,7 +427,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             with snapshot_file.open('r', encoding='utf-8') as f:
                 snap_xml = f.read()
             parent_name = self._get_snapshot_parent_from_xml(snap_xml)
-        except (IOError, OSError, SnapshotXmlError) as e:
+        except (OSError, SnapshotXmlError) as e:
             message = f'Failed to read snapshot XML file: {e}'
             LOG.error(message)
             raise SnapshotError(message)
@@ -442,7 +442,7 @@ class LibvirtDriver(BaseLibvirtDriver):
                 with child_file.open('w', encoding='utf-8') as f:
                     f.write(updated_xml)
                 LOG.debug(f'Updated parent reference in {child_file}')
-            except (IOError, OSError, SnapshotXmlError) as e:
+            except (OSError, SnapshotXmlError) as e:
                 message = f'Failed to update child snapshot {child_name}: {e}'
                 LOG.error(message)
                 raise SnapshotError(message)
@@ -461,7 +461,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             if snapshot_file.exists():
                 snapshot_file.unlink()
                 LOG.debug(f'Deleted snapshot XML file {snapshot_file}')
-        except (IOError, OSError) as e:
+        except OSError as e:
             LOG.warning(f'Failed to delete snapshot XML file: {e}')
 
     def _delete_with_libvirt(self, vm_name: str, snap_name: str) -> None:

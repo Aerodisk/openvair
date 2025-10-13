@@ -14,7 +14,6 @@ Classes:
 """
 
 import uuid
-from typing import List, Optional
 
 from sqlalchemy import (
     UUID,
@@ -48,21 +47,21 @@ class Image(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
-    name: Mapped[Optional[str]] = mapped_column(String(40))
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    name: Mapped[str | None] = mapped_column(String(40))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True)
     )
-    size: Mapped[Optional[int]] = mapped_column(BigInteger)
-    path: Mapped[Optional[str]] = mapped_column(String(255), default='')
-    status: Mapped[Optional[str]] = mapped_column(String(20))
-    information: Mapped[Optional[str]] = mapped_column(Text)
-    description: Mapped[Optional[str]] = mapped_column(String(255))
-    storage_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    size: Mapped[int | None] = mapped_column(BigInteger)
+    path: Mapped[str | None] = mapped_column(String(255), default='')
+    status: Mapped[str | None] = mapped_column(String(20))
+    information: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(String(255))
+    storage_id: Mapped[uuid.UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True)
     )
-    storage_type: Mapped[Optional[str]] = mapped_column(String(30), default='')
+    storage_type: Mapped[str | None] = mapped_column(String(30), default='')
 
-    attachments: Mapped[List['ImageAttachVM']] = relationship(
+    attachments: Mapped[list['ImageAttachVM']] = relationship(
         'ImageAttachVM',
         back_populates='image',
         uselist=True,
@@ -86,6 +85,6 @@ class ImageAttachVM(Base):
     )
     vm_id: Mapped[uuid.UUID] = mapped_column(UUID(), nullable=True)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(), nullable=True)
-    target: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    target: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     image: Mapped[Image] = relationship('Image', back_populates='attachments')

@@ -9,7 +9,7 @@ Classes:
         file operations related to the image.
 """
 
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from openvair.config import TMP_DIR
@@ -36,7 +36,7 @@ class NfsImage(BaseRemoteFSImage):
         self._execute_as_root = False
         LOG.info('Initialized NfsImage.')
 
-    def upload(self) -> Dict:
+    def upload(self) -> dict:
         """Uploads the image to the specified path on NFS.
 
         This method converts the image file to the QCOW2 format using the
@@ -72,7 +72,7 @@ class NfsImage(BaseRemoteFSImage):
             LOG.info(f'Image with ID {self.id} uploaded successfully')
         return self.__dict__
 
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Deletes the image from the specified path on NFS.
 
         This method removes the image file from the NFS.
@@ -100,7 +100,7 @@ class NfsImage(BaseRemoteFSImage):
         LOG.info('NFSImage successfully deleted.')
         return self.__dict__
 
-    def delete_from_tmp(self) -> Dict:
+    def delete_from_tmp(self) -> dict:
         """Deletes the image from the temporary directory.
 
         This method removes the image file from the temporary directory.
@@ -130,7 +130,7 @@ class NfsImage(BaseRemoteFSImage):
         LOG.info('NFSImage successfully deleted from temporary directory.')
         return self.__dict__
 
-    def attach_image_info(self) -> Dict:
+    def attach_image_info(self) -> dict:
         """Attaches the image information to the object.
 
         This method checks if the image exists on the NFS and then returns its

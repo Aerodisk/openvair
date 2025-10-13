@@ -1,7 +1,8 @@
 """Fixtures for storage integration tests."""
 
-from typing import Any, Dict, Generator
+from typing import Any
 from pathlib import Path
+from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -53,7 +54,7 @@ def target_disk_path(client: TestClient) -> Generator[str, Any, None]:
 @pytest.fixture(scope='function')
 def local_partition(
     client: TestClient, target_disk_path: str
-) -> Generator[Dict, Any, None]:
+) -> Generator[dict, Any, None]:
     """Creates new local partition on target disk"""
     partition_data = CreateLocalPartition(
         local_disk_path=Path(target_disk_path),

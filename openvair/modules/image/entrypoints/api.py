@@ -17,7 +17,7 @@ Endpoints:
 """
 
 from uuid import UUID
-from typing import Dict, Optional, cast
+from typing import cast
 from pathlib import Path
 
 import aiofiles
@@ -57,7 +57,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_images(
-    storage_id: Optional[UUID] = Query(
+    storage_id: UUID | None = Query(
         default=None,
         description='Storage id (UUID4)',
     ),
@@ -83,7 +83,7 @@ async def get_images(
     LOG.info('Api start getting list of images')
     images = await run_in_threadpool(crud.get_all_images, storage_id)
     LOG.info('Api request was successfully processed.')
-    return cast(Page, paginate(images))
+    return cast('Page', paginate(images))
 
 
 @router.get(
@@ -136,7 +136,7 @@ async def upload_image(  # noqa: PLR0913 не возможно передать 
         description='Image name',
     ),
     image: UploadFile = File(..., description='Upload image.'),
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
     """Upload a new image to the storage.
@@ -192,7 +192,7 @@ async def upload_image(  # noqa: PLR0913 не возможно передать 
 )
 async def delete_image(
     image_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> JSONResponse:
     """Delete an image by its ID.
@@ -211,7 +211,7 @@ async def delete_image(
     Returns:
         JSONResponse: A response confirming successful deletion.
     """
-    LOG.info('Api handle response on delete image: %s.' % image_id)
+    LOG.info(f'Api handle response on delete image: {image_id}.')
     result = await run_in_threadpool(crud.delete_image, image_id, user_info)
     message = f'Image {image_id} successfully deleted.'
     LOG.info(message)
@@ -226,7 +226,7 @@ async def delete_image(
 async def attach_image(
     data: schemas.AttachImage,
     image_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.AttachImageInfo:
     """Attach an image to a virtual machine (VM).
@@ -247,7 +247,7 @@ async def attach_image(
     Returns:
         schemas.AttachImageInfo: Metadata of the attached image.
     """
-    LOG.info('Api handle response on attach image: %s to vm:' % image_id)
+    LOG.info(f'Api handle response on attach image: {image_id} to vm:')
     attached_image = await run_in_threadpool(
         crud.attach_image, image_id, data.model_dump(mode='json'), user_info
     )
@@ -263,7 +263,7 @@ async def attach_image(
 async def detach_image(
     detach_info: schemas.DetachImage,
     image_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: ImageCrud = Depends(ImageCrud),
 ) -> schemas.Image:
     """Detach an image from a virtual machine (VM).
@@ -286,7 +286,7 @@ async def detach_image(
     """
     LOG.info(
         'Api handle response on detach '
-        'image: %s from vm: %s' % (image_id, detach_info)
+        f'image: {image_id} from vm: {detach_info}'
     )
     detached_image = await run_in_threadpool(
         crud.detach_image,

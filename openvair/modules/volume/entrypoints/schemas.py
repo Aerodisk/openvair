@@ -15,7 +15,7 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List, Literal, Optional
+from typing import Literal
 from pathlib import Path
 
 from pydantic import Field, BaseModel, field_validator
@@ -34,7 +34,7 @@ class Attachment(BaseModel):
 
     id: int
     vm_id: UUID
-    target: Optional[Path] = None
+    target: Path | None = None
 
 
 class Volume(BaseModel):
@@ -59,17 +59,17 @@ class Volume(BaseModel):
 
     id: UUID
     name: str
-    description: Optional[str] = None
-    storage_id: Optional[UUID] = None
-    user_id: Optional[UUID] = None
+    description: str | None = None
+    storage_id: UUID | None = None
+    user_id: UUID | None = None
     format: str
     size: int
-    used: Optional[int] = None
-    status: Optional[str] = None
-    information: Optional[str] = None
-    attachments: List[Optional[Attachment]]
-    read_only: Optional[bool] = False
-    template_id: Optional[UUID]
+    used: int | None = None
+    status: str | None = None
+    information: str | None = None
+    attachments: list[Attachment | None]
+    read_only: bool | None = False
+    template_id: UUID | None
 
 
 class CreateVolume(BaseModel):
@@ -89,7 +89,7 @@ class CreateVolume(BaseModel):
     storage_id: UUID
     format: Literal['qcow2', 'raw']
     size: int = Field(0, ge=1)
-    read_only: Optional[bool] = False
+    read_only: bool | None = False
 
     validate_name = field_validator('name')(
         Validator.special_characters_validate
@@ -107,7 +107,7 @@ class CreateVolumeFromTemplate(BaseModel):  # noqa: D101
     # берем из Template
     # format: Literal['qcow2', 'raw']
     # size: int = Field(0, ge=1)
-    read_only: Optional[bool] = False
+    read_only: bool | None = False
 
     validate_name = field_validator('name')(
         Validator.special_characters_validate
@@ -138,7 +138,7 @@ class EditVolume(BaseModel):
 
     name: str = Field(min_length=1, max_length=40)
     description: str = Field(max_length=255)
-    read_only: Optional[bool] = False
+    read_only: bool | None = False
 
     validate_name = field_validator('name')(
         Validator.special_characters_validate
@@ -158,7 +158,7 @@ class AttachVolume(BaseModel):
     """
 
     vm_id: UUID
-    target: Optional[Path] = Field(default=None, min_length=1)
+    target: Path | None = Field(default=None, min_length=1)
 
     validate_target = field_validator('target')(
         lambda v: Validator.special_characters_validate(v, allow_slash=True)
@@ -184,6 +184,6 @@ class AttachVolumeInfo(BaseModel):
         provisioning (str): The provisioning method of the volume.
     """
 
-    path: Optional[Path] = None
+    path: Path | None = None
     size: int
     provisioning: str

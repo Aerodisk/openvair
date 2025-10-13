@@ -8,7 +8,7 @@ Classes:
     Networks: Updater class for network interface status.
 """
 
-from typing import Dict, cast
+from typing import cast
 
 import psutil
 import pyagentx3 as pyagentx
@@ -22,13 +22,13 @@ class Networks(pyagentx.Updater):
     agent with the current network interface status.
     """
 
-    def _get_networks(self) -> Dict[str, snicstats]:
+    def _get_networks(self) -> dict[str, snicstats]:
         """Retrieve network interface statistics.
 
         Returns:
            Dict: A dictionary of network interfaces and their status.
         """
-        return cast(Dict, psutil.net_if_stats())
+        return cast('dict', psutil.net_if_stats())
 
     def update(self) -> None:
         """Update the SNMP agent with the current network interface status."""

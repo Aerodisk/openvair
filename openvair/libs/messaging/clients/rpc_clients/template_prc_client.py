@@ -1,4 +1,4 @@
-from typing import Dict, List  # noqa: D100
+# noqa: D100
 
 from openvair.rpc_queues import RPCQueueNames
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -19,36 +19,36 @@ class TemplateServiceLayerRPCClient(TemplateServiceLayerProtocolInterface):  # n
             queue_name=RPCQueueNames.Template.SERVICE_LAYER
         )
 
-    def get_all_templates(self) -> List[Dict]:  # noqa: D102
-        result: List[Dict] = self.service_rpc_client.call(
+    def get_all_templates(self) -> list[dict]:  # noqa: D102
+        result: list[dict] = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.get_all_templates.__name__,
             data_for_method={},
         )
         return result
 
-    def get_template(self, getting_data: Dict) -> Dict:  # noqa: D102
-        result: Dict = self.service_rpc_client.call(
+    def get_template(self, getting_data: dict) -> dict:  # noqa: D102
+        result: dict = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.get_template.__name__,
             data_for_method=getting_data,
         )
         return result
 
-    def create_template(self, creating_data: Dict) -> Dict:  # noqa: D102
-        result: Dict = self.service_rpc_client.call(
+    def create_template(self, creating_data: dict) -> dict:  # noqa: D102
+        result: dict = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.create_template.__name__,
             data_for_method=creating_data,
         )
         return result
 
-    def edit_template(self, updating_data: Dict) -> Dict:  # noqa: D102
-        result: Dict = self.service_rpc_client.call(
+    def edit_template(self, updating_data: dict) -> dict:  # noqa: D102
+        result: dict = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.edit_template.__name__,
             data_for_method=updating_data,
         )
         return result
 
-    def delete_template(self, deleting_data: Dict) -> Dict:  # noqa: D102
-        result: Dict = self.service_rpc_client.call(
+    def delete_template(self, deleting_data: dict) -> dict:  # noqa: D102
+        result: dict = self.service_rpc_client.call(
             TemplateServiceLayerProtocolInterface.delete_template.__name__,
             data_for_method=deleting_data,
         )

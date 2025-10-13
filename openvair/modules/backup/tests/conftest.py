@@ -7,8 +7,8 @@ Provides:
 """
 
 import shutil
-from typing import Dict, Generator
 from pathlib import Path
+from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -53,8 +53,8 @@ def backup_repository(
 @pytest.fixture(scope='function')
 def backup_snapshot(
     client: TestClient,
-    backup_repository: Dict,  # noqa: ARG001 because of fixture using
-) -> Generator[Dict, None, None]:
+    backup_repository: dict,  # noqa: ARG001 because of fixture using
+) -> Generator[dict, None, None]:
     """Creates a backup snapshot, wait for creation and cleans up after test.
 
     Requires:

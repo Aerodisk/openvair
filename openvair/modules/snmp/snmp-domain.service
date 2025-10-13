@@ -4,12 +4,12 @@ Requires=prometheus.service node_exporter.service docker.service
 After=network.target prometheus.service node_exporter.service docker.service
 
 [Service]
-Environment="PATH=/opt/aero/openvair/venv/bin/:/usr/sbin/:/usr/bin/"
-Environment="PYTHONPATH=:/opt/aero/openvair/"
+Environment="PATH=/opt/aero/openvair/.venv/bin:/usr/sbin:/usr/bin"
+Environment="PYTHONPATH=/opt/aero/openvair"
 Environment=PYTHONUNBUFFERED=1
 
-WorkingDirectory=/opt/aero/openvair/openvair/modules/dashboard/service_layer/
-ExecStart=/opt/aero/openvair/venv/bin/python3 -u /opt/aero/openvair/openvair/modules/snmp/domain/manager.py
+WorkingDirectory=/opt/aero/openvair/openvair/modules/snmp/domain/
+ExecStart=/opt/aero/openvair/.venv/bin/python -u /opt/aero/openvair/openvair/modules/snmp/domain/manager.py
 Restart=on-failure
 RestartSec=5
 

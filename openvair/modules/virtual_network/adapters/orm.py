@@ -13,7 +13,6 @@ Functions:
 """
 
 import uuid
-from typing import List
 
 from sqlalchemy import (
     UUID,
@@ -44,7 +43,7 @@ class PortGroup(Base):
         nullable=False,
     )
     is_trunk: Mapped[str] = mapped_column(String, nullable=True)
-    tags: Mapped[List] = mapped_column(
+    tags: Mapped[list] = mapped_column(
         MutableList.as_mutable(ARRAY(Integer)),
         nullable=True,
     )
@@ -103,7 +102,7 @@ class VirtualNetwork(Base):
         nullable=True,
     )
 
-    port_groups: Mapped[List[PortGroup]] = relationship(
+    port_groups: Mapped[list[PortGroup]] = relationship(
         'PortGroup',
         back_populates='virtual_network',
         uselist=True,

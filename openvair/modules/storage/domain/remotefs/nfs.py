@@ -11,7 +11,7 @@ Classes:
 
 import os
 import re
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
@@ -36,7 +36,7 @@ class NfsStorage(RemoteFSStorage):
     the storage, checking availability, and retrieving capacity information.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initializes the NFS storage.
 
         This constructor initializes the NFS storage with the specified
@@ -49,7 +49,7 @@ class NfsStorage(RemoteFSStorage):
                 - path (str): The file path on the NFS server.
                 - mount_version (int): The NFS mount version (default is 4).
         """
-        super(NfsStorage, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = True
         self.ip = str(kwargs.get('ip', ''))
         self.path = kwargs.get('path', '')
@@ -58,7 +58,7 @@ class NfsStorage(RemoteFSStorage):
         self.mount_point = str(self.mount_point_path())
         self.share = f'{self.ip}:{self.path}'
 
-    def do_setup(self) -> Dict:
+    def do_setup(self) -> dict:
         """Performs any necessary setup steps for the NFS storage.
 
         This method checks if the required NFS package is installed,
@@ -70,7 +70,7 @@ class NfsStorage(RemoteFSStorage):
         """
         LOG.info('Starting do_setup method.')
         self._check_package_is_installed('mount.nfs')
-        super(NfsStorage, self).do_setup()
+        super().do_setup()
         self.get_capacity_info()
         LOG.info('Finished do_setup method.')
         return self.__dict__
@@ -147,7 +147,7 @@ class NfsStorage(RemoteFSStorage):
             raise NfsPathDoesNotExistOnShareError(message)
         LOG.info('Finished _check_ip_and_path method.')
 
-    def _create(self) -> Dict:
+    def _create(self) -> dict:
         """Creates the NFS storage.
 
         By checking the IP address and path, setting it up, and returning its
@@ -190,7 +190,7 @@ class NfsStorage(RemoteFSStorage):
         )
         LOG.info('Finished _delete method.')
 
-    def _get_capacity_info(self) -> Dict:
+    def _get_capacity_info(self) -> dict:
         """Retrieves the capacity of the NFS storage.
 
         This method gets the total size and available space of the

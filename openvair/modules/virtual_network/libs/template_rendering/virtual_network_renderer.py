@@ -9,7 +9,7 @@ Classes:
         XML configurations.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.libs.template_rendering.base_renderer import BaseTemplateRenderer
@@ -33,7 +33,7 @@ class VirtualNetworkRenderer(BaseTemplateRenderer):
         """Initialize with the virtual network package templates."""
         super().__init__(module_path=__file__)
 
-    def create_virtual_network_xml(self, raw_data: Dict[str, Any]) -> str:
+    def create_virtual_network_xml(self, raw_data: dict[str, Any]) -> str:
         """Create an XML configuration for a virtual network.
 
         This method calls `self.render` following these steps:
@@ -60,7 +60,7 @@ class VirtualNetworkRenderer(BaseTemplateRenderer):
         )
         return xml_result
 
-    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_data(self, data: dict[str, Any]) -> dict[str, Any]:
         return {
             'uuid': data.get('id'),
             'network_name': data.get('network_name'),

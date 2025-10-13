@@ -1,14 +1,11 @@
 """_summary_"""
 
 import abc
-from typing import Dict, Type, Generic, TypeVar
 
 from sqlalchemy.orm import DeclarativeBase
 
-T = TypeVar('T', bound=DeclarativeBase)
 
-
-class AbstractDataSerializer(Generic[T], metaclass=abc.ABCMeta):
+class AbstractDataSerializer[T: DeclarativeBase](metaclass=abc.ABCMeta):
     """Abstract class for data serialization."""
 
     @classmethod
@@ -16,7 +13,7 @@ class AbstractDataSerializer(Generic[T], metaclass=abc.ABCMeta):
     def to_domain(
         cls,
         orm_object: T,
-    ) -> Dict:
+    ) -> dict:
         """Convert an ORM object to a domain dictionary."""
         raise NotImplementedError
 
@@ -24,8 +21,8 @@ class AbstractDataSerializer(Generic[T], metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[T],
+        data: dict,
+        orm_class: type[T],
     ) -> T:
         """Convert a dictionary to an ORM object."""
         raise NotImplementedError
@@ -35,6 +32,6 @@ class AbstractDataSerializer(Generic[T], metaclass=abc.ABCMeta):
     def to_web(
         cls,
         orm_object: T,
-    ) -> Dict:
+    ) -> dict:
         """Convert an ORM object to a web dictionary."""
         raise NotImplementedError

@@ -6,7 +6,6 @@ It also provides a function to start the ORM mappers.
 
 import uuid
 import datetime
-from typing import List
 
 from sqlalchemy import UUID, ARRAY, TIMESTAMP, String, MetaData, func
 from sqlalchemy.orm import Mapped, DeclarativeBase, registry, mapped_column
@@ -45,7 +44,7 @@ class Notification(Base):
         String(30),
         nullable=True,
     )
-    recipients: Mapped[List] = mapped_column(
+    recipients: Mapped[list] = mapped_column(
         ARRAY(String),
         nullable=True,
     )

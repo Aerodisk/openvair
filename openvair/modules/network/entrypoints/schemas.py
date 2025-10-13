@@ -12,7 +12,6 @@ Schemas:
     ListOfInterfaces: Schema for a list of network interfaces.
 """
 
-from typing import List, Optional
 
 from pydantic import Field, BaseModel
 
@@ -25,8 +24,8 @@ class InterfaceExtraSpecs(BaseModel):
         duplex (Optional[str]): The duplex mode of the interface.
     """
 
-    slot_port: Optional[str] = None
-    duplex: Optional[str] = None
+    slot_port: str | None = None
+    duplex: str | None = None
 
 
 class Interface(BaseModel):
@@ -50,14 +49,14 @@ class Interface(BaseModel):
     id: str
     name: str
     mac: str
-    ip: Optional[str] = None
-    netmask: Optional[int] = None
+    ip: str | None = None
+    netmask: int | None = None
     inf_type: str
     power_state: str
-    status: Optional[str] = None
-    mtu: Optional[int] = None
-    speed: Optional[int] = None
-    interface_extra_specs: Optional[InterfaceExtraSpecs] = None
+    status: str | None = None
+    mtu: int | None = None
+    speed: int | None = None
+    interface_extra_specs: InterfaceExtraSpecs | None = None
 
 
 class BridgeCreate(BaseModel):
@@ -72,11 +71,11 @@ class BridgeCreate(BaseModel):
         status (Optional[str]): The status of the bridge.
     """
 
-    ip: Optional[str] = None
+    ip: str | None = None
     name: str = Field(max_length=15)
     type: str
-    interfaces: List[Interface]
-    status: Optional[str] = None
+    interfaces: list[Interface]
+    status: str | None = None
 
 
 class BridgeCreateResponse(BaseModel):
@@ -102,7 +101,7 @@ class BridgeCreateResponse(BaseModel):
     gateway: str
     power_state: str
     mac: str
-    netmask: Optional[int] = None
+    netmask: int | None = None
     inf_type: str
     status: str
     interface_extra_specs: InterfaceExtraSpecs
@@ -115,4 +114,4 @@ class ListOfInterfaces(BaseModel):
         interfaces (List[Optional[Interface]]): A list of network interfaces.
     """
 
-    interfaces: List[Optional[Interface]]
+    interfaces: list[Interface | None]

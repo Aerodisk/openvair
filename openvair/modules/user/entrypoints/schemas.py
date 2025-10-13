@@ -16,7 +16,6 @@ Schemas:
 """
 
 from uuid import UUID
-from typing import Optional
 
 from pydantic import EmailStr, BaseModel, ConfigDict
 
@@ -31,7 +30,7 @@ class BaseUser(BaseModel):
     """
 
     username: str
-    email: Optional[EmailStr] = None
+    email: EmailStr | None = None
     is_superuser: bool
 
 
@@ -94,4 +93,4 @@ class Token(BaseModel):
 
     access_token: str
     refresh_token: str
-    token_type: str = 'bearer'
+    token_type: str = 'bearer'  # noqa: S105

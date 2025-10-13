@@ -26,7 +26,7 @@ Author: Open vAIR Development Team
 """
 
 import threading
-from typing import Any, Set, Dict, Optional
+from typing import Any, Optional
 
 import psutil
 
@@ -122,8 +122,8 @@ class VNCManager:
         """
         if not hasattr(self, '_initialized'):
             self._port_lock = threading.Lock()
-            self._allocated_ports: Set[int] = set()
-            self._vm_sessions: Dict[str, Dict] = {}
+            self._allocated_ports: set[int] = set()
+            self._vm_sessions: dict[str, dict] = {}
             self._initialized = True
             LOG.info('Simple VNC Manager initialized')
             self._restore_state_from_system()
@@ -158,7 +158,7 @@ class VNCManager:
 
     def start_vnc_session(  # noqa: C901 TODO: need to refactor this
         self, vm_name: str, vnc_host: str, vnc_port: int
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Start VNC session with automatic port allocation.
 
         Args:
@@ -329,11 +329,11 @@ class VNCManager:
         """
         LOG.info('Restoring VNC Manager state from running processes...')
 
-        restored: Set[int] = set()
+        restored: set[int] = set()
 
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
-                proc_info: Dict[str, Any] = proc.info
+                proc_info: dict[str, Any] = proc.info
 
                 cmdline = proc_info.get('cmdline', [])
                 if not cmdline:

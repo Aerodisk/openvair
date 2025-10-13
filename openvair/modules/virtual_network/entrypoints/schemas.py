@@ -15,7 +15,7 @@ Classes:
     ErrorResponseModel: Represents an error response.
 """
 
-from typing import List, Type, Union, Literal
+from typing import Self, Literal
 
 from pydantic import (
     Field,
@@ -25,7 +25,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic.types import UUID4
-from typing_extensions import Self
 
 
 class PortGroup(BaseModel):
@@ -39,7 +38,7 @@ class PortGroup(BaseModel):
 
     port_group_name: str = 'trunk_port_group'
     is_trunk: Literal['yes', 'no']
-    tags: List[Union[int, str]] = Field(
+    tags: list[int | str] = Field(
         ..., examples=[['10', '20', '30', '40']]
     )
     model_config = ConfigDict(from_attributes=True)
@@ -93,12 +92,12 @@ class VirtualNetwork(BaseModel):
     forward_mode: str = 'bridge'
     bridge: str = 'my_bridge'
     virtual_port_type: str = 'openvswitch'
-    port_groups: List[PortGroup]
+    port_groups: list[PortGroup]
 
     @classmethod
     @field_validator('port_groups')
     @classmethod
-    def port_groups_validator(cls, value: List) -> List:
+    def port_groups_validator(cls, value: list) -> list:
         """Validates that the `port_groups` attribute is not empty or None.
 
         Args:
@@ -157,7 +156,7 @@ class VirtualNetworkResponse(VirtualNetwork):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_orm(cls, obj: Type[VirtualNetwork]) -> Self:
+    def from_orm(cls, obj: type[VirtualNetwork]) -> Self:
         """Creates a VirtualNetworkResponse object from an ORM object.
 
         Args:
@@ -185,7 +184,7 @@ class ListOfVirtualNetworksResponse(BaseModel):
             networks.
     """
 
-    virtual_networks: List[VirtualNetworkResponse]
+    virtual_networks: list[VirtualNetworkResponse]
 
 
 class ErrorResponseModel(BaseModel):

@@ -17,7 +17,6 @@ Functions:
 
 import pathlib
 import tempfile
-from typing import Dict, Type
 
 import toml
 from sqlalchemy import create_engine
@@ -32,12 +31,12 @@ TMP_DIR = tempfile.gettempdir()
 # Path to the TOML configuration file
 toml_path = pathlib.Path(__file__).parent.parent / 'project_config.toml'
 
-RPC_QUEUES: Type[RPCQueueNames] = RPCQueueNames
+RPC_QUEUES: type[RPCQueueNames] = RPCQueueNames
 
 with pathlib.Path.open(toml_path, 'r') as config_toml:
     data = toml.load(config_toml)
 
-database: Dict = data.get('database', {})
+database: dict = data.get('database', {})
 DB_CONTAINER: str = data['docker']['db_container']
 
 

@@ -21,7 +21,7 @@ Raises:
         structure.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 from xml.parsers.expat import ExpatError
 
 import xmltodict
@@ -67,7 +67,7 @@ def serialize_xml(
             structure.
     """  # noqa: E501
     try:
-        if wrap_root and not isinstance(data, Dict):
+        if wrap_root and not isinstance(data, dict):
             data = {'root': data}
 
         xml_string = xmltodict.unparse(data, pretty=pretty)
@@ -84,8 +84,8 @@ def serialize_xml(
 def deserialize_xml(
     xml_string: str,
     *,
-    attr_prefix: Optional[str] = '@',
-    cdata_key: Optional[str] = '#text',
+    attr_prefix: str | None = '@',
+    cdata_key: str | None = '#text',
 ) -> Any:  # noqa: ANN401 # XML can contain various data types (dict, list, etc.)
     """Deserialize an XML string into a JSON-compatible data structure.
 

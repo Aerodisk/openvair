@@ -1,5 +1,5 @@
 from uuid import UUID  # noqa: D100
-from typing import List, Literal, Optional
+from typing import Literal
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -8,23 +8,23 @@ from pydantic import BaseModel
 class ApiAttachmentModelDTO(BaseModel):  # noqa: D101
     id: int
     vm_id: UUID
-    target: Optional[Path] = None
+    target: Path | None = None
 
 
 class ApiVolumeModelDTO(BaseModel):  # noqa: D101
     id: UUID
     name: str
-    description: Optional[str] = None
-    storage_id: Optional[UUID] = None
-    user_id: Optional[UUID] = None
+    description: str | None = None
+    storage_id: UUID | None = None
+    user_id: UUID | None = None
     format: str
     size: int
-    used: Optional[int] = None
-    status: Optional[str] = None
-    information: Optional[str] = None
-    attachments: List[Optional[ApiAttachmentModelDTO]]
-    read_only: Optional[bool] = False
-    template_id: Optional[UUID] = None
+    used: int | None = None
+    status: str | None = None
+    information: str | None = None
+    attachments: list[ApiAttachmentModelDTO | None]
+    read_only: bool | None = False
+    template_id: UUID | None = None
 
 
 class DomainVolumeManagerDTO(BaseModel):  # noqa: D101
@@ -38,7 +38,7 @@ class DomainVolumeManagerDTO(BaseModel):  # noqa: D101
 
 class CreateVolumeFromTemplateModelDTO(BaseModel):  # noqa: D101
     name: str
-    description: Optional[str]
+    description: str | None
     path: str
     format: Literal['qcow2', 'raw']
     storage_id: UUID

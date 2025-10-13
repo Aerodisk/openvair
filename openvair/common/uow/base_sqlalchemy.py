@@ -10,10 +10,9 @@ Classes:
 
 import abc
 from types import TracebackType
-from typing import TYPE_CHECKING, Type, Optional
+from typing import TYPE_CHECKING, Self
 
 from sqlalchemy.orm import sessionmaker
-from typing_extensions import Self
 
 from openvair.common.uow.abstract import AbstractUnitOfWork
 
@@ -50,9 +49,9 @@ class BaseSqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Handles transaction completion and cleanup.
 

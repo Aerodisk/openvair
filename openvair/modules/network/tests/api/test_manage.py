@@ -9,7 +9,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 import pytest
 from fastapi import status
@@ -22,7 +21,7 @@ LOG = get_logger(__name__)
 
 
 def test_turn_on_interface_success(
-    client: TestClient, pre_turned_off_interface: Dict
+    client: TestClient, pre_turned_off_interface: dict
 ) -> None:
     """Test successful interface turn on.
 
@@ -48,7 +47,7 @@ def test_turn_on_interface_success(
 #       (or other tests will fail due to network error when using OVS)
 @pytest.mark.manager('netplan')
 def test_turn_on_bridge_success(
-    check_manager: None, client: TestClient, bridge: Dict
+    check_manager: None, client: TestClient, bridge: dict
 ) -> None:
     """Test successful bridge interface turn on.
 
@@ -100,7 +99,7 @@ def test_turn_on_interface_unauthorized(
 
 
 def test_turn_off_interface_success(
-    client: TestClient, pre_turned_on_interface: Dict
+    client: TestClient, pre_turned_on_interface: dict
 ) -> None:
     """Test successful interface turn off.
 
@@ -126,7 +125,7 @@ def test_turn_off_interface_success(
 #       (or other tests will fail due to network error when using OVS)
 @pytest.mark.manager('netplan')
 def test_turn_off_bridge_success(
-    check_manager: None, client: TestClient, bridge: Dict
+    check_manager: None, client: TestClient, bridge: dict
 ) -> None:
     """Test successful bridge interface turn off.
 

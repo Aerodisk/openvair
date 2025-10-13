@@ -5,7 +5,6 @@ Python types and database-compatible types. In particular, it provides a type
 to automatically convert pathlib.Path objects to strings and vice versa.
 """
 
-from typing import Union, Optional
 from pathlib import Path
 
 from sqlalchemy.types import String, TypeDecorator
@@ -26,8 +25,8 @@ class PathType(TypeDecorator):
     impl = String
 
     def process_bind_param(
-        self, value: Optional[Union[Path, str]], dialect: Dialect
-    ) -> Optional[str]:
+        self, value: Path | str | None, dialect: Dialect
+    ) -> str | None:
         """Convert a Python value to a database-compatible value.
 
         This method is called before the value is sent to the database. If the
@@ -51,8 +50,8 @@ class PathType(TypeDecorator):
         return value
 
     def process_result_value(
-        self, value: Optional[str], dialect: Dialect
-    ) -> Optional[Path]:
+        self, value: str | None, dialect: Dialect
+    ) -> Path | None:
         """Convert a database value to a Python value.
 
         This method is called after a value is retrieved from the database.

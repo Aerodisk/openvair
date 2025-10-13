@@ -6,7 +6,7 @@ which serve as abstract base classes for various types of notifications.
 
 import abc
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from openvair.libs.log import get_logger
 
@@ -29,11 +29,11 @@ class BaseNotification(metaclass=abc.ABCMeta):
                 - msg_type (str): The type of message.
         """
         self.id = str(kwargs.get('id', uuid.uuid4()))
-        self.send_datetime = kwargs.get('send_datetime', None)
+        self.send_datetime = kwargs.get('send_datetime')
         self.message = str(kwargs.get('message', ''))
         self.recipients = kwargs.get('recipients')
         self.msg_type = str(kwargs.get('msg_type', ''))
-        self.params_for_type: Dict = kwargs.get(self.msg_type, {})
+        self.params_for_type: dict = kwargs.get(self.msg_type, {})
         LOG.info('Initialized BaseNotification')
 
     @abc.abstractmethod

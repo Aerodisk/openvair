@@ -18,7 +18,6 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List, Union
 
 from pydantic import ValidationError
 
@@ -57,25 +56,25 @@ class EventStoreServiceLayerRPCClient(EventStoreServiceLayerProtocolInterface):
             queue_name=RPCQueueNames.EventStore.SERVICE_LAYER
         )
 
-    def get_all_events(self) -> List:
+    def get_all_events(self) -> list:
         """Retrieve all events from the database.
 
         Returns:
             List: List of serialized event data.
         """
-        events: List = self.service_rpc_client.call(
+        events: list = self.service_rpc_client.call(
             EventStoreServiceLayerProtocolInterface.get_all_events.__name__,
             data_for_method={},
         )
         return events
 
-    def get_all_events_by_module(self) -> List:
+    def get_all_events_by_module(self) -> list:
         """Retrieve all events by module from the database.
 
         Returns:
             List: List of serialized event data.
         """
-        events: List = self.service_rpc_client.call(
+        events: list = self.service_rpc_client.call(
             EventStoreServiceLayerProtocolInterface.get_all_events_by_module.__name__,
             data_for_method=GetEventsByModuleServiceCommand(
                 module_name=self.module_name
@@ -83,7 +82,7 @@ class EventStoreServiceLayerRPCClient(EventStoreServiceLayerProtocolInterface):
         )
         return events
 
-    def get_last_events(self, limit: int) -> List:
+    def get_last_events(self, limit: int) -> list:
         """Retrieve last events from the database.
 
         Args:
@@ -92,7 +91,7 @@ class EventStoreServiceLayerRPCClient(EventStoreServiceLayerProtocolInterface):
         Returns:
             List: List of serialized event data.
         """
-        events: List = self.service_rpc_client.call(
+        events: list = self.service_rpc_client.call(
             EventStoreServiceLayerProtocolInterface.get_last_events.__name__,
             data_for_method=GetLastEventsServiceCommand(limit=limit).model_dump(
                 mode='json'
@@ -102,8 +101,8 @@ class EventStoreServiceLayerRPCClient(EventStoreServiceLayerProtocolInterface):
 
     def add_event(
         self,
-        object_id: Union[UUID, str],
-        user_id: Union[UUID, str],
+        object_id: UUID | str,
+        user_id: UUID | str,
         event: str,
         information: str,
     ) -> None:

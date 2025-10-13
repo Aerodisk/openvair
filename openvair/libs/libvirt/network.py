@@ -7,7 +7,7 @@ Classes:
     - LibvirtNetworkAdapter: Adapter class for managing virtual networks.
 """
 
-from typing import List, Optional, cast
+from typing import cast
 
 from libvirt import libvirtError
 
@@ -28,7 +28,7 @@ class LibvirtNetworkAdapter:
         """Initialize the LibvirtNetworkAdapter."""
         self.connection = LibvirtConnection()
 
-    def get_virt_network_names(self) -> List[str]:
+    def get_virt_network_names(self) -> list[str]:
         """Retrieves list of names virtual networks."""
         LOG.info('Getting virtual_networks from libvirt...')
         with self.connection as connection:
@@ -116,7 +116,7 @@ class LibvirtNetworkAdapter:
             network = connection.networkLookupByName(vn_name)
 
         LOG.info('Getting virtual network XML from libvirt complete')
-        return cast(str, network.XMLDesc())
+        return cast('str', network.XMLDesc())
 
     def get_network_xml_by_uuid(self, network_uuid: str) -> str:
         """Retrieves the XML configuration of a virtual network by UUID.
@@ -133,7 +133,7 @@ class LibvirtNetworkAdapter:
             network = connection.networkLookupByUUIDString(network_uuid)
 
         LOG.info('Getting virtual network XML from libvirt complete')
-        return cast(str, network.XMLDesc())
+        return cast('str', network.XMLDesc())
 
     def is_network_exist_by_name(self, network_name: str) -> bool:
         """Checks if a virtual network exists by name.
@@ -153,7 +153,7 @@ class LibvirtNetworkAdapter:
             else:
                 return True
 
-    def is_network_exist_by_uuid(self, network_id: str) -> Optional[bool]:
+    def is_network_exist_by_uuid(self, network_id: str) -> bool | None:
         """Checks if a virtual network exists by UUID.
 
         Args:

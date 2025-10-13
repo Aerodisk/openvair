@@ -10,7 +10,6 @@ Classes:
 """
 
 import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -34,7 +33,7 @@ class Event(BaseModel):
     user_id: str
     event: str
     timestamp: datetime.datetime
-    information: Optional[str] = None
+    information: str | None = None
 
 
 class CSVResponse(BaseModel):
@@ -48,7 +47,7 @@ class CSVResponse(BaseModel):
 
     filename: str
     content_type: str
-    content: List[Event]
+    content: list[Event]
 
 
 class DownloadResponse(BaseModel):

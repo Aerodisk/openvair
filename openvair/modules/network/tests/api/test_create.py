@@ -9,7 +9,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict, List
 
 import yaml
 import pytest
@@ -28,7 +27,7 @@ from openvair.libs.testing.utils import (
 LOG = get_logger(__name__)
 
 
-def _check_dhcp(interface: Dict) -> bool:
+def _check_dhcp(interface: dict) -> bool:
     """Check DHCP status on the interface
 
     Args:
@@ -44,7 +43,7 @@ def _check_dhcp(interface: Dict) -> bool:
     return bool(exec_res.returncode == 0 and exec_res.stdout == 'true')
 
 
-def _check_bridge_in_ovs(data: Dict, interfaces: List[Dict]) -> None:
+def _check_bridge_in_ovs(data: dict, interfaces: list[dict]) -> None:
     """Checks bridge configuration in OVS.
 
     Args:
@@ -75,7 +74,7 @@ def _check_bridge_in_ovs(data: Dict, interfaces: List[Dict]) -> None:
 
 
 def _check_bridge_in_netplan(
-    data: Dict, interfaces: List[Dict], *, dhcp: bool
+    data: dict, interfaces: list[dict], *, dhcp: bool
 ) -> None:
     """Checks bridge configuration in Netplan.
 
@@ -121,7 +120,7 @@ def test_create_bridge_ovs_success(
     check_manager: None,
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
+    physical_interface: dict,
 ) -> None:
     """Test successful bridge creation using OVS.
 
@@ -173,7 +172,7 @@ def test_create_bridge_netplan_success(
     check_manager: None,
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
+    physical_interface: dict,
 ) -> None:
     """Test successful bridge creation using Netplan.
 
@@ -220,7 +219,7 @@ def test_create_bridge_netplan_success(
 
 
 def test_create_bridge_custom_ip_success(
-    client: TestClient, cleanup_bridges: None, interface_without_ip: Dict
+    client: TestClient, cleanup_bridges: None, interface_without_ip: dict
 ) -> None:
     """Test successful bridge creation with custom IP on interface without ip.
 
@@ -283,8 +282,8 @@ def test_create_bridge_multiple_interfaces_ovs_success(
     check_manager: None,
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
-    interface_without_ip: Dict,
+    physical_interface: dict,
+    interface_without_ip: dict,
 ) -> None:
     """Test successful bridge creation with multiple interfaces.
 
@@ -324,8 +323,8 @@ def test_create_bridge_multiple_interfaces_netplan_success(
     check_manager: None,
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
-    interface_without_ip: Dict,
+    physical_interface: dict,
+    interface_without_ip: dict,
 ) -> None:
     """Test successful bridge creation with multiple interfaces.
 
@@ -362,7 +361,7 @@ def test_create_bridge_multiple_interfaces_netplan_success(
 
 
 def test_create_bridge_missing_name(
-    client: TestClient, cleanup_bridges: None, physical_interface: Dict
+    client: TestClient, cleanup_bridges: None, physical_interface: dict
 ) -> None:
     """Test creation failure when 'name' is missing.
 
@@ -380,7 +379,7 @@ def test_create_bridge_missing_name(
 
 
 def test_create_bridge_duplicate_name(
-    client: TestClient, cleanup_bridges: None, physical_interface: Dict
+    client: TestClient, cleanup_bridges: None, physical_interface: dict
 ) -> None:
     """Test failure when creating bridge with duplicate name.
 
@@ -417,7 +416,7 @@ def test_create_bridge_duplicate_name(
 def test_create_bridge_with_long_name(
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
+    physical_interface: dict,
 ) -> None:
     """Test successful bridge creation with long name using OVS.
 
@@ -473,7 +472,7 @@ def test_create_bridge_nonexistent_interface(
 
 def test_create_bridge_unauthorized(
     cleanup_bridges: None,
-    physical_interface: Dict,
+    physical_interface: dict,
     unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized request returns 401.

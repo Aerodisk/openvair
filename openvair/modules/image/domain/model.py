@@ -13,7 +13,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import ClassVar, cast
 
 from openvair.modules.image.domain.base import BaseImage
 from openvair.modules.image.domain.remotefs import nfs
@@ -28,7 +28,7 @@ class AbstractImageFactory(metaclass=abc.ABCMeta):
     return an instance of `BaseImage` or its subclasses.
     """
 
-    def __call__(self, db_image: Dict) -> BaseImage:
+    def __call__(self, db_image: dict) -> BaseImage:
         """Create an image instance based on the provided data.
 
         Args:
@@ -40,7 +40,7 @@ class AbstractImageFactory(metaclass=abc.ABCMeta):
         return self.get_image(db_image)
 
     @abc.abstractmethod
-    def get_image(self, db_image: Dict) -> BaseImage:
+    def get_image(self, db_image: dict) -> BaseImage:
         """Creates an image instance from the given dictionary.
 
         Args:
@@ -64,7 +64,7 @@ class ImageFactory(AbstractImageFactory):
         'localfs': localfs.LocalFSImage,
     }
 
-    def get_image(self, db_image: Dict) -> BaseImage:
+    def get_image(self, db_image: dict) -> BaseImage:
         """Creates an image instance from the given dictionary.
 
         Args:
@@ -78,4 +78,4 @@ class ImageFactory(AbstractImageFactory):
                 have a corresponding image class.
         """
         image_class = self._image_classes[db_image['storage_type']]
-        return cast(BaseImage, image_class(**db_image))
+        return cast('BaseImage', image_class(**db_image))

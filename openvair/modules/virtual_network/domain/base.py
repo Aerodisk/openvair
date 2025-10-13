@@ -10,7 +10,7 @@ Classes:
 """
 
 import abc
-from typing import Any, Dict, List
+from typing import Any
 
 from openvair.libs.libvirt.network import LibvirtNetworkAdapter
 
@@ -28,7 +28,7 @@ class BasePortGroup(metaclass=abc.ABCMeta):
         """Initialize the BasePortGroup instance."""
         self.port_group_name = str(kwargs.pop('port_group_name'))
         self.is_trunk = str(kwargs.pop('is_trunk', 'no'))
-        self.tags: List[str] = list(kwargs.pop('tags', []))
+        self.tags: list[str] = list(kwargs.pop('tags', []))
 
     def __eq__(self, other: object) -> bool:
         """Check if two port groups are equal based on their names."""
@@ -50,7 +50,7 @@ class BasePortGroup(metaclass=abc.ABCMeta):
         """Abstract method to delete a tag from the port group."""
         raise NotImplementedError
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Converts the port group object to a dictionary.
 
         Returns:
@@ -86,14 +86,14 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         self.virtual_port_type = str(
             kwargs.pop('virtual_port_type', 'openvswitch')
         )
-        self.port_groups: List[BasePortGroup] = list(
+        self.port_groups: list[BasePortGroup] = list(
             kwargs.pop('port_groups', [])
         )
         self.virsh_xml = str(kwargs.pop('virsh_xml', ''))
         self.virsh = LibvirtNetworkAdapter()
 
     @abc.abstractmethod
-    def add_port_group(self, port_group: Dict) -> Dict[str, Any]:
+    def add_port_group(self, port_group: dict) -> dict[str, Any]:
         """Abstract method to add a port group to the virtual network.
 
         Args:
@@ -105,7 +105,7 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def del_port_group_by_name(self, data: Dict) -> Dict[str, str]:
+    def del_port_group_by_name(self, data: dict) -> dict[str, str]:
         """Abstract method to delete a port group from virtual network by name.
 
         Args:
@@ -114,7 +114,7 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create(self) -> Dict[str, str]:
+    def create(self) -> dict[str, str]:
         """Abstract method to create the virtual network.
 
         Returns:
@@ -155,7 +155,7 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_tag_to_port_group(self, data: Dict) -> Dict[str, Dict[str, str]]:
+    def add_tag_to_port_group(self, data: dict) -> dict[str, dict[str, str]]:
         """Abstract method to add a tag to a port group in the virtual network.
 
         Args:
@@ -166,7 +166,7 @@ class BaseVirtualNetwork(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Converts the virtual network object to a dictionary.
 
         Returns:

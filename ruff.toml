@@ -1,5 +1,5 @@
 # Python version
-target-version = "py38"
+target-version = "py312"
 
 # Not linting and formatting files from .gitignore
 respect-gitignore = true
@@ -29,6 +29,7 @@ docstring-code-line-length = 88
 [lint]
 # Adding lineter rules
 select = [
+    "UP",  # pyupgrade DISABLE WHILE WE DON'T USE pyupgrade
     "F",     # pyflakes
     "E",     # pycodestyle errors 
     "W",     # pycodestyle warnings
@@ -70,9 +71,7 @@ select = [
 
 # Exclude linter rules
 ignore = [
-    # When using Ruff as a formatting tool, it is recommended to avoid the following 
-    # linter rules
-    # When using Ruff as a formatting tool, it is recommended to avoid the following 
+    # When using Ruff as a formatting tool, it is recommended to avoid the following
     # linter rules
     "W191",   # tab-indentation
     "E111",   # indentation-with-invalid-multiple
@@ -107,7 +106,6 @@ ignore = [
     "TRY400", # error-instead-of-exception
 
     # DISABLED WHILE UNUSE THIS CHECKING FOR PROJECT
-    "UP",  # pyupgrade DISABLE WHILE WE DON'T USE pyupgrade
     "YTT", # flake8-2020 (YTT) DISABEL WHILE WE DON'T USE python version >= 3.10
     "DTZ", # flake8-datetimez DISABEL WHILE WE DON'T NEED WORKING WITH TIME ZONE
     "T10", # flake8-debugger

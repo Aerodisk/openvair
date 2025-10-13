@@ -13,7 +13,7 @@ Classes:
 """
 
 from uuid import UUID
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import update
 from sqlalchemy.orm import joinedload
@@ -43,7 +43,7 @@ class ImageSqlAlchemyRepository(BaseSqlAlchemyRepository[Image]):
         """
         super().__init__(session, Image)
 
-    def get_by_name(self, image_name: str) -> List[Image]:
+    def get_by_name(self, image_name: str) -> list[Image]:
         """Retrieve images by their name.
 
         Args:
@@ -59,7 +59,7 @@ class ImageSqlAlchemyRepository(BaseSqlAlchemyRepository[Image]):
             .all()
         )
 
-    def get_all_by_storage(self, storage_id: UUID) -> List[Image]:
+    def get_all_by_storage(self, storage_id: UUID) -> list[Image]:
         """Retrieve all images associated with a specific storage.
 
         Args:
@@ -75,7 +75,7 @@ class ImageSqlAlchemyRepository(BaseSqlAlchemyRepository[Image]):
             .all()
         )
 
-    def bulk_update(self, data: List) -> None:
+    def bulk_update(self, data: list) -> None:
         """Perform a bulk update on images.
 
         Args:

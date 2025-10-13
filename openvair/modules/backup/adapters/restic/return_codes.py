@@ -12,9 +12,7 @@ Typical usage example:
 """
 
 from enum import Enum
-from typing import Optional
-
-from typing_extensions import Self
+from typing import Self
 
 
 class ReturnCode(Enum):
@@ -49,7 +47,7 @@ class ReturnCode(Enum):
         self.description: str = description
 
     @classmethod
-    def from_code(cls, code: int) -> Optional[Self]:
+    def from_code(cls, code: int) -> Self | None:
         """Finds the corresponding ReturnCode by numerical exit code.
 
         Args:

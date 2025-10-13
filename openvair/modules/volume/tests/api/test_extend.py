@@ -7,7 +7,7 @@ Covers:
 - Unauthorized access.
 """
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-def test_extend_volume_success(client: TestClient, volume: Dict) -> None:
+def test_extend_volume_success(client: TestClient, volume: dict) -> None:
     """Test successful extension of volume size.
 
     Asserts:
@@ -65,7 +65,7 @@ def test_extend_volume_invalid_uuid(client: TestClient) -> None:
 
 
 def test_extend_volume_smaller_than_current(
-    client: TestClient, volume: Dict
+    client: TestClient, volume: dict
 ) -> None:
     """Test failure when new size is not greater than current size.
 
@@ -84,7 +84,7 @@ def test_extend_volume_smaller_than_current(
 
 
 def test_extend_volume_status_not_available(
-    client: TestClient, volume: Dict
+    client: TestClient, volume: dict
 ) -> None:
     """Test failure when volume status is not 'available'.
 
@@ -106,7 +106,7 @@ def test_extend_volume_status_not_available(
 
 
 def test_extend_volume_unauthorized(
-    volume: Dict, unauthorized_client: TestClient
+    volume: dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_id = volume['id']

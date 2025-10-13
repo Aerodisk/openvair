@@ -29,12 +29,10 @@ Classes:
 import uuid
 from typing import (
     Any,
-    Dict,
     TypeVar,
-    Callable,
-    Optional,
     cast,
 )
+from collections.abc import Callable
 
 import pika
 from pika.spec import Basic
@@ -76,7 +74,7 @@ class RabbitRPCClient(BaseRabbitRPCClient):
                 generation of a unique queue name.
         """
         super().__init__(queue_name, callback_queue_name)
-        self.corr_id: Optional[str]
+        self.corr_id: str | None
 
     def on_response(
         self,
@@ -105,8 +103,8 @@ class RabbitRPCClient(BaseRabbitRPCClient):
     def call(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
         *,
         priority: int = 1,
         time_limit: int = 100,
@@ -170,8 +168,8 @@ class RabbitRPCClient(BaseRabbitRPCClient):
     def cast(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
         *,
         priority: int = 10,
     ) -> None:
@@ -292,4 +290,4 @@ class RabbitRPCServer(BaseRabbitRPCServer):
                 ),
                 body=serialized_request.encode(),
             )
-        channel.basic_ack(delivery_tag=cast(int, method.delivery_tag))
+        channel.basic_ack(delivery_tag=cast('int', method.delivery_tag))

@@ -8,13 +8,15 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.notification.adapters.orm import Notification
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -24,7 +26,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Notification,
-    ) -> Dict:
+    ) -> dict:
         """Function for converting SQLAlchemy object to dictionary.
 
         It takes a Notification object and returns a dictionary with the same
@@ -54,8 +56,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[Notification] = Notification,
+        data: dict,
+        orm_class: type[Notification] = Notification,
     ) -> Notification:
         """Converts a dictionary to an SQLAlchemy object.
 
@@ -72,7 +74,7 @@ class DataSerializer(AbstractDataSerializer):
                 data dictionary.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)
@@ -82,7 +84,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Notification,
-    ) -> Dict:
+    ) -> dict:
         """Function for converting SQLAlchemy object to dictionary for web.
 
         It takes a Notification object and returns a dictionary with the

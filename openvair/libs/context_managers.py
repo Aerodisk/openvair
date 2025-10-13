@@ -13,10 +13,10 @@ import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 from pathlib import Path
 from contextlib import contextmanager
+from collections.abc import Generator
 
 from sqlalchemy.exc import OperationalError
 

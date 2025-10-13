@@ -20,7 +20,7 @@ Endpoints:
 """
 
 from uuid import UUID
-from typing import Dict, Optional, cast
+from typing import cast
 
 from fastapi import Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
@@ -48,7 +48,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def get_volumes(
-    storage_id: Optional[UUID] = Query(default=None, description='Storage ID'),
+    storage_id: UUID | None = Query(default=None, description='Storage ID'),
     *,
     free_volumes: bool = Query(
         default=False,
@@ -74,7 +74,7 @@ async def get_volumes(
     volumes = Validator.validate_objects(result, schemas.Volume)
 
     LOG.info('Api request was successfully processed.')
-    return cast(Page, paginate(volumes))
+    return cast('Page', paginate(volumes))
 
 
 @router.get(
@@ -110,7 +110,7 @@ async def get_volume(
 )
 async def create_volume(
     data: schemas.CreateVolume,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Create a new volume.
@@ -123,7 +123,7 @@ async def create_volume(
     Returns:
         JSONResponse: The created volume object.
     """
-    LOG.info('Api handle response on create volume with data: %s' % data)
+    LOG.info(f'Api handle response on create volume with data: {data}')
     volume = await run_in_threadpool(
         crud.create_volume, data.model_dump(mode='json'), user_info
     )
@@ -139,7 +139,7 @@ async def create_volume(
 )
 async def delete_volume(
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Delete an existing volume.
@@ -152,7 +152,7 @@ async def delete_volume(
     Returns:
         JSONResponse: The deleted volume object.
     """
-    LOG.info('Api handle response on delete volume: %s' % volume_id)
+    LOG.info(f'Api handle response on delete volume: {volume_id}')
     result = await run_in_threadpool(crud.delete_volume, volume_id, user_info)
     LOG.info('Api request was successfully processed.')
     return JSONResponse(result)
@@ -166,7 +166,7 @@ async def delete_volume(
 async def extend_volume(
     data: schemas.ExtendVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Extend an existing volume to a new size.
@@ -180,7 +180,7 @@ async def extend_volume(
     Returns:
         JSONResponse: The extended volume object.
     """
-    LOG.info('Api handle response on extend volume: %s' % volume_id)
+    LOG.info(f'Api handle response on extend volume: {volume_id}')
     volume = await run_in_threadpool(
         crud.extend_volume, volume_id, data.model_dump(), user_info
     )
@@ -196,7 +196,7 @@ async def extend_volume(
 async def edit_volume(
     data: schemas.EditVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Edit an existing volume's metadata.
@@ -211,7 +211,7 @@ async def edit_volume(
         JSONResponse: The updated volume object.
     """
     LOG.info(
-        'Api handle response on edit volume: %s with data:' % volume_id,
+        f'Api handle response on edit volume: {volume_id} with data:',
         data.model_dump(),
     )
     volume = await run_in_threadpool(
@@ -229,7 +229,7 @@ async def edit_volume(
 async def attach_volume(
     data: schemas.AttachVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Attach a volume to a virtual machine.
@@ -244,7 +244,7 @@ async def attach_volume(
         JSONResponse: Information about the attached volume.
     """
     LOG.info(
-        'Api handle response on attach volume: %s with data:' % volume_id,
+        f'Api handle response on attach volume: {volume_id} with data:',
         data.model_dump(mode='json'),
     )
     attached_volume = await run_in_threadpool(
@@ -262,7 +262,7 @@ async def attach_volume(
 async def detach_volume(
     detach_info: schemas.DetachVolume,
     volume_id: UUID,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> JSONResponse:
     """Detach a volume from a virtual machine.
@@ -276,9 +276,7 @@ async def detach_volume(
     Returns:
         JSONResponse: The detached volume object.
     """
-    LOG.info(
-        'Api handle response on detach ' 'volume: %s with data:' % volume_id
-    )
+    LOG.info('Api handle response on detach ' f'volume: {volume_id} with data:')
     detached_volume = await run_in_threadpool(
         crud.detach_volume, volume_id, detach_info.model_dump(), user_info
     )
@@ -294,7 +292,7 @@ async def detach_volume(
 )
 async def create_from_template(  # noqa: D103
     data: schemas.CreateVolumeFromTemplate,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: VolumeCrud = Depends(VolumeCrud),
 ) -> schemas.Volume:
     LOG.info('Api handle response on create volume from template')

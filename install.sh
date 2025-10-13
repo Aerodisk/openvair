@@ -183,16 +183,26 @@ go_to_home_dir() {
     execute "$command" "$message"
 }
 
-# Install necessary packages
-install_venv_and_pip() {
-    check_or_install "python3-venv"
-    check_or_install "python3-pip"
+install_curl(){
+  local command="sudo apt-get install curl -y"
+  local message="installing curl via apt-get"
+  execute "$command" "$message"
+}
+
+install_uv(){
+  local install_uv_command="curl -LsSf https://astral.sh/uv/install.sh | sh"
+  local install_message="Installing uv via official installer"
+  execute "$install_uv_command" "$install_message"
+
+  # Add uv to PATH for current session
+  export PATH="$HOME/.local/bin:$PATH"
+  log $GREEN "Added uv to PATH for current session"
 }
 
 # Making venv in repo
 make_venv() {
-    local command="cd $PROJECT_PATH && python3 -m venv $PROJECT_PATH/venv"
-    local message="Making venv"
+    local command="cd $PROJECT_PATH && uv python install 3.12 && uv venv --python 3.12 --clear"
+    local message="Making .venv with Python 3.12"
     execute "$command" "$message"
 }
 
@@ -203,12 +213,7 @@ change_owner() {
     execute "$command" "$message"
 }
 
-# Add python path
-add_pythonpath_to_activate() {
-    local command="echo \"export PYTHONPATH=${PROJECT_PATH}:\" | sudo tee -a $PROJECT_PATH/venv/bin/activate"
-    local message="Exporting python path"
-    execute "$command" "$message"
-}
+
 
 # Installing libpq-dev
 install_libpq_dev(){
@@ -229,41 +234,19 @@ install_requirements_for_storages(){
     check_or_install "nfs-common xfsprogs"
 }
 
-# Unified function for installing python package
-install_python_package() {
-    local package_name="$1"
-    local message="$2"
 
-    local command="$PROJECT_PATH/venv/bin/python3 -m pip install $package_name"
-    execute "$command" "Installing $message"
-}
-
-# Install libvirt python
-install_libvirt_python() {
-    log $CYAN "Installing libvirt-python..."
-    local command="$PROJECT_PATH/venv/bin/pip install libvirt-python"
-    execute "$command" "Installing libvirt-python"
-}
-
-# Installing wheel
-install_wheel() {
-  install_python_package "wheel" "wheel"
-}
 
 # Installing requirements python
 install_python_requirements() {
-  install_python_package "-r $PROJECT_PATH/requirements.txt" "python requirements"
+  local command="cd $PROJECT_PATH && uv sync --locked || (uv lock && uv sync)"
+  local message="Installing python requirements via uv"
+  execute "$command" "$message"
 }
 
 install_pre-commit(){
-  local install_command="$PROJECT_PATH/venv/bin/pre-commit install"
+  local install_command="cd $PROJECT_PATH && uv run pre-commit install"
   local message="Installing pre-commit"
   execute "$install_command" "$message"
-}
-
-# Installing psycopg
-install_psycopg2(){
-    install_python_package "psycopg2" "psycopg2"
 }
 
 # Installing openvswitch
@@ -332,14 +315,14 @@ run_postgres_container() {
 
 # Create database function
 create_database() {
-    local command="sudo docker exec -it $DOCKER_CONTAINER_NAME psql -U $USER -c 'CREATE DATABASE $DATABASE_NAME;'"
+    local command="sudo docker exec -i $DOCKER_CONTAINER_NAME psql -U $USER -c 'CREATE DATABASE $DATABASE_NAME;'"
     local message="Creating database $DATABASE_NAME"
     execute "$command" "$message"
 }
 
 # Grant privileges function
 grant_privileges() {
-    local command="sudo docker exec -it $DOCKER_CONTAINER_NAME psql -U $USER -c 'GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $USER;'"
+    local command="sudo docker exec -i $DOCKER_CONTAINER_NAME psql -U $USER -c 'GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $USER;'"
     local message="Granting privileges on database $DATABASE_NAME to user $USER"
     execute "$command" "$message"
 }
@@ -408,7 +391,7 @@ make_migrations() {
     fi
 
     # Run migrations using Alembic
-    local migration_command="sudo $PROJECT_PATH/venv/bin/python3 -m alembic -c $PROJECT_PATH/alembic.ini upgrade head"
+    local migration_command="uv run alembic -c $PROJECT_PATH/alembic.ini upgrade head"
     execute "$migration_command" "Running Alembic migrations"
 }
 
@@ -566,11 +549,11 @@ install_prometheus() {
 
   go_to_home_dir
   download_package "$URL"
-  unzip_arch "$downloaded_file" 
+  unzip_arch "$downloaded_file"
   go_to_dir "$PRODUCT"
   replace_binary_files_to_local_bin "prometheus" "promtool"
   create_prometheus_folders
-  replace_prometheus_files_to_etc_prometheus 
+  replace_prometheus_files_to_etc_prometheus
   copy_ssl_files_to_etc_prometheus
   create_prometheus_web_config
   change_owner_of_the_prometheus_dirs
@@ -668,7 +651,7 @@ install_node_exporter() {
 install_open_iscsi() {
     local command="yes | sudo apt install open-iscsi"
     local message="Installing open-iscsi"
-    execute "$command" "$message" 
+    execute "$command" "$message"
 }
 
 # Cloning noVNC
@@ -686,22 +669,14 @@ install_jq(){
 
 install_restic(){
   local apt_get_command="sudo apt-get install restic"
-  local self_update_command="sudo restic self-update" 
+  local self_update_command="sudo restic self-update"
   local install_message="Installing restic"
   local update_message="Updating restic"
   execute "$apt_get_command" "$install_message"
   execute "$self_update_command" "$update_message"
 }
 
-install_uv(){
-  local install_uv_command="curl -LsSf https://astral.sh/uv/install.sh | sh"
-  local install_message="Installing uv via official installer"
-  execute "$install_uv_command" "$install_message"
-  
-  # Add uv to PATH for current session
-  export PATH="$HOME/.local/bin:$PATH"
-  log $GREEN "Added uv to PATH for current session"
-}
+
 
 install_documentation(){
   local doc_repo="https://github.com/Aerodisk/openvair-docs.git"
@@ -737,28 +712,16 @@ process_services() {
 # Clear home directory
 clear_home_dir() {
   local message="Clear home directory"
-  execute "sudo rm -rf .nvm .npm .cache .config" "$message"
+  execute "sudo rm -rf .nvm .npm .config" "$message"
 }
 
 # Create hashed password
 make_hashed_password() {
-  HASHED_PASSWORD=$($PROJECT_PATH/venv/bin/python3 -c """
+  HASHED_PASSWORD=$(cd $PROJECT_PATH && uv run python -c """
 from passlib import hash
 hash = hash.bcrypt.hash('$PASSWORD')
 print(hash)
 """)
-}
-
-# Create default user
-create_default_user() {
-    local message="Createing default user"
-    local command="sudo docker exec -it $DOCKER_CONTAINER_NAME \
-        psql -U $USER -d $DATABASE_NAME -c \"INSERT INTO users \
-        (id, username, password) \
-        VALUES ('6777383c-56c3-44b3-8243-2fd5b819d3c9', '$LOGIN', \
-        NULL, 't', '$HASHED_PASSWORD')\""
-    execute "$command" "$message"
-    sleep 5
 }
 
 # ============ Printing the final message =================
@@ -827,26 +790,24 @@ print_final_message() {
 
 create_default_user() {
     log $CYAN "Creating default user"
-    sudo docker exec -it $DOCKER_CONTAINER_NAME psql -U $USER -d $DATABASE_NAME -c "INSERT INTO users VALUES ('0b677738-34ff-4f9e-b1f6-5962065c0207', '$LOGIN', NULL, 't', '$HASHED_PASSWORD')" || stop_script "Failure while adding deafault user"
+    sudo docker exec -i $DOCKER_CONTAINER_NAME psql -U $USER -d $DATABASE_NAME -c "INSERT INTO users VALUES ('0b677738-34ff-4f9e-b1f6-5962065c0207', '$LOGIN', NULL, 't', '$HASHED_PASSWORD')" || stop_script "Failure while adding deafault user"
     log $GREEN "Default user was added successfully"
 }
 
 # Run the main installation steps
 main() {
-    install_tmux_and_start_session
+#    install_tmux_and_start_session
     verify_user_data
     create_jwt_secret
     get_os_type
     go_to_home_dir
-    install_venv_and_pip
+    install_curl
+    install_uv
     make_venv
-    add_pythonpath_to_activate
     install_libpq_dev
     install_python3_websockify
     install_requirements_for_libvirt
-    install_libvirt_python
     install_requirements_for_storages
-    install_wheel
     install_python_requirements
     install_pre-commit
     install_openvswitch
@@ -871,7 +832,6 @@ main() {
     clear_home_dir
     make_hashed_password
     create_default_user
-    install_uv
     install_documentation
     restart_service 'web-app.service'
     print_final_message

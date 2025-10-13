@@ -7,7 +7,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict, List
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -15,7 +14,7 @@ from fastapi.testclient import TestClient
 from openvair.libs.testing.config import storage_settings
 
 
-def test_get_storages_success(client: TestClient, storage: Dict) -> None:
+def test_get_storages_success(client: TestClient, storage: dict) -> None:
     """Test successful retrieval of storages list with storage."""
     response = client.get('/storages/')
     assert response.status_code == status.HTTP_200_OK
@@ -49,7 +48,7 @@ def test_get_storages_unauthorized(unauthorized_client: TestClient) -> None:
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_storage_success(client: TestClient, storage: Dict) -> None:
+def test_get_storage_success(client: TestClient, storage: dict) -> None:
     """Test successful storage retrieval by ID."""
     response = client.get(f"/storages/{storage['id']}/")
     assert response.status_code == status.HTTP_200_OK
@@ -87,7 +86,7 @@ def test_get_local_disks_success(client: TestClient) -> None:
 
     data = response.json()
     assert 'disks' in data
-    assert isinstance(data['disks'], List)
+    assert isinstance(data['disks'], list)
     test_disk_path = str(storage_settings.storage_path)
     api_disk_paths = [disk['path'] for disk in data['disks'] if 'path' in disk]
     assert test_disk_path in api_disk_paths
@@ -120,7 +119,7 @@ def test_get_local_disk_partitions_success(client: TestClient) -> None:
             )
             assert response.status_code == status.HTTP_200_OK
             partition_info = response.json()
-            assert isinstance(partition_info, Dict)
+            assert isinstance(partition_info, dict)
             for _, partition in partition_info.items():
                 required_fields = [
                     'Number',

@@ -8,10 +8,9 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, Union, ClassVar, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.volume.adapters.orm import Volume, VolumeAttachVM
@@ -21,6 +20,9 @@ from openvair.modules.volume.adapters.dto.internal.models import (
     ApiAttachmentModelDTO,
     DomainVolumeManagerDTO,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -34,7 +36,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Volume,
-    ) -> Dict:
+    ) -> dict:
         """Convert a Volume object to a domain model representation.
 
         Args:
@@ -59,15 +61,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[
-            Type[Volume],
-            Type[VolumeAttachVM],
-        ] = Volume,
-    ) -> Union[
-        Volume,
-        VolumeAttachVM,
-    ]:
+        data: dict,
+        orm_class: type[Volume] | type[VolumeAttachVM] = Volume,
+    ) -> Volume | VolumeAttachVM:
         """Convert a domain model representation to a database object.
 
         Args:
@@ -78,7 +74,7 @@ class DataSerializer(AbstractDataSerializer):
             object: The ORM object populated with the domain data.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             if data.get(column_name) is None:
@@ -90,7 +86,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Volume,
-    ) -> Dict:
+    ) -> dict:
         """Convert a Volume object to a web response representation.
 
         Args:
@@ -117,8 +113,8 @@ class DataSerializer(AbstractDataSerializer):
         volume_dict.update(
             {
                 'id': str(volume_dict.get('id', '')),
-                'storage_id': str((volume_dict.get('storage_id', ''))),
-                'user_id': str((volume_dict.get('user_id', ''))),
+                'storage_id': str(volume_dict.get('storage_id', '')),
+                'user_id': str(volume_dict.get('user_id', '')),
                 'attachments': attachments,
                 'template_id': str(volume_dict.get('template_id'))
                 if volume_dict.get('template_id')
@@ -145,6 +141,6 @@ class AttachmentWebSerializer(  # noqa: D101
 class VolumeWebSerializer(BaseSerializer[ApiVolumeModelDTO, Volume]):  # noqa: D101
     dto_class = ApiVolumeModelDTO
     orm_class = Volume
-    nested_serializers: ClassVar[Dict[str, Type[BaseSerializer]]] = {
+    nested_serializers: ClassVar[dict[str, type[BaseSerializer]]] = {
         'attachments': AttachmentWebSerializer
     }

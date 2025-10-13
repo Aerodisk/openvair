@@ -40,7 +40,7 @@ Classes:
 """
 
 from uuid import UUID
-from typing import List, Union, Literal, Optional
+from typing import Literal
 
 from pydantic import Field, BaseModel
 
@@ -48,12 +48,12 @@ from pydantic import Field, BaseModel
 class Cpu(BaseModel):
     """Schema for CPU information."""
 
-    cores: Optional[int] = 1
-    threads: Optional[int] = 1
-    sockets: Optional[int] = 1
+    cores: int | None = 1
+    threads: int | None = 1
+    sockets: int | None = 1
     model: Literal['host'] = 'host'
     type: Literal['static', 'dynamic'] = 'static'
-    vcpu: Optional[int] = None
+    vcpu: int | None = None
 
 
 class RAM(BaseModel):
@@ -65,8 +65,8 @@ class RAM(BaseModel):
 class Os(BaseModel):
     """Schema for operating system information."""
 
-    os_type: Optional[str] = 'Linux'  # Linux or others unix types
-    os_variant: Optional[str] = 'Ubuntu 20.04'  # Ubuntu or others unix os
+    os_type: str | None = 'Linux'  # Linux or others unix types
+    os_variant: str | None = 'Ubuntu 20.04'  # Ubuntu or others unix os
     boot_device: Literal['hd', 'cdrom'] = 'cdrom'
     bios: Literal['LEGACY', 'UEFI', 'ACCORD'] = 'LEGACY'
     graphic_driver: Literal['virtio', 'vga'] = 'virtio'
@@ -75,8 +75,8 @@ class Os(BaseModel):
 class GraphicInterfaceBase(BaseModel):
     """Base schema for graphic interface information."""
 
-    login: Optional[str] = None
-    password: Optional[str] = None
+    login: str | None = None
+    password: str | None = None
     connect_type: Literal['vnc', 'spice'] = 'vnc'
 
 
@@ -92,11 +92,11 @@ class VirtualInterface(BaseModel):
         'user',
         'virtual_network',
     ] = 'bridge'  # default???????
-    portgroup: Optional[str] = None
+    portgroup: str | None = None
     interface: str
     mac: str = '6C:4A:74:B4:FD:59'  # default start 6C:4A:74:
     model: Literal['virtio', 'bridge'] = 'virtio'
-    order: Optional[int] = None
+    order: int | None = None
 
 
 class QOS(BaseModel):
@@ -111,7 +111,7 @@ class QOS(BaseModel):
 class Disk(BaseModel):
     """Schema for disk information."""
 
-    name: Optional[str] = None
+    name: str | None = None
     emulation: Literal['virtio', 'ide', 'scsi', 'sata'] = 'virtio'
     format: Literal['qcow2', 'raw'] = 'qcow2'
     qos: QOS
@@ -142,8 +142,8 @@ class AttachImage(Disk):
 class CreateVmDisks(BaseModel):
     """Schema for creating virtual machine disks."""
 
-    attach_disks: List[
-        Optional[Union[AttachVolume, AttachImage, AutoCreateVolume]]
+    attach_disks: list[
+        AttachVolume | AttachImage | AutoCreateVolume | None
     ]
 
 
@@ -151,30 +151,30 @@ class CreateVirtualMachine(BaseModel):
     """Schema for creating a virtual machine."""
 
     name: str  # VM name
-    description: Optional[str] = None
+    description: str | None = None
     os: Os
     cpu: Cpu
     ram: RAM
     graphic_interface: GraphicInterfaceBase
     disks: CreateVmDisks
-    virtual_interfaces: List[VirtualInterface]
+    virtual_interfaces: list[VirtualInterface]
 
 
 class DiskInfo(BaseModel):
     """Schema for detailed disk information."""
 
     id: int
-    name: Optional[str] = None
-    emulation: Optional[str] = None  # virtio
-    format: Optional[str] = None  # qcow2 or raw
-    qos: Optional[QOS] = None
-    boot_order: Optional[int] = None
-    order: Optional[int] = None
-    path: Optional[str] = None
-    size: Optional[int] = None
-    provisioning: Optional[str] = None
-    disk_id: Optional[str] = None
-    type: Optional[str] = None
+    name: str | None = None
+    emulation: str | None = None  # virtio
+    format: str | None = None  # qcow2 or raw
+    qos: QOS | None = None
+    boot_order: int | None = None
+    order: int | None = None
+    path: str | None = None
+    size: int | None = None
+    provisioning: str | None = None
+    disk_id: str | None = None
+    type: str | None = None
     read_only: bool = False
 
 
@@ -187,7 +187,7 @@ class VirtualInterfaceInfo(VirtualInterface):
 class GraphicInterfaceInfo(GraphicInterfaceBase):
     """Schema for detailed graphic interface information."""
 
-    url: Optional[str] = None
+    url: str | None = None
 
 
 class VirtualMachineInfo(BaseModel):
@@ -197,20 +197,20 @@ class VirtualMachineInfo(BaseModel):
     name: str
     power_state: str
     status: str
-    description: Optional[str] = None
-    information: Optional[str] = None
+    description: str | None = None
+    information: str | None = None
     cpu: Cpu
     ram: RAM
     os: Os
     graphic_interface: GraphicInterfaceInfo
-    disks: List[Optional[DiskInfo]]
-    virtual_interfaces: List[VirtualInterfaceInfo]
+    disks: list[DiskInfo | None]
+    virtual_interfaces: list[VirtualInterfaceInfo]
 
 
 class ListOfVirtualMachines(BaseModel):
     """Schema for a list of virtual machines."""
 
-    virtual_machines: List[Optional[VirtualMachineInfo]]
+    virtual_machines: list[VirtualMachineInfo | None]
 
 
 class DetachDisk(BaseModel):
@@ -228,11 +228,11 @@ class EditDisk(Disk):
 class EditVmDisks(BaseModel):
     """Schema for editing virtual machine disks."""
 
-    attach_disks: List[
-        Optional[Union[AttachVolume, AttachImage, AutoCreateVolume]]
+    attach_disks: list[
+        AttachVolume | AttachImage | AutoCreateVolume | None
     ]
-    detach_disks: List[Optional[DetachDisk]]
-    edit_disks: List[Optional[EditDisk]]
+    detach_disks: list[DetachDisk | None]
+    edit_disks: list[EditDisk | None]
 
 
 class DetachVirtualInterface(BaseModel):
@@ -250,9 +250,9 @@ class EditVirtualInterface(VirtualInterface):
 class EditVirtualInterfaces(BaseModel):
     """Schema for editing virtual machine interfaces."""
 
-    new_virtual_interfaces: List[Optional[VirtualInterface]]
-    detach_virtual_interfaces: List[Optional[DetachVirtualInterface]]
-    edit_virtual_interfaces: List[Optional[EditVirtualInterface]]
+    new_virtual_interfaces: list[VirtualInterface | None]
+    detach_virtual_interfaces: list[DetachVirtualInterface | None]
+    edit_virtual_interfaces: list[EditVirtualInterface | None]
 
 
 class EditVm(BaseModel):
@@ -302,8 +302,8 @@ class SnapshotInfo(BaseModel):
     id: UUID
     vm_name: str
     name: str
-    parent: Optional[str] = None
-    description: Optional[str] = None
+    parent: str | None = None
+    description: str | None = None
     created_at: str
     is_current: bool
     status: str
@@ -316,7 +316,7 @@ class ListOfSnapshots(BaseModel):
         snapshots(List[Optional[SnapshotInfo]]): The list of snapshots.
     """
 
-    snapshots: List[Optional[SnapshotInfo]]
+    snapshots: list[SnapshotInfo | None]
 
 
 class CreateSnapshot(BaseModel):
@@ -328,4 +328,4 @@ class CreateSnapshot(BaseModel):
     """
 
     name: str
-    description: Optional[str] = None
+    description: str | None = None

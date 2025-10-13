@@ -10,7 +10,7 @@ This test suite covers:
 """
 
 import uuid
-from typing import Dict, BinaryIO
+from typing import BinaryIO
 from pathlib import Path
 
 import pytest
@@ -23,7 +23,7 @@ from openvair.modules.image.tests.utils import upload_image_api_call
 
 def test_upload_image_success(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
     name: str,
     image_file: BinaryIO
 ) -> None:
@@ -56,7 +56,7 @@ def test_upload_image_success(
 
 def test_upload_image_unauthorized(
     unauthorized_client: TestClient,
-    storage: Dict,
+    storage: dict,
     name: str,
     image_file: BinaryIO
 ) -> None:
@@ -80,7 +80,7 @@ def test_upload_image_missing_field(
     missing_field: str,
     image_file: BinaryIO,
     name: str,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test that missing required fields result in HTTP 422."""
     storage_id = storage['id']
@@ -96,7 +96,7 @@ def test_upload_image_missing_field(
 def test_upload_image_no_image(
     client: TestClient,
     name: str,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test no upload file returns HTTP 422."""
     storage_id = storage['id']
@@ -108,7 +108,7 @@ def test_upload_image_no_image(
 
 def test_upload_image_wrong_file_format(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
     name: str,
     wrong_format_file: BinaryIO
 ) -> None:
@@ -140,7 +140,7 @@ def test_upload_image_long_name(
     client: TestClient,
     image_file: BinaryIO,
     long_name: str,
-    storage: Dict
+    storage: dict
 ) -> None:
     """Test upload with long name or description returns 500."""
     storage_id = storage['id']
@@ -170,7 +170,7 @@ def test_upload_image_with_existing_name(
     client: TestClient,
     image_file: BinaryIO,
     name: str,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test uploading image with the same name twice returns 500"""
     storage_id = storage['id']

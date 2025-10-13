@@ -11,9 +11,7 @@ Classes:
 """
 
 from uuid import UUID
-from typing import TYPE_CHECKING, Any, List, Union, Optional, cast
-
-from sqlalchemy.orm.mapper import Mapper
+from typing import TYPE_CHECKING, Any, cast
 
 from openvair.modules.storage.adapters.orm import Storage, StorageExtraSpecs
 from openvair.common.repositories.base_sqlalchemy import (
@@ -22,6 +20,7 @@ from openvair.common.repositories.base_sqlalchemy import (
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
@@ -42,7 +41,7 @@ class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
         """
         super().__init__(session, Storage)
 
-    def get_storage_by_name(self, storage_name: str) -> Optional[Storage]:
+    def get_storage_by_name(self, storage_name: str) -> Storage | None:
         """Retrieve a storage record by its name.
 
         Args:
@@ -58,7 +57,7 @@ class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
         *,
         all_rows: bool,
         **kwargs: Any,  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
-    ) -> Union[Optional[StorageExtraSpecs], List[StorageExtraSpecs]]:
+    ) -> StorageExtraSpecs | None | list[StorageExtraSpecs]:
         """Filter storage extra specs based on criteria.
 
         Args:
@@ -78,7 +77,7 @@ class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
 
     def get_spec_by_key_value(
         self, key: str, value: str
-    ) -> Optional[StorageExtraSpecs]:
+    ) -> StorageExtraSpecs | None:
         """Retrieve a storage extra spec by key and value.
 
         Args:
@@ -113,10 +112,10 @@ class StorageSqlAlchemyRepository(BaseSqlAlchemyRepository[Storage]):
             .update({'value': value})
         )
 
-    def bulk_update(self, data: List) -> None:
+    def bulk_update(self, data: list) -> None:
         """Update multiple storage records in bulk.
 
         Args:
             data (List): A list of storage records to update.
         """
-        self.session.bulk_update_mappings(cast(Mapper, Storage), data)
+        self.session.bulk_update_mappings(cast('Mapper', Storage), data)

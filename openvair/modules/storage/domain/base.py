@@ -14,7 +14,7 @@ Classes:
 
 import abc
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -59,12 +59,12 @@ class BaseStorage(metaclass=abc.ABCMeta):
         self.initialized = kwargs.get('initialized', False)
 
     @abc.abstractmethod
-    def do_setup(self) -> Dict:
+    def do_setup(self) -> dict:
         """Perform any necessary setup for the storage."""
         ...
 
     @abc.abstractmethod
-    def create(self) -> Dict:
+    def create(self) -> dict:
         """Create the storage.
 
         Returns:
@@ -78,7 +78,7 @@ class BaseStorage(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def get_capacity_info(self) -> Dict:
+    def get_capacity_info(self) -> dict:
         """Retrieve capacity information for the storage.
 
         Returns:
@@ -101,27 +101,27 @@ class RemoteFSStorage(BaseStorage):
         storage_prefix (str): Prefix used for the storage mount point.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the RemoteFSStorage with given parameters.
 
         Args:
             args: Positional arguments passed to the BaseStorage initializer.
             kwargs: Keyword arguments passed to the BaseStorage initializer.
         """
-        super(RemoteFSStorage, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.share = ''
-        self._mounted_shares: List[str] = []
+        self._mounted_shares: list[str] = []
         self._execute_as_root = True
         self.reserved_percentage = 10
         self.storage_prefix = 'remotefs'
 
-    def do_setup(self) -> Dict:
+    def do_setup(self) -> dict:
         """Perform any initialization required by the volume driver."""
         self._check_or_create_path(self.mount_point_path())
         self._ensure_share_mounted()
         return self.__dict__
 
-    def create(self) -> Dict:
+    def create(self) -> dict:
         """Create the remote file system storage.
 
         Returns:
@@ -133,7 +133,7 @@ class RemoteFSStorage(BaseStorage):
         """Delete the remote file system storage."""
         self._delete()
 
-    def get_capacity_info(self) -> Dict:
+    def get_capacity_info(self) -> dict:
         """Retrieve capacity information for the remote file system storage.
 
         Returns:
@@ -141,7 +141,7 @@ class RemoteFSStorage(BaseStorage):
         """
         return self._get_capacity_info()
 
-    def _create(self) -> Dict:
+    def _create(self) -> dict:
         """Internal method to create the storage.
 
         Returns:
@@ -160,7 +160,7 @@ class RemoteFSStorage(BaseStorage):
         """
         raise NotImplementedError
 
-    def _get_capacity_info(self) -> Dict:
+    def _get_capacity_info(self) -> dict:
         """Internal method to retrieve capacity information.
 
         Returns:
@@ -238,19 +238,19 @@ class LocalFSStorage(BaseStorage):
         fs_type (str): The file system type (e.g., "ext4", "xfs").
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the LocalFSStorage with given parameters.
 
         Args:
             args: Positional arguments passed to the BaseStorage initializer.
             kwargs: Keyword arguments passed to the BaseStorage initializer.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._execute_as_root = True
         self.storage_prefix = 'localfs'
         self.fs_type = kwargs.get('fs_type')  # "ext4"|"xfs"
 
-    def do_setup(self) -> Dict:
+    def do_setup(self) -> dict:
         """Perform any initialization required by the volume.
 
         Returns:
@@ -262,7 +262,7 @@ class LocalFSStorage(BaseStorage):
         self._ensure_storage_mounted()
         return self.__dict__
 
-    def create(self) -> Dict:
+    def create(self) -> dict:
         """Create the local file system storage.
 
         Returns:
@@ -274,7 +274,7 @@ class LocalFSStorage(BaseStorage):
         """Delete the local file system storage."""
         self._delete()
 
-    def get_capacity_info(self) -> Dict:
+    def get_capacity_info(self) -> dict:
         """Retrieve capacity information for the local file system storage.
 
         Returns:
@@ -282,7 +282,7 @@ class LocalFSStorage(BaseStorage):
         """
         return self._get_capacity_info()
 
-    def _create(self) -> Dict:
+    def _create(self) -> dict:
         """Internal method to create the storage.
 
         Returns:
@@ -301,7 +301,7 @@ class LocalFSStorage(BaseStorage):
         """
         raise NotImplementedError
 
-    def _get_capacity_info(self) -> Dict:
+    def _get_capacity_info(self) -> dict:
         """Internal method to retrieve capacity information.
 
         Returns:
@@ -407,10 +407,10 @@ class BasePartition(metaclass=abc.ABCMeta):
         local_disk_path = str(kwargs.get('local_disk_path', ''))
         self.parted_adapter = PartedAdapter(local_disk_path)
         self.parted_parser = PartedParser()
-        self.partitions: Dict
+        self.partitions: dict
 
     @abc.abstractmethod
-    def create_partition(self, data: Dict) -> Optional[int]:
+    def create_partition(self, data: dict) -> int | None:
         """Create a partition on the storage.
 
         Args:
@@ -423,7 +423,7 @@ class BasePartition(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_partition(self, data: Dict) -> None:
+    def delete_partition(self, data: dict) -> None:
         """Delete a partition from the storage.
 
         Args:
@@ -432,7 +432,7 @@ class BasePartition(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_partitions_info(self) -> Dict:
+    def get_partitions_info(self) -> dict:
         """Get information about partitions on the storage.
 
         Returns:

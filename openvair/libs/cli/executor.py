@@ -9,7 +9,6 @@ Functions:
 """
 
 import os
-from typing import Dict, List
 from subprocess import PIPE, Popen, TimeoutExpired
 
 from openvair.libs.log import get_logger
@@ -48,7 +47,7 @@ def __terminate_process(proc: Popen, cmd_str: str) -> str:
     return str(stderr)
 
 
-def __prepare_env(env_params: Dict[str, str]) -> Dict[str, str]:
+def __prepare_env(env_params: dict[str, str]) -> dict[str, str]:
     """Prepares the environment variables for the command execution.
 
     Args:
@@ -96,7 +95,7 @@ def execute(
         >>> result = execute('ls', '-la', params=params)
         >>> print(result.stdout)
     """
-    cmd: List[str] = list(args)
+    cmd: list[str] = list(args)
     if params.run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
         cmd = [params.root_helper, *cmd]
 

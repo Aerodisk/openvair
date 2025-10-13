@@ -11,7 +11,7 @@ Dependencies:
     - EventStoreSqlAlchemyUnitOfWork: Unit of Work for event operations.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from pydantic import validate_call
 
@@ -60,7 +60,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_all_events(self) -> List:
+    def get_all_events(self) -> list:
         """Retrieve all events from the database.
 
         Returns:
@@ -76,7 +76,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
     def get_all_events_by_module(
         self,
         getting_data: GetEventsByModuleServiceCommand,
-    ) -> List:
+    ) -> list:
         """Retrieve all events by module from the database.
 
         Args:
@@ -101,7 +101,7 @@ class EventstoreServiceLayerManager(BackgroundTasks):
     def get_last_events(
         self,
         getting_data: GetLastEventsServiceCommand,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieve a certain number of last events from the database.
 
         Args:

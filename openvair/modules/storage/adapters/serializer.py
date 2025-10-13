@@ -8,13 +8,15 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.storage.adapters.orm import Storage, StorageExtraSpecs
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -28,7 +30,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Storage,
-    ) -> Dict:
+    ) -> dict:
         """Its get dictonary of data about the storage
 
         This method takes a storage object and a list of extra specs, and
@@ -63,9 +65,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[Type[Storage], Type[StorageExtraSpecs]] = Storage,
-    ) -> Union[Storage, StorageExtraSpecs]:
+        data: dict,
+        orm_class: type[Storage] | type[StorageExtraSpecs] = Storage,
+    ) -> Storage | StorageExtraSpecs:
         """It takes a dictionary and returns an object of the class Storage
 
         Args:
@@ -76,7 +78,7 @@ class DataSerializer(AbstractDataSerializer):
             Storage: The converted database storage object.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)
@@ -86,7 +88,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Storage,
-    ) -> Dict:
+    ) -> dict:
         """It takes a dictionary and returns an object of the class Storage
 
         This method takes a storage object and a list of extra specs, and

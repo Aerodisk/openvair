@@ -25,9 +25,9 @@ Functions:
         AssertionError.
 """
 
-from typing import Callable, Awaitable
 from pathlib import Path
 from datetime import datetime
+from collections.abc import Callable, Awaitable
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response, JSONResponse
@@ -170,7 +170,7 @@ async def rpc_call_exception_handler(
     Returns:
         JSONResponse: The response containing error details.
     """
-    LOG.error('handle error: %s.' % str(exc))
+    LOG.error(f'handle error: {exc!s}.')
     return JSONResponse(
         status_code=500,
         content={
@@ -197,7 +197,7 @@ async def rpc_call_timeout_exception_handler(
     Returns:
         JSONResponse: The response containing error details.
     """
-    LOG.error('handle error: %s.' % str(exc))
+    LOG.error(f'handle error: {exc!s}.')
     return JSONResponse(
         status_code=500,
         content={
@@ -224,7 +224,7 @@ async def rpc_init_exception_handler(
     Returns:
         JSONResponse: The response containing error details.
     """
-    LOG.error('handle error: %s.' % str(exc))
+    LOG.error(f'handle error: {exc!s}.')
     return JSONResponse(
         status_code=500,
         content={
@@ -251,7 +251,7 @@ async def type_error_exception_handler(
     Returns:
         JSONResponse: The response containing error details.
     """
-    LOG.error('Validate request error: %s.' % str(exc))
+    LOG.error(f'Validate request error: {exc!s}.')
     return JSONResponse(
         status_code=409,
         content={
@@ -278,7 +278,7 @@ async def value_error_exception_handler(
     Returns:
         JSONResponse: The response containing error details.
     """
-    LOG.error('Validate request error: %s.' % str(exc))
+    LOG.error(f'Validate request error: {exc!s}.')
     return JSONResponse(
         status_code=409,
         content={
@@ -305,7 +305,7 @@ async def assertion_error_exception_handler(
     Returns:
         JSONResponse: The response containing error details.
     """
-    LOG.error('Validate request error: %s.' % str(exc))
+    LOG.error(f'Validate request error: {exc!s}.')
     return JSONResponse(
         status_code=409,
         content={

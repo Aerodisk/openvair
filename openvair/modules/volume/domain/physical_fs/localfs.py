@@ -8,7 +8,7 @@ Classes:
     LocalFSVolume: Class for managing local filesystem volumes.
 """
 
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -38,7 +38,7 @@ class LocalFSVolume(BaseVolume):
         self._execute_as_root = False
         self.provisioning = 'metadata'
 
-    def create(self) -> Dict:
+    def create(self) -> dict:
         """Create a new volume.
 
         Returns:
@@ -71,7 +71,7 @@ class LocalFSVolume(BaseVolume):
             raise
         return self.__dict__
 
-    def delete(self) -> Dict:
+    def delete(self) -> dict:
         """Delete an existing volume.
 
         Returns:
@@ -96,7 +96,7 @@ class LocalFSVolume(BaseVolume):
 
         return self.__dict__
 
-    def extend(self, new_size: str) -> Dict:
+    def extend(self, new_size: str) -> dict:
         """Extend an existing volume to the given size.
 
         Args:
@@ -129,7 +129,7 @@ class LocalFSVolume(BaseVolume):
 
         return self.__dict__
 
-    def clone(self, data: Dict) -> Dict:
+    def clone(self, data: dict) -> dict:
         """Clone an existing volume.
 
         Args:
@@ -159,7 +159,7 @@ class LocalFSVolume(BaseVolume):
 
         return new_volume.__dict__
 
-    def attach_volume_info(self) -> Dict:
+    def attach_volume_info(self) -> dict:
         """Get information about an existing volume.
 
         Returns:
@@ -175,7 +175,7 @@ class LocalFSVolume(BaseVolume):
             'provisioning': self.provisioning,
         }
 
-    def create_from_template(self, data: Dict) -> Dict:  # noqa: D102
+    def create_from_template(self, data: dict) -> dict:  # noqa: D102
         qemu_img_adapter = QemuImgAdapter()
         creation_data = CreateVolumeFromTemplateDomainCommandDTO.model_validate(
             data

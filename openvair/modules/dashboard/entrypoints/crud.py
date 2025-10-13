@@ -12,7 +12,6 @@ Classes:
     DashboardCrud: Provides CRUD operations for the Dashboard.
 """
 
-from typing import Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.dashboard.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -43,15 +42,15 @@ class DashboardCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_data(self) -> Dict:
+    def get_data(self) -> dict:
         """Get data for the dashboard.
 
         Returns:
             Dict: The result of the get_data operation.
         """
         LOG.info('Call service layer on getting node data.')
-        data: Dict = self.service_layer_rpc.call(
+        data: dict = self.service_layer_rpc.call(
             services.DashboardServiceLayerManager.get_data.__name__, {}
         )
-        LOG.info('Response from service layer: %s.' % data)
+        LOG.info(f'Response from service layer: {data}.')
         return data

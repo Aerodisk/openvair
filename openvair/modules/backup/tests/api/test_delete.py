@@ -9,7 +9,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 from pathlib import Path
 
 from fastapi import status
@@ -20,7 +19,7 @@ from openvair.modules.backup.adapters.restic.restic import ResticAdapter
 
 
 def test_delete_backup_success(
-    client: TestClient, backup_snapshot: Dict
+    client: TestClient, backup_snapshot: dict
 ) -> None:
     """Test successful deletion of an existing snapshot.
 

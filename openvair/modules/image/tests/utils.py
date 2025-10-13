@@ -1,4 +1,4 @@
-from typing import Dict, BinaryIO  # noqa: D100
+from typing import BinaryIO  # noqa: D100
 from pathlib import Path
 
 from httpx import Response
@@ -21,7 +21,7 @@ def test_delete_from_tmp (name: str) -> None:
 
 def upload_image_api_call (
         name: str,
-        query: Dict,
+        query: dict,
         client: TestClient,
         image: BinaryIO
     ) -> Response:

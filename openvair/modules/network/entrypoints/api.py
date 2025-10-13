@@ -15,7 +15,7 @@ Routes:
 """
 
 from uuid import UUID
-from typing import Dict, List, cast
+from typing import cast
 
 from fastapi import Query, Depends, APIRouter, status
 from fastapi.responses import JSONResponse
@@ -71,7 +71,7 @@ async def get_interfaces(
         crud.get_all_interfaces, is_need_filter=is_need_filter
     )
     LOG.info('API: Request processed successfully.')
-    return cast(Page, paginate(interfaces))
+    return cast('Page', paginate(interfaces))
 
 
 @router.get(
@@ -81,7 +81,7 @@ async def get_interfaces(
 )
 async def get_bridges_list(
     crud: InterfaceCrud = Depends(InterfaceCrud),
-) -> List[Dict]:
+) -> list[dict]:
     """API endpoint for retrieving the list of network bridges.
 
     Args:
@@ -135,7 +135,7 @@ async def get_interface(
 )
 async def bridge_create(
     data: schemas.BridgeCreate,
-    user_info: Dict = Depends(get_current_user),
+    user_info: dict = Depends(get_current_user),
     crud: InterfaceCrud = Depends(InterfaceCrud),
 ) -> schemas.BridgeCreateResponse:
     """API endpoint for creating a network bridge.
@@ -167,10 +167,10 @@ async def bridge_create(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def bridge_delete(
-    data: List[str],
-    user_info: Dict = Depends(get_current_user),
+    data: list[str],
+    user_info: dict = Depends(get_current_user),
     crud: InterfaceCrud = Depends(InterfaceCrud),
-) -> List[Dict]:
+) -> list[dict]:
     """API endpoint for deleting a bridge.
 
     Args:

@@ -22,8 +22,9 @@ Functions:
 import time
 import types
 import signal
-from typing import Any, Callable, NoReturn, Optional
+from typing import Any, NoReturn
 from threading import Event, Thread
+from collections.abc import Callable
 
 
 class ServiceExitError(Exception):
@@ -34,7 +35,7 @@ class ServiceExitError(Exception):
 
 def service_shutdown(
     _signum: int,
-    _frame: Optional[types.FrameType],
+    _frame: types.FrameType | None,
 ) -> NoReturn:
     """Signal handler function to initiate service shutdown.
 
@@ -137,7 +138,7 @@ class BackgroundTasks(metaclass=MetaBackgroundTasks):
 
     def __init__(self) -> None:
         """Initialize the BackgroundTasks instance."""
-        super(BackgroundTasks, self).__init__()
+        super().__init__()
 
     @classmethod
     def start(cls, *, block: bool) -> None:

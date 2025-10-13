@@ -29,13 +29,13 @@ class PhysicalInterface(BaseInterface):
         slot_port (str): The slot port identifier for the interface.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the PhysicalInterface instance.
 
         This constructor initializes the physical interface with optional
         duplex and slot port settings.
         """
-        super(PhysicalInterface, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.duplex = kwargs.pop('duplex', '')
         self.slot_port = kwargs.pop('slot_port', '')
 

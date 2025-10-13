@@ -11,7 +11,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import ClassVar, cast
 
 from openvair.modules.storage.domain.base import BaseStorage
 from openvair.modules.storage.domain.remotefs import nfs
@@ -29,7 +29,7 @@ class AbstractStorageFactory(metaclass=abc.ABCMeta):
             object.
     """
 
-    def __call__(self, db_storage: Dict) -> BaseStorage:
+    def __call__(self, db_storage: dict) -> BaseStorage:
         """Create and return a storage object using the provided storage data.
 
         Args:
@@ -41,7 +41,7 @@ class AbstractStorageFactory(metaclass=abc.ABCMeta):
         return self.get_storage(db_storage)
 
     @abc.abstractmethod
-    def get_storage(self, db_storage: Dict) -> BaseStorage:
+    def get_storage(self, db_storage: dict) -> BaseStorage:
         """Return a storage object based on provided storage data.
 
         Args:
@@ -70,7 +70,7 @@ class StorageFactory(AbstractStorageFactory):
         'local_partition': localfs.LocalPartition,
     }
 
-    def get_storage(self, db_storage: Dict) -> BaseStorage:
+    def get_storage(self, db_storage: dict) -> BaseStorage:
         """Return a storage object based on provided storage data.
 
         Args:
@@ -83,4 +83,4 @@ class StorageFactory(AbstractStorageFactory):
             KeyError: If the storage type is not found in _storage_classes.
         """
         storage_class = self._storage_classes[db_storage['storage_type']]
-        return cast(BaseStorage, storage_class(**db_storage))
+        return cast('BaseStorage', storage_class(**db_storage))

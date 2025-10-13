@@ -9,7 +9,7 @@ Classes:
     - BridgeNetwork: Manages the lifecycle of a bridge virtual network.
 """
 
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 from libvirt import libvirtError
 
@@ -52,12 +52,12 @@ class BridgeNetwork(BaseVirtualNetwork):
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the BridgeNetwork instance."""
         super().__init__(*args, **kwargs)
-        self.port_groups: List[BasePortGroup] = [
+        self.port_groups: list[BasePortGroup] = [
             BridgePortGroup(**pg) for pg in kwargs.pop('port_groups', [])
         ]
         self.renderer = VirtualNetworkRenderer()
 
-    def add_port_group(self, port_group: Dict) -> Dict[str, Any]:
+    def add_port_group(self, port_group: dict) -> dict[str, Any]:
         """Adds a port group to the bridge network.
 
         Args:
@@ -74,7 +74,7 @@ class BridgeNetwork(BaseVirtualNetwork):
         LOG.info('Port groups successfully added')
         return self._get_virsh_data()
 
-    def del_port_group_by_name(self, data: Dict) -> Dict[str, str]:
+    def del_port_group_by_name(self, data: dict) -> dict[str, str]:
         """Deletes a port group from the bridge network by name.
 
         Args:
@@ -93,12 +93,12 @@ class BridgeNetwork(BaseVirtualNetwork):
                 self.port_groups.remove(pg)
 
         self._define_network()
-        virsh_data: Dict[str, str] = self._get_virsh_data()
+        virsh_data: dict[str, str] = self._get_virsh_data()
 
         LOG.info('Port group successfully deleted')
         return virsh_data
 
-    def create(self) -> Dict[str, str]:
+    def create(self) -> dict[str, str]:
         """Creates the bridge network.
 
         Returns:
@@ -149,7 +149,7 @@ class BridgeNetwork(BaseVirtualNetwork):
         LOG.info('Bridge virtual network successfully disabled')
         return state
 
-    def add_tag_to_port_group(self, data: Dict) -> Dict[str, Dict[str, str]]:
+    def add_tag_to_port_group(self, data: dict) -> dict[str, dict[str, str]]:
         """Adds a tag to a port group in the bridge network.
 
         Args:
@@ -206,7 +206,7 @@ class BridgeNetwork(BaseVirtualNetwork):
             LOG.error(msg)
             raise VirshDefineNetworkException(msg)
 
-    def _get_virsh_data(self) -> Dict[str, str]:
+    def _get_virsh_data(self) -> dict[str, str]:
         """Retrieves data about the network from virsh.
 
         Returns:
@@ -251,4 +251,4 @@ class BridgeNetwork(BaseVirtualNetwork):
             )
             LOG.error(msg)
             raise PortGroupException(msg)
-        return cast(BridgePortGroup, port_groups.pop())
+        return cast('BridgePortGroup', port_groups.pop())

@@ -10,7 +10,7 @@ Includes:
 """
 
 from uuid import uuid4
-from typing import Dict, List, Generator
+from collections.abc import Generator
 
 import pytest
 
@@ -32,7 +32,7 @@ def cleanup_events() -> Generator:
 
 
 @pytest.fixture(scope='function')
-def created_event() -> Dict:
+def created_event() -> dict:
     """Create a test event via service layer and return its data."""
     event_data = {
         'module': 'test_module',
@@ -52,7 +52,7 @@ def created_event() -> Dict:
 
 
 @pytest.fixture(scope='function')
-def multiple_events() -> List[Dict]:
+def multiple_events() -> list[dict]:
     """Create multiple test events."""
     events_data = [
         {

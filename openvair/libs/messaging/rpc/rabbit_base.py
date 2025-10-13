@@ -13,7 +13,8 @@ Classes:
 """
 
 from abc import abstractmethod
-from typing import Any, Dict, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 import pika
 
@@ -81,8 +82,8 @@ class BaseRabbitRPCClient(BaseRabbitRPC, BaseRPCClient):
             auto_ack=True,
         )
 
-        self.response: Dict[str, Dict] = {}
-        self.corr_id: Optional[str] = None
+        self.response: dict[str, dict] = {}
+        self.corr_id: str | None = None
 
     @abstractmethod
     def on_response(
@@ -109,8 +110,8 @@ class BaseRabbitRPCClient(BaseRabbitRPC, BaseRPCClient):
     def call(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
         *,
         priority: int = 1,
         time_limit: int = 100,
@@ -137,8 +138,8 @@ class BaseRabbitRPCClient(BaseRabbitRPC, BaseRPCClient):
     def cast(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
         *,
         priority: int = 10,
     ) -> None:

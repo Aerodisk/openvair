@@ -8,14 +8,16 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.virtual_machines.adapters import orm
 from openvair.libs.data_handlers.json.serializer import deserialize_json
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -29,7 +31,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: orm.VirtualMachines,
-    ) -> Dict:
+    ) -> dict:
         """Convert a VirtualMachine ORM model to a domain model.
 
         Args:
@@ -47,25 +49,21 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[
-            Type[orm.VirtualMachines],
-            Type[orm.CpuInfo],
-            Type[orm.Os],
-            Type[orm.Disk],
-            Type[orm.VirtualInterface],
-            Type[orm.ProtocolGraphicInterface],
-            Type[orm.RAM],
-        ] = orm.VirtualMachines,
-    ) -> Union[
-        orm.VirtualMachines,
-        orm.CpuInfo,
-        orm.Os,
-        orm.Disk,
-        orm.VirtualInterface,
-        orm.ProtocolGraphicInterface,
-        orm.RAM,
-    ]:
+        data: dict,
+        orm_class: type[orm.VirtualMachines] |
+                   type[orm.CpuInfo] |
+                   type[orm.Os] |
+                   type[orm.Disk] |
+                   type[orm.VirtualInterface] |
+                   type[orm.ProtocolGraphicInterface] |
+                   type[orm.RAM] = orm.VirtualMachines,
+    ) -> (orm.VirtualMachines |
+          orm.CpuInfo |
+          orm.Os |
+          orm.Disk |
+          orm.VirtualInterface |
+          orm.ProtocolGraphicInterface |
+          orm.RAM):
         """Convert a dictionary to an ORM model.
 
         Args:
@@ -79,7 +77,7 @@ class DataSerializer(AbstractDataSerializer):
                 data.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             if not data.get(column_name):
@@ -90,16 +88,14 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_web(  # noqa: C901 because all checking is needed here may be will need be to refact
         cls,
-        orm_object: Union[
-            orm.VirtualMachines,
-            orm.CpuInfo,
-            orm.Os,
-            orm.Disk,
-            orm.VirtualInterface,
-            orm.ProtocolGraphicInterface,
-            orm.RAM,
-        ],
-    ) -> Dict:
+        orm_object: orm.VirtualMachines |
+                    orm.CpuInfo |
+                    orm.Os |
+                    orm.Disk |
+                    orm.VirtualInterface |
+                    orm.ProtocolGraphicInterface |
+                    orm.RAM,
+    ) -> dict:
         """Convert an ORM model to a web representation.
 
         Args:
@@ -137,7 +133,7 @@ class DataSerializer(AbstractDataSerializer):
     def vm_to_web(
         cls,
         virtual_machine: orm.VirtualMachines,
-    ) -> Dict:
+    ) -> dict:
         """Convert a VirtualMachine ORM model to a detailed web representation.
 
         This method includes related entities such as CPU, OS, disks, etc.
@@ -150,7 +146,7 @@ class DataSerializer(AbstractDataSerializer):
             Dict: A dictionary representing the detailed web model with related
                 entities.
         """
-        vm_dict: Dict = virtual_machine.__dict__.copy()
+        vm_dict: dict = virtual_machine.__dict__.copy()
         vm_dict.pop('_sa_instance_state')
         vm_dict.update(
             {
@@ -176,8 +172,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def snapshot_to_db(
         cls,
-        data: Dict,
-        orm_class: Type[orm.Snapshots] = orm.Snapshots,
+        data: dict,
+        orm_class: type[orm.Snapshots] = orm.Snapshots,
     ) -> orm.Snapshots:
         """Convert a dictionary to a Snapshots ORM model.
 
@@ -192,7 +188,7 @@ class DataSerializer(AbstractDataSerializer):
             the provided data.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             if data.get(column_name) is None:
@@ -204,7 +200,7 @@ class DataSerializer(AbstractDataSerializer):
     def snapshot_to_web(
         cls,
         snapshot: orm.Snapshots,
-    ) -> Dict:
+    ) -> dict:
         """Convert a Snapshots ORM model to a detailed web representation.
 
         Args:

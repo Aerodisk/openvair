@@ -11,7 +11,7 @@ Classes:
         Prometheus.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -61,7 +61,7 @@ class BaseClient:
     """
 
     def __init__(
-        self, service: str, access_token: Optional[str] = None, retries: int = 3
+        self, service: str, access_token: str | None = None, retries: int = 3
     ):
         """Initialize the BaseClient.
 

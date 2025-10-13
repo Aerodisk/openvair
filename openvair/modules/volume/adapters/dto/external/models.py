@@ -1,5 +1,5 @@
 from uuid import UUID  # noqa: D100
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 from pathlib import Path
 
 from pydantic import Field, BaseModel, model_validator
@@ -8,7 +8,7 @@ from pydantic import Field, BaseModel, model_validator
 class TemplateModelDTO(BaseModel):  # noqa: D101
     id: UUID
     name: str
-    description: Optional[str]
+    description: str | None
     path: Path
     tmp_format: Literal['qcow2', 'raw']
     size: int
@@ -21,12 +21,12 @@ class StorageModelDTO(BaseModel):  # noqa: D101
     storage_type: str
     status: str
     available_space: int = Field(..., alias='available')
-    storage_extra_specs: Dict[str, Any] = Field(default_factory=Dict)
+    storage_extra_specs: dict[str, Any] = Field(default_factory=dict)
     mount_point: str
 
     @model_validator(mode='before')
     @classmethod
-    def extract_mount_point(cls, data: Dict) -> Dict:  # noqa: D102
+    def extract_mount_point(cls, data: dict) -> dict:  # noqa: D102
         data['mount_point'] = data.get('storage_extra_specs', {}).get(
             'mount_point', ''
         )

@@ -20,7 +20,6 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import List
 
 from fastapi import Depends, APIRouter, status
 from fastapi_pagination import Page, Params, paginate
@@ -69,7 +68,7 @@ async def get_templates(
     """
     LOG.info('Api handle request on getting templates')
 
-    templates: List[TemplateResponse] = await run_in_threadpool(
+    templates: list[TemplateResponse] = await run_in_threadpool(
         crud.get_all_templates
     )
     paginated_templates = paginate(templates, params)

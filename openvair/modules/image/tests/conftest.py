@@ -1,7 +1,8 @@
 # noqa: D100
 import os
-from typing import Dict, BinaryIO, Generator
+from typing import BinaryIO
 from pathlib import Path
+from collections.abc import Generator
 
 import pytest
 from dotenv import load_dotenv
@@ -64,10 +65,10 @@ def wrong_format_file() -> Generator[BinaryIO, None, None]:
 @pytest.fixture(scope="function")
 def image(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
     name: str,
     image_file: BinaryIO
-) -> Generator[Dict, None, None]:
+) -> Generator[dict, None, None]:
     """Creates a test image and deletes it after each test."""
     storage_id = storage['id']
     query = {

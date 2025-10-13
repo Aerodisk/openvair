@@ -4,7 +4,8 @@ Provides:
 - `cleanup_bridges`: Deletes all test bridges before and after test.
 """
 
-from typing import Any, Dict, Optional, Generator, cast
+from typing import Any, cast
+from collections.abc import Generator
 
 import pytest
 from pytest import Config
@@ -51,7 +52,7 @@ def cleanup_bridges() -> Generator[None, Any, None]:
 
 
 @pytest.fixture
-def interface_without_ip(client: TestClient) -> Optional[Dict]:
+def interface_without_ip(client: TestClient) -> dict | None:
     """Get an interface without IP."""
     response = client.get('/interfaces/')
     interfaces_data = response.json()
@@ -63,15 +64,15 @@ def interface_without_ip(client: TestClient) -> Optional[Dict]:
             and not interface['ip']
             and interface['inf_type'] == 'physical'
         ):
-            return cast(Dict, interface)
+            return cast('dict', interface)
     pytest.skip()
     return None
 
 
 @pytest.fixture
 def pre_turned_off_interface(
-    client: TestClient, physical_interface: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, physical_interface: dict
+) -> Generator[dict, None, None]:
     """Turn the interface off before the test."""
     interface_name = physical_interface['name']
     client.request('PUT', f'/interfaces/{interface_name}/turn_off')
@@ -92,8 +93,8 @@ def pre_turned_off_interface(
 
 @pytest.fixture
 def pre_turned_on_interface(
-    client: TestClient, physical_interface: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, physical_interface: dict
+) -> Generator[dict, None, None]:
     """Turn the interface on before the test."""
     interface_name = physical_interface['name']
     client.request('PUT', f'/interfaces/{interface_name}/turn_on')

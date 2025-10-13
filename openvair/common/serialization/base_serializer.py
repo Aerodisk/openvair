@@ -19,7 +19,7 @@ Dependencies:
     - Registers itself in SerializerHub upon subclassing.
 """
 
-from typing import Any, Dict, Type, Generic, TypeVar, ClassVar, cast
+from typing import Any, TypeVar, ClassVar, cast
 
 from pydantic import BaseModel
 from sqlalchemy import inspect
@@ -29,7 +29,7 @@ DTO = TypeVar('DTO', bound=BaseModel)
 ORM = TypeVar('ORM', bound=DeclarativeBase)
 
 
-class BaseSerializer(Generic[DTO, ORM]):
+class BaseSerializer[DTO: BaseModel, ORM: DeclarativeBase]:
     """Base class for converting ORM <-> DTO objects.
 
     Designed to be subclassed with entity-specific logic. Supports
@@ -42,9 +42,9 @@ class BaseSerializer(Generic[DTO, ORM]):
             Field-to-serializer mapping.
     """
 
-    dto_class: Type[DTO]
-    orm_class: Type[ORM]
-    nested_serializers: ClassVar[Dict[str, Type['BaseSerializer']]] = {}
+    dto_class: type[DTO]
+    orm_class: type[ORM]
+    nested_serializers: ClassVar[dict[str, type['BaseSerializer']]] = {}
 
     @classmethod
     def to_dto(cls, orm_obj: ORM) -> DTO:
@@ -59,7 +59,7 @@ class BaseSerializer(Generic[DTO, ORM]):
         Example:
             dto = TemplateSerializer.to_dto(orm_obj)
         """
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         for field in cls.dto_class.model_fields:
             value = getattr(orm_obj, field, None)
             if field in cls.nested_serializers and isinstance(value, list):
@@ -67,7 +67,7 @@ class BaseSerializer(Generic[DTO, ORM]):
                 data[field] = [nested.to_dto(item) for item in value]
             else:
                 data[field] = value
-        return cast(DTO, cls.dto_class(**data))
+        return cast('DTO', cls.dto_class(**data))
 
     @classmethod
     def to_orm(cls, dto_obj: DTO) -> ORM:
@@ -86,7 +86,7 @@ class BaseSerializer(Generic[DTO, ORM]):
         inspected = inspect(cls.orm_class)
         orm_fields = {col.key for col in inspected.mapper.column_attrs}
 
-        nested_data: Dict[str, Any] = {}
+        nested_data: dict[str, Any] = {}
         for field, value in dto_data.items():
             if field in cls.nested_serializers and isinstance(value, list):
                 nested = cls.nested_serializers[field]
@@ -98,10 +98,10 @@ class BaseSerializer(Generic[DTO, ORM]):
         for key, val in nested_data.items():
             setattr(orm, key, val)
 
-        return cast(ORM, orm)
+        return cast('ORM', orm)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> ORM:
+    def from_dict(cls, data: dict[str, Any]) -> ORM:
         """Convert raw dictionary to ORM model via DTO.
 
         Args:
@@ -114,7 +114,7 @@ class BaseSerializer(Generic[DTO, ORM]):
         return cls.to_orm(dto)
 
     @classmethod
-    def to_dict(cls, orm_obj: ORM) -> Dict[str, Any]:
+    def to_dict(cls, orm_obj: ORM) -> dict[str, Any]:
         """Convert ORM object to dictionary via DTO.
 
         Args:
@@ -148,7 +148,7 @@ class BaseSerializer(Generic[DTO, ORM]):
         return orm_obj
 
     @classmethod
-    def update_orm_from_dict(cls, orm_obj: ORM, data: Dict[str, Any]) -> ORM:
+    def update_orm_from_dict(cls, orm_obj: ORM, data: dict[str, Any]) -> ORM:
         """Update an existing ORM object from a dictionary via DTO validation.
 
         This method converts the input dictionary into a DTO instance and

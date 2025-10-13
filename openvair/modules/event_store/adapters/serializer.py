@@ -7,10 +7,9 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.event_store.adapters.orm import Events as EventsORM
@@ -19,6 +18,9 @@ from openvair.modules.event_store.adapters.dto.internal.models import (
     ApiEventModelDTO,
     CreateEventModelDTO,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class ApiSerializer(BaseSerializer[ApiEventModelDTO, EventsORM]):
@@ -45,8 +47,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[EventsORM] = EventsORM,
+        data: dict,
+        orm_class: type[EventsORM] = EventsORM,
     ) -> EventsORM:
         """Convert web data to a database ORM object.
 
@@ -61,7 +63,7 @@ class DataSerializer(AbstractDataSerializer):
             Events: The ORM object created from the data.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             value = data.get(column_name)
@@ -74,7 +76,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: EventsORM,
-    ) -> Dict:
+    ) -> dict:
         """Convert a database ORM object to web data.
 
         This method converts the ORM object to a dictionary and modifies certain
@@ -92,7 +94,7 @@ class DataSerializer(AbstractDataSerializer):
             {
                 'object_id': str(event_dict.get('object_id', '')),
                 'user_id': str(event_dict.get('user_id', '')),
-                'timestamp': int(round(event_dict['timestamp'].timestamp())),
+                'timestamp': round(event_dict['timestamp'].timestamp()),
             }
         )
         return event_dict

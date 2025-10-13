@@ -15,7 +15,7 @@ Attributes:
 """
 
 import abc
-from typing import Any, Dict
+from typing import Any
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
@@ -59,7 +59,7 @@ class BaseTemplateRenderer(abc.ABC):
             lstrip_blocks=True,
         )
 
-    def render(self, template_name: str, data: Dict[str, Any]) -> str:
+    def render(self, template_name: str, data: dict[str, Any]) -> str:
         """Render the given template with the provided data.
 
         Args:
@@ -77,7 +77,7 @@ class BaseTemplateRenderer(abc.ABC):
         return final_str
 
     @abc.abstractmethod
-    def _prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Prepare data before rendering.
 
         **This method must be overridden in subclasses** to ensure correct data
@@ -133,7 +133,7 @@ class BaseTemplateRenderer(abc.ABC):
         """
         raise NotImplementedError
 
-    def _render_template(self, template_name: str, data: Dict[str, Any]) -> str:
+    def _render_template(self, template_name: str, data: dict[str, Any]) -> str:
         """Perform the actual Jinja2 rendering.
 
         Args:
@@ -160,7 +160,7 @@ class BaseTemplateRenderer(abc.ABC):
             raise
 
     def _log_render_start(
-        self, template_name: str, data: Dict[str, Any]
+        self, template_name: str, data: dict[str, Any]
     ) -> None:
         """Log the start of the rendering process."""
         LOG.info(f"Start rendering '{template_name}' with data: {data}")

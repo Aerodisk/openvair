@@ -8,13 +8,15 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.image.adapters.orm import Image, ImageAttachVM
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -28,7 +30,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: Image,
-    ) -> Dict:
+    ) -> dict:
         """Convert an Image ORM object to a domain model dictionary.
 
         This method takes an Image ORM object and returns a dictionary
@@ -56,15 +58,9 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Union[
-            Type[Image],
-            Type[ImageAttachVM],
-        ] = Image,
-    ) -> Union[
-        Image,
-        ImageAttachVM,
-    ]:
+        data: dict,
+        orm_class: type[Image] | type[ImageAttachVM] = Image,
+    ) -> Image | ImageAttachVM:
         """Convert a dictionary to an ORM object.
 
         This method takes a dictionary of data and returns an instance of the
@@ -79,7 +75,7 @@ class DataSerializer(AbstractDataSerializer):
             Image: An ORM object created from the dictionary data.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             value = data.get(column_name)
@@ -92,7 +88,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: Image,
-    ) -> Dict:
+    ) -> dict:
         """Convert an Image ORM object to a dictionary for web representation.
 
         This method takes an Image ORM object and returns a dictionary formatted

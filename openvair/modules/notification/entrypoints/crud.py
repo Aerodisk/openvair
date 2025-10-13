@@ -9,7 +9,6 @@ Classes:
         notifications.
 """
 
-from typing import Dict
 
 from openvair.libs.log import get_logger
 from openvair.modules.notification.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -32,7 +31,7 @@ class NotificationCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def send_notification(self, data: Dict) -> Dict:
+    def send_notification(self, data: dict) -> dict:
         """Send a notification via the service layer.
 
         This method sends a notification by calling the service layer's
@@ -45,10 +44,10 @@ class NotificationCrud:
             Dict: The response from the service layer.
         """
         LOG.info('Call service layer on create notification.')
-        result: Dict = self.service_layer_rpc.call(
+        result: dict = self.service_layer_rpc.call(
             services.NotificationServiceLayerManager.send_notification.__name__,
             data_for_method=data,
             priority=8,
         )
-        LOG.debug('Response from service layer: %s.' % result)
+        LOG.debug(f'Response from service layer: {result}.')
         return result

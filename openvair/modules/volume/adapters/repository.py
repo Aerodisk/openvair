@@ -10,7 +10,7 @@ Classes:
         SQLAlchemy.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import update
 
@@ -42,7 +42,7 @@ class VolumeSqlAlchemyRepository(BaseSqlAlchemyRepository[Volume]):
         """
         super().__init__(session, Volume)
 
-    def get_all_by_storage(self, storage_id: str) -> List[Volume]:
+    def get_all_by_storage(self, storage_id: str) -> list[Volume]:
         """Retrieve all volumes associated with a specific storage.
 
         Args:
@@ -58,7 +58,7 @@ class VolumeSqlAlchemyRepository(BaseSqlAlchemyRepository[Volume]):
         self,
         volume_name: str,
         storage_id: str,
-    ) -> Optional[Volume]:
+    ) -> Volume | None:
         """Retrieve a volume by its name and storage ID.
 
         Args:
@@ -74,7 +74,7 @@ class VolumeSqlAlchemyRepository(BaseSqlAlchemyRepository[Volume]):
             .first()
         )
 
-    def bulk_update(self, data: List[Dict]) -> None:
+    def bulk_update(self, data: list[dict]) -> None:
         """Perform a bulk update on a list of volumes.
 
         Args:

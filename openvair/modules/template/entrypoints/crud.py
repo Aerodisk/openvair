@@ -15,7 +15,7 @@ Dependencies:
 """
 
 from uuid import UUID
-from typing import Any, Dict, List
+from typing import Any
 
 from openvair.libs.log import get_logger
 from openvair.modules.template.config import API_SERVICE_LAYER_QUEUE_NAME
@@ -60,7 +60,7 @@ class TemplateCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_all_templates(self) -> List[TemplateResponse]:
+    def get_all_templates(self) -> list[TemplateResponse]:
         """Retrieve a list of all templates via RPC.
 
         Returns:
@@ -68,7 +68,7 @@ class TemplateCrud:
         """
         LOG.info('Call service layer on getting templates.')
 
-        result: List[Dict[str, Any]] = self.service_layer_rpc.call(
+        result: list[dict[str, Any]] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_all_templates.__name__,
             data_for_method={},
         )
@@ -87,7 +87,7 @@ class TemplateCrud:
         LOG.info(f'Call service layer on getting template {template_id}.')
 
         getting_command_dto = GetTemplateServiceCommandDTO(id=template_id)
-        result: Dict[str, Any] = self.service_layer_rpc.call(
+        result: dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.get_template.__name__,
             data_for_method=getting_command_dto.model_dump(mode='json'),
         )
@@ -110,7 +110,7 @@ class TemplateCrud:
         creation_command = CreateTemplateServiceCommandDTO.model_validate(
             creation_data
         )
-        result: Dict[str, Any] = self.service_layer_rpc.call(
+        result: dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.create_template.__name__,
             data_for_method=creation_command.model_dump(mode='json'),
         )
@@ -138,7 +138,7 @@ class TemplateCrud:
             name=edit_data.name,
             description=edit_data.description,
         )
-        result: Dict[str, Any] = self.service_layer_rpc.call(
+        result: dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.edit_template.__name__,
             data_for_method=editing_command.model_dump(mode='json'),
         )
@@ -156,7 +156,7 @@ class TemplateCrud:
         LOG.info(f'Call service layer on deleting template {template_id}.')
 
         deleting_command = DeleteTemplateServiceCommandDTO(id=template_id)
-        result: Dict[str, Any] = self.service_layer_rpc.call(
+        result: dict[str, Any] = self.service_layer_rpc.call(
             TemplateServiceLayerManager.delete_template.__name__,
             data_for_method=deleting_command.model_dump(mode='json'),
         )

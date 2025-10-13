@@ -5,7 +5,6 @@ operations on templates (create, edit, delete).
 """
 
 from uuid import UUID
-from typing import Optional
 from pathlib import Path
 
 from pydantic import Field
@@ -37,7 +36,7 @@ class CreateTemplateServiceCommandDTO(BaseDTOModel):
     """
 
     name: str
-    description: Optional[str]
+    description: str | None
     storage_id: UUID
     base_volume_id: UUID
     is_backing: bool
@@ -78,8 +77,8 @@ class EditTemplateServiceCommandDTO(BaseDTOModel):
     """
 
     id: UUID
-    name: Optional[str] = Field(min_length=1, max_length=40)
-    description: Optional[str]
+    name: str | None = Field(min_length=1, max_length=40)
+    description: str | None
 
 
 class EditTemplateDomainCommandDTO(BaseDTOModel):
@@ -90,8 +89,8 @@ class EditTemplateDomainCommandDTO(BaseDTOModel):
         description (Optional[str]): New description (if provided).
     """
 
-    name: Optional[str]
-    description: Optional[str]
+    name: str | None
+    description: str | None
 
 
 class DeleteTemplateServiceCommandDTO(BaseDTOModel):

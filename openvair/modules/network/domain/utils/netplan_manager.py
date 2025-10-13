@@ -8,9 +8,8 @@ Classes:
     NetplanManager: Manager for handling Netplan configurations.
 """
 
-import os
 import shutil
-from typing import Any, Dict, Optional
+from typing import Any
 from pathlib import Path
 
 from openvair.libs.log import get_logger
@@ -62,7 +61,7 @@ class NetplanManager:
             ),
         )
 
-    def create_ovs_bridge_yaml_file(self, data: Dict) -> None:
+    def create_ovs_bridge_yaml_file(self, data: dict) -> None:
         """Create a YAML configuration file for an OVS bridge.
 
         Args:
@@ -75,7 +74,7 @@ class NetplanManager:
             data
         )
 
-        bridge_data: Dict[str, Any] = deserialize_yaml(bridge_yaml)
+        bridge_data: dict[str, Any] = deserialize_yaml(bridge_yaml)
         bridge_file: Path = self._generate_iface_yaml_path(bridge_name)
 
         write_yaml(bridge_file, bridge_data)
@@ -85,7 +84,7 @@ class NetplanManager:
         self,
         iface_name: str,
         *,
-        data: Optional[Dict] = None,
+        data: dict | None = None,
     ) -> Path:
         """Create a new YAML configuration file for a network interface.
 
@@ -101,12 +100,12 @@ class NetplanManager:
         """
         LOG.info(f'Creating config file for main port: {iface_name}')
 
-        iface_data: Dict[str, Any] = {'name': iface_name}
+        iface_data: dict[str, Any] = {'name': iface_name}
         if data:
             iface_data.update(data)
 
         iface_yaml: str = self.network_renderer.create_iface_yaml(iface_data)
-        iface_parsed_data: Dict[str, Any] = deserialize_yaml(iface_yaml)
+        iface_parsed_data: dict[str, Any] = deserialize_yaml(iface_yaml)
 
         iface_file: Path = Path(self._generate_iface_yaml_path(iface_name))
         write_yaml(iface_file, iface_parsed_data)
@@ -129,7 +128,7 @@ class NetplanManager:
         self,
         iface_name: str,
         iface_file: Path,
-    ) -> Dict:
+    ) -> dict:
         """Retrieve interface data from a YAML configuration file.
 
         This method loads and returns the configuration data for a specific
@@ -142,8 +141,8 @@ class NetplanManager:
         Returns:
             Dict: The data for the specified network interface.
         """
-        all_file_data: Dict[str, Any] = read_yaml(iface_file)
-        iface_data: Dict[str, Any] = all_file_data['network']['ethernets'][
+        all_file_data: dict[str, Any] = read_yaml(iface_file)
+        iface_data: dict[str, Any] = all_file_data['network']['ethernets'][
             iface_name
         ]
         return iface_data
@@ -152,7 +151,7 @@ class NetplanManager:
         self,
         bridge_name: str,
         iface_file: Path,
-    ) -> Dict:
+    ) -> dict:
         """Retrieve bridge data from a YAML configuration file.
 
         This method loads and returns the configuration data for a specific
@@ -165,8 +164,8 @@ class NetplanManager:
         Returns:
             Dict: The data for the specified bridge.
         """
-        all_file_data: Dict[str, Any] = read_yaml(iface_file)
-        iface_data: Dict[str, Any] = all_file_data['network']['bridges'][
+        all_file_data: dict[str, Any] = read_yaml(iface_file)
+        iface_data: dict[str, Any] = all_file_data['network']['bridges'][
             bridge_name
         ]
         return iface_data
@@ -175,7 +174,7 @@ class NetplanManager:
         self,
         iface_name: str,
         iface_file: Path,
-        iface_data: Dict,
+        iface_data: dict,
     ) -> None:
         """Modify the YAML configuration file for a specific network interface.
 
@@ -185,7 +184,7 @@ class NetplanManager:
             iface_data (Dict): The new configuration data for the interface.
         """
         LOG.info(f'Editing iface config file: {iface_file}...')
-        config_data_with_iface: Dict[str, Any] = read_yaml(iface_file)
+        config_data_with_iface: dict[str, Any] = read_yaml(iface_file)
         config_data_with_iface['network']['ethernets'][iface_name] = iface_data
         write_yaml(iface_file, config_data_with_iface)
 
@@ -276,10 +275,12 @@ class NetplanManager:
             iface_name (str): The name of the bridge.
 
         Returns:
-            str: The path to the new YAML file for the bridge.
+            Path: The path to the new YAML file for the bridge.
         """
         existing_files = [
-            f for f in os.listdir(self.netplan_dir) if f.endswith('.yaml')
+            f.name
+            for f in Path(self.netplan_dir).iterdir()
+            if f.suffix == '.yaml'
         ]
 
         # Determine the maximum prefix in existing files
@@ -287,8 +288,7 @@ class NetplanManager:
         for file in existing_files:
             try:
                 prefix = int(file.split('-')[0])
-                if prefix > max_prefix:
-                    max_prefix = prefix
+                max_prefix = max(max_prefix, prefix)
             except ValueError:
                 continue
 
@@ -313,8 +313,7 @@ class NetplanManager:
         """
         # TODO Подумать, а если файла 2  # noqa: RUF003
         file_with_iface = None
-        for filename in os.listdir(directory):
-            input_file = directory / filename
+        for input_file in directory.iterdir():
             if input_file.is_file():
                 LOG.info(f'Checking file: {input_file}')
                 config = read_yaml(input_file)
@@ -329,7 +328,7 @@ class NetplanManager:
         return file_with_iface
 
     def _is_iface_in_yaml(
-        self, iface_name: str, config: Dict[str, Dict]
+        self, iface_name: str, config: dict[str, dict]
     ) -> bool:
         """Check if an interface is present in the Netplan configuration.
 

@@ -8,7 +8,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict, List
 
 import pytest
 from fastapi import status
@@ -77,7 +76,7 @@ def _check_bridge_deleted_in_netplan(bridge_name: str) -> None:
 def test_delete_bridge_ovs_success(
     check_manager: None,
     client: TestClient,
-    bridge: Dict,
+    bridge: dict,
 ) -> None:
     """Test successful bridge deletion.
 
@@ -93,7 +92,7 @@ def test_delete_bridge_ovs_success(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     data = response.json()
-    assert isinstance(data, List)
+    assert isinstance(data, list)
     assert len(data) == 1
     assert data[0]['id'] == bridge['id']
     assert data[0]['status'] == 'deleting'
@@ -107,7 +106,7 @@ def test_delete_bridge_ovs_success(
 def test_delete_bridge_netplan_success(
     check_manager: None,
     client: TestClient,
-    bridge: Dict,
+    bridge: dict,
 ) -> None:
     """Test successful bridge deletion.
 
@@ -123,7 +122,7 @@ def test_delete_bridge_netplan_success(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     data = response.json()
-    assert isinstance(data, List)
+    assert isinstance(data, list)
     assert len(data) == 1
     assert data[0]['id'] == bridge['id']
     assert data[0]['status'] == 'deleting'
@@ -138,7 +137,7 @@ def test_delete_multiple_bridges_ovs_success(
     check_manager: None,
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
+    physical_interface: dict,
 ) -> None:
     """Test successful deletion of multiple bridges.
 
@@ -164,7 +163,7 @@ def test_delete_multiple_bridges_ovs_success(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     data = response.json()
-    assert isinstance(data, List)
+    assert isinstance(data, list)
     assert len(data) == bridges_num
     returned_ids = [item['id'] for item in data]
     for bridge_id in bridge_ids:
@@ -193,7 +192,7 @@ def test_delete_multiple_bridges_netplan_success(
     check_manager: None,
     client: TestClient,
     cleanup_bridges: None,
-    physical_interface: Dict,
+    physical_interface: dict,
 ) -> None:
     """Test successful deletion of multiple bridges."""
     raise AssertionError  # TODO https://github.com/Aerodisk/openvair/issues/260
@@ -225,12 +224,12 @@ def test_delete_bridge_empty_list(
     - Response is 202 ACCEPTED
     - Response contains empty list
     """
-    delete_data: List = []
+    delete_data: list = []
     response = client.request('DELETE', '/interfaces/delete/', json=delete_data)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     data = response.json()
-    assert isinstance(data, List)
+    assert isinstance(data, list)
     assert len(data) == 0
 
 

@@ -12,7 +12,8 @@ Classes:
 """
 
 import abc
-from typing import Any, Dict, Type, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 from openvair.libs.messaging import exceptions
 from openvair.libs.messaging.config import get_messaging_type_and_transport
@@ -28,7 +29,7 @@ class BaseAgentMessagingFabric(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def get_rpc_agent(transport: str) -> Type:
+    def get_rpc_agent(transport: str) -> type:
         """Get the appropriate protocol class based on the transport.
 
         Args:
@@ -44,7 +45,7 @@ class ClientMessagingFabric(BaseAgentMessagingFabric):
     """Class for selecting a client."""
 
     @staticmethod
-    def get_rpc_agent(transport: str) -> Type[BaseRPCClient]:
+    def get_rpc_agent(transport: str) -> type[BaseRPCClient]:
         """Get the client class based on the transport method.
 
         Args:
@@ -56,7 +57,7 @@ class ClientMessagingFabric(BaseAgentMessagingFabric):
         Raises:
             RpcServerInitializedException: If the server initialization fails.
         """
-        rpc_client_classes: Dict[str, Type[BaseRPCClient]] = {
+        rpc_client_classes: dict[str, type[BaseRPCClient]] = {
             'rabbitmq': RabbitRPCClient,
         }
         try:
@@ -69,7 +70,7 @@ class ServerMessagingFabric(BaseAgentMessagingFabric):
     """Class for selecting a server."""
 
     @staticmethod
-    def get_rpc_agent(transport: str) -> Type[BaseRPCServer]:
+    def get_rpc_agent(transport: str) -> type[BaseRPCServer]:
         """Get the server class based on the transport method.
 
         Args:
@@ -81,7 +82,7 @@ class ServerMessagingFabric(BaseAgentMessagingFabric):
         Raises:
             RpcClientInitializedException: If the client initialization fails.
         """
-        rpc_server_classes: Dict[str, Type[BaseRPCServer]] = {
+        rpc_server_classes: dict[str, type[BaseRPCServer]] = {
             'rabbitmq': RabbitRPCServer,
         }
         try:
@@ -169,8 +170,8 @@ class MessagingClient:
     def call(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
         **kwargs: Any,  # noqa: ANN401 if income spicific args like timout for Rabbit
     ) -> Any:  # noqa: ANN401 TODO need to spicify response by pydantic
         """Call a method on the RPC server and wait for a response.
@@ -195,8 +196,8 @@ class MessagingClient:
     def cast(
         self,
         method_name: str,
-        data_for_method: Optional[Dict] = None,
-        data_for_manager: Optional[Dict] = None,
+        data_for_method: dict | None = None,
+        data_for_manager: dict | None = None,
         **kwargs: Any,  # noqa: ANN401 if income spicific args like timout for Rabbit
     ) -> None:
         """Send a method to the RPC server without waiting for a response.

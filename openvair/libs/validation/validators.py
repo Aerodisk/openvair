@@ -9,7 +9,8 @@ Classes:
     Validator: A utility class for performing various validation tasks.
 """
 
-from typing import Any, Dict, List, Type, TypeVar, ClassVar, Sequence, cast
+from typing import Any, TypeVar, ClassVar, cast
+from collections.abc import Sequence
 
 from pydantic import (
     BaseModel,
@@ -71,11 +72,11 @@ class Validator:
     @classmethod
     def validate_objects(
         cls,
-        objects: Sequence[Dict[str, Any]],
-        pydantic_schema: Type[T],
+        objects: Sequence[dict[str, Any]],
+        pydantic_schema: type[T],
         *,
         skip_corrupted_object: bool = True,
-    ) -> List[T]:
+    ) -> list[T]:
         """Validate a sequence of dicts against a Pydantic model and return `List[T]`.
 
         This method attempts to validate each dictionary in `objects` using the
@@ -129,7 +130,7 @@ class Validator:
             UserModel(id=2, name='', status='corrupted object')
             UserModel(id=3, name='', status='corrupted object')
         """  # noqa: E501
-        result: List[T] = []
+        result: list[T] = []
         for _object in objects:
             try:
                 validated_object: T = pydantic_schema.model_validate(_object)
@@ -142,7 +143,7 @@ class Validator:
                 LOG.warning(message)
                 if skip_corrupted_object:
                     corrupted_object = cast(
-                        T,
+                        'T',
                         pydantic_schema.model_construct(
                             **cls._create_corrupted_data(
                                 pydantic_schema, _object
@@ -158,9 +159,9 @@ class Validator:
     @classmethod
     def _create_corrupted_data(
         cls,
-        pydantic_schema: Type[T],
-        _object: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        pydantic_schema: type[T],
+        _object: dict[str, Any],
+    ) -> dict[str, Any]:
         """Generate a conforming 'corrupted object' payload for the given schema
 
         Builds a dictionary that satisfies the field requirements of the target
@@ -187,7 +188,7 @@ class Validator:
             Dict[str, Any]: A dict payload that conforms to `pydantic_schema`
             and can be passed to `model_construct(**payload)`.
         """
-        corrupted_data: Dict[str, Any] = {}
+        corrupted_data: dict[str, Any] = {}
         for field_name, field_info in pydantic_schema.model_fields.items():
             if field_name == 'id':
                 corrupted_data[field_name] = _object.get('id')

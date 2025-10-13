@@ -12,7 +12,7 @@ Classes:
 """
 
 import abc
-from typing import Dict, ClassVar, cast
+from typing import ClassVar, cast
 
 from openvair.modules.virtual_machines.config import VM_DRIVER
 from openvair.modules.virtual_machines.domain.base import BaseVMDriver
@@ -28,7 +28,7 @@ class AbstractVMDriverFactory(metaclass=abc.ABCMeta):
     machine driver instances.
     """
 
-    def __call__(self, db_virtual_machine: Dict) -> BaseVMDriver:
+    def __call__(self, db_virtual_machine: dict) -> BaseVMDriver:
         """Create a VM driver instance.
 
         Args:
@@ -41,7 +41,7 @@ class AbstractVMDriverFactory(metaclass=abc.ABCMeta):
         return self.get_vm_driver(db_virtual_machine)
 
     @abc.abstractmethod
-    def get_vm_driver(self, db_virtual_machine: Dict) -> BaseVMDriver:
+    def get_vm_driver(self, db_virtual_machine: dict) -> BaseVMDriver:
         """Create a VM driver instance based on the configuration.
 
         Args:
@@ -69,7 +69,7 @@ class VMDriverFactory(AbstractVMDriverFactory):
         'qemu-driver': LibvirtDriver,
     }
 
-    def get_vm_driver(self, db_virtual_machine: Dict) -> BaseVMDriver:
+    def get_vm_driver(self, db_virtual_machine: dict) -> BaseVMDriver:
         """Create a VM driver instance based on the configuration.
 
         Args:
@@ -83,4 +83,4 @@ class VMDriverFactory(AbstractVMDriverFactory):
             KeyError: If the corresponding virtual machine type is not found.
         """
         vm_driver_class = self._vm_driver_classes[VM_DRIVER]
-        return cast(BaseVMDriver, vm_driver_class(**db_virtual_machine))
+        return cast('BaseVMDriver', vm_driver_class(**db_virtual_machine))

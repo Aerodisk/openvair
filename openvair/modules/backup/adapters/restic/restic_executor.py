@@ -14,7 +14,6 @@ Typical usage example:
     result = executor.execute('backup /path/to/files')
 """
 
-from typing import Optional
 
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams, ExecutionResult
@@ -60,7 +59,7 @@ class ResticCommandExecutor:
         return f'{self.COMMAND_FORMAT} -r {self.restic_dir} {subcommand}'
 
     def execute(
-        self, subcommand: str, timeout: Optional[float] = None
+        self, subcommand: str, timeout: float | None = None
     ) -> ExecutionResult:
         """Executes a command and checks the result.
 

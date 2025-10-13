@@ -8,7 +8,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 import pytest
 from fastapi import status
@@ -29,7 +28,7 @@ valid_input = {'inf_type': valid_inf_type, 'ip': valid_ip, 'port': valid_port}
     [valid_input, {k: v for k, v in valid_input.items() if k != 'port'}],
 )
 def test_login_success(
-    client_with_logout: TestClient, input_data: Dict
+    client_with_logout: TestClient, input_data: dict
 ) -> None:
     """Test successful login with valid input data, including optional port.
 
@@ -82,7 +81,7 @@ def test_login_unauthorized(unauthorized_client: TestClient) -> None:
     ],
 )
 def test_login_invalid_required_field_type(
-    client_with_logout: TestClient, invalid_field: Dict
+    client_with_logout: TestClient, invalid_field: dict
 ) -> None:
     """Test response status is 422 for invalid field types."""
     invalid_input = valid_input.copy()
@@ -105,7 +104,7 @@ def test_login_invalid_required_field_type(
     ],
 )
 def test_login_invalid_required_field(
-    client_with_logout: TestClient, invalid_field: Dict
+    client_with_logout: TestClient, invalid_field: dict
 ) -> None:
     """Test response status is 500 for invalid field values."""
     invalid_input = valid_input.copy()

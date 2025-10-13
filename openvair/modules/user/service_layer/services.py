@@ -16,10 +16,10 @@ Named tuples:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 from collections import namedtuple
 
-from passlib import hash
+from passlib import hash as passlib_hash
 from sqlalchemy import exc
 from passlib.exc import MissingDigestError
 
@@ -72,7 +72,7 @@ class UserManager(BackgroundTasks):
         Returns:
             str: The hashed password.
         """
-        return str(hash.bcrypt.hash(password))
+        return str(passlib_hash.bcrypt.hash(password))
 
     @staticmethod
     def _verify_password(password: str, hashed_password: str) -> bool:
@@ -88,13 +88,15 @@ class UserManager(BackgroundTasks):
         """
         LOG.info('Verifying password')
         try:
-            is_verify: bool = hash.bcrypt.verify(password, hashed_password)
+            is_verify: bool = passlib_hash.bcrypt.verify(
+                password, hashed_password
+            )
         except MissingDigestError as err:
             raise exceptions.PasswordVerifyException(str(err))
         else:
             return is_verify
 
-    def get_user(self, data: Dict) -> Dict:
+    def get_user(self, data: dict) -> dict:
         """Retrieve a user by ID from the database.
 
         Args:
@@ -109,7 +111,7 @@ class UserManager(BackgroundTasks):
             user: User = uow.users.get_or_fail(user_id)
             return DataSerializer.to_web(user)
 
-    def get_all_users(self) -> List:
+    def get_all_users(self) -> list:
         """Retrieve all users from the database.
 
         Returns:
@@ -120,7 +122,7 @@ class UserManager(BackgroundTasks):
             users = uow.users.get_all()
             return [DataSerializer.to_web(user) for user in users]
 
-    def authenticate_user(self, data: Dict) -> Dict:
+    def authenticate_user(self, data: dict) -> dict:
         """Authenticate a user based on provided credentials.
 
         Args:
@@ -145,14 +147,14 @@ class UserManager(BackgroundTasks):
                 LOG.info(message)
                 raise exceptions.UserCredentialsException(message)
 
-            web_user: Dict = DataSerializer.to_web(db_user)
+            web_user: dict = DataSerializer.to_web(db_user)
 
         LOG.info('User authentication completed successfully.')
 
         return web_user
 
     @staticmethod
-    def _check_is_super_user(data: Dict) -> None:
+    def _check_is_super_user(data: dict) -> None:
         """Check if the user is a superuser.
 
         Args:
@@ -161,13 +163,13 @@ class UserManager(BackgroundTasks):
         Raises:
             NotSuperUser: If the user is not a superuser.
         """
-        user_data: Dict = data.get('user_data', {})
+        user_data: dict = data.get('user_data', {})
         if not user_data.get('is_superuser'):
             message = 'User is not a superuser'
             raise exceptions.NotSuperUser(message)
 
     @staticmethod
-    def _verificate_user_id(data: Dict) -> None:
+    def _verificate_user_id(data: dict) -> None:
         """Verify if the provided user ID matches the current user ID.
 
         Args:
@@ -178,12 +180,12 @@ class UserManager(BackgroundTasks):
                 user ID.
         """
         user_id: str = data.get('user_id', '')
-        user_data: Dict = data.get('user_data', {})
+        user_data: dict = data.get('user_data', {})
         if user_id != user_data.get('id'):
-            message = 'Provided id does not match with ' 'current user id'
+            message = 'Provided id does not match with current user id'
             raise exceptions.WrongUserIdProvided(message)
 
-    def _prepare_user_info(self, user_data: Dict) -> UserInfo:
+    def _prepare_user_info(self, user_data: dict) -> UserInfo:
         """Prepare the user information for database operations.
 
         Args:
@@ -199,7 +201,7 @@ class UserManager(BackgroundTasks):
             is_superuser=user_data.get('is_superuser', False),
         )
 
-    def create_user(self, data: Dict) -> Dict:
+    def create_user(self, data: dict) -> dict:
         """Create a new user in the database.
 
         Args:
@@ -224,14 +226,13 @@ class UserManager(BackgroundTasks):
                 LOG.info('User was successfully created.')
             except exc.IntegrityError as _:
                 message = (
-                    'User with current username'
-                    f" '{user_info.username}' exists."
+                    f"User with current username '{user_info.username}' exists."
                 )
                 LOG.error(message)
                 raise exceptions.UserExistsException(message)
         return DataSerializer.to_web(db_user)
 
-    def change_password(self, data: Dict) -> Dict:
+    def change_password(self, data: dict) -> dict:
         """Change the password for an existing user.
 
         Args:
@@ -266,7 +267,7 @@ class UserManager(BackgroundTasks):
                 uow.commit()
         return DataSerializer.to_web(db_user)
 
-    def delete_user(self, data: Dict) -> Dict:
+    def delete_user(self, data: dict) -> dict:
         """Delete a user from the database.
 
         Args:

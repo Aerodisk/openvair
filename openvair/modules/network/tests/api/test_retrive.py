@@ -10,7 +10,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict, List
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -29,7 +28,7 @@ def test_get_interfaces_success(client: TestClient) -> None:
 
     data = response.json()
     assert 'items' in data
-    assert isinstance(data['items'], List)
+    assert isinstance(data['items'], list)
 
     if data['items']:
         required_fields = [
@@ -55,7 +54,7 @@ def test_get_interfaces_with_filter(client: TestClient) -> None:
 
     data = response.json()
     assert 'items' in data
-    assert isinstance(data['items'], List)
+    assert isinstance(data['items'], list)
 
 
 def test_get_interfaces_unauthorized(unauthorized_client: TestClient) -> None:
@@ -68,7 +67,7 @@ def test_get_interfaces_unauthorized(unauthorized_client: TestClient) -> None:
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_bridges_list(client: TestClient, bridge: Dict) -> None:
+def test_get_bridges_list(client: TestClient, bridge: dict) -> None:
     """Test retrieving bridges list.
 
     Asserts:
@@ -79,7 +78,7 @@ def test_get_bridges_list(client: TestClient, bridge: Dict) -> None:
     assert response.status_code == status.HTTP_200_OK
 
     bridges = response.json()
-    assert isinstance(bridges, List)
+    assert isinstance(bridges, list)
     assert any(br['ifname'] == bridge['name'] for br in bridges)
 
 
@@ -95,7 +94,7 @@ def test_get_bridges_list_unauthorized(
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_interface_by_id(client: TestClient, bridge: Dict) -> None:
+def test_get_interface_by_id(client: TestClient, bridge: dict) -> None:
     """Test retrieving a specific interface by ID.
 
     Asserts:

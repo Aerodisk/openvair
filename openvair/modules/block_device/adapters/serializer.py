@@ -8,13 +8,15 @@ Classes:
     DataSerializer: Concrete implementation of AbstractDataSerializer.
 """
 
-from typing import Dict, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import inspect
-from sqlalchemy.orm.mapper import Mapper
 
 from openvair.abstracts.serializer import AbstractDataSerializer
 from openvair.modules.block_device.adapters.orm import ISCSIInterface
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.mapper import Mapper
 
 
 class DataSerializer(AbstractDataSerializer):
@@ -28,7 +30,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_domain(
         cls,
         orm_object: ISCSIInterface,
-    ) -> Dict:
+    ) -> dict:
         """Convert an ISCSIInterface object to a domain dictionary.
 
         Args:
@@ -45,8 +47,8 @@ class DataSerializer(AbstractDataSerializer):
     @classmethod
     def to_db(
         cls,
-        data: Dict,
-        orm_class: Type[ISCSIInterface] = ISCSIInterface,
+        data: dict,
+        orm_class: type[ISCSIInterface] = ISCSIInterface,
     ) -> ISCSIInterface:
         """Convert a dictionary to an ISCSIInterface ORM object.
 
@@ -59,7 +61,7 @@ class DataSerializer(AbstractDataSerializer):
             ISCSIInterface: ORM object of the ISCSI interface.
         """
         orm_dict = {}
-        inspected_orm_class = cast(Mapper, inspect(orm_class))
+        inspected_orm_class = cast('Mapper', inspect(orm_class))
         for column in list(inspected_orm_class.columns):
             column_name = column.__dict__['key']
             orm_dict[column_name] = data.get(column_name)
@@ -69,7 +71,7 @@ class DataSerializer(AbstractDataSerializer):
     def to_web(
         cls,
         orm_object: ISCSIInterface,
-    ) -> Dict:
+    ) -> dict:
         """Convert an ISCSIInterface object to a web dictionary.
 
         Args:

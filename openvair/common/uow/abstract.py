@@ -11,9 +11,7 @@ Classes:
 
 import abc
 from types import TracebackType
-from typing import Type, Optional
-
-from typing_extensions import Self
+from typing import Self
 
 
 class AbstractUnitOfWork(abc.ABC):
@@ -35,9 +33,9 @@ class AbstractUnitOfWork(abc.ABC):
     @abc.abstractmethod
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exits the context, ensuring proper cleanup.
 

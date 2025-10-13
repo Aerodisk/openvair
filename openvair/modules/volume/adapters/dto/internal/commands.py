@@ -1,5 +1,4 @@
 from uuid import UUID  # noqa: D100
-from typing import Optional
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -10,7 +9,7 @@ class CreateVolumeFromTemplateServiceCommandDTO(BaseModel):  # noqa: D101
     description: str
     storage_id: UUID
     template_id: UUID
-    read_only: Optional[bool]
+    read_only: bool | None
     user_id: UUID
 
 

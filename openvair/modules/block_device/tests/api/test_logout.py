@@ -7,7 +7,6 @@ Covers:
 - Handling of multiple consecutive logout attempts causing errors.
 """
 
-from typing import Dict
 
 import pytest
 from fastapi import status
@@ -68,7 +67,7 @@ def test_logout_unauthorized(unauthorized_client: TestClient) -> None:
     ],
 )
 def test_logout_invalid_required_field_type(
-    client_with_login: TestClient, invalid_field: Dict
+    client_with_login: TestClient, invalid_field: dict
 ) -> None:
     """Test response status is 422 when invalid 'inf_type' or 'ip' types."""
     invalid_request = valid_request.copy()
@@ -89,7 +88,7 @@ def test_logout_invalid_required_field_type(
     ],
 )
 def test_logout_invalid_required_field(
-    client_with_login: TestClient, invalid_field: Dict
+    client_with_login: TestClient, invalid_field: dict
 ) -> None:
     """Test response status is 500 when invalid 'inf_type' or 'ip' values."""
     invalid_request = valid_request.copy()

@@ -15,7 +15,6 @@ Dependencies:
         notifications.
 """
 
-from typing import Union
 
 from fastapi import Depends, APIRouter, status
 from starlette.responses import JSONResponse
@@ -44,7 +43,7 @@ router = APIRouter(
 async def send_notification(
     data: schemas.Notification,
     crud: NotificationCrud = Depends(NotificationCrud),
-) -> Union[schemas.Notification, JSONResponse]:
+) -> schemas.Notification | JSONResponse:
     """Send a notification to the specified recipients.
 
     This endpoint sends a notification based on the provided data. The
@@ -64,7 +63,7 @@ async def send_notification(
             is returned with the error details.
     """
     LOG.info(
-        'API start sending notification with data: %s.' % data.model_dump()
+        f'API start sending notification with data: {data.model_dump()}.'
     )
     result = await run_in_threadpool(
         crud.send_notification, data.model_dump(mode='json')

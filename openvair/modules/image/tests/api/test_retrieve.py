@@ -9,7 +9,6 @@ This test suite covers:
 """
 
 import uuid
-from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -17,7 +16,7 @@ from fastapi.testclient import TestClient
 
 def test_get_image_success(
     client: TestClient,
-    image: Dict
+    image: dict
 ) -> None:
     """Test successful get image returns 200"""
     image_id = image["id"]
@@ -37,7 +36,7 @@ def test_get_image_success(
 
 def test_get_images_success(
     client: TestClient,
-    image: Dict,
+    image: dict,
 ) -> None:
     """Test successful get_images returns 200"""
     image_id = image['id']
@@ -50,7 +49,7 @@ def test_get_images_success(
 
 
 def test_get_image_unauthorized(
-    image: Dict,
+    image: dict,
     unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""

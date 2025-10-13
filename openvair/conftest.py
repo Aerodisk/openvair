@@ -1,7 +1,8 @@
 # noqa: D100
 from uuid import uuid4
-from typing import Dict, Optional, Generator, cast
+from typing import cast
 from pathlib import Path
+from collections.abc import Generator
 
 import pytest
 from fastapi import status
@@ -68,7 +69,7 @@ def client() -> Generator[TestClient, None, None]:
 @pytest.fixture
 def unauthorized_client() -> Generator[TestClient, None, None]:
     """TestClient without auth overrides (temporarily)."""
-    from openvair.main import app
+    from openvair.main import app  # noqa: PLC0415
 
     # Сохраняем текущие overrides
     original_overrides = app.dependency_overrides.copy()
@@ -142,7 +143,7 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='function')
-def storage(client: TestClient) -> Generator[Dict, None, None]:
+def storage(client: TestClient) -> Generator[dict, None, None]:
     """Creates a test storage and deletes it after session ends."""
     cleanup_all_storages()
     headers = {'Authorization': 'Bearer mocked_token'}
@@ -180,18 +181,18 @@ def storage(client: TestClient) -> Generator[Dict, None, None]:
     cleanup_all_volumes()
     cleanup_all_templates()
 
-    delete_response = client.delete(f"/storages/{storage['id']}/delete")
+    delete_response = client.delete(f'/storages/{storage["id"]}/delete')
     if delete_response.status_code != status.HTTP_202_ACCEPTED:
         LOG.warning(
-            (
+
                 f'Failed to delete test storage: {delete_response.status_code},'
                 f' {delete_response.text}'
-            )
+
         )
 
 
 @pytest.fixture(scope='function')
-def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
+def volume(client: TestClient, storage: dict) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     volume_data = CreateVolume(
         name=generate_test_entity_name('volume'),
@@ -216,8 +217,8 @@ def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
 
 @pytest.fixture(scope='function')
 def template(
-    client: TestClient, storage: Dict, volume: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, storage: dict, volume: dict
+) -> Generator[dict, None, None]:
     """Creates a test volume and deletes it after each test."""
     template_data = RequestCreateTemplate(
         base_volume_id=volume['id'],
@@ -244,8 +245,8 @@ def template(
 @pytest.fixture(scope='function')
 def virtual_machine(
     client: TestClient,
-    volume: Dict,
-) -> Generator[Dict, None, None]:
+    volume: dict,
+) -> Generator[dict, None, None]:
     """Creates a test virtual machine and deletes it after each test."""
     vm_data = CreateVirtualMachine(
         name=generate_test_entity_name('virtual_machine'),
@@ -293,8 +294,8 @@ def virtual_machine(
 
 @pytest.fixture(scope='function')
 def deactivated_virtual_machine(
-    client: TestClient, virtual_machine: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, virtual_machine: dict
+) -> Generator[dict, None, None]:
     """Creates a test deactivated virtual machine."""
     if virtual_machine['power_state'] != 'shut_off':
         response = client.post(
@@ -316,8 +317,8 @@ def deactivated_virtual_machine(
 
 @pytest.fixture(scope='function')
 def activated_virtual_machine(
-    client: TestClient, virtual_machine: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, virtual_machine: dict
+) -> Generator[dict, None, None]:
     """Creates a test activated virtual machine."""
     response = client.post(
         f'/virtual-machines/{virtual_machine["id"]}/start/'
@@ -345,7 +346,7 @@ def activated_virtual_machine(
 
 
 @pytest.fixture
-def notification() -> Generator[Dict, None, None]:
+def notification() -> Generator[dict, None, None]:
     """Generates test notification data and cleans up after test."""
     test_data = {
         'msg_type': notification_settings.notification_type,
@@ -360,7 +361,7 @@ def notification() -> Generator[Dict, None, None]:
 
 
 @pytest.fixture
-def physical_interface(client: TestClient) -> Optional[Dict]:
+def physical_interface(client: TestClient) -> dict | None:
     """Get physical interface by name from environment variable."""
     response = client.get('/interfaces/')
     interfaces_data = response.json()
@@ -371,15 +372,15 @@ def physical_interface(client: TestClient) -> Optional[Dict]:
             wait_for_field_not_empty(
                 client, f'/interfaces/{interface["id"]}', 'ip'
             )
-            return cast(Dict, interface)
+            return cast('dict', interface)
 
     return None
 
 
 @pytest.fixture
 def bridge(
-    client: TestClient, physical_interface: Dict
-) -> Generator[Dict, None, None]:
+    client: TestClient, physical_interface: dict
+) -> Generator[dict, None, None]:
     """Create a test bridge and delete it after test."""
     bridge_data_to_create = {
         'name': generate_test_entity_name('br'),

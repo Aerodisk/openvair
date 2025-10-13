@@ -14,7 +14,7 @@ Enums:
 """
 
 from uuid import UUID
-from typing import Dict, List, Literal, Optional, cast
+from typing import Literal, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -79,7 +79,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         self.event_store = EventCrud('virtual_networks')
         self.virsh_net_adapter = LibvirtNetworkAdapter()
 
-    def get_all_virtual_networks(self) -> Dict:
+    def get_all_virtual_networks(self) -> dict:
         """Retrieve all virtual networks from the database.
 
         Returns:
@@ -97,7 +97,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info('End of getting all virtual networks from db.')
         return web_networks
 
-    def get_virtual_network_by_id(self, data: Dict) -> Dict:
+    def get_virtual_network_by_id(self, data: dict) -> dict:
         """Retrieve a virtual network by its ID from the database.
 
         Args:
@@ -114,7 +114,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info(f'End of getting virtual network {vn_id} from db.')
         return web_network
 
-    def get_virtual_network_by_name(self, data: Dict) -> Dict:
+    def get_virtual_network_by_name(self, data: dict) -> dict:
         """Retrieve a virtual network by its name from the database.
 
         Args:
@@ -137,7 +137,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info(f'End of getting virtual network {vn_name} from db.')
         return web_network
 
-    def create_virtual_network(self, data: Dict) -> Dict:
+    def create_virtual_network(self, data: dict) -> dict:
         """Create a new virtual network.
 
         Args:
@@ -166,10 +166,10 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             raise PortGroupException(message)
 
         db_port_groups = [
-            cast(PortGroup, DataSerializer.to_db(port_group, PortGroup))
+            cast('PortGroup', DataSerializer.to_db(port_group, PortGroup))
             for port_group in port_groups
         ]
-        db_network = cast(VirtualNetwork, DataSerializer.to_db(data))
+        db_network = cast('VirtualNetwork', DataSerializer.to_db(data))
         db_network.port_groups = db_port_groups
 
         domain_network = DataSerializer.to_domain(db_network)
@@ -201,7 +201,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         LOG.info('Virtual network successfully created')
         return web_network
 
-    def delete_virtual_network(self, data: Dict) -> None:
+    def delete_virtual_network(self, data: dict) -> None:
         """Delete a virtual network.
 
         Args:
@@ -253,7 +253,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
         LOG.info('End of deleting virtual network')
 
-    def turn_on_virtual_network(self, data: Dict) -> None:
+    def turn_on_virtual_network(self, data: dict) -> None:
         """Turn on a virtual network.
 
         Args:
@@ -269,7 +269,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
         LOG.info(f'Virtual network: {vn_id} turned on')
 
-    def turn_off_virtual_network(self, data: Dict) -> None:
+    def turn_off_virtual_network(self, data: dict) -> None:
         """Turn off a virtual network.
 
         Args:
@@ -285,7 +285,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
         LOG.info(f'Virtual network: {vn_id} turned off')
 
-    def add_port_group(self, data: Dict) -> Dict:
+    def add_port_group(self, data: dict) -> dict:
         """Add a port group to a virtual network.
 
         Args:
@@ -310,7 +310,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         )
 
         db_port_group = cast(
-            PortGroup, DataSerializer.to_db(port_group_info, PortGroup)
+            'PortGroup', DataSerializer.to_db(port_group_info, PortGroup)
         )
         domain_port_group = DataSerializer.to_domain(
             db_port_group, BridgePortGroup
@@ -359,7 +359,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
         return web_network
 
-    def delete_port_group(self, data: Dict) -> None:
+    def delete_port_group(self, data: dict) -> None:
         """Delete a port group from a virtual network.
 
         Args:
@@ -412,7 +412,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         self.event_store.add_event(**event_message)
         LOG.info(message)
 
-    def add_tag_to_port_group(self, data: Dict) -> Dict:
+    def add_tag_to_port_group(self, data: dict) -> dict:
         """Add a tag to a port group in a virtual network.
 
         Args:
@@ -451,7 +451,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                     db_network.port_groups.remove(port_group)
 
             db_port_group = cast(
-                PortGroup, DataSerializer.to_db(domain_port_group, PortGroup)
+                'PortGroup', DataSerializer.to_db(domain_port_group, PortGroup)
             )
             db_network.port_groups.append(db_port_group)
 
@@ -484,13 +484,13 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
                     LOG.info(f'{virsh_name} not found in db')
                     network_data = self._collect_virsh_virt_net_data(virsh_name)
                     db_network = cast(
-                        VirtualNetwork, DataSerializer.to_db(network_data)
+                        'VirtualNetwork', DataSerializer.to_db(network_data)
                     )
                     uow.virtual_networks.add(db_network)
             uow.commit()
         LOG.info('End monitoring')
 
-    def _collect_virsh_virt_net_data(self, net_name: str) -> Dict:
+    def _collect_virsh_virt_net_data(self, net_name: str) -> dict:
         """Collectin virtual network info from virsh
 
         For collecting port group info this method use xml_to_jsonable from
@@ -505,10 +505,10 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         persistent = self.virsh_net_adapter.get_network_persistent(uuid)
 
         virsh_network_data = cast(
-            Dict, deserialize_xml(xml, attr_prefix='', cdata_key='')
+            'dict', deserialize_xml(xml, attr_prefix='', cdata_key='')
         )
         pg_info = virsh_network_data['network'].get('portgroup', [])
-        if isinstance(pg_info, Dict):
+        if isinstance(pg_info, dict):
             pg_info = [virsh_network_data['network']['portgroup']]
         port_groups = self._prepare_port_groups(pg_info)
 
@@ -525,13 +525,13 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
             'virsh_xml': xml,
         }
 
-    def _prepare_port_groups(self, pg_info: List[Dict]) -> List:
+    def _prepare_port_groups(self, pg_info: list[dict]) -> list:
         """Prepare port group info for domain model"""
         port_groups = []
         for pg in pg_info:
             portgroup_vlan = pg['vlan']
-            tags: List = portgroup_vlan['tag']
-            if isinstance(tags, Dict):
+            tags: list = portgroup_vlan['tag']
+            if isinstance(tags, dict):
                 tags = [tags]
             port_groups.append(
                 {
@@ -543,7 +543,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
         return port_groups
 
     # PROTECTED METHODS
-    def _check_exist(self, domain_network: Dict) -> None:
+    def _check_exist(self, domain_network: dict) -> None:
         """Check if a network already exists in the database and in virsh.
 
         Args:
@@ -597,7 +597,7 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
     def _add_virsh_data_for_db_network(
         self,
         db_network: VirtualNetwork,
-        data: Dict,
+        data: dict,
     ) -> None:
         """Update a database network object with data from virsh.
 
@@ -665,10 +665,10 @@ class VirtualNetworkServiceLayerManager(BackgroundTasks):
 
     def __prepare_event_message(
         self,
-        user_id: Optional[str] = None,
-        object_id: Optional[str] = None,
-        event: Optional[str] = None,
-    ) -> Dict:
+        user_id: str | None = None,
+        object_id: str | None = None,
+        event: str | None = None,
+    ) -> dict:
         """Prepare an event message dictionary.
 
         Args:

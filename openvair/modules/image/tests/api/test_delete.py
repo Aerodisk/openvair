@@ -8,7 +8,6 @@ This test suite covers:
 """
 
 import uuid
-from typing import Dict
 from pathlib import Path
 
 from fastapi import status
@@ -17,7 +16,7 @@ from fastapi.testclient import TestClient
 
 def test_delete_image_success(
     client: TestClient,
-    image: Dict
+    image: dict
 ) -> None:
     """Test successful deleting of the image."""
     image_id = image['id']
@@ -52,7 +51,7 @@ def test_delete_non_existing_image(
 
 
 def test_delete_image_unauthorized(
-    image: Dict,
+    image: dict,
     unauthorized_client: TestClient
 ) -> None:
     """Test successful deleting of the image."""

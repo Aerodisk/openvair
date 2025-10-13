@@ -10,7 +10,6 @@ Covers:
 """
 
 import uuid
-from typing import Dict
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -26,7 +25,7 @@ from openvair.modules.volume.entrypoints.schemas import CreateVolume
 LOG = get_logger(__name__)
 
 
-def test_create_volume_success(client: TestClient, storage: Dict) -> None:
+def test_create_volume_success(client: TestClient, storage: dict) -> None:
     """Test successful volume creation.
 
     Asserts:
@@ -57,7 +56,7 @@ def test_create_volume_success(client: TestClient, storage: Dict) -> None:
     )
 
 
-def test_create_volume_invalid_size(client: TestClient, storage: Dict) -> None:
+def test_create_volume_invalid_size(client: TestClient, storage: dict) -> None:
     """Test creation failure with invalid size (0 bytes).
 
     Asserts:
@@ -75,7 +74,7 @@ def test_create_volume_invalid_size(client: TestClient, storage: Dict) -> None:
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_create_volume_without_name(client: TestClient, storage: Dict) -> None:
+def test_create_volume_without_name(client: TestClient, storage: dict) -> None:
     """Test volume creation fails if 'name' is missing.
 
     Asserts:
@@ -94,7 +93,7 @@ def test_create_volume_without_name(client: TestClient, storage: Dict) -> None:
 
 
 def test_create_volume_with_special_chars_in_name(
-    client: TestClient, storage: Dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure on invalid characters in volume name.
 
@@ -114,7 +113,7 @@ def test_create_volume_with_special_chars_in_name(
 
 
 def test_create_volume_with_invalid_format(
-    client: TestClient, storage: Dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure when volume format is not allowed.
 
@@ -134,7 +133,7 @@ def test_create_volume_with_invalid_format(
 
 
 def test_create_volume_with_duplicate_name(
-    client: TestClient, storage: Dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure when creating a volume with duplicate name in same storage.
 
@@ -159,7 +158,7 @@ def test_create_volume_with_duplicate_name(
 
 
 def test_create_volume_with_too_large_size(
-    client: TestClient, storage: Dict
+    client: TestClient, storage: dict
 ) -> None:
     """Test failure when requested size exceeds storage capacity.
 
@@ -203,7 +202,7 @@ def test_create_volume_with_nonexistent_storage(client: TestClient) -> None:
 
 
 def test_create_volume_unauthorized(
-   storage: Dict, unauthorized_client: TestClient
+   storage: dict, unauthorized_client: TestClient
 ) -> None:
     """Test unauthorized request returns 401."""
     volume_data = CreateVolume(
@@ -222,8 +221,8 @@ def test_create_volume_unauthorized(
 
 def test_create_volume_from_template_success(
     client: TestClient,
-    storage: Dict,
-    template: Dict,
+    storage: dict,
+    template: dict,
 ) -> None:
     """Test successful creation of volume from template."""
     request_data = {
@@ -251,7 +250,7 @@ def test_create_volume_from_template_success(
 
 def test_create_volume_from_template_invalid_template_id(
     client: TestClient,
-    storage: Dict,
+    storage: dict,
 ) -> None:
     """Test creation with invalid template ID returns 500."""
     request_data = {
@@ -265,8 +264,8 @@ def test_create_volume_from_template_invalid_template_id(
 
 
 def test_create_volume_from_template_unauthorized(
-    storage: Dict,
-    template: Dict,
+    storage: dict,
+    template: dict,
     unauthorized_client: TestClient,
 ) -> None:
     """Test unauthorized request returns 401."""

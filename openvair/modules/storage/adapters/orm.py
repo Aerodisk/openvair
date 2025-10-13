@@ -15,7 +15,6 @@ Functions:
 """
 
 import uuid
-from typing import List
 
 from sqlalchemy import (
     UUID,
@@ -87,7 +86,7 @@ class Storage(Base):
         UUID(),
         nullable=True,
     )
-    extra_specs: Mapped[List['StorageExtraSpecs']] = relationship(
+    extra_specs: Mapped[list['StorageExtraSpecs']] = relationship(
         'StorageExtraSpecs',
         back_populates='storage',
         uselist=True,

@@ -17,7 +17,6 @@ Classes:
         volume service.
 """
 
-from typing import Dict, List
 
 from openvair.rpc_queues import RPCQueueNames
 from openvair.libs.messaging.messaging_agents import MessagingClient
@@ -48,7 +47,7 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
             queue_name=RPCQueueNames.Volume.SERVICE_LAYER
         )
 
-    def get_volume(self, data: Dict) -> Dict:
+    def get_volume(self, data: dict) -> dict:
         """Retrieve a volume by its ID.
 
         Args:
@@ -57,13 +56,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.get_volume.__name__,
             data_for_method=data,
         )
         return result
 
-    def get_all_volumes(self, data: Dict) -> List[Dict]:
+    def get_all_volumes(self, data: dict) -> list[dict]:
         """Retrieve all volumes from the database.
 
         Args:
@@ -72,13 +71,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             List[Dict]: List of serialized volume data.
         """
-        result: List[Dict] = self.service_rpc_client.call(
+        result: list[dict] = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.get_all_volumes.__name__,
             data_for_method=data,
         )
         return result
 
-    def create_volume(self, volume_info: Dict) -> Dict:
+    def create_volume(self, volume_info: dict) -> dict:
         """Create a new volume.
 
         Args:
@@ -87,13 +86,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.create_volume.__name__,
             data_for_method=volume_info,
         )
         return result
 
-    def clone_volume(self, data: Dict) -> Dict:
+    def clone_volume(self, data: dict) -> dict:
         """Clone an existing volume.
 
         Args:
@@ -102,13 +101,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized cloned volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.clone_volume.__name__,
             data_for_method=data,
         )
         return result
 
-    def create_from_template(self, data: Dict) -> Dict:
+    def create_from_template(self, data: dict) -> dict:
         """Create a new volume from a template.
 
         Args:
@@ -117,13 +116,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.create_from_template.__name__,
             data_for_method=data,
         )
         return result
 
-    def extend_volume(self, data: Dict) -> Dict:
+    def extend_volume(self, data: dict) -> dict:
         """Extend the size of an existing volume.
 
         Args:
@@ -132,13 +131,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.extend_volume.__name__,
             data_for_method=data,
         )
         return result
 
-    def delete_volume(self, data: Dict) -> Dict:
+    def delete_volume(self, data: dict) -> dict:
         """Delete an existing volume.
 
         Args:
@@ -147,13 +146,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.delete_volume.__name__,
             data_for_method=data,
         )
         return result
 
-    def edit_volume(self, data: Dict) -> Dict:
+    def edit_volume(self, data: dict) -> dict:
         """Edit the details of an existing volume.
 
         Args:
@@ -162,13 +161,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Serialized volume data.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.edit_volume.__name__,
             data_for_method=data,
         )
         return result
 
-    def attach_volume(self, data: Dict) -> Dict:
+    def attach_volume(self, data: dict) -> dict:
         """Attach a volume to a virtual machine.
 
         Args:
@@ -177,13 +176,13 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Result of the attach operation.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.attach_volume.__name__,
             data_for_method=data,
         )
         return result
 
-    def detach_volume(self, data: Dict) -> Dict:
+    def detach_volume(self, data: dict) -> dict:
         """Detach a volume from a virtual machine.
 
         Args:
@@ -192,7 +191,7 @@ class VolumeServiceLayerRPCClient(VolumeServiceLayerProtocolInterface):
         Returns:
             Dict: Result of the detach operation.
         """
-        result: Dict = self.service_rpc_client.call(
+        result: dict = self.service_rpc_client.call(
             VolumeServiceLayerProtocolInterface.detach_volume.__name__,
             data_for_method=data,
         )
