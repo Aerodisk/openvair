@@ -126,6 +126,7 @@ def upgrade() -> None:
         sa.Column('information', sa.Text(), nullable=True),
         sa.Column('user_id', sa.UUID(), nullable=True),
         sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('name'),
     )
     op.create_table(
         'cpu_info',

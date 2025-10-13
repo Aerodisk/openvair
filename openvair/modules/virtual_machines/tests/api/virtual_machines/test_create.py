@@ -136,6 +136,7 @@ def test_create_vm_duplicate_name(
 
     response_2 = client.post('/virtual-machines/create/', json=vm_create_data)
     assert response_2.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'already exists' in response_2.text.lower()
 
 
 def test_create_vm_nonexistent_volume(

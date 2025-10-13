@@ -81,6 +81,7 @@ class VirtualMachines(Base):
     )
     name: Mapped[str] = mapped_column(
         String(60),
+        unique=True,
         nullable=True,
     )
     description: Mapped[str] = mapped_column(
