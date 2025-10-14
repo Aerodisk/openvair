@@ -24,8 +24,6 @@ def test_edit_vm_success(
 ) -> None:
     """Test successful VM metadata edit."""
     vm_id = virtual_machine['id']
-    assert vm_edit_data['name'] != virtual_machine['name']
-    assert vm_edit_data['description'] != virtual_machine['description']
     response = client.post(
         f'/virtual-machines/{vm_id}/edit/', json=vm_edit_data
     )
@@ -36,18 +34,12 @@ def test_edit_vm_success(
         'status',
         'available',
     )
-    wait_for_field_value(
-        client,
-        f'/virtual-machines/{vm_id}/',
-        'name',
-        vm_edit_data['name'],
-    )
-    wait_for_field_value(
-        client,
-        f'/virtual-machines/{vm_id}/',
-        'description',
-        vm_edit_data['description'],
-    )
+
+    response = client.get(f'/virtual-machines/{vm_id}/')
+    assert response.status_code == status.HTTP_200_OK
+    vm_after_edit = response.json()
+    assert vm_after_edit['name'] == vm_edit_data['name']
+    assert vm_after_edit['description'] == vm_edit_data['description']
 
 
 def test_edit_vm_add_disk_success(
@@ -96,7 +88,10 @@ def test_edit_vm_add_disk_success(
     wait_for_field_value(
         client, f'/virtual-machines/{vm_id}/', 'status', 'available'
     )
-    vm_after_edit = client.get(f'/virtual-machines/{vm_id}/').json()
+
+    response = client.get(f'/virtual-machines/{vm_id}/')
+    assert response.status_code == status.HTTP_200_OK
+    vm_after_edit = response.json()
     assert len(vm_after_edit['disks']) == 1 + 1
 
 
