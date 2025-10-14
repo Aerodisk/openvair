@@ -1,10 +1,12 @@
 # noqa: D100
+import ipaddress
 from uuid import uuid4
-from typing import Dict, Optional, Generator, cast
+from typing import Dict, Union, Literal, Optional, Generator, cast
 from pathlib import Path
 
 import pytest
 from fastapi import status
+from _pytest.fixtures import FixtureRequest
 from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
 
@@ -34,6 +36,7 @@ from openvair.modules.template.shared.enums import TemplateStatus
 from openvair.modules.volume.entrypoints.schemas import CreateVolume
 from openvair.modules.storage.entrypoints.schemas import (
     CreateStorage,
+    NfsStorageExtraSpecsCreate,
     LocalFSStorageExtraSpecsCreate,
 )
 from openvair.modules.volume.service_layer.services import VolumeStatus
@@ -142,18 +145,35 @@ def configure_pagination() -> None:
 
 
 @pytest.fixture(scope='function')
-def storage(client: TestClient) -> Generator[Dict, None, None]:
-    """Creates a test storage and deletes it after session ends."""
+def storage(
+        request: FixtureRequest, client: TestClient
+) -> Generator[Dict, None, None]:
+    """Creates a test storage and deletes it after."""
     cleanup_all_storages()
     headers = {'Authorization': 'Bearer mocked_token'}
 
-    storage_disk = Path(storage_settings.storage_path)
+    storage_type: Literal['nfs', 'localfs'] = getattr(
+        request, 'param', 'localfs'
+    )
+
+    specs: Union[NfsStorageExtraSpecsCreate, LocalFSStorageExtraSpecsCreate]
+    if storage_type == 'nfs':
+        specs = NfsStorageExtraSpecsCreate(
+            ip=ipaddress.IPv4Address(storage_settings.storage_nfs_ip),
+            path=Path(storage_settings.storage_nfs_path),
+            mount_version='4',
+        )
+    else:
+        specs = LocalFSStorageExtraSpecsCreate(
+            path=Path(storage_settings.storage_path),
+            fs_type='ext4'
+        )
 
     storage_data = CreateStorage(
         name=generate_test_entity_name('storage'),
         description='Test storage for integration tests',
-        storage_type='localfs',
-        specs=LocalFSStorageExtraSpecsCreate(path=storage_disk, fs_type='ext4'),
+        storage_type=storage_type,
+        specs=specs,
     )
     response = client.post(
         '/storages/create/',
@@ -218,7 +238,7 @@ def volume(client: TestClient, storage: Dict) -> Generator[Dict, None, None]:
 def template(
     client: TestClient, storage: Dict, volume: Dict
 ) -> Generator[Dict, None, None]:
-    """Creates a test volume and deletes it after each test."""
+    """Creates a test template and deletes it after each test."""
     template_data = RequestCreateTemplate(
         base_volume_id=volume['id'],
         name=generate_test_entity_name(entity_type='template'),
@@ -238,7 +258,7 @@ def template(
 
     yield template
 
-    delete_resource(client, '/templates', template['id'], 'volume')
+    delete_resource(client, '/templates', template['id'], 'template')
 
 
 @pytest.fixture(scope='function')

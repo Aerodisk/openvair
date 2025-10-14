@@ -35,7 +35,10 @@ def target_disk_path(client: TestClient) -> Generator[str, Any, None]:
     target_disk_path = ''
     for disk in disks_data['disks']:
         if disk['path'] == str(storage_settings.storage_path):
-            target_disk_path = disk['parent']
+            if disk.get('parent'):
+                target_disk_path = disk['parent']
+            else:
+                target_disk_path = disk['path']
             break
 
     pre_existing_partitions = get_disk_partitions(target_disk_path)
