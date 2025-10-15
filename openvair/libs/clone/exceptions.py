@@ -26,3 +26,12 @@ class CloneNameTooLong(BaseCustomException):
     def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
         """Initialize the CloneNameTooLong with a message."""
         super().__init__(message, *args)
+
+
+class NoAvailableMacForClone(BaseCustomException):
+    """Raised when there is no available MAC address for a copy."""
+
+    def __init__(self, message: str, *args: Any) -> None:  # noqa: ANN401 # TODO need to parameterize the arguments correctly, in accordance with static typing
+        """Initialize the NoAvailableMacForClone with a message."""
+        super().__init__(message, *args)
+
