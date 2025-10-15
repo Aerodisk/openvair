@@ -81,6 +81,7 @@ class VirtualMachines(Base):
     )
     name: Mapped[str] = mapped_column(
         String(60),
+        unique=True,
         nullable=True,
     )
     description: Mapped[str] = mapped_column(
@@ -150,6 +151,7 @@ class VirtualMachines(Base):
         'Snapshots',
         back_populates='virtual_machine',
         order_by='Snapshots.created_at',
+        cascade='all, delete-orphan',
     )
 
 
