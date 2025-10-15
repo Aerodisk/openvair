@@ -32,7 +32,8 @@ def test_delete_snapshot_success(
     vm_name = activated_virtual_machine['name']
     snapshot_id = vm_snapshot['id']
     snapshot_name = vm_snapshot['name']
-    libvirt_snapshots, libvirt_current = get_vm_snapshots(vm_name)
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
     assert snapshot_name in libvirt_snapshots
 
     response = client.delete(
@@ -50,9 +51,11 @@ def test_delete_snapshot_success(
     assert response.status_code == status.HTTP_200_OK
     list_data = response.json()
     assert len(list_data['snapshots']) == 0
-    final_libvirt_snapshots, final_libvirt_current = get_vm_snapshots(vm_name)
-    assert snapshot_name not in final_libvirt_snapshots
-    assert final_libvirt_current is None
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
+    assert snapshot_name not in libvirt_snapshots
+    assert libvirt_current_snapshot is None
     with VMSqlAlchemyUnitOfWork() as uow:
         assert not uow.snapshots.get(snapshot_id)
 
@@ -139,7 +142,8 @@ def test_delete_snapshot_chain_success(
     assert snap1['name'] in remaining_snapshot_names
     assert snap3['name'] in remaining_snapshot_names
     assert snap2['name'] not in remaining_snapshot_names
-    libvirt_snapshots, current_snapshot = get_vm_snapshots(vm_name)
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
     assert snap1['name'] in libvirt_snapshots
     assert snap3['name'] in libvirt_snapshots
     assert snap2['name'] not in libvirt_snapshots
