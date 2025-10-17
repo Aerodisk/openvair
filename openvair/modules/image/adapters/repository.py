@@ -26,6 +26,7 @@ from openvair.common.repositories.base_sqlalchemy import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
+
 class ImageSqlAlchemyRepository(BaseSqlAlchemyRepository[Image]):
     """SQLAlchemy-based implementation of the AbstractRepository.
 

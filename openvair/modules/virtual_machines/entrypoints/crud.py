@@ -41,11 +41,11 @@ class VMCrud:
             queue_name=API_SERVICE_LAYER_QUEUE_NAME
         )
 
-    def get_vm(self, vm_id: str) -> Dict:
+    def get_vm(self, vm_id: UUID) -> Dict:
         """Retrieve a virtual machine by its ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine to retrieve.
+            vm_id (UUID): The ID of the virtual machine to retrieve.
 
         Returns:
             Dict: The virtual machine data.
@@ -53,12 +53,12 @@ class VMCrud:
         LOG.info('Call service layer to get VM by ID: %s.', vm_id)
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.get_vm.__name__,
-            data_for_method={'vm_id': vm_id},
+            data_for_method={'vm_id': str(vm_id)},
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def get_all_vms(self) -> List:
+    def get_all_vms(self) -> List[schemas.VirtualMachineInfo]:
         """Retrieve all virtual machines.
 
         Returns:
@@ -91,11 +91,11 @@ class VMCrud:
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def delete_vm(self, vm_id: str, user_info: Dict) -> Dict:
+    def delete_vm(self, vm_id: UUID, user_info: Dict) -> Dict:
         """Delete a virtual machine by its ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine to delete.
+            vm_id (UUID): The ID of the virtual machine to delete.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -104,16 +104,16 @@ class VMCrud:
         LOG.info('Call service layer to delete VM by ID: %s.', vm_id)
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.delete_vm.__name__,
-            data_for_method={'vm_id': vm_id, 'user_info': user_info},
+            data_for_method={'vm_id': str(vm_id), 'user_info': user_info},
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def start_vm(self, vm_id: str, user_info: Dict) -> Dict:
+    def start_vm(self, vm_id: UUID, user_info: Dict) -> Dict:
         """Start a virtual machine by its ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine to start.
+            vm_id (UUID): The ID of the virtual machine to start.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -122,16 +122,16 @@ class VMCrud:
         LOG.info('Call service layer to start VM by ID: %s.', vm_id)
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.start_vm.__name__,
-            data_for_method={'vm_id': vm_id, 'user_info': user_info},
+            data_for_method={'vm_id': str(vm_id), 'user_info': user_info},
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def shut_off_vm(self, vm_id: str, user_info: Dict) -> Dict:
+    def shut_off_vm(self, vm_id: UUID, user_info: Dict) -> Dict:
         """Shut off a virtual machine by its ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine to shut off.
+            vm_id (UUID): The ID of the virtual machine to shut off.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -140,16 +140,16 @@ class VMCrud:
         LOG.info('Call service layer to shut off VM by ID: %s.', vm_id)
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.shut_off_vm.__name__,
-            data_for_method={'vm_id': vm_id, 'user_info': user_info},
+            data_for_method={'vm_id': str(vm_id), 'user_info': user_info},
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def edit_vm(self, vm_id: str, data: Dict, user_info: Dict) -> Dict:
+    def edit_vm(self, vm_id: UUID, data: Dict, user_info: Dict) -> Dict:
         """Edit a virtual machine by its ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine to edit.
+            vm_id (UUID): The ID of the virtual machine to edit.
             data (Dict): The data to update the virtual machine.
             user_info (Dict): The user information for authorization.
 
@@ -157,7 +157,7 @@ class VMCrud:
             Dict: The updated virtual machine data.
         """
         LOG.info('Call service layer to edit VM by ID: %s.', vm_id)
-        data.update({'vm_id': vm_id, 'user_info': user_info})
+        data.update({'vm_id': str(vm_id), 'user_info': user_info})
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.edit_vm.__name__,
             data_for_method=data,
@@ -165,11 +165,11 @@ class VMCrud:
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def vnc(self, vm_id: str, user_info: Dict) -> Dict:
+    def vnc(self, vm_id: UUID, user_info: Dict) -> Dict:
         """Access the VNC session of a virtual machine by its ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine.
+            vm_id (UUID): The ID of the virtual machine.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -177,13 +177,13 @@ class VMCrud:
         """
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.vnc.__name__,
-            data_for_method={'vm_id': vm_id, 'user_info': user_info},
+            data_for_method={'vm_id': str(vm_id), 'user_info': user_info},
         )
         return result
 
     def clone_vm(
         self,
-        vm_id: str,
+        vm_id: UUID,
         count: int,
         target_storage_id: UUID,
         user_info: Dict,
@@ -191,7 +191,7 @@ class VMCrud:
         """Clone a virtual machine.
 
         Args:
-            vm_id (str): The ID of the virtual machine to copy.
+            vm_id (UUID): The ID of the virtual machine to copy.
             count (int): The number of copies to create.
             user_info (Dict): The user information for authorization.
             target_storage_id (UUID): ID of storage where the volume will be
@@ -206,7 +206,7 @@ class VMCrud:
         result: List[Dict] = self.service_layer_rpc.call(
             services.VMServiceLayerManager.clone_vm.__name__,
             data_for_method={
-                'vm_id': vm_id,
+                'vm_id': str(vm_id),
                 'count': count,
                 'user_info': user_info,
                 'target_storage_id': str(target_storage_id),
@@ -215,11 +215,11 @@ class VMCrud:
         LOG.debug(f'Response from service layer: {result}')
         return result
 
-    def get_snapshots(self, vm_id: str, user_info: Dict) -> List:
+    def get_snapshots(self, vm_id: UUID, user_info: Dict) -> List:
         """Retrieve all snapshots of a virtual machine.
 
         Args:
-            vm_id (str): The ID of the virtual machine.
+            vm_id (UUID): The ID of the virtual machine.
             user_info (Dict): The user information for authorization.
 
         Returns:
@@ -228,44 +228,42 @@ class VMCrud:
         LOG.info(f'Call service layer to get snapshots of VM with ID: {vm_id}')
         result: List = self.service_layer_rpc.call(
             services.VMServiceLayerManager.get_snapshots.__name__,
-            data_for_method={'vm_id': vm_id, 'user_info': user_info},
+            data_for_method={'vm_id': str(vm_id), 'user_info': user_info},
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def get_snapshot(
-            self, vm_id: str, snap_id: str, user_info: Dict
-    ) -> Dict:
+    def get_snapshot(self, vm_id: UUID, snap_id: UUID, user_info: Dict) -> Dict:
         """Retrieve a snapshot of a specific virtual machine by snapshot ID.
 
         Args:
-            vm_id (str): The ID of the virtual machine.
-            snap_id (str): The ID of the snapshot.
+            vm_id (UUID): The ID of the virtual machine.
+            snap_id (UUID): The ID of the snapshot.
             user_info (Dict): The user information for authorization.
 
         Returns:
             Dict: The snapshot data.
         """
-        LOG.info(f'Call service layer to get snapshot of VM (ID: {vm_id}) '
-                 f'by snapshot ID: {snap_id}.')
+        LOG.info(
+            f'Call service layer to get snapshot of VM (ID: {vm_id}) '
+            f'by snapshot ID: {snap_id}.'
+        )
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.get_snapshot.__name__,
             data_for_method={
-                'vm_id': vm_id,
-                'snap_id': snap_id,
-                'user_info': user_info
+                'vm_id': str(vm_id),
+                'snap_id': str(snap_id),
+                'user_info': user_info,
             },
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
-    def create_snapshot(
-            self, vm_id: str, data: Dict, user_info: Dict
-    ) -> Dict:
+    def create_snapshot(self, vm_id: UUID, data: Dict, user_info: Dict) -> Dict:
         """Create a new snapshot of the virtual machine.
 
         Args:
-            vm_id (str): The ID of the virtual machine where snapshot will be
+            vm_id (UUID): The ID of the virtual machine where snapshot will be
             created.
             data (Dict): The data required to create a new snapshot of the
             virtual machine.
@@ -274,8 +272,10 @@ class VMCrud:
         Returns:
             Dict: The created snapshot data matching SnapshotInfo schema.
         """
-        LOG.info(f'Call service layer to create snapshot of VM (ID: {vm_id}) '
-                 f'with data: {data}')
+        LOG.info(
+            f'Call service layer to create snapshot of VM (ID: {vm_id}) '
+            f'with data: {data}'
+        )
         data.update({'vm_id': str(vm_id), 'user_info': user_info})
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.create_snapshot.__name__,
@@ -285,52 +285,58 @@ class VMCrud:
         return result
 
     def revert_snapshot(
-            self, vm_id: str, snap_id: str, user_info: Dict
+        self, vm_id: UUID, snap_id: UUID, user_info: Dict
     ) -> Dict:
         """Revert a virtual machine to a snapshot.
 
         Args:
-            vm_id (str): The ID of the virtual machine where the snapshot
+            vm_id (UUID): The ID of the virtual machine where the snapshot
             will be reverted.
-            snap_id (str): The ID of the snapshot to revert.
+            snap_id (UUID): The ID of the snapshot to revert.
             user_info (Dict): The user information for authorization.
 
         Returns:
             Dict: The reverted snapshot data matching SnapshotInfo schema.
         """
-        LOG.info(f'Call service layer to revert snapshot of VM (ID: {vm_id}) '
-                 f'with snapshot ID: {snap_id}')
+        LOG.info(
+            f'Call service layer to revert snapshot of VM (ID: {vm_id}) '
+            f'with snapshot ID: {snap_id}'
+        )
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.revert_snapshot.__name__,
             data_for_method={
-                'vm_id': vm_id,
-                'snap_id': snap_id,
-                'user_info': user_info
+                'vm_id': str(vm_id),
+                'snap_id': str(snap_id),
+                'user_info': user_info,
             },
         )
         LOG.debug('Response from service layer: %s.', result)
         return result
 
     def delete_snapshot(
-            self, vm_id: str, snap_id: str, user_info: Dict
+        self, vm_id: UUID, snap_id: UUID, user_info: Dict
     ) -> Dict:
         """Delete a snapshot of virtual machine.
 
         Args:
-            vm_id (str): The ID of the virtual machine where the snapshot
+            vm_id (UUID): The ID of the virtual machine where the snapshot
             will be deleted.
-            snap_id (str): The ID of the snapshot to delete.
+            snap_id (UUID): The ID of the snapshot to delete.
             user_info (Dict): The user information for authorization.
 
         Returns:
             Dict: The deleted snapshot data matching SnapshotInfo schema.
         """
-        LOG.info(f'Call service layer to delete snapshot of VM (ID: {vm_id}) '
-                 f'with snapshot ID: {snap_id}')
+        LOG.info(
+            f'Call service layer to delete snapshot of VM (ID: {vm_id}) '
+            f'with snapshot ID: {snap_id}'
+        )
         result: Dict = self.service_layer_rpc.call(
             services.VMServiceLayerManager.delete_snapshot.__name__,
             data_for_method={
-                'vm_id': vm_id, 'snap_id': snap_id, 'user_info': user_info
+                'vm_id': str(vm_id),
+                'snap_id': str(snap_id),
+                'user_info': user_info,
             },
         )
         LOG.debug('Response from service layer: %s.', result)

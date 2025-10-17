@@ -91,7 +91,7 @@ class ImageCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_all_images(self, storage_id: Optional[UUID]) -> List:
+    def get_all_images(self, storage_id: Optional[UUID]) -> List[schemas.Image]:
         """Retrieve a list of all images, optionally filtered by storage ID.
 
         This method sends a request to the service layer to fetch a list

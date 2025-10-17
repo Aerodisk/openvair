@@ -52,7 +52,7 @@ class StorageCrud:
         LOG.debug('Response from service layer: %s.' % result)
         return result
 
-    def get_all_storages(self) -> List[schemas.BaseModel]:
+    def get_all_storages(self) -> List[schemas.Storage]:
         """Retrieve all storages from the database.
 
         Returns:

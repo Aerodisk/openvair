@@ -81,6 +81,7 @@ class VirtualMachines(Base):
     )
     name: Mapped[str] = mapped_column(
         String(60),
+        unique=True,
         nullable=True,
     )
     description: Mapped[str] = mapped_column(
@@ -150,6 +151,7 @@ class VirtualMachines(Base):
         'Snapshots',
         back_populates='virtual_machine',
         order_by='Snapshots.created_at',
+        cascade='all, delete-orphan',
     )
 
 
@@ -420,10 +422,7 @@ class Snapshots(Base):
         default=datetime.datetime.now,
     )
     is_current: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        index=True
+        Boolean, default=False, nullable=False, index=True
     )
 
     virtual_machine: Mapped[VirtualMachines] = relationship(

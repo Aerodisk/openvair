@@ -15,7 +15,7 @@ Functions:
     current snapshot name.
 """
 
-from typing import Set, Dict, Tuple, Optional
+from typing import Dict
 
 import libvirt
 
@@ -45,16 +45,16 @@ def get_vms_state() -> Dict[str, str]:
     return vms
 
 
-def get_vm_snapshots(vm_name: str) -> Tuple[Set[str], Optional[str]]:
+def get_vm_snapshots(vm_name: str) -> Dict:
     """Get all snapshots for a VM and its current snapshot name.
 
     Args:
         vm_name: Name of the virtual machine to check.
 
     Returns:
-        Tuple: (Set(str), Optional(str)) - tuple containing:
-        - Set of all snapshot names
-        - Name of current snapshot (None if no current snapshot)
+        Dict:
+            'snapshots': Set of all snapshot names
+            'current_snapshot': Name of current snapshot (None if no current)
     """
     with CONNECTION as conn:
         try:
@@ -62,13 +62,13 @@ def get_vm_snapshots(vm_name: str) -> Tuple[Set[str], Optional[str]]:
             snapshots = domain.listAllSnapshots()
             snap_names = {snap.getName() for snap in snapshots}
             if not snapshots:
-                return set(), None
+                return {'snapshots': set(), 'current_snapshot': None}
             try:
                 current_snap = domain.snapshotCurrent()
                 current_name = current_snap.getName() if current_snap else None
             except libvirt.libvirtError:
                 current_name = None
         except libvirt.libvirtError:
-            return set(), None
+            return {'snapshots': set(), 'current_snapshot': None}
         else:
-            return snap_names, current_name
+            return {'snapshots': snap_names, 'current_snapshot': current_name}

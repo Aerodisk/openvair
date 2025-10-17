@@ -48,9 +48,9 @@ from pydantic import Field, BaseModel
 class Cpu(BaseModel):
     """Schema for CPU information."""
 
-    cores: Optional[int] = 1
-    threads: Optional[int] = 1
-    sockets: Optional[int] = 1
+    cores: int = Field(1, gt=0, description="Number of CPU cores (> 0)")
+    threads: int = Field(1, gt=0, description="Number of CPU threads (> 0)")
+    sockets: int = Field(1, gt=0, description="Number of CPU sockets (> 0)")
     model: Literal['host'] = 'host'
     type: Literal['static', 'dynamic'] = 'static'
     vcpu: Optional[int] = None
@@ -59,7 +59,7 @@ class Cpu(BaseModel):
 class RAM(BaseModel):
     """Schema for RAM information."""
 
-    size: int
+    size: int = Field(..., gt=0, description="RAM size (> 0)")
 
 
 class Os(BaseModel):
@@ -93,8 +93,12 @@ class VirtualInterface(BaseModel):
         'virtual_network',
     ] = 'bridge'  # default???????
     portgroup: Optional[str] = None
-    interface: str
-    mac: str = '6C:4A:74:B4:FD:59'  # default start 6C:4A:74:
+    interface: str = Field(..., min_length=1, description="Virtual Interface")
+    mac: str = Field(
+        default='6C:4A:74:B4:FD:59',  # default start 6C:4A:74:
+        pattern=r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$',
+        description="MAC address in format XX:XX:XX:XX:XX:XX",
+    )
     model: Literal['virtio', 'bridge'] = 'virtio'
     order: Optional[int] = None
 
@@ -111,7 +115,7 @@ class QOS(BaseModel):
 class Disk(BaseModel):
     """Schema for disk information."""
 
-    name: Optional[str] = None
+    name: Optional[str] = ""
     emulation: Literal['virtio', 'ide', 'scsi', 'sata'] = 'virtio'
     format: Literal['qcow2', 'raw'] = 'qcow2'
     qos: QOS
@@ -150,7 +154,9 @@ class CreateVmDisks(BaseModel):
 class CreateVirtualMachine(BaseModel):
     """Schema for creating a virtual machine."""
 
-    name: str  # VM name
+    name: str = Field(
+        ..., min_length=1, max_length=60, description="VM name (1-60)"
+    )
     description: Optional[str] = None
     os: Os
     cpu: Cpu
@@ -258,7 +264,9 @@ class EditVirtualInterfaces(BaseModel):
 class EditVm(BaseModel):
     """Schema for editing a virtual machine."""
 
-    name: str
+    name: str = Field(
+        ..., min_length=1, max_length=60, description="VM name (1-60)"
+    )
     description: str
     cpu: Cpu
     ram: RAM
@@ -271,7 +279,7 @@ class EditVm(BaseModel):
 class CloneVm(BaseModel):
     """Schema for cloning a virtual machine."""
 
-    count: int = Field(1, description='Number of clones')
+    count: int = Field(1, ge=1, le=999, description='Number of clones (1-999)')
     target_storage_id: UUID = Field(
         ..., description='ID of storage where the volume will be created'
     )
@@ -327,5 +335,7 @@ class CreateSnapshot(BaseModel):
         description (Optional[str]): The optional description of the snapshot.
     """
 
-    name: str
+    name: str = Field(
+        ..., min_length=1, max_length=60, description="Snapshot name (1-60)"
+    )
     description: Optional[str] = None

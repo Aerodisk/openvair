@@ -17,11 +17,11 @@ import libvirt
 from openvair.libs.log import get_logger
 from openvair.libs.cli.models import ExecuteParams
 from openvair.libs.cli.executor import execute
-from openvair.libs.cli.exceptions import ExecuteError
-from openvair.modules.virtual_machines.config import (
-    SERVER_IP,
-    SNAPSHOTS_PATH,
+from openvair.modules.virtual_machines.vnc import (
+    VNCManager,
+    VncManagerError,
 )
+from openvair.modules.virtual_machines.config import SNAPSHOTS_PATH
 from openvair.modules.virtual_machines.domain.base import BaseLibvirtDriver
 from openvair.modules.virtual_machines.domain.exceptions import (
     SnapshotError,
@@ -55,6 +55,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         self.snapshot_info = kwargs.pop('snapshot_info', None)
         self.vm_info = kwargs
         self.vm_xml = self.render_domain(self.vm_info)
+        self.vnc_manager = VNCManager()
 
     def start(self) -> Dict:
         """Start the virtual machine.
@@ -80,7 +81,6 @@ class LibvirtDriver(BaseLibvirtDriver):
             LOG.info(f'Generated graphic_url: {graphic_url}')
             LOG.info(f'Generated graphic_port: {graphic_port}')
 
-            # Save the graphic interface information
             self.vm_info['graphic_interface'] = {
                 'url': f'{graphic_url}:{graphic_port}' if graphic_url else '',
             }
@@ -102,7 +102,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         """
         vm_name = self.vm_info.get('name')
         snap_dir = Path(SNAPSHOTS_PATH)
-        pattern = f"{vm_name}_*.xml"
+        pattern = f'{vm_name}_*.xml'
         snap_files = list(snap_dir.glob(pattern))
 
         LOG.info(f'Starting redefine snapshots of VM {vm_name}')
@@ -116,14 +116,14 @@ class LibvirtDriver(BaseLibvirtDriver):
                     xml_content
                 )
                 if not creation_time_str:
-                    LOG.error(f"Missing creationTime in snapshot {snap_file}")
+                    LOG.error(f'Missing creationTime in snapshot {snap_file}')
                     continue
                 creation_time = int(creation_time_str)
                 snap_list.append((snap_file, xml_content, creation_time))
             except (IOError, OSError) as e:
-                LOG.error(f"Error reading snapshot file {snap_file}: {e}")
+                LOG.error(f'Error reading snapshot file {snap_file}: {e}')
             except SnapshotXmlError as err:
-                LOG.error(f"XML parsing error in snapshot {snap_file}: {err}")
+                LOG.error(f'XML parsing error in snapshot {snap_file}: {err}')
 
         snap_list.sort(key=lambda x: x[2])
         redefined_snapshots = self._redefine_snapshots(snap_list)
@@ -153,23 +153,24 @@ class LibvirtDriver(BaseLibvirtDriver):
                     snap_name = self._get_snapshot_name_from_xml(xml_content)
                     if snap_name == current_snap_name:
                         flag |= libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT
-                        LOG.info(f"Setting snapshot {snap_name} as current")
+                        LOG.info(f'Setting snapshot {snap_name} as current')
                     snapshot = domain.snapshotCreateXML(xml_content, flags=flag)
                     if snapshot:
                         successful_snaps.append(snap_name)
-                        LOG.info(f"Successfully redefined snapshot {snap_name}")
+                        LOG.info(f'Successfully redefined snapshot {snap_name}')
                     else:
-                        message = f"Failed redefine snapshot from {file_path}"
+                        message = f'Failed redefine snapshot from {file_path}'
                         LOG.error(message)
                 except libvirt.libvirtError as e:
-                    message = f"Libvirt error redefining snapshot: {e}"
+                    message = f'Libvirt error redefining snapshot: {e}'
                     LOG.error(message)
         return successful_snaps
 
     def turn_off(self) -> Dict:
         """Turn off the virtual machine.
 
-        This method stops the virtual machine using the Libvirt API.
+        This method stops the virtual machine using the Libvirt API and
+        cleans up any associated VNC resources.
 
         Returns:
             Dict: An empty dictionary representing the result of the operation.
@@ -179,23 +180,55 @@ class LibvirtDriver(BaseLibvirtDriver):
             virtual machine.
         """
         LOG.info(f'Turning off VM {self.vm_info.get("name")}')
-        with self.connection as connection:
-            domain = connection.lookupByName(self.vm_info.get('name'))
-            domain.destroy()
+
+        try:
+            with self.connection as connection:
+                domain = connection.lookupByName(self.vm_info.get('name'))
+                domain.destroy()
+        finally:
+            self._cleanup_vnc_session()
+
         return {}
+
+    def _cleanup_vnc_session(self) -> None:
+        """Clean up VNC session resources for this VM.
+
+        This method stops the websockify process and releases the allocated
+        WebSocket port if a VNC session was active.
+        """
+        vnc_session = self.vm_info.get('vnc_session')
+        if not vnc_session:
+            return
+
+        vm_name = self.vm_info.get('name')
+        LOG.info(f'Cleaning up VNC session for VM {vm_name}')
+
+        try:
+            success = self.vnc_manager.stop_vnc_session(str(vm_name))
+            if success:
+                LOG.info(f'VNC session stopped for VM {vm_name}')
+            else:
+                LOG.warning(f'No active VNC session found for VM {vm_name}')
+
+            if 'vnc_session' in self.vm_info:
+                del self.vm_info['vnc_session']
+            LOG.info(f'VNC session cleanup completed for VM {vm_name}')
+        except Exception as e:  # noqa: BLE001 TODO: Should be more specific
+            msg = f'Error during VNC session cleanup for VM {vm_name}: {e}'
+            LOG.warning(msg)
 
     def vnc(self) -> Dict:
         """Start a VNC session for the virtual machine.
 
-        This method starts a VNC session using the `websockify` tool and
-        returns the URL for accessing the VNC session.
+        This method starts a VNC session using the VNC manager
+        to ensure no port conflicts occur during mass VM startup.
 
         Returns:
             Dict: A dictionary containing the URL of the VNC session.
 
         Raises:
             ValueError: If the graphic interface URL is not set or is invalid.
-            RuntimeError: If starting `websockify` fails.
+            VNCSessionError: If starting VNC session fails.
         """
         LOG.info(f'Starting VNC for VM {self.vm_info.get("name")}')
 
@@ -214,35 +247,40 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         try:
             port = vm_url.split(':')[-1]
-            vnc_port = f'6{port[1:]}'
-        except (AttributeError, IndexError) as err:
+            vnc_port = int(port)
+        except (AttributeError, IndexError, ValueError) as err:
             LOG.error(f'Invalid graphic interface URL format: {vm_url}')
             msg = f'Invalid graphic interface URL format: {vm_url}'
             raise ValueError(msg) from err
 
-        try:
-            execute(
-                'websockify',
-                '-D',
-                '--run-once',
-                '--web',
-                '/opt/aero/openvair/openvair/libs/noVNC/',
-                vnc_port,
-                f'localhost:{port}',
-                params=ExecuteParams(  # noqa: S604
-                    run_as_root=True, shell=True, raise_on_error=True
-                ),
-            )
-        except (ExecuteError, OSError) as err:
-            msg = f'Failed to start websockify: {err!s}'
-            LOG.error(msg)
-            raise VNCSessionError(msg)
+        vm_name = self.vm_info.get('name')
 
-        vnc_url = (
-            f'http://{SERVER_IP}:{vnc_port}/vnc.html?'
-            f'host={SERVER_IP}&port={vnc_port}'
-        )
-        return {'url': vnc_url}
+        try:
+            session_result = self.vnc_manager.start_vnc_session(
+                vm_name=str(vm_name),
+                vnc_host='localhost',
+                vnc_port=vnc_port,
+            )
+
+            self.vm_info['vnc_session'] = {
+                'ws_port': int(session_result['ws_port']),
+                'pid': int(session_result['pid']),
+                'url': session_result['url'],
+            }
+
+            LOG.info(
+                f'Successfully started VNC session for VM {vm_name}: '
+                f'{session_result["url"]}'
+            )
+            return {'url': session_result['url']}
+        except VncManagerError as err:
+            msg = f'VNC manager error: {err!s}'
+            LOG.error(msg)
+            raise VNCSessionError(msg) from err
+        except Exception as err:
+            msg = f'Unexpected error starting VNC session: {err!s}'
+            LOG.error(msg)
+            raise VNCSessionError(msg) from err
 
     def create_internal_snapshot(self) -> None:
         """Create an internal snapshot of the virtual machine.
@@ -273,27 +311,31 @@ class LibvirtDriver(BaseLibvirtDriver):
                 snapshot = domain.snapshotCreateXML(snapshot_xml, flags=0)
 
                 if not snapshot:
-                    message = (f"Failed to create snapshot {name} "
-                               f"for VM {vm_name}")
+                    message = (
+                        f'Failed to create snapshot {name} ' f'for VM {vm_name}'
+                    )
                     raise SnapshotError(message)
                 snap_xml_desc = snapshot.getXMLDesc()
-                snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{name}.xml")
+                snapshot_file = Path(f'{SNAPSHOTS_PATH}{vm_name}_{name}.xml')
 
                 try:
                     snapshot_file.parent.mkdir(parents=True, exist_ok=True)
                     with snapshot_file.open('w', encoding='utf-8') as f:
                         f.write(snap_xml_desc)
-                    LOG.debug(f"Saved snapshot XML to {snapshot_file}")
+                    LOG.debug(f'Saved snapshot XML to {snapshot_file}')
                 except (IOError, OSError) as e:
-                    message = f"Failed to save snapshot XML: {e}"
+                    message = f'Failed to save snapshot XML: {e}'
                     raise SnapshotError(message)
 
-                LOG.info(f'Successfully created snapshot {name} '
-                         f'for VM {vm_name}')
+                LOG.info(
+                    f'Successfully created snapshot {name} ' f'for VM {vm_name}'
+                )
 
             except libvirt.libvirtError as e:
-                message = (f"Libvirt error while creating snapshot {name} "
-                           f"for VM {vm_name}: {e}")
+                message = (
+                    f'Libvirt error while creating snapshot {name} '
+                    f'for VM {vm_name}: {e}'
+                )
                 LOG.error(message)
                 raise SnapshotError(message)
 
@@ -316,11 +358,15 @@ class LibvirtDriver(BaseLibvirtDriver):
 
             try:
                 domain.revertToSnapshot(snapshot)
-                LOG.info(f'Successfully reverted VM {vm_name} to the '
-                         f'snapshot {name}')
+                LOG.info(
+                    f'Successfully reverted VM {vm_name} to the '
+                    f'snapshot {name}'
+                )
             except libvirt.libvirtError as e:
-                message = (f"Libvirt error while reverting VM {vm_name} to the "
-                           f"snapshot {name}: {e}")
+                message = (
+                    f'Libvirt error while reverting VM {vm_name} to the '
+                    f'snapshot {name}: {e}'
+                )
                 LOG.error(message)
                 raise SnapshotError(message)
 
@@ -341,7 +387,7 @@ class LibvirtDriver(BaseLibvirtDriver):
         snapshot_name = self.snapshot_info.get('snapshot_name')
         children_names = self.snapshot_info.get('children_names', [])
         if not vm_name or not snapshot_name:
-            message = "VM name or snapshot name is missing or invalid"
+            message = 'VM name or snapshot name is missing or invalid'
             raise SnapshotError(message)
 
         LOG.info(f'Deleting snapshot for VM {vm_name}')
@@ -353,19 +399,18 @@ class LibvirtDriver(BaseLibvirtDriver):
                 self._delete_with_qemu(vm_name, snapshot_name)
             self._update_snapshots_xml(vm_name, snapshot_name, children_names)
         except SnapshotError as e:
-            message = f"Failed to delete snapshot: {e}"
+            message = f'Failed to delete snapshot: {e}'
             raise SnapshotError(message)
         else:
             self._cleanup_snapshot_files(vm_name, snapshot_name)
-            LOG.info(f'Successfully deleted snapshot {snapshot_name} '
-                     f'for VM {vm_name}')
+            LOG.info(
+                f'Successfully deleted snapshot {snapshot_name} '
+                f'for VM {vm_name}'
+            )
             return {}
 
     def _update_snapshots_xml(
-            self,
-            vm_name: str,
-            snapshot_name: str,
-            children_names: List[str]
+        self, vm_name: str, snapshot_name: str, children_names: List[str]
     ) -> None:
         """Update XML references for child snapshots after parent deletion.
 
@@ -377,29 +422,28 @@ class LibvirtDriver(BaseLibvirtDriver):
         Raises:
             SnapshotError: If XML processing fails
         """
-        snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{snapshot_name}.xml")
+        snapshot_file = Path(f'{SNAPSHOTS_PATH}{vm_name}_{snapshot_name}.xml')
         try:
             with snapshot_file.open('r', encoding='utf-8') as f:
                 snap_xml = f.read()
             parent_name = self._get_snapshot_parent_from_xml(snap_xml)
         except (IOError, OSError, SnapshotXmlError) as e:
-            message = f"Failed to read snapshot XML file: {e}"
+            message = f'Failed to read snapshot XML file: {e}'
             LOG.error(message)
             raise SnapshotError(message)
         for child_name in children_names:
-            child_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{child_name}.xml")
+            child_file = Path(f'{SNAPSHOTS_PATH}{vm_name}_{child_name}.xml')
             try:
                 with child_file.open('r', encoding='utf-8') as f:
                     child_xml = f.read()
                 updated_xml = self._update_snapshot_child_xml(
-                    child_xml,
-                    parent_name
+                    child_xml, parent_name
                 )
                 with child_file.open('w', encoding='utf-8') as f:
                     f.write(updated_xml)
-                LOG.debug(f"Updated parent reference in {child_file}")
+                LOG.debug(f'Updated parent reference in {child_file}')
             except (IOError, OSError, SnapshotXmlError) as e:
-                message = f"Failed to update child snapshot {child_name}: {e}"
+                message = f'Failed to update child snapshot {child_name}: {e}'
                 LOG.error(message)
                 raise SnapshotError(message)
 
@@ -411,14 +455,14 @@ class LibvirtDriver(BaseLibvirtDriver):
             vm_name (str): Name of the virtual machine
             snapshot_name (str): Name of the deleted snapshot
         """
-        snapshot_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{snapshot_name}.xml")
+        snapshot_file = Path(f'{SNAPSHOTS_PATH}{vm_name}_{snapshot_name}.xml')
 
         try:
             if snapshot_file.exists():
                 snapshot_file.unlink()
-                LOG.debug(f"Deleted snapshot XML file {snapshot_file}")
+                LOG.debug(f'Deleted snapshot XML file {snapshot_file}')
         except (IOError, OSError) as e:
-            LOG.warning(f"Failed to delete snapshot XML file: {e}")
+            LOG.warning(f'Failed to delete snapshot XML file: {e}')
 
     def _delete_with_libvirt(self, vm_name: str, snap_name: str) -> None:
         """Delete snapshot using libvirt API for running VMs.
@@ -436,8 +480,10 @@ class LibvirtDriver(BaseLibvirtDriver):
                 snapshot = domain.snapshotLookupByName(snap_name)
                 snapshot.delete(flags=0)
             except libvirt.libvirtError as e:
-                message = (f"Libvirt error while deleting snapshot "
-                           f"{snap_name} for VM {vm_name}: {e}")
+                message = (
+                    f'Libvirt error while deleting snapshot '
+                    f'{snap_name} for VM {vm_name}: {e}'
+                )
                 LOG.error(message)
                 raise SnapshotError(message)
 
@@ -452,7 +498,7 @@ class LibvirtDriver(BaseLibvirtDriver):
             SnapshotError: If qemu-img command fails or disk path is invalid
         """
         try:
-            snap_file = Path(f"{SNAPSHOTS_PATH}{vm_name}_{snap_name}.xml")
+            snap_file = Path(f'{SNAPSHOTS_PATH}{vm_name}_{snap_name}.xml')
             with snap_file.open('r', encoding='utf-8') as f:
                 snap_xml = f.read()
             disk_path = self._get_snapshot_disk_path_from_xml(snap_xml)
@@ -463,13 +509,11 @@ class LibvirtDriver(BaseLibvirtDriver):
                 f'"{snap_name}"',
                 disk_path,
                 params=ExecuteParams(  # noqa: S604
-                    shell=True,
-                    run_as_root=True,
-                    raise_on_error=True
-                )
+                    shell=True, run_as_root=True, raise_on_error=True
+                ),
             )
         except SnapshotError as e:
-            message = f"qemu-img snapshot deletion failed: {e}"
+            message = f'qemu-img snapshot deletion failed: {e}'
             raise SnapshotError(message)
 
     def _is_vm_running(self, vm_name: str) -> bool:

@@ -24,6 +24,7 @@ class RpcException(BaseCustomException):
         """Initialize the RpcCallException."""
         super().__init__(message, *args)
 
+
 class RpcCallException(RpcException):
     """Exception raised when an RPC call fails."""
 
