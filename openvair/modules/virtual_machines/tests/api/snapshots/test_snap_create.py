@@ -73,9 +73,11 @@ def test_create_snapshot_success(
     ).json()
     assert created_snapshot['status'] == 'running'
     assert created_snapshot['is_current'] is True
-    libvirt_snapshots, current_snapshot = get_vm_snapshots(vm_name)
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
     assert snapshot_data['name'] in libvirt_snapshots
-    assert current_snapshot == snapshot_data['name']
+    assert libvirt_current_snapshot == snapshot_data['name']
 
 
 def test_create_snapshot_missing_name(
@@ -224,8 +226,10 @@ def test_create_multiple_snapshots_chain(
             'running',
         )
 
-    libvirt_snapshots, current_snapshot = get_vm_snapshots(vm_name)
-    assert current_snapshot == f'chain_snapshot_{snapshots_num-1}'
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
+    assert libvirt_current_snapshot == f'chain_snapshot_{snapshots_num-1}'
 
     for i, snapshot in enumerate(snapshots):
         snapshot_details = client.get(

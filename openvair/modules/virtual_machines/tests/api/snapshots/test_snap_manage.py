@@ -55,9 +55,11 @@ def test_revert_snapshot_success(
     ).json()
     assert final_snapshot['status'] == 'running'
     assert final_snapshot['is_current'] is True
-    libvirt_snapshots, current_snapshot = get_vm_snapshots(vm_name)
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
     assert final_snapshot['name'] in libvirt_snapshots
-    assert current_snapshot == snapshot_name
+    assert libvirt_current_snapshot == snapshot_name
 
 
 def test_revert_snapshot_chain_success(
@@ -118,8 +120,9 @@ def test_revert_snapshot_chain_success(
         f'/virtual-machines/{vm_id}/snapshots/{snap1["id"]}'
     ).json()
     assert snap1_after['is_current'] is True
-    libvirt_snapshots, current_snapshot = get_vm_snapshots(vm_name)
-    assert current_snapshot == snap1['name']
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
+    assert libvirt_current_snapshot == snap1['name']
 
 
 def test_revert_snapshot_shutoff_vm(

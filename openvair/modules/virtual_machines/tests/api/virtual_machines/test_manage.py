@@ -201,9 +201,11 @@ def test_vm_restart_with_snapshot(
     initial_snapshot = initial_snapshot_response.json()
     assert initial_snapshot['status'] == 'running'
     assert initial_snapshot['is_current'] is True
-    initial_libvirt_snapshots, initial_current = get_vm_snapshots(vm_name)
-    assert snapshot_name in initial_libvirt_snapshots
-    assert initial_current == snapshot_name
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
+    assert snapshot_name in libvirt_snapshots
+    assert libvirt_current_snapshot == snapshot_name
 
     # Shut down VM
     shutdown_response = client.post(f'/virtual-machines/{vm_id}/shut-off/')
@@ -242,6 +244,8 @@ def test_vm_restart_with_snapshot(
         'running',
         timeout=SNAPSHOT_TIMEOUT,
     )
-    restored_libvirt_snapshots, restored_current = get_vm_snapshots(vm_name)
-    assert snapshot_name in restored_libvirt_snapshots
-    assert restored_current == snapshot_name
+    libvirt_snapshots_info = get_vm_snapshots(vm_name)
+    libvirt_snapshots = libvirt_snapshots_info['snapshots']
+    libvirt_current_snapshot = libvirt_snapshots_info['current_snapshot']
+    assert snapshot_name in libvirt_snapshots
+    assert libvirt_current_snapshot == snapshot_name
