@@ -1,21 +1,20 @@
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from openvair.modules.block_device.adapters.orm import Base as BlockDeviceBase
 from openvair.modules.event_store.adapters.orm import Base as EventBase
 from openvair.modules.image.adapters.orm import Base as ImageBase
 from openvair.modules.network.adapters.orm import Base as NetworkBase
+from openvair.modules.notification.adapters.orm import Base as NotificationBase
+from openvair.modules.scheduler.adapters.orm import Base as SchedulerBase
 from openvair.modules.storage.adapters.orm import Base as StorageBase
+from openvair.modules.template.adapters.orm import Base as TemplateBase
 from openvair.modules.user.adapters.orm import Base as UserBase
 from openvair.modules.virtual_machines.adapters.orm import Base as VMBase
+from openvair.modules.virtual_network.adapters.orm import Base as VirtualNetworkBase
 from openvair.modules.volume.adapters.orm import Base as VolumeBase
-from openvair.modules.notification.adapters.orm import Base as NotificationBase
-from openvair.modules.virtual_network.adapters.orm import (
-    Base as VirtualNetworkBase,
-)
-from openvair.modules.block_device.adapters.orm import Base as BlockDeviceBase
-from openvair.modules.template.adapters.orm import Base as TemplateBase
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -44,6 +43,7 @@ target_metadata = [
     VirtualNetworkBase.metadata,
     BlockDeviceBase.metadata,
     TemplateBase.metadata,
+    SchedulerBase.metadata,
 ]
 
 # other values from the config, defined by the needs of env.py,
@@ -64,12 +64,12 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option('sqlalchemy.url')
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={'paramstyle': 'named'},
+        dialect_opts={"paramstyle": "named"},
     )
 
     with context.begin_transaction():
@@ -85,14 +85,12 @@ def run_migrations_online() -> None:
     """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
-        prefix='sqlalchemy.',
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

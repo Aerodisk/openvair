@@ -18,6 +18,7 @@ db_container = 'postgres'
 data_path = '/opt/aero/openvair/data'
 
 [jwt]
+secret="44c04c1b8f645c1c6a7356c0fe23435286665253400a072449c7e5acbfa11742"
 algorithm = 'HS256'
 token_type = "bearer"
 access_token_expiration_minutes = 30
@@ -36,11 +37,11 @@ host = 'localhost'
 port = 9090
 
 [default_user]
-login = ''
-password = ''
+login = 'admin'
+password = 'admin'
 
 [os_data]
-os_type = ''
+os_type = 'ubuntu'
 
 [network]
 config_manager = 'ovs'

@@ -10,6 +10,7 @@ cffi==1.16.0
 charset-normalizer==3.3.2
 click==8.1.7
 cryptography==43.0.0
+croniter==6.0.0
 dnspython==2.6.1
 docutils==0.20.1
 ecdsa==0.19.0
