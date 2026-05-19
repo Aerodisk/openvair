@@ -80,6 +80,9 @@ from openvair.modules.network.entrypoints.api import router as network
 from openvair.modules.storage.entrypoints.api import router as storage
 from openvair.modules.template.entrypoints.api import router as tempalte_router
 from openvair.modules.dashboard.entrypoints.api import router as dashboard
+from openvair.modules.scheduler.entrypoints.api import (
+    router as scheduler_router,
+)
 from openvair.modules.event_store.entrypoints.api import router as event_store
 from openvair.modules.block_device.entrypoints.api import router as block_router
 from openvair.modules.notification.entrypoints.api import (
@@ -105,6 +108,7 @@ app.include_router(block_router)
 app.include_router(vn_router)
 app.include_router(backup_router)
 app.include_router(tempalte_router)
+app.include_router(scheduler_router)
 
 project_dir = Path(__file__).parent
 templates = Jinja2Templates(directory=project_dir / 'dist')
