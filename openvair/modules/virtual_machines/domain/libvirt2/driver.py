@@ -190,6 +190,48 @@ class LibvirtDriver(BaseLibvirtDriver):
 
         return {}
 
+    def restart(self) -> Dict:
+        """Restart the virtual machine.
+
+        This method restarts the running virtual machine using the Libvirt API
+        and returns the current power state and graphic connection data.
+
+        Returns:
+            Dict: A dictionary containing power_state, url and port.
+
+        Raises:
+            ValueError: If the virtual machine is not running.
+        """
+        vm_name = self.vm_info.get('name')
+        LOG.info(f'Restarting VM {vm_name}')
+
+        with self.connection as connection:
+            domain = connection.lookupByName(vm_name)
+            state, _ = domain.state()
+            if state != libvirt.VIR_DOMAIN_RUNNING:
+                msg = f'VM {vm_name} must be running to restart.'
+                LOG.error(msg)
+                raise ValueError(msg)
+
+            domain.reboot()
+            state, _ = domain.state()
+            domain_xml = domain.XMLDesc()
+            graphic_port = self._get_graphic_port_from_xml(domain_xml)
+            graphic_url = self._get_graphic_url(domain_xml)
+
+            LOG.info(f'Graphic_url after restart: {graphic_url}')
+            LOG.info(f'Graphic_port after restart: {graphic_port}')
+
+            self.vm_info['graphic_interface'] = {
+                'url': f'{graphic_url}:{graphic_port}' if graphic_url else '',
+            }
+
+        return {
+            'power_state': state,
+            'url': graphic_url,
+            'port': graphic_port,
+        }
+
     def _cleanup_vnc_session(self) -> None:
         """Clean up VNC session resources for this VM.
 

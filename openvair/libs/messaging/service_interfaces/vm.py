@@ -84,6 +84,17 @@ class VMServiceLayerProtocolInterface(Protocol):
         """
         ...
 
+    def restart_vm(self, data: Dict) -> Dict:
+        """Restart a VM.
+
+        Args:
+            data (Dict): Data containing the VM ID.
+
+        Returns:
+            Dict: Serialized VM data.
+        """
+        ...
+
     def edit_vm(self, edit_info: Dict) -> Dict:
         """Edit an existing VM.
 

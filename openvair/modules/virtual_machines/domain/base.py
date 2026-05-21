@@ -69,6 +69,16 @@ class BaseVMDriver:
         pass
 
     @abc.abstractmethod
+    def restart(self) -> Dict:
+        """Restart the virtual machine.
+
+        Returns:
+            Dict: A dictionary containing the result of the restart
+            operation.
+        """
+        pass
+
+    @abc.abstractmethod
     def vnc(self) -> Dict:
         """Start a VNC session for the virtual machine.
 
@@ -155,6 +165,20 @@ class BaseLibvirtDriver(BaseVMDriver):
 
         Returns:
             Dict: A dictionary containing the result of the turn-off
+            operation.
+
+        Raises:
+            NotImplementedError: If the method is not implemented.
+        """
+        raise NotImplementedError
+
+    def restart(self) -> Dict:
+        """Restart the virtual machine.
+
+        This method should be implemented by subclasses.
+
+        Returns:
+            Dict: A dictionary containing the result of the restart
             operation.
 
         Raises:

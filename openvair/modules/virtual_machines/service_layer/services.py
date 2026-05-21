@@ -22,6 +22,7 @@ Functions:
     delete_vm: Delete a virtual machine by ID.
     start_vm: Start a virtual machine by ID.
     shut_off_vm: Shut off a virtual machine by ID.
+    restart_vm: Restart a virtual machine by ID.
     edit_vm: Edit a virtual machine by ID.
     vnc: Access the VNC session of a virtual machine.
     get_snapshot: Retrieve a snapshot of a virtual machine.
@@ -136,6 +137,7 @@ class VmStatus(enum.Enum):
     shut_offing = 11
     editing = 12
     deleting_snapshots = 13
+    restarting = 14
 
 
 class VmPowerState(enum.Enum):
@@ -1161,6 +1163,113 @@ class VMServiceLayerManager(BackgroundTasks):
                 f'VM {vm_name} was successfully shut off.',
             )
             LOG.info('Response on _shut_off_vm was successfully processed.')
+
+    def restart_vm(self, data: Dict) -> Dict:
+        """Restart a virtual machine by ID.
+
+        This function changes the VM's status to restarting and then
+        sends an asynchronous request to restart the VM in the domain layer.
+
+        Args:
+            data (Dict): The data containing the ID of the virtual machine
+                to restart.
+
+        Returns:
+            Dict: The serialized virtual machine data.
+        """
+        LOG.info('Handling response on restart_vm.')
+        vm_id = str(data.pop('vm_id', ''))
+        user_info = data.pop('user_info', {})
+        with self.uow() as uow:
+            db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+            vm_name = db_vm.name
+            try:
+                self._check_vm_status(db_vm.status, [VmStatus.available.name])
+                self._check_vm_power_state(
+                    db_vm.power_state, [VmPowerState.running.name]
+                )
+            except (
+                exceptions.VMStatusException,
+                exceptions.VMPowerStateException,
+            ) as err:
+                db_vm.status = VmStatus.error.name
+                db_vm.information = str(err)
+                uow.commit()
+                self.event_store.add_event(
+                    vm_id,
+                    user_info.get('id'),
+                    self.restart_vm.__name__,
+                    str(err),
+                )
+                raise
+            db_vm.status = VmStatus.restarting.name
+            serialized_vm = DataSerializer.vm_to_web(db_vm)
+            serialized_vm['user_info'] = user_info
+            uow.commit()
+        self.event_store.add_event(
+            vm_id,
+            user_info.get('id'),
+            self.restart_vm.__name__,
+            f'Set restarting status for VM {vm_name}.',
+        )
+        self.service_layer_rpc.cast(
+            self._restart_vm.__name__, data_for_method=serialized_vm
+        )
+        LOG.info('Response on restart_vm was successfully processed.')
+        return serialized_vm
+
+    def _restart_vm(self, data: Dict) -> None:
+        """Restart a virtual machine and update the database.
+
+        This function calls the domain layer to restart the VM and then
+        updates the database with the VM's current power state and status.
+
+        Args:
+            data (Dict): The data required to restart the virtual machine.
+        """
+        LOG.info('Handling response on _restart_vm.')
+        user_info = data.pop('user_info', {})
+        vm_id = str(data.get('id', ''))
+
+        try:
+            restart_info = self.domain_rpc.call(
+                BaseVMDriver.restart.__name__, data_for_manager=data
+            )
+        except (RpcCallException, RpcServerInitializedException) as err:
+            message = f'Handle error: {err!s} while restarting VM.'
+            LOG.error(message)
+            with self.uow() as uow:
+                db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                db_vm.status = VmStatus.error.name
+                db_vm.information = message
+                uow.commit()
+            self.event_store.add_event(
+                vm_id,
+                user_info.get('id'),
+                self._restart_vm.__name__,
+                message,
+            )
+        else:
+            with self.uow() as uow:
+                db_vm = uow.virtual_machines.get_or_fail(UUID(vm_id))
+                vm_name = db_vm.name
+                db_vm.status = VmStatus.available.name
+                db_vm.power_state = VmPowerState(
+                    restart_info.get('power_state')
+                ).name
+                db_vm.graphic_interface.url = (
+                    f"{restart_info.get('url', '') or ''}"
+                    f":{restart_info.get('port')}"
+                )
+                db_vm.information = ''
+                uow.commit()
+            self.event_store.add_event(
+                vm_id,
+                user_info.get('id'),
+                self._restart_vm.__name__,
+                f'VM {vm_name} was successfully restarted.',
+            )
+            LOG.info('Response on _restart_vm was successfully processed.')
 
     def _prepare_vm_info_for_edit(self, vm_data: Dict) -> EditVmInfo:
         """Prepare the information needed to edit a virtual machine.
