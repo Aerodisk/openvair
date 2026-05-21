@@ -1,9 +1,9 @@
-"""Integration tests for starting and shutting off virtual machines.
+"""Integration tests for starting, restarting and shutting off VMs.
 
 Covers:
-- Successful start / shut-off flows.
+- Successful start / restart / shut-off flows.
 - Invalid UUID / nonexistent VM errors.
-- Attempts to start an already-running VM or shut-off an already stopped VM.
+- Attempts to start, restart or shut-off a VM from invalid power states.
 - Unauthorized access.
 """
 
@@ -135,6 +135,67 @@ def test_shut_off_vm_unauthorized(
     """Unauthorized request must return 401."""
     vm_id = activated_virtual_machine['id']
     response = unauthorized_client.post(f'/virtual-machines/{vm_id}/shut-off/')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_restart_vm_success(
+    client: TestClient, activated_virtual_machine: Dict
+) -> None:
+    """Test successful restart of a running VM."""
+    vm_id = activated_virtual_machine['id']
+    vm_name = activated_virtual_machine['name']
+
+    response = client.post(f'/virtual-machines/{vm_id}/restart/')
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data['id'] == vm_id
+
+    wait_for_field_value(
+        client, f'/virtual-machines/{vm_id}/', 'status', 'available'
+    )
+    wait_for_field_value(
+        client, f'/virtual-machines/{vm_id}/', 'power_state', 'running'
+    )
+
+    vms_states = get_vms_state()
+    assert vm_name in vms_states
+    assert vms_states[vm_name] == 'running'
+
+
+def test_restart_vm_not_running(
+    client: TestClient, deactivated_virtual_machine: Dict
+) -> None:
+    """Test attempt to restart a VM that is not running."""
+    vm_id = deactivated_virtual_machine['id']
+    response = client.post(f'/virtual-machines/{vm_id}/restart/')
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'power state' in response.text.lower()
+
+    vm_response = client.get(f'/virtual-machines/{vm_id}/')
+    assert vm_response.status_code == status.HTTP_200_OK
+    assert vm_response.json()['status'] == 'error'
+
+
+def test_restart_vm_invalid_uuid(client: TestClient) -> None:
+    """Test invalid UUID format for restart VM."""
+    response = client.post('/virtual-machines/invalid-uuid/restart/')
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_restart_vm_nonexistent(client: TestClient) -> None:
+    """Test restarting a non-existent VM."""
+    fake_id = str(uuid.uuid4())
+    response = client.post(f'/virtual-machines/{fake_id}/restart/')
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert 'not found' in response.text.lower()
+
+
+def test_restart_vm_unauthorized(
+    activated_virtual_machine: Dict, unauthorized_client: TestClient
+) -> None:
+    """Unauthorized restart request must return 401."""
+    vm_id = activated_virtual_machine['id']
+    response = unauthorized_client.post(f'/virtual-machines/{vm_id}/restart/')
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 

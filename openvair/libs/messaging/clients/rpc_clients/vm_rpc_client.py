@@ -135,6 +135,21 @@ class VMServiceLayerRPCClient(VMServiceLayerProtocolInterface):
         )
         return result
 
+    def restart_vm(self, data: Dict) -> Dict:
+        """Restart a VM.
+
+        Args:
+            data (Dict): Data containing the VM ID.
+
+        Returns:
+            Dict: Serialized VM data.
+        """
+        result: Dict = self.service_rpc_client.call(
+            VMServiceLayerProtocolInterface.restart_vm.__name__,
+            data_for_method=data,
+        )
+        return result
+
     def edit_vm(self, edit_info: Dict) -> Dict:
         """Edit an existing VM.
 

@@ -145,6 +145,24 @@ class VMCrud:
         LOG.debug('Response from service layer: %s.', result)
         return result
 
+    def restart_vm(self, vm_id: UUID, user_info: Dict) -> Dict:
+        """Restart a virtual machine by its ID.
+
+        Args:
+            vm_id (UUID): The ID of the virtual machine to restart.
+            user_info (Dict): The user information for authorization.
+
+        Returns:
+            Dict: The result of the restart operation.
+        """
+        LOG.info('Call service layer to restart VM by ID: %s.', vm_id)
+        result: Dict = self.service_layer_rpc.call(
+            services.VMServiceLayerManager.restart_vm.__name__,
+            data_for_method={'vm_id': str(vm_id), 'user_info': user_info},
+        )
+        LOG.debug('Response from service layer: %s.', result)
+        return result
+
     def edit_vm(self, vm_id: UUID, data: Dict, user_info: Dict) -> Dict:
         """Edit a virtual machine by its ID.
 

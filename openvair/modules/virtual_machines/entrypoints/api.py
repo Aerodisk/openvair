@@ -221,6 +221,34 @@ async def shut_off_vm(
 
 
 @router.post(
+    '/{vm_id}/restart/',
+    response_model=schemas.VirtualMachineInfo,
+    status_code=status.HTTP_201_CREATED,
+)
+async def restart_vm(
+    vm_id: UUID = Path(description='ID of VM to restart'),
+    user_info: Dict = Depends(get_current_user),
+    crud: VMCrud = Depends(VMCrud),
+) -> schemas.VirtualMachineInfo:
+    """Restart a virtual machine by ID.
+
+    Args:
+        vm_id (UUID): The ID of the virtual machine to restart.
+        user_info (Dict): The dependency to ensure the user is authenticated.
+        crud (VMCrud): The CRUD dependency for virtual machine operations.
+
+    Returns:
+        schemas.VirtualMachineInfo: The virtual machine data.
+    """
+    LOG.info(
+        f'API handling request to restart virtual machine with ID: {vm_id}.'
+    )
+    vm = await run_in_threadpool(crud.restart_vm, vm_id, user_info)
+    LOG.info('API request was successfully processed.')
+    return schemas.VirtualMachineInfo(**vm)
+
+
+@router.post(
     '/{vm_id}/edit/',
     response_model=schemas.VirtualMachineInfo,
     status_code=status.HTTP_201_CREATED,
@@ -334,9 +362,7 @@ async def get_snapshots(
         f'API handling request to get snapshots of '
         f'virtual machine with ID: {vm_id}.'
     )
-    snapshots = await run_in_threadpool(
-        crud.get_snapshots, vm_id, user_info
-    )
+    snapshots = await run_in_threadpool(crud.get_snapshots, vm_id, user_info)
     LOG.info('API request was successfully processed.')
     return schemas.ListOfSnapshots(snapshots=snapshots)
 
