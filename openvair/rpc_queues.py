@@ -114,3 +114,10 @@ class RPCQueueNames:
         """Queue names for eventstore-related operations."""
 
         SERVICE_LAYER: str = 'eventstore_api_service_layer'
+
+    @dataclass(frozen=True)
+    class Scheduler:
+        """Queue names for eventstore-related operations."""
+
+        SERVICE_LAYER: str = 'scheduler_api_service_layer'
+        DOMAIN_LAYER: str = 'scheduler_service_layer_domain'

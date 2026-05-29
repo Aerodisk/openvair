@@ -1,0 +1,592 @@
+{
+  "version": 1,
+  "target_count": 43,
+  "actual_count": 43,
+  "modules": [
+    "template",
+    "storage",
+    "backup",
+    "event_store",
+    "image",
+    "network",
+    "user",
+    "virtual_machines",
+    "volume"
+  ],
+  "mutations": [
+    {
+      "id": 1,
+      "module": "template",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_template_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_template_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_template_adapters_1"
+      ]
+    },
+    {
+      "id": 2,
+      "module": "template",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_template_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_template_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_template_adapters_2"
+      ]
+    },
+    {
+      "id": 3,
+      "module": "template",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_template_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_template_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_template_adapters_3"
+      ]
+    },
+    {
+      "id": 4,
+      "module": "template",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_template_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_template_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_template_adapters_4"
+      ]
+    },
+    {
+      "id": 5,
+      "module": "template",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_template_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_template_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_template_adapters_5"
+      ]
+    },
+    {
+      "id": 6,
+      "module": "storage",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_storage_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_storage_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_storage_adapters_1"
+      ]
+    },
+    {
+      "id": 7,
+      "module": "storage",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_storage_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_storage_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_storage_adapters_2"
+      ]
+    },
+    {
+      "id": 8,
+      "module": "storage",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_storage_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_storage_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_storage_adapters_3"
+      ]
+    },
+    {
+      "id": 9,
+      "module": "storage",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_storage_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_storage_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_storage_adapters_4"
+      ]
+    },
+    {
+      "id": 10,
+      "module": "storage",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_storage_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_storage_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_storage_adapters_5"
+      ]
+    },
+    {
+      "id": 11,
+      "module": "backup",
+      "kind": "wrong_method",
+      "layer": "adapters",
+      "description": "BackupSqlAlchemyRepository.create_db -> create_db_rde_mut in spec",
+      "linter_needles": [
+        "Class BackupSqlAlchemyRepository does not contain",
+        "expected method create_db_rde_mut"
+      ],
+      "llm_needles": [
+        "create_db_rde_mut",
+        "BackupSqlAlchemyRepository",
+        "create_db"
+      ]
+    },
+    {
+      "id": 12,
+      "module": "backup",
+      "kind": "wrong_method",
+      "layer": "adapters",
+      "description": "BackupSqlAlchemyRepository.drop_db -> drop_db_rde_mut in spec",
+      "linter_needles": [
+        "Class BackupSqlAlchemyRepository does not contain",
+        "expected method drop_db_rde_mut"
+      ],
+      "llm_needles": [
+        "drop_db_rde_mut",
+        "BackupSqlAlchemyRepository",
+        "drop_db"
+      ]
+    },
+    {
+      "id": 13,
+      "module": "backup",
+      "kind": "wrong_method",
+      "layer": "adapters",
+      "description": "BackupSqlAlchemyRepository.terminate_all_connections -> terminate_all_connections_rde_mut in spec",
+      "linter_needles": [
+        "Class BackupSqlAlchemyRepository does not contain",
+        "expected method terminate_all_connections_rde_mut"
+      ],
+      "llm_needles": [
+        "terminate_all_connections_rde_mut",
+        "BackupSqlAlchemyRepository",
+        "terminate_all_connections"
+      ]
+    },
+    {
+      "id": 14,
+      "module": "backup",
+      "kind": "wrong_method",
+      "layer": "adapters",
+      "description": "ResticAdapter.backup -> backup_rde_mut in spec",
+      "linter_needles": [
+        "Class ResticAdapter does not contain",
+        "expected method backup_rde_mut"
+      ],
+      "llm_needles": [
+        "backup_rde_mut",
+        "ResticAdapter",
+        "backup"
+      ]
+    },
+    {
+      "id": 15,
+      "module": "backup",
+      "kind": "wrong_method",
+      "layer": "adapters",
+      "description": "ResticAdapter.forget -> forget_rde_mut in spec",
+      "linter_needles": [
+        "Class ResticAdapter does not contain",
+        "expected method forget_rde_mut"
+      ],
+      "llm_needles": [
+        "forget_rde_mut",
+        "ResticAdapter",
+        "forget"
+      ]
+    },
+    {
+      "id": 16,
+      "module": "event_store",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_event_store_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_event_store_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_event_store_adapters_1"
+      ]
+    },
+    {
+      "id": 17,
+      "module": "event_store",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_event_store_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_event_store_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_event_store_adapters_2"
+      ]
+    },
+    {
+      "id": 18,
+      "module": "event_store",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_event_store_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_event_store_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_event_store_adapters_3"
+      ]
+    },
+    {
+      "id": 19,
+      "module": "event_store",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_event_store_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_event_store_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_event_store_adapters_4"
+      ]
+    },
+    {
+      "id": 20,
+      "module": "event_store",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_event_store_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_event_store_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_event_store_adapters_5"
+      ]
+    },
+    {
+      "id": 21,
+      "module": "image",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_image_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_image_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_image_adapters_1"
+      ]
+    },
+    {
+      "id": 22,
+      "module": "image",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_image_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_image_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_image_adapters_2"
+      ]
+    },
+    {
+      "id": 23,
+      "module": "image",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_image_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_image_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_image_adapters_3"
+      ]
+    },
+    {
+      "id": 24,
+      "module": "image",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_image_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_image_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_image_adapters_4"
+      ]
+    },
+    {
+      "id": 25,
+      "module": "image",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_image_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_image_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_image_adapters_5"
+      ]
+    },
+    {
+      "id": 26,
+      "module": "network",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_network_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_network_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_network_adapters_1"
+      ]
+    },
+    {
+      "id": 27,
+      "module": "network",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_network_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_network_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_network_adapters_2"
+      ]
+    },
+    {
+      "id": 28,
+      "module": "network",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_network_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_network_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_network_adapters_3"
+      ]
+    },
+    {
+      "id": 29,
+      "module": "network",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_network_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_network_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_network_adapters_4"
+      ]
+    },
+    {
+      "id": 30,
+      "module": "network",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_network_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_network_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_network_adapters_5"
+      ]
+    },
+    {
+      "id": 31,
+      "module": "user",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_user_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_user_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_user_adapters_1"
+      ]
+    },
+    {
+      "id": 32,
+      "module": "user",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_user_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_user_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_user_adapters_2"
+      ]
+    },
+    {
+      "id": 33,
+      "module": "user",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_user_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_user_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_user_adapters_3"
+      ]
+    },
+    {
+      "id": 34,
+      "module": "user",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_user_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_user_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_user_adapters_4"
+      ]
+    },
+    {
+      "id": 35,
+      "module": "user",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_user_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_user_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_user_adapters_5"
+      ]
+    },
+    {
+      "id": 36,
+      "module": "virtual_machines",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_virtual_machines_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_virtual_machines_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_virtual_machines_adapters_1"
+      ]
+    },
+    {
+      "id": 37,
+      "module": "virtual_machines",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_virtual_machines_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_virtual_machines_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_virtual_machines_adapters_2"
+      ]
+    },
+    {
+      "id": 38,
+      "module": "virtual_machines",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_virtual_machines_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_virtual_machines_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_virtual_machines_adapters_3"
+      ]
+    },
+    {
+      "id": 39,
+      "module": "virtual_machines",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_virtual_machines_adapters_4 added",
+      "linter_needles": [
+        "class PhantomRde_virtual_machines_adapters_4 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_virtual_machines_adapters_4"
+      ]
+    },
+    {
+      "id": 40,
+      "module": "virtual_machines",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_virtual_machines_adapters_5 added",
+      "linter_needles": [
+        "class PhantomRde_virtual_machines_adapters_5 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_virtual_machines_adapters_5"
+      ]
+    },
+    {
+      "id": 41,
+      "module": "volume",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_volume_adapters_1 added",
+      "linter_needles": [
+        "class PhantomRde_volume_adapters_1 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_volume_adapters_1"
+      ]
+    },
+    {
+      "id": 42,
+      "module": "volume",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_volume_adapters_2 added",
+      "linter_needles": [
+        "class PhantomRde_volume_adapters_2 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_volume_adapters_2"
+      ]
+    },
+    {
+      "id": 43,
+      "module": "volume",
+      "kind": "phantom_class",
+      "layer": "adapters",
+      "description": "Phantom class PhantomRde_volume_adapters_3 added",
+      "linter_needles": [
+        "class PhantomRde_volume_adapters_3 not found"
+      ],
+      "llm_needles": [
+        "PhantomRde_volume_adapters_3"
+      ]
+    }
+  ]
+}

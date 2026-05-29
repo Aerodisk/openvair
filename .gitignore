@@ -1,4 +1,5 @@
 venv/
+.venv/
 **/__pypackages__/
 **/__pycache__
 __pycache__/
@@ -9,4 +10,3 @@ data/
 cert.pem
 key.pem
 *.log
-docs/

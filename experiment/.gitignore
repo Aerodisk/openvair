@@ -1,0 +1,6 @@
+.env
+results/*.json
+!results/BENCHMARK_REPORT.md
+!results/benchmark_analysis.json
+!results/benchmark_run_meta.json
+results/figures/

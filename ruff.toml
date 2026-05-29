@@ -4,6 +4,9 @@ target-version = "py38"
 # Not linting and formatting files from .gitignore
 respect-gitignore = true
 
+# Benchmark and RDE linter tooling (checked separately, not on every commit)
+exclude = ["experiment", "requirements_linter"]
+
 line-length = 80
 indent-width = 4
 
@@ -148,6 +151,7 @@ ignore = [
 
 # Ignore import rules for main.py
 "main.py" = ["E402"]
+"openvair/modules/scheduler/entrypoints/api.py" = ["E402"]
 
 # Code style configuration
 [lint.pycodestyle]

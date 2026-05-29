@@ -1,7 +1,16 @@
 #!/bin/bash
 
+# Run: python -m ruff check <paths> ...
+# Paths must come after `check`; putting them before makes Ruff treat a file as a subcommand name.
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+PYTHON="${ROOT}/.venv/bin/python"
+if [ ! -x "$PYTHON" ]; then
+    PYTHON="python3"
+fi
+
 echo 'Running ruff check'
-if ! ./venv/bin/ruff check --config=ruff.toml; then
+if ! "$PYTHON" -m ruff check "$@" --config=ruff.toml; then
     echo
     echo
     echo "=========================================================================="

@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-17T13:40:17.002566+00:00",
+  "skip_llm": false,
+  "steps_wall_seconds": {
+    "linter": 0.304,
+    "llm": 53.914,
+    "evaluate": 0.059,
+    "report": 0.058,
+    "visualize": 1.318,
+    "total_wall_seconds": 55.654
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "ground_truth_count": 43,
+  "modules": [
+    "template",
+    "storage",
+    "backup",
+    "event_store",
+    "image",
+    "network",
+    "user",
+    "virtual_machines",
+    "volume"
+  ],
+  "linter": {
+    "metrics": {
+      "tp": 43,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "total_seconds": 0.2287,
+    "total_errors_reported": 43,
+    "by_kind": {
+      "phantom_class": {
+        "total": 38,
+        "detected": 38,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "wrong_method": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      }
+    },
+    "by_module": {
+      "backup": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "event_store": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "image": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "network": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "storage": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "template": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "user": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "virtual_machines": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "volume": {
+        "total": 3,
+        "detected": 3,
+        "missed": 0,
+        "recall": 1.0
+      }
+    },
+    "timing_by_module": {
+      "template": 0.0207,
+      "storage": 0.035,
+      "backup": 0.0141,
+      "event_store": 0.0081,
+      "image": 0.0242,
+      "network": 0.0303,
+      "user": 0.013,
+      "virtual_machines": 0.0509,
+      "volume": 0.031
+    },
+    "throughput_defs_per_sec": 188.02
+  },
+  "llm": {
+    "metrics": {
+      "tp": 43,
+      "fp": 9,
+      "fn": 0,
+      "precision": 0.8269,
+      "recall": 1.0,
+      "f1": 0.9053
+    },
+    "total_seconds": 52.8821,
+    "total_cost_usd": 1.18909,
+    "total_issues_reported": 52,
+    "model": "gpt-5.5",
+    "by_kind": {
+      "phantom_class": {
+        "total": 38,
+        "detected": 38,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "wrong_method": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      }
+    },
+    "by_module": {
+      "backup": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "event_store": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "image": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "network": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "storage": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "template": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "user": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "virtual_machines": {
+        "total": 5,
+        "detected": 5,
+        "missed": 0,
+        "recall": 1.0
+      },
+      "volume": {
+        "total": 3,
+        "detected": 3,
+        "missed": 0,
+        "recall": 1.0
+      }
+    },
+    "timing_by_module": {
+      "template": 7.1336,
+      "storage": 3.4734,
+      "backup": 3.4016,
+      "event_store": 4.7445,
+      "image": 11.4446,
+      "network": 5.3754,
+      "user": 5.5664,
+      "virtual_machines": 8.8724,
+      "volume": 2.8376
+    },
+    "usage_by_module": {
+      "template": {
+        "tokens_in": 16802.0,
+        "tokens_out": 376.0,
+        "cost_usd": 0.09529,
+        "seconds": 7.1336,
+        "issues": 6.0
+      },
+      "storage": {
+        "tokens_in": 34024.0,
+        "tokens_out": 289.0,
+        "cost_usd": 0.17879,
+        "seconds": 3.4734,
+        "issues": 5.0
+      },
+      "backup": {
+        "tokens_in": 14863.0,
+        "tokens_out": 284.0,
+        "cost_usd": 0.082835,
+        "seconds": 3.4016,
+        "issues": 5.0
+      },
+      "event_store": {
+        "tokens_in": 6504.0,
+        "tokens_out": 299.0,
+        "cost_usd": 0.04149,
+        "seconds": 4.7445,
+        "issues": 5.0
+      },
+      "image": {
+        "tokens_in": 23989.0,
+        "tokens_out": 829.0,
+        "cost_usd": 0.144815,
+        "seconds": 11.4446,
+        "issues": 9.0
+      },
+      "network": {
+        "tokens_in": 32088.0,
+        "tokens_out": 299.0,
+        "cost_usd": 0.16941,
+        "seconds": 5.3754,
+        "issues": 5.0
+      },
+      "user": {
+        "tokens_in": 9750.0,
+        "tokens_out": 511.0,
+        "cost_usd": 0.06408,
+        "seconds": 5.5664,
+        "issues": 9.0
+      },
+      "virtual_machines": {
+        "tokens_in": 50113.0,
+        "tokens_out": 552.0,
+        "cost_usd": 0.267125,
+        "seconds": 8.8724,
+        "issues": 5.0
+      },
+      "volume": {
+        "tokens_in": 27977.0,
+        "tokens_out": 179.0,
+        "cost_usd": 0.145255,
+        "seconds": 2.8376,
+        "issues": 3.0
+      }
+    },
+    "throughput_defs_per_sec": 0.8131
+  }
+}
