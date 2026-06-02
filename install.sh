@@ -123,7 +123,7 @@ verify_user_data() {
     PASSWORD=$(sed -n "${PASSWORD_LINE}p" "$PROJECT_CONFIG_FILE" | awk -F "'" '{print $2}')
 
     # Validate user login
-    if [[ ${#LOGIN} -ge 5 && ${#LOGIN} -le 30 ]]; then
+    if [[ ${#LOGIN} -ge $MIN_LOGIN_LENGTH && ${#LOGIN} -le 30 ]]; then
         log $GREEN "User login is valid"
     else
         if [[ ${#LOGIN} -lt $MIN_LOGIN_LENGTH ]]; then
@@ -134,14 +134,10 @@ verify_user_data() {
     fi
 
     # Validate user password
-    if [[ ${#PASSWORD} -ge 5 ]]; then
+    if [[ ${#PASSWORD} -ge $MIN_PASSWORD_LENGTH ]]; then
         log $GREEN "User password is valid"
     else
-        if [[ ${#PASSWORD} -lt $MIN_PASSWORD_LENGTH ]]; then
-            stop_script "User password is too short. Minimum length is $MIN_PASSWORD_LENGTH characters. Current length: ${#PASSWORD}"
-        else
-            stop_script "User password is not valid or not specified. Installation script stoped"
-        fi
+        stop_script "User password is too short. Minimum length is $MIN_PASSWORD_LENGTH characters. Current length: ${#PASSWORD}"
     fi
 }
 
@@ -315,8 +311,19 @@ DATABASE_NAME="openvair"
 DOCKER_CONTAINER_NAME="postgres"
 DATABASE_PORT=$(awk -F " = " '/\[database\]/{flag=1; next} flag && /port/ {print $2; exit}' "$PROJECT_CONFIG_FILE")
 
+remove_docker_container_if_exists() {
+    local container_name="$1"
+    if sudo docker ps -a --format '{{.Names}}' | grep -qx "$container_name"; then
+        log $CYAN "Removing existing Docker container: $container_name"
+        sudo docker rm -f "$container_name" || stop_script "Failure while removing existing Docker container: $container_name"
+        log $GREEN "Successfully removed existing Docker container: $container_name"
+    fi
+}
+
 # Run PostgreSQL container in Docker
 run_postgres_container() {
+    remove_docker_container_if_exists "$DOCKER_CONTAINER_NAME"
+
     local message="Creating PostgreSQL Docker container"
     local command="sudo docker run \
         --name $DOCKER_CONTAINER_NAME \
@@ -361,6 +368,8 @@ create_rabbitmq_container() {
     fi
 
     # Prepare the docker run command
+    remove_docker_container_if_exists "rabbit"
+
     local command="sudo docker run -d \
         --hostname $(hostname) \
         --name rabbit \

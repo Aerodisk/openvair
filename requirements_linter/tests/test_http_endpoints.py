@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import ast
 
-from requirements_linter.cli import run_demo_pipeline
-from requirements_linter.ast_specs import (
+from requirements_linter.entrypoints.cli import run_demo_pipeline
+from requirements_linter.core.ast_specs import (
     HTTP_ENDPOINTS_BUCKET,
     build_code_artifacts,
 )
-from requirements_linter.rde_linter import Comparator
-from requirements_linter.http_routes import (
+from requirements_linter.core.comparator import Comparator
+from requirements_linter.http.http_routes import (
     join_fastapi_route_path,
     extract_http_endpoints_from_module,
 )

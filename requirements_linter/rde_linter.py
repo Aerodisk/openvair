@@ -1,7 +1,4 @@
-"""Thin CLI wrapper and compatibility exports for the RDE linter.
-
-Run ``python requirements_linter/rde_linter.py`` with paths or ``--demo``.
-"""
+"""Backward-compatible entry point for single-module linting."""
 
 from __future__ import annotations
 
@@ -12,32 +9,18 @@ _BOOT = Path(__file__).resolve().parent.parent
 if str(_BOOT) not in sys.path:
     sys.path.insert(0, str(_BOOT))
 
-from requirements_linter._paths import ensure_repo_root_on_syspath  # noqa: E402
-
-ensure_repo_root_on_syspath()
-
-from requirements_linter.cli import (  # noqa: E402
-    SYNTHETIC_SPEC_YAML_DEMO,
+from requirements_linter.entrypoints.rde_linter import (  # noqa: E402
+    AstAnalyzer,
+    Comparator,
     SYNTHETIC_INLINE_SOURCES_DEMO,
-    main as main_cli,
+    SYNTHETIC_SPEC_YAML_DEMO,
     load_spec,
     parse_cli,
     run_demo_pipeline,
     run_on_openvair_module,
 )
-from requirements_linter.analyzer import AstAnalyzer  # noqa: E402
-from requirements_linter.comparator import Comparator  # noqa: E402
-
-__all__ = [
-    'SYNTHETIC_INLINE_SOURCES_DEMO',
-    'SYNTHETIC_SPEC_YAML_DEMO',
-    'AstAnalyzer',
-    'Comparator',
-    'load_spec',
-    'parse_cli',
-    'run_demo_pipeline',
-    'run_on_openvair_module',
-]
 
 if __name__ == '__main__':
-    raise SystemExit(main_cli())
+    from requirements_linter.entrypoints.cli import main  # noqa: E402
+
+    raise SystemExit(main())

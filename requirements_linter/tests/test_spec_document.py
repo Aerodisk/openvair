@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from requirements_linter.spec_document import (
+from requirements_linter.contract.spec_document import (
     contract_to_markdown,
     extract_rde_block,
     load_spec,

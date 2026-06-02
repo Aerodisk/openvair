@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo 'Running RDE linter'
+if ! ./venv/bin/python requirements_linter/lint_repo_specs.py; then
+    echo
+    echo
+    echo "=========================================================================="
+    echo "RDE linter check failed. Please review the errors above.                   "
+    echo "See requirements_linter/LINTER_GUIDE_RU.md for details.                    "
+    echo "=========================================================================="
+    exit 1
+fi

@@ -1,10 +1,16 @@
-"""Static FastAPI route extraction for the ``entrypoints`` layer."""
+"""Extract FastAPI routes and handler parameters from entrypoints source (AST only).
+
+Only literal path strings and ``APIRouter(prefix="...")`` are supported.
+The app is not imported or executed. Parameter ``kind`` (query, body, etc.)
+comes from ``Query()`` / ``Body()`` / ``Depends()`` when present; otherwise
+fixed rules on the type annotation apply (see ``_infer_param_kind``).
+"""
 
 from __future__ import annotations
 
 import ast
 
-from requirements_linter.naming import is_contract_public_name
+from requirements_linter.http.naming import is_contract_public_name
 
 _HTTP_VERBS = frozenset({
     'get',
@@ -18,15 +24,7 @@ _HTTP_VERBS = frozenset({
 
 
 def join_fastapi_route_path(prefix: str | None, route_path: str) -> str:
-    """Join ``APIRouter(prefix=...)`` with a literal route path.
-
-    MVP: string literals only. Non-empty prefix strips slashes and prepends;
-    otherwise the route path is returned (leading ``/`` kept). Trailing
-    ``/`` on the decorator path is preserved (e.g. ``'/create/'``).
-
-    Unsupported: ``include_router``, dynamic paths, non-literal prefix, or
-    decorator wrappers besides ``<router>.<method>(path, ...)``.
-    """
+    """Combine router prefix and decorator path into one URL path string."""
     seg = route_path if route_path.startswith('/') else f'/{route_path}'
     if not prefix or not prefix.strip('/'):
         return seg if seg else '/'
@@ -35,6 +33,7 @@ def join_fastapi_route_path(prefix: str | None, route_path: str) -> str:
 
 
 def _is_api_router_call(call: ast.Call) -> bool:
+    """True if this call is ``APIRouter(...)``."""
     func = call.func
     if isinstance(func, ast.Name):
         return func.id == 'APIRouter'
@@ -44,6 +43,7 @@ def _is_api_router_call(call: ast.Call) -> bool:
 
 
 def _prefix_constant_from_keywords(keywords: list[ast.keyword]) -> str | None:
+    """Read ``prefix="..."`` from keyword arguments when it is a string literal."""
     for kw in keywords:
         if kw.arg != 'prefix':
             continue
@@ -55,6 +55,7 @@ def _prefix_constant_from_keywords(keywords: list[ast.keyword]) -> str | None:
 
 
 def _api_router_prefix_from_call(call: ast.Call) -> str | None:
+    """Return the string prefix from ``APIRouter(prefix=...)``, if literal."""
     return _prefix_constant_from_keywords(call.keywords)
 
 
@@ -62,6 +63,7 @@ def _try_register_router_assignment(
     node: ast.Assign,
     out: dict[str, str],
 ) -> None:
+    """If ``node`` is ``router = APIRouter(prefix=...)``, store prefix in ``out``."""
     val = node.value
     if not isinstance(val, ast.Call) or not _is_api_router_call(val):
         return
@@ -74,6 +76,7 @@ def _try_register_router_assignment(
 
 
 def _collect_router_vars(module: ast.Module) -> dict[str, str]:
+    """Map each router variable name to its ``APIRouter`` prefix string."""
     out: dict[str, str] = {}
     for node in module.body:
         if isinstance(node, ast.Assign):
@@ -82,6 +85,7 @@ def _collect_router_vars(module: ast.Module) -> dict[str, str]:
 
 
 def _call_name_like(call: ast.Call) -> str | None:
+    """Callee name: ``Query`` from ``Query()``, ``get`` from ``router.get()`` → ``get``."""
     func = call.func
     if isinstance(func, ast.Name):
         return func.id
@@ -91,10 +95,12 @@ def _call_name_like(call: ast.Call) -> str | None:
 
 
 def _is_fastapi_injection_call(call: ast.Call, name: str) -> bool:
+    """True if the call is ``Depends()``, ``Query()``, etc. with that bare name."""
     return _call_name_like(call) == name
 
 
 def _default_classifies(default: ast.expr | None) -> str | None:
+    """Map ``Path()`` / ``Query()`` / ``Body()`` / ``Depends()`` to a ``kind`` string."""
     if default is None or not isinstance(default, ast.Call):
         return None
     cn = _call_name_like(default)
@@ -110,12 +116,14 @@ def _default_classifies(default: ast.expr | None) -> str | None:
 
 
 def _annotation_str(ann: ast.expr | None) -> str:
+    """Unparsed type annotation text for the contract ``type_hint`` field."""
     if ann is None:
         return ''
     return ast.unparse(ann)
 
 
 def _is_optional_annotation(ann: ast.expr | None) -> bool:
+    """True for ``Optional[T]``, ``T | None``, and similar optional forms."""
     if ann is None:
         return False
     if isinstance(ann, ast.Subscript):
@@ -131,17 +139,26 @@ def _is_optional_annotation(ann: ast.expr | None) -> bool:
 
 
 def _schema_recursive(ann: ast.expr) -> bool:
+    """Walk the annotation AST looking for a ``schemas.<Name>`` pattern."""
     if isinstance(ann, ast.Subscript):
-        return _looks_like_schema_body_annotation(ann.slice)
+        return _annotation_suggests_request_body(ann.slice)
     if isinstance(ann, ast.Attribute):
         parent = ann.value
         if isinstance(parent, ast.Name) and parent.id == 'schemas':
             return True
-        return _looks_like_schema_body_annotation(parent)
+        return _annotation_suggests_request_body(parent)
     return False
 
 
-def _looks_like_schema_body_annotation(ann: ast.expr | None) -> bool:
+def _annotation_suggests_request_body(ann: ast.expr | None) -> bool:
+    """Guess ``kind: body`` from the type annotation when there is no ``Body()``.
+
+    Used only if the parameter has no ``Query()`` / ``Body()`` / ``Depends()``
+    default. The rule is purely syntactic: the annotation tree contains
+    ``schemas.Something`` (Open vAIR style). Plain ``dict`` / ``list`` are not
+    treated as body. Same input always gives the same result; types are not
+    resolved at runtime.
+    """
     if ann is None:
         return False
     if isinstance(ann, ast.Name) and ann.id in {'Dict', 'dict', 'List', 'list'}:
@@ -151,12 +168,17 @@ def _looks_like_schema_body_annotation(ann: ast.expr | None) -> bool:
     return False
 
 
+# Older name kept for compatibility.
+_looks_like_schema_body_annotation = _annotation_suggests_request_body
+
+
 def _infer_param_kind(arg: ast.arg, default: ast.expr | None) -> str:
+    """Choose contract ``kind``: path, query, depends, or body for one parameter."""
     explicit = _default_classifies(default)
     if explicit:
         return explicit
     ann = arg.annotation
-    if _looks_like_schema_body_annotation(ann):
+    if _annotation_suggests_request_body(ann):
         return 'body'
     is_dict_ann = _annotation_str(ann) in {'Dict', 'dict'}
     is_dep = (
@@ -169,6 +191,7 @@ def _infer_param_kind(arg: ast.arg, default: ast.expr | None) -> str:
 
 
 def _query_call_required(call: ast.Call) -> bool:
+    """True if ``Query(...)`` marks the parameter as required (``...`` default)."""
     for kw in call.keywords:
         if kw.arg == 'default':
             val = kw.value
@@ -185,6 +208,7 @@ def _query_call_required(call: ast.Call) -> bool:
 
 
 def _required_from_default(default: ast.expr) -> bool:
+    """Whether the parameter is required given its default expression."""
     if isinstance(default, ast.Call):
         fname = _call_name_like(default)
         if fname == 'Query':
@@ -198,6 +222,7 @@ def _param_required(
     default: ast.expr | None,
     ann: ast.expr | None,
 ) -> bool:
+    """Whether the contract should mark this handler parameter as required."""
     if kind in ('depends', 'path'):
         return True
     if default is None:
@@ -208,6 +233,7 @@ def _param_required(
 
 
 def _literal_route_path_arg(dec: ast.Call) -> str | None:
+    """First positional argument of ``@router.get("...")`` when it is a string literal."""
     if not dec.args:
         return None
     path_arg = dec.args[0]
@@ -217,6 +243,7 @@ def _literal_route_path_arg(dec: ast.Call) -> str | None:
 
 
 def _router_route_parts(dec: ast.Call) -> tuple[str, str, str] | None:
+    """Parse ``@router.post("/path")`` into (METHOD, router_var_name, path_literal)."""
     func = dec.func
     if not isinstance(func, ast.Attribute):
         return None
@@ -235,6 +262,7 @@ def _extract_route_from_decorator(
     dec: ast.expr,
     router_prefixes: dict[str, str],
 ) -> tuple[str, str] | None:
+    """Get (HTTP method, full path) from one decorator, or None if not a route."""
     if not isinstance(dec, ast.Call):
         return None
     parts = _router_route_parts(dec)
@@ -250,6 +278,7 @@ def _append_positional_params(
     func: ast.AsyncFunctionDef | ast.FunctionDef,
     params: list[dict[str, object]],
 ) -> None:
+    """Add contract entries for regular positional parameters of the handler."""
     args = func.args
     all_args: list[ast.arg] = list(args.posonlyargs) + list(args.args)
     num_no_default = len(all_args) - len(args.defaults)
@@ -274,6 +303,7 @@ def _append_kwonly_params(
     func: ast.AsyncFunctionDef | ast.FunctionDef,
     params: list[dict[str, object]],
 ) -> None:
+    """Add contract entries for keyword-only parameters of the handler."""
     args = func.args
     for arg, default in zip(args.kwonlyargs, args.kw_defaults):
         if not is_contract_public_name(arg.arg):
@@ -292,6 +322,7 @@ def _append_kwonly_params(
 def _handler_parameters(
     func: ast.AsyncFunctionDef | ast.FunctionDef,
 ) -> list[dict[str, object]]:
+    """Build the ``parameters`` list for one route handler function."""
     params: list[dict[str, object]] = []
     _append_positional_params(func, params)
     _append_kwonly_params(func, params)
@@ -302,6 +333,7 @@ def _first_route_decorator(
     func: ast.AsyncFunctionDef | ast.FunctionDef,
     router_prefixes: dict[str, str],
 ) -> tuple[str, str] | None:
+    """Return (method, path) from the first recognizable route decorator on ``func``."""
     for dec in func.decorator_list:
         parsed = _extract_route_from_decorator(dec, router_prefixes)
         if parsed is not None:
@@ -313,9 +345,10 @@ def extract_http_endpoints_from_module(
     module: ast.Module,
     source_file: str,
 ) -> list[dict[str, object]]:
-    """Describe FastAPI routes using static string literals only.
+    """List FastAPI routes declared in one entrypoints module file.
 
-    Returns dicts with method, path, handler, parameters, source_file.
+    Each item has ``method``, ``path``, ``handler``, ``parameters``, and
+    ``source_file``. Only public handlers with literal paths are included.
     """
     router_prefixes = _collect_router_vars(module)
     out: list[dict[str, object]] = []

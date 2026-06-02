@@ -1,46 +1,126 @@
-# RDE Linter: complete practical guide (EN)
+# RDE architectural contract linter — complete guide
 
-Practical guide for the `requirements_linter` architectural contract checker on Open vAIR.
+Full documentation for the `requirements_linter` package in the Open vAIR repository. 
 
-**What it does:**
-
-- reads the contract from `specs/<feature>.md` (YAML inside a fenced `rde` block);
-- scans Python under `openvair/modules/<feature>/`;
-- compares spec vs code **via AST only** (no app runtime, tests, or business-logic imports).
+Russian version: [LINTER_GUIDE_RU.md](LINTER_GUIDE_RU.md).
 
 ---
 
-## 1. Purpose
+## Table of contents
 
-The linter checks that the codebase **contains** everything declared in the contract:
-
-| Kind | What is matched |
-|------|-----------------|
-| Classes | Class name and listed **public** methods |
-| Module functions | Top-level `def` / `async def` in a given file |
-| HTTP (FastAPI) | Method, full path, handler, parameters |
-
-### Errors vs warnings
-
-| Kind | Direction | Exit code | Disable |
-|------|-----------|-----------|---------|
-| **Error** | spec → code: declared in contract, missing in code | `1` | — |
-| **WARNINGS** | code → spec: public symbol in code, not in contract | `0` | `--no-warn-extras` |
-
-Class names **must not** equal reserved sentinels: `$module_functions$`, `$http_endpoints$`.
+1. [Why this tool exists](#1-why-this-tool-exists)
+2. [What the linter does and does not do](#2-what-the-linter-does-and-does-not-do)
+3. [How a lint run works (step by step)](#3-how-a-lint-run-works-step-by-step)
+4. [Contract files in specs/](#4-contract-files-in-specs)
+5. [Open vAIR module layers](#5-open-vair-module-layers)
+6. [Three kinds of contract entries](#6-three-kinds-of-contract-entries)
+7. [Errors and warnings](#7-errors-and-warnings)
+8. [Reserved keys inside the linter data structures](#8-reserved-keys-inside-the-linter-data-structures)
+9. [FastAPI HTTP routes](#9-fastapi-http-routes)
+10. [Running from the command line](#10-running-from-the-command-line)
+11. [Pre-commit integration](#11-pre-commit-integration)
+12. [Package layout](#12-package-layout)
+13. [Messages: meaning and how to fix](#13-messages-meaning-and-how-to-fix)
+14. [HTTP parsing limitations](#14-http-parsing-limitations)
+15. [Workflow for new and existing modules](#15-workflow-for-new-and-existing-modules)
+16. [FAQ](#16-faq)
+17. [Command reference](#17-command-reference)
 
 ---
 
-## 2. Contract format
+## 1. Why this tool exists
 
-### 2.1 `specs/<feature>.md`
+Open vAIR modules under `openvair/modules/<name>/` follow **Domain-Driven Design (DDD)**: code is split into layers — `domain`, `service_layer`, `adapters`, `entrypoints`. In parallel, each module has an **architectural contract**: a formal list of classes, module-level functions, and HTTP endpoints that count as the **agreed public surface** of that module.
 
-Human-readable header and description, then a machine-readable block:
+Without automation, the contract and the code **drift apart**:
 
-````markdown
+- the spec still lists `update_job` but the code renamed it to `edit_job`;
+- a new REST endpoint was added but `specs/<module>.md` was not updated;
+- the contract says a class lives in `domain` but the file sits elsewhere.
+
+The RDE linter (**Requirements-Driven Engineering**) addresses this: it **reads the contract**, **reads Python sources**, and **compares** them. The output is a concrete list of mismatches suitable for CI and for local checks before push.
+
+The linter **does not replace** unit tests and **does not judge** business logic. It answers: “Does the codebase **contain** what we **promised** in the architectural contract, in the expected shape?”
+
+---
+
+## 2. What the linter does and does not do
+
+### 2.1. What it does
+
+
+| Step                            | Explanation                                        |
+| ------------------------------- | -------------------------------------------------- |
+| Read `specs/<name>.md`          | Extract the ````rde` fenced YAML block             |
+| Walk `openvair/modules/<name>/` | All `*.py` files except `tests/` and `__pycache__` |
+| Parse with AST                  | Build syntax trees; **code is not executed**       |
+| Compare contract vs code        | Classes, methods, module functions, FastAPI routes |
+
+
+Only **public** names are considered: identifiers that do **not** start with `_`.
+
+---
+
+## 3. How a lint run works (step by step)
+
+Logical flow for one pair: **contract file + module directory**.
+
+```mermaid
+flowchart LR
+    A["specs/user.md"] --> B["load_spec"]
+    C["openvair/modules/user/"] --> D["AstAnalyzer"]
+    B --> E["Comparator"]
+    D --> E
+    E --> F["errors / warnings"]
+```
+
+
+
+**Step 1 — Load contract** (`contract/spec_document.py`)
+
+- Open `specs/<name>.md`.
+- Cut out the first ````rde` … ````` block.
+- Parse YAML and normalize to a fixed shape: `feature`, `layers`, `required_classes`, `required_module_functions`, `required_http_endpoints`.
+
+**Step 2 — Read module code** (`core/ast_specs.py`, `core/analyzer.py`)
+
+- Read every `*.py` under `openvair/modules/<name>/`.
+- Use the **first path segment** to assign a layer (`entrypoints/api.py` → `entrypoints`).
+- Build a **per-layer index**:
+  - each class name → list of public methods;
+  - under key `$module_functions$` → each file path → top-level function names;
+  - in `entrypoints`, under `$http_endpoints$` → list of HTTP route descriptions.
+
+**Step 3 — Compare** (`core/comparator.py`)
+
+- For each layer in the contract, verify everything **required by YAML** is **found in code**.
+- If warnings are enabled, also report what exists **in code** but is **not listed** in the contract.
+
+**Step 4 — Result**
+
+- **Errors** — contract requires something missing in code → exit code `1`.
+- **Warnings** — extra public symbols in code → exit code `0` if there are no errors.ы
+
+---
+
+## 4. Contract files in specs/
+
+### 4.1. Location and naming
+
+- Directory: `specs/` at repo root.
+- File name: usually matches the module, e.g. `user.md`, `scheduler.md`.
+- YAML field `feature:` must match the module folder: `openvair/modules/user/`.
+
+### 4.2. Two parts of the file
+
+**Human part** — titles, prose, diagrams (as in `specs/scheduler.md`). The linter **ignores** this.
+
+**Machine part** — fenced block:
+
+```markdown
 # Open vAIR contract: my_feature
 
-Module overview…
+Free-form description.
 
 ```rde
 meta:
@@ -50,301 +130,387 @@ layers:
   domain:
     required_classes: []
 ```
-````
 
-Loading: `spec_document.load_spec` → `extract_rde_block` → `yaml.safe_load` → `normalize_contract_document`.
-
-Legacy standalone `specs/<feature>.yaml` / `.yml` files are still supported.
-
-### 2.2 DDD layers
-
-Layers: `domain`, `service_layer`, `adapters`, `entrypoints` (`KNOWN_LAYER_NAMES`).
-
-### 2.3 Keys inside the `rde` YAML
-
-| Key | Role |
-|-----|------|
-| `required_classes` | Class + public methods |
-| `required_module_functions` | Path relative to module root + function names |
-| `required_http_endpoints` | method, path, handler, parameters |
-
-**Shorthand** (normalized on load): `classes`, `module_functions`, `http` with `router_prefix` / `endpoints`.
-
-Public API: names starting with `_` and dunders `__…__` are not treated as public.
-
----
-
-## 3. Minimal contract example (YAML inside `rde`)
-
-```yaml
-meta:
-  source: openvair/modules/my_feature
-  maintainer_notes: "RDE contract"
-
-feature: my_feature
-
-layers:
-  domain:
-    required_classes:
-      - name: MyDomainService
-        methods:
-          - create
-          - delete
-
-  entrypoints:
-    required_classes:
-      - name: MyCrud
-        methods:
-          - get_items
-    required_module_functions:
-      - relative_path: entrypoints/api.py
-        functions:
-          - get_items
-    required_http_endpoints:
-      - method: GET
-        path: /items
-        handler: get_items
-        parameters:
-          - name: crud
-            kind: depends
-            required: true
-            type_hint: MyCrud
 ```
 
----
+The `rde` tag on the fence is **required**. Without it, `load_spec` fails.
 
-## 4. Writing specs that pass reliably
+### 4.3. Legacy format
 
-### 4.1 Exact names
+Standalone `specs/<name>.yaml` / `.yml` still work. New modules should use `.md` + `rde` block.
 
-- `SchedulerCRUD` ≠ `SchedulerCrud`
-- `update_job` ≠ `edit_job`
-- `schemas.CreateJobRequest` ≠ `CreateJobRequest`
+### 4.4. Shorthand YAML
 
-### 4.2 Real `relative_path`
+On load, shorthand is expanded:
 
-Function in `openvair/modules/user/entrypoints/api.py` → contract uses `entrypoints/api.py`.
 
-### 4.3 HTTP: method + path + handler
+| Shorthand                                  | Becomes                      |
+| ------------------------------------------ | ---------------------------- |
+| `classes:`                                 | `required_classes:`          |
+| `module_functions:`                        | `required_module_functions:` |
+| `http:` with `router_prefix` / `endpoints` | `required_http_endpoints:`   |
 
-Mismatch → `No matching HTTP route in code for ...`
-
-Parameter mismatch → `parameter contract mismatch` with `spec:` / `code:` lists.
-
-### 4.4 Parameter kind heuristics
-
-| In code | `kind` in spec |
-|---------|----------------|
-| `Depends(...)` | `depends` |
-| `Body` / `Form` / `File` | `body` |
-| `schemas.*` annotation | often `body` |
-| Otherwise | usually `query` |
-
-Best practice: generate a draft first, then trim to the public contract.
 
 ---
 
-## 5. How to run
+## 5. Open vAIR module layers
 
-### 5.1 Single module (recommended)
+The linter only recognizes these first path segments inside a module:
 
-From repository root:
+
+| Layer           | Folder           | Typical content                |
+| --------------- | ---------------- | ------------------------------ |
+| `domain`        | `domain/`        | Entities, domain services      |
+| `service_layer` | `service_layer/` | Use cases, Unit of Work        |
+| `adapters`      | `adapters/`      | Repositories, ORM              |
+| `entrypoints`   | `entrypoints/`   | FastAPI, CRUD, request schemas |
+
+
+Files outside these trees (e.g. `helpers/foo.py` at module root) are **not** assigned to a layer.
+
+In `layers:` you list only layers you want checked. An empty layer (`required_classes: []`) is valid.
+
+---
+
+## 6. Three kinds of contract entries
+
+### 6.1. Classes and methods (`required_classes`)
+
+Contract:
+
+```yaml
+domain:
+  required_classes:
+    - name: CronJobScheduler
+      methods:
+        - create_job
+        - delete_job
+```
+
+The linter scans `domain/` for class **exactly** named `CronJobScheduler` and checks public methods `create_job` and `delete_job`.
+
+Notes:
+
+- `SchedulerCRUD` ≠ `SchedulerCrud`.
+- Private `_helper` is neither required nor reported as missing from the contract.
+
+### 6.2. Module-level functions (`required_module_functions`)
+
+For `def` / `async def` at **file top level**:
+
+```yaml
+entrypoints:
+  required_module_functions:
+    - relative_path: entrypoints/api.py
+      functions:
+        - get_jobs
+```
+
+- `relative_path` is from `openvair/modules/<feature>/`, not repo root.
+- The file must exist under a known layer path.
+
+### 6.3. HTTP routes (`required_http_endpoints`)
+
+Entrypoints layer only:
+
+```yaml
+entrypoints:
+  required_http_endpoints:
+    - method: GET
+      path: /scheduler/jobs
+      handler: get_jobs
+      parameters:
+        - name: crud
+          kind: depends
+          required: true
+          type_hint: SchedulerCRUD
+```
+
+Match is on **method + full path + handler function name**. Parameters are compared as `(name, kind, required, type_hint)` tuples.
+
+---
+
+## 7. Errors and warnings
+
+### 7.1. Errors (block CI / fail commit hooks)
+
+**Direction: contract → code.**
+
+Example: contract lists `update_job`, code only has `edit_job` → error “does not contain expected method update_job”.
+
+Any error → exit code `1`.
+
+### 7.2. Warnings (non-blocking by default)
+
+**Direction: code → contract.**
+
+Example: code has public method `helper` not listed under the class in the contract → warning printed; CI may still pass.
+
+Suppress:
+
+```bash
+python requirements_linter/rde_linter.py specs/user.md openvair/modules/user --no-warn-extras
+python requirements_linter/lint_repo_specs.py --no-warn-extras
+```
+
+Fix **errors** first; then decide whether warnings mean the contract should grow.
+
+---
+
+## 8. Reserved keys inside the linter data structures
+
+Each layer is stored as one dictionary:
+
+- normal keys — **class names** → method lists;
+- `**$module_functions$`** — nested dict: file path → function names;
+- `**$http_endpoints$`** — list of routes (entrypoints only).
+
+These are **internal key strings**, not valid class names. A Python class literally named `$module_functions$` will make parsing fail. The same strings must not appear as `name` in `required_classes` in YAML.
+
+---
+
+## 9. FastAPI HTTP routes
+
+### 9.1. How paths are built
+
+1. Find `router = APIRouter(prefix="/scheduler")` with a **string literal** prefix.
+2. Find `@router.get("/jobs")` etc. with a **string literal** path.
+3. Join prefix and path into the full path stored in the contract comparison.
+
+### 9.2. Parameter `kind`
+
+
+| In handler code                                                | Contract `kind`                     |
+| -------------------------------------------------------------- | ----------------------------------- |
+| `Depends(...)`                                                 | `depends`                           |
+| `Path(...)`                                                    | `path`                              |
+| `Query(...)`                                                   | `query`                             |
+| `Body` / `Form` / `File`                                       | `body`                              |
+| No FastAPI default, annotation like `schemas.CreateJobRequest` | often `body` (fixed AST shape rule) |
+| Otherwise                                                      | usually `query`                     |
+
+
+Mismatch → `parameter contract mismatch` with `spec:` and `code:` lists in the message.
+
+**Reliable approach:** set `kind` and `type_hint` in the contract to match one linter run, or use explicit `Body()` / `Query()` / `Depends()` in code.
+
+---
+
+## 10. Running from the command line
+
+Run from the **repository root** (where `specs/` and `openvair/` live). Use project venv: `./venv/bin/python`.
+
+### 10.1. Single module (day-to-day development)
 
 ```bash
 python requirements_linter/rde_linter.py specs/user.md openvair/modules/user
 ```
 
-In-memory demo:
+**In-memory demo (no files):**
 
 ```bash
 python requirements_linter/rde_linter.py --demo
 ```
 
-Exit codes: `0` — no spec → code errors; `1` — errors found. WARNINGS do not change the exit code.
+**Default with no arguments** only checks `specs/storage.md` and `openvair/modules/storage/`. For other modules, pass paths explicitly.
 
-### 5.2 Default when run with no arguments
-
-```bash
-python requirements_linter/rde_linter.py
-```
-
-Only checks:
-
-- `specs/storage.md`
-- `openvair/modules/storage/`
-
-Pass explicit paths to lint other modules.
-
-### 5.3 All specs
+### 10.2. All specs
 
 ```bash
 python requirements_linter/lint_repo_specs.py
 ```
 
-For each `specs/*.md` (legacy `*.yaml` only if no matching `.md`):
+For each `specs/*.md`: use `feature` from YAML, or file stem (`backup.md` → `backup`). Missing module dir → `bounded context directory missing`.
 
-- `feature` from contract → `openvair/modules/<feature>/`;
-- if `feature` is missing → file stem (`user.md` → `user`).
+### 10.3. Exit codes
 
-Pre-commit hook `rde-spec-linter` runs the same script.
+
+| Code | Meaning                                    |
+| ---- | ------------------------------------------ |
+| `0`  | No contract→code errors (warnings allowed) |
+| `1`  | At least one contract→code error           |
+
+
+---
+
+## 11. Pre-commit integration
+
+Hook `rde-spec-linter` in `.pre-commit-config.yaml` runs the same logic as `lint_repo_specs.py` via `.githooks/rde-linter`.
 
 ```bash
-pre-commit install
-pre-commit run rde-spec-linter --all-files
+./venv/bin/pre-commit install
+./venv/bin/pre-commit run rde-spec-linter --all-files
 ```
 
-Use `--no-warn-extras` to suppress code-not-in-contract warnings.
+Typically runs when files under `specs/` change (`files: ^specs/` in config).
 
 ---
 
-## 6. feature → module mapping
+## 12. Package layout
 
-| Condition | Module directory |
-|-----------|------------------|
-| `feature: user` in contract | `openvair/modules/user` |
-| No `feature`, file `user.md` | `openvair/modules/user` |
+```
+requirements_linter/
+  _paths.py              # repo root; sys.path for script runs
+  rde_linter.py          # wrapper: single-module CLI
+  lint_repo_specs.py     # wrapper: all specs/ (pre-commit)
 
----
+  entrypoints/
+    cli.py               # args, run_on_openvair_module, main
+    rde_linter.py
+    lint_repo_specs.py
 
-## 7. Package layout
+  contract/
+    spec_document.py     # rde block, load_spec, YAML normalize
 
-| Path | Role |
-|------|------|
-| `spec_document.py` | `rde` block, `load_spec`, normalization |
-| `ast_specs.py` | Layers, `build_code_artifacts`, `load_module_sources` |
-| `http_routes.py` | FastAPI route extraction |
-| `comparator.py` | `Comparator`, `CompareResult` |
-| `analyzer.py` | `AstAnalyzer` |
-| `cli.py` | `run_on_openvair_module`, `main` |
-| `rde_linter.py` | Single-module CLI entry |
-| `lint_repo_specs.py` | Lint all `specs/*.md` |
-| `generate_openvair_specs.py` | Draft `specs/<feature>.md` from code |
+  core/
+    ast_specs.py         # read .py, per-layer index
+    analyzer.py          # module dir → index
+    comparator.py        # contract vs index
 
----
+  http/
+    http_routes.py       # FastAPI routes from AST
+    naming.py            # public name rule
 
-## 8. Typical messages
+  tests/
+  LINTER_GUIDE_RU.md
+  LINTER_GUIDE_EN.md
+```
 
-### 8.1 `Layer '<name>' not found under scanned sources ...`
-
-No `.py` files for the layer or wrong layer name.
-
-### 8.2 `class <Name> not found in code artifacts`
-
-Class missing or wrong layer in contract.
-
-### 8.3 `Class <Name> does not contain expected method <method>`
-
-Public method missing or renamed.
-
-### 8.4 `File '...' does not expose expected top-level callable ...`
-
-Not a top-level function, or wrong path/name.
-
-### 8.5 `Module file '...' was not scanned for functions ...`
-
-Missing file or path not under a known layer.
-
-### 8.6 `No matching HTTP route in code for ...`
-
-method/path/handler mismatch or route not statically extractable.
-
-### 8.7 `parameter contract mismatch`
-
-Mismatch in `(name, kind, required, type_hint)` — align spec with handler signature.
-
-### 8.8 HTTP structure errors in spec
-
-- `required_http_endpoints must be a list`
-- `required_http_endpoints entry must be a mapping`
-- `HTTP endpoint spec must include non-empty method, path, handler`
-
-### 8.9 Reserved class name
-
-`Spec layer=... uses disallowed class name '$module_functions$' ...`
-
-### 8.10 Missing module directory
-
-`skip — bounded context directory missing (openvair/modules/<feature>)`
-
-### 8.11 WARNINGS (non-blocking)
-
-e.g. `undocumented` — symbol in code not listed in contract. Extend the contract or narrow code API.
+Data flow: `load_spec` → contract dict; `AstAnalyzer` → per-layer index; `Comparator.compare()` → errors and warnings.
 
 ---
 
-## 9. FastAPI extraction limits (MVP)
+## 13. Messages: meaning and how to fix
+
+### 13.1. Layers and classes
+
+
+| Message                                      | Cause                       | Fix                                     |
+| -------------------------------------------- | --------------------------- | --------------------------------------- |
+| `Layer 'X' not found`                        | No `.py` under layer X      | Add files or remove layer from contract |
+| `class Foo not found in code artifacts`      | Class missing in that layer | Check name and layer folder             |
+| `does not contain expected method bar`       | No public `bar` on class    | Rename in code or update contract       |
+| `disallowed class name '$module_functions$'` | Reserved name in YAML       | Use a real class name                   |
+
+
+### 13.2. Module functions
+
+
+| Message                                           | Fix                                                   |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| `Module file '...' was not scanned`               | Fix `relative_path`; file must be under a known layer |
+| `does not expose expected top-level callable foo` | Add `foo` to file or remove from contract             |
+
+
+### 13.3. HTTP
+
+
+| Message                       | Fix                                                        |
+| ----------------------------- | ---------------------------------------------------------- |
+| `No matching HTTP route`      | Align method, **full** path (router prefix!), handler name |
+| `parameter contract mismatch` | Align `parameters` with spec/code lists in the message     |
+
+
+### 13.4. Module directory
+
+
+| Message                             | Fix                                                   |
+| ----------------------------------- | ----------------------------------------------------- |
+| `bounded context directory missing` | Create `openvair/modules/<feature>/` or fix `feature` |
+
+
+### 13.5. Warnings
+
+
+| Message                                    | Meaning                                          |
+| ------------------------------------------ | ------------------------------------------------ |
+| `Class ... not listed in required_classes` | Extend contract or make API private (`_` prefix) |
+| `method ... not listed in the contract`    | Add to `methods` or stop exposing publicly       |
+| `HTTP route ... not listed`                | Add to `required_http_endpoints`                 |
+
+
+---
+
+## 14. HTTP parsing limitations
 
 **Supported:**
 
-- `router = APIRouter(prefix="...")` with literal prefix;
-- `@router.get|post|put|patch|delete("...")` with literal path;
-- top-level handlers.
+- `APIRouter(prefix="...")` with literal string;
+- `@router.get("/path")` (and post/put/patch/delete) with literal string;
+- public top-level handler functions.
 
 **Not supported:**
 
-- dynamic path/prefix;
+- dynamic path or prefix variables;
 - decorator wrappers;
-- `include_router(...)` as contract source;
-- metaprogrammed routes.
+- `include_router` as the sole source of truth without literal routes in the same file;
+- routes generated in loops or metaprogramming.
+
+Describe in the contract only what the static parser can see, or accept manual alignment with runtime behaviour outside the linter.
 
 ---
 
-## 10. Recommended workflow
+## 15. Workflow for new and existing modules
 
-1. Generate draft:
+### 15.1. New module
 
-```bash
-python requirements_linter/generate_openvair_specs.py --feature my_feature
-```
+1. Implement `openvair/modules/<feature>/` by layer.
+2. Copy an existing `specs/*.md`, update `feature` and prose.
+3. Fill the `rde` block with the public API you want **guaranteed** by the contract.
+4. Run: `python requirements_linter/rde_linter.py specs/<feature>.md openvair/modules/<feature>`
+5. Fix all **errors**; decide on **warnings** (expand contract vs narrow code API).
+6. Run `lint_repo_specs.py` and pre-commit before push.
 
-2. Trim `specs/my_feature.md` to the public contract.
-3. Lint one module:
+### 15.2. Changing an existing module
 
-```bash
-python requirements_linter/rde_linter.py specs/my_feature.md openvair/modules/my_feature
-```
+1. Change code.
+2. Update `specs/<feature>.md` (renames, new methods, new routes).
+3. Lint that module locally.
+4. Before merge, run `lint_repo_specs.py` on the whole repo.
 
-4. Fix spec → code errors; optionally address WARNINGS.
-5. Lint all: `python requirements_linter/lint_repo_specs.py`.
-6. Run pre-commit before push.
+### 15.3. Refactoring
 
----
-
-## 11. FAQ
-
-**Route exists but linter fails?**
-
-Handler name, `type_hint`, `kind` (query vs body), or prefix/path normalization.
-
-**Empty layer?**
-
-Check `.py` under the layer folder and public symbol names.
-
-**Safest update after refactor?**
-
-Regenerate → manual trim → single-module lint loop.
+1. Pick whether contract or code leads during the refactor.
+2. Run the linter after each logical chunk of changes.
+3. Avoid permanently using `--no-warn-extras` without reason — the contract stops documenting the real API.
 
 ---
 
-## 12. Command cheat sheet
+## 16. FAQ
+
+**Why does the linter miss an endpoint that works in the browser?**  
+Common causes: wrong handler name, path missing router prefix, dynamic path, route only registered via `include_router` elsewhere.
+
+**Must private methods be listed?**  
+No. Names starting with `_` are ignored.
+
+**What is the big `specs/scheduler.md` vs the `rde` block?**  
+The Markdown around the block is for humans. The ````rde` block is what the linter reads.
+
+**Lint only changed files?**  
+Default is whole module or all specs. Use `rde_linter.py` with explicit paths for one module.
+
+---
+
+## 17. Command reference
 
 ```bash
-# Single module
+# One module
 python requirements_linter/rde_linter.py specs/user.md openvair/modules/user
 
-# Without extra-code warnings
+# No extra-code warnings
 python requirements_linter/rde_linter.py specs/user.md openvair/modules/user --no-warn-extras
+
+# Demo
+python requirements_linter/rde_linter.py --demo
 
 # All specs
 python requirements_linter/lint_repo_specs.py
 
-# Generate draft .md
-python requirements_linter/generate_openvair_specs.py --feature user
+# Pre-commit
+./venv/bin/pre-commit run rde-spec-linter --all-files
 
-# Linter tests
-python -m pytest requirements_linter/tests -v --override-ini addopts=
+# Linter's own tests
+./venv/bin/python -m pytest requirements_linter/tests -v --override-ini addopts=
 ```
 
----
-
-See also the short overview: [README.md](README.md).

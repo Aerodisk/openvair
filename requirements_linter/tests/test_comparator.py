@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import yaml
 
-from requirements_linter.analyzer import AstAnalyzer
-from requirements_linter.ast_specs import MODULE_FUNCTIONS_BUCKET
-from requirements_linter.comparator import Comparator
+from requirements_linter.core.analyzer import AstAnalyzer
+from requirements_linter.core.ast_specs import MODULE_FUNCTIONS_BUCKET
+from requirements_linter.core.comparator import Comparator
 
 SOURCES_OK = {
     'domain/models.py': '''

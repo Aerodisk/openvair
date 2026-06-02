@@ -1,1 +1,1 @@
-"""RDE YAML specification linter for OpenVAir bounded contexts."""
+"""RDE contract linter for Open vAIR modules."""

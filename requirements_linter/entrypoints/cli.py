@@ -1,4 +1,4 @@
-"""CLI: arguments, spec loading, and lint entrypoints."""
+"""Command-line entry points for linting one module or running the built-in demo."""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ from requirements_linter._paths import REPO_ROOT, ensure_repo_root_on_syspath
 
 ensure_repo_root_on_syspath()
 
-from requirements_linter.analyzer import AstAnalyzer  # noqa: E402
-from requirements_linter.comparator import Comparator, CompareResult  # noqa: E402
-from requirements_linter.spec_document import load_spec  # noqa: E402
+from requirements_linter.core.analyzer import AstAnalyzer  # noqa: E402
+from requirements_linter.core.comparator import Comparator, CompareResult  # noqa: E402
+from requirements_linter.contract.spec_document import load_spec  # noqa: E402
 
 SYNTHETIC_SPEC_YAML_DEMO = """
 meta:
@@ -50,7 +50,7 @@ class UserApplicationService:
 
 
 def parse_cli(argv: list[str]) -> argparse.Namespace:
-    """Define and parse linter CLI ``argv``."""
+    """Parse arguments for ``rde_linter.py`` (paths, ``--demo``, ``--no-warn-extras``)."""
     parser = argparse.ArgumentParser(
         description=(
             'RDE lint: load contract from specs/<feature>.md (``rde`` block) '
@@ -96,7 +96,7 @@ def run_on_openvair_module(
     *,
     warn_extras: bool = True,
 ) -> tuple[dict[str, dict[str, object]], CompareResult]:
-    """Load ``spec_path`` and diff it against Python under ``module_dir``."""
+    """Load ``spec_path``, parse Python under ``module_dir``, and run ``Comparator``."""
     reqs = load_spec(spec_path)
     analyzer = AstAnalyzer.from_bounded_context_dir(module_dir)
     artifacts = analyzer.extract()
@@ -105,13 +105,14 @@ def run_on_openvair_module(
 
 
 def run_demo_pipeline(*, warn_extras: bool = True) -> CompareResult:
-    """Run Comparator on the built-in pedagogical YAML and sources."""
+    """Run the linter on built-in sample contract and source strings (no disk I/O)."""
     reqs = yaml.safe_load(SYNTHETIC_SPEC_YAML_DEMO)
     arts = AstAnalyzer(SYNTHETIC_INLINE_SOURCES_DEMO).extract()
     return Comparator(reqs, arts).compare(report_extras=warn_extras)
 
 
 def _print_warnings(warnings: list[str]) -> None:
+    """Print non-blocking warnings to stdout."""
     if not warnings:
         return
     print('[RDE-LINTER] WARNINGS (code not listed in contract):')  # noqa: T201
@@ -120,7 +121,7 @@ def _print_warnings(warnings: list[str]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry: demo mode or filesystem spec vs module roots."""
+    """Run demo or compare spec file vs module directory. Exit ``0`` ok, ``1`` on errors."""
     opts = parse_cli(argv if argv is not None else sys.argv[1:])
     warn_extras = not opts.no_warn_extras
 

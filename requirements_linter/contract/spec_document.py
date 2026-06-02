@@ -1,4 +1,4 @@
-"""Load RDE contracts from Markdown (``rde`` fence) or legacy YAML files."""
+"""Load and normalize RDE contracts from Markdown or legacy YAML files."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from requirements_linter.http_routes import join_fastapi_route_path
+from requirements_linter.http.http_routes import join_fastapi_route_path
 
 _RDE_FENCE_RE = re.compile(
     r'^```[ \t]*rde[ \t]*\r?\n(.*)^```',
@@ -24,10 +24,10 @@ KNOWN_LAYER_NAMES = frozenset({
 
 
 def extract_rde_block(markdown_text: str) -> str:
-    """Return inner YAML from the first `` ```rde `` fenced block.
+    """Return YAML text inside the first `` ```rde `` fenced block.
 
     Raises:
-        ValueError: When no ``rde`` fence is present.
+        ValueError: If no ``rde`` block exists.
     """
     match = _RDE_FENCE_RE.search(markdown_text)
     if not match:
@@ -40,6 +40,7 @@ def extract_rde_block(markdown_text: str) -> str:
 
 
 def _layer_uses_rrd_shorthand(layer_data: dict[str, Any]) -> bool:
+    """True if the layer uses shorthand keys ``classes``, ``module_functions``, or ``http``."""
     return (
         'classes' in layer_data
         or 'module_functions' in layer_data
@@ -48,6 +49,7 @@ def _layer_uses_rrd_shorthand(layer_data: dict[str, Any]) -> bool:
 
 
 def _normalize_http_endpoints(http_block: dict[str, Any]) -> list[dict[str, Any]]:
+    """Convert shorthand ``http: {router_prefix, endpoints}`` to a route list."""
     prefix_raw = http_block.get('router_prefix')
     prefix = str(prefix_raw) if prefix_raw is not None else None
     endpoints_raw = http_block.get('endpoints', [])
@@ -77,6 +79,7 @@ def _normalize_http_endpoints(http_block: dict[str, Any]) -> list[dict[str, Any]
 
 
 def _normalize_layer(layer_data: dict[str, Any]) -> dict[str, Any]:
+    """Rewrite shorthand layer keys to ``required_*`` canonical names."""
     if not _layer_uses_rrd_shorthand(layer_data):
         return layer_data
 
@@ -136,7 +139,10 @@ def _normalize_layer(layer_data: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_contract_document(doc: object) -> dict[str, Any]:
-    """Accept standard contract YAML or RRD shorthand (``classes``, ``http``, …)."""
+    """Validate and normalize parsed contract YAML to a fixed shape.
+
+    Ensures ``feature``, ``layers``, and ``meta`` are present and layer names are known.
+    """
     if not isinstance(doc, dict):
         msg = f'Contract root must be a mapping, got {type(doc).__name__}.'
         raise TypeError(msg)
@@ -197,7 +203,7 @@ def load_spec(path: Path) -> dict[str, Any]:
 
 
 def contract_to_markdown(doc: dict[str, Any], *, title: str | None = None) -> str:
-    """Render a contract dict as a Markdown file with an ``rde`` fence."""
+    """Format a contract dict as a Markdown file with an ``rde`` YAML block (for tests)."""
     feature = str(doc.get('feature', 'unknown'))
     heading = title or f'Open vAIR contract: {feature}'
     meta = doc.get('meta') or {}

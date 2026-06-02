@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from requirements_linter.cli import run_on_openvair_module
-from requirements_linter.lint_repo_specs import (
+from requirements_linter.entrypoints.cli import run_on_openvair_module
+from requirements_linter.entrypoints.lint_repo_specs import (
     lint_all_specs,
     module_dir_for_spec,
 )
-from requirements_linter.spec_document import contract_to_markdown, load_spec
+from requirements_linter.contract.spec_document import contract_to_markdown, load_spec
 
 
 def test_module_dir_for_spec_prefers_feature_key(tmp_path: Path) -> None:
