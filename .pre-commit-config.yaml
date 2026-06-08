@@ -15,5 +15,5 @@ repos:
       name: RDE Markdown specs
       entry: bash .githooks/rde-linter
       language: system
-      files: ^specs/
+      always_run: true
       pass_filenames: false
